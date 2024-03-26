@@ -4,4 +4,5 @@
 venv/
 media/
 postgresql-data/
+db_data/
 staticfiles/
