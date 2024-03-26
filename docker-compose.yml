@@ -1,0 +1,35 @@
+version: "3"
+
+services:
+  db_postgres:
+    image: postgres:15
+    env_file:
+      - .env
+    volumes:
+      - ./postgresql-data:/var/lib/postgresql/data
+    restart: always
+
+  config:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - staticfiles:/code/staticfiles
+      - .:/code
+    depends_on:
+      - db_postgres
+
+  nginx:
+    image: nginx:1.13
+    ports:
+      - 8000:80
+    volumes:
+      - ./config/nginx/conf.d:/etc/nginx/conf.d
+      - staticfiles:/code/staticfiles
+    depends_on:
+      - config
+
+volumes:
+  .:
+  postgres_data:
+  staticfiles:

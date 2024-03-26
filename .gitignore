@@ -1,0 +1,7 @@
+*.conf
+*.pyc
+.env
+venv/
+media/
+postgresql-data/
+staticfiles/
