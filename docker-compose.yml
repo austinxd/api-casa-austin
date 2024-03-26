@@ -1,12 +1,12 @@
 version: "3"
 
 services:
-  db_postgres:
-    image: postgres:15
+  db:
+    image: mysql:8
     env_file:
       - .env
     volumes:
-      - ./postgresql-data:/var/lib/postgresql/data
+      - ./db_data:/var/lib/mysql
     restart: always
 
   config:
@@ -17,7 +17,7 @@ services:
       - staticfiles:/code/staticfiles
       - .:/code
     depends_on:
-      - db_postgres
+      - db
 
   nginx:
     image: nginx:1.13
@@ -31,5 +31,5 @@ services:
 
 volumes:
   .:
-  postgres_data:
+  db_data:
   staticfiles:

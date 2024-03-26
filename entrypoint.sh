@@ -1,6 +1,7 @@
 #!/bin/sh
 cd src
 
+python manage.py makemigrations --no-input
 python manage.py migrate --no-input
 python manage.py collectstatic --no-input
 python 01_script_base.py
