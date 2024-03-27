@@ -24,6 +24,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
         """
         Custom queryset to search reservations in a given month-year
         """
+        print('------', self.action)
         if self.action == 'list':
             if self.request.query_params:
                 if self.request.query_params.get('year') and self.request.query_params.get('month'):
@@ -50,6 +51,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
                         Q(check_in_date__range=range_evaluate) |
                         Q(check_out_date__range=range_evaluate)
                     )
+        elif self.action in ['partial_update', 'update', 'destroy']:
+            queryset = queryset.filter(seller=self.request.user)
 
         return queryset
 
@@ -120,3 +123,9 @@ class ReservationsApiView(viewsets.ModelViewSet):
 class DeleteRecipeApiView(generics.DestroyAPIView):
     queryset = RentalReceipt.objects.all()
     serializer_class = ReciptSerializer
+
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        return queryset.filter(reservation__seller=self.request.user)
