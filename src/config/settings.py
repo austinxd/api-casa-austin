@@ -98,33 +98,19 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 
 # Database
-DATABASES = {  
-    'default': {  
-        'ENGINE': 'django.db.backends.mysql',  
-        'NAME': 'casa_austin',  
-        'USER': 'root',  
-        'PASSWORD': 'pass',  
-        'HOST': '127.0.0.1',  
-        'PORT': '3306',  
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME':  env('MYSQL_DATABASE', default='casa_austin'),
+        'USER':  env('MYSQL_USER', default='root'),
+        'PASSWORD': env('MYSQL_PASSWORD', default='pass'),
+        'HOST': env('MYSQL_HOST', default='localhost'),
+        'PORT':  env('MYSQL_PORT', default='3306'),
         'OPTIONS': {  
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"  
         }  
-    }  
+    }
 }
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME':  env('MYSQL_DATABASE'),
-#         'USER':  'root',
-#         'PASSWORD': env('MYSQL_PASSWORD'),
-#         'HOST': env('MYSQL_HOST'),
-#         'PORT':  env('MYSQL_PORT'),
-#         'OPTIONS': {  
-#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"  
-#         }  
-#     }
-# }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
