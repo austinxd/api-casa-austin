@@ -31,6 +31,7 @@ CSRF_TRUSTED_ORIGINS = env.list(
         'http://localhost:8000',
         'http://127.0.0.1:3000',
         'http://127.0.0.1:8000',
+        'https://api.casaaustin.pe'
     ]
 )
 
@@ -46,7 +47,7 @@ DJANGO_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "django.contrib.staticfiles",
+    "django.contrib.staticfiles"
 ]
 
 LOCAL_APPS = [
@@ -97,16 +98,32 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 
 # Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': env('MYSQL_DATABASE'),
-        'USER':  'root',
-        'PASSWORD':  env('MYSQL_PASSWORD'),
-        'HOST': env('MYSQL_HOST'),
-        'PORT': env('MYSQL_PORT')
-    }
+DATABASES = {  
+    'default': {  
+        'ENGINE': 'django.db.backends.mysql',  
+        'NAME': 'casa_austin',  
+        'USER': 'root',  
+        'PASSWORD': 'pass',  
+        'HOST': '127.0.0.1',  
+        'PORT': '3306',  
+        'OPTIONS': {  
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"  
+        }  
+    }  
 }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME':  env('MYSQL_DATABASE'),
+#         'USER':  'root',
+#         'PASSWORD': env('MYSQL_PASSWORD'),
+#         'HOST': env('MYSQL_HOST'),
+#         'PORT':  env('MYSQL_PORT'),
+#         'OPTIONS': {  
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"  
+#         }  
+#     }
+# }
 
 
 # Password validation
