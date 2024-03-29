@@ -20,7 +20,6 @@ class ReciptSerializer(serializers.ModelSerializer):
     def get_file(self, instance):
         request = self.context.get('request', None)
         if request and instance.file:
-            print('AAAAAAAAAAAAAAAa', request.build_absolute_uri())
             return request.build_absolute_uri(instance.file.url)
         return None
 

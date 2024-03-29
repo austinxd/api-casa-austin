@@ -24,7 +24,6 @@ class ReservationsApiView(viewsets.ModelViewSet):
         """
         Custom queryset to search reservations in a given month-year
         """
-        print('------', self.action)
         if self.action == 'list':
             if self.request.query_params:
                 if self.request.query_params.get('year') and self.request.query_params.get('month'):
