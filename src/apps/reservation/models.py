@@ -1,4 +1,5 @@
 import os
+import uuid
 from django.conf import settings
 
 
@@ -35,6 +36,10 @@ class Reservation(BaseModel):
             SOL = "sol", ("Soles")
             USD = "usd", ("Dólares")
 
+    class OriginReservationTypeChoice(models.TextChoices):
+            AIR = "air", ("Airbnb")
+            AUS = "aus", ("Austin")
+
     client = models.ForeignKey(Clients, on_delete=models.CASCADE, null=False, blank=False)
     property = models.ForeignKey(Property, on_delete=models.CASCADE, null=False, blank=False)
     seller = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=False, blank=False)
@@ -44,8 +49,12 @@ class Reservation(BaseModel):
     price_usd = models.DecimalField(max_digits=20, decimal_places=2)
     price_sol = models.DecimalField(max_digits=20, decimal_places=2)
     advance_payment = models.DecimalField(max_digits=20, decimal_places=2)
-    advance_payment_currency =  models.CharField(
+    advance_payment_currency = models.CharField(
         max_length=3, choices=AdvancePaymentTypeChoice.choices, default=AdvancePaymentTypeChoice.SOL
+    )
+    uuid_external = models.UUIDField(null=True, blank=True)
+    origin = models.CharField(
+        max_length=3, choices=OriginReservationTypeChoice.choices, default=OriginReservationTypeChoice.AUS
     )
 
     objects = ManagerCustomReservation()
