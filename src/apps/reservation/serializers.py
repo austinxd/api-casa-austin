@@ -35,7 +35,7 @@ class ReservationSerializer(serializers.ModelSerializer):
 
         if not self.instance:
             self.fields['seller'].required = False
-            self.fields['seller'].read_only = True
+            self.fields['seller'].read_only = False # FIXME: cambiar a true luego de definir las reservas de airbnb
 
     def validate(self, attrs):
 

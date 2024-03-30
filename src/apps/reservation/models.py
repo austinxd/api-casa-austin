@@ -52,7 +52,7 @@ class Reservation(BaseModel):
     advance_payment_currency = models.CharField(
         max_length=3, choices=AdvancePaymentTypeChoice.choices, default=AdvancePaymentTypeChoice.SOL
     )
-    uuid_external = models.UUIDField(null=True, blank=True)
+    uuid_external = models.CharField(max_length=100, null=True, blank=True)
     origin = models.CharField(
         max_length=3, choices=OriginReservationTypeChoice.choices, default=OriginReservationTypeChoice.AUS
     )
