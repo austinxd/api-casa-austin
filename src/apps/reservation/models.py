@@ -40,13 +40,13 @@ class Reservation(BaseModel):
             AIR = "air", ("Airbnb")
             AUS = "aus", ("Austin")
 
-    client = models.ForeignKey(Clients, on_delete=models.CASCADE, null=False, blank=False)
+    client = models.ForeignKey(Clients, on_delete=models.CASCADE)
     property = models.ForeignKey(Property, on_delete=models.CASCADE, null=False, blank=False)
-    seller = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=False, blank=False)
+    seller = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     check_in_date = models.DateField()
     check_out_date = models.DateField()
     guests = models.PositiveIntegerField(null=False, blank=False, default=1)
-    price_usd = models.DecimalField(max_digits=20, decimal_places=2)
+    price_usd = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
     price_sol = models.DecimalField(max_digits=20, decimal_places=2)
     advance_payment = models.DecimalField(max_digits=20, decimal_places=2)
     advance_payment_currency = models.CharField(
