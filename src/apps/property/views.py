@@ -23,6 +23,7 @@ class PropertyApiView(viewsets.ReadOnlyModelViewSet):
             return None
 
         return self.pagination_class
+    
     def list(self, request, *args, **kwargs):
         self.pagination_class = self.get_pagination_class()
         return super().list(request, *args, **kwargs)
