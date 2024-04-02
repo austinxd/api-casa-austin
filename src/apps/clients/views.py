@@ -1,3 +1,4 @@
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, viewsets
 from rest_framework.decorators import action
 
@@ -24,6 +25,25 @@ class ClientsApiView(viewsets.ModelViewSet):
             return None
 
         return self.pagination_class
+    
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "page_size",
+                OpenApiTypes.INT,
+                description="Enviar page_size=valor para determinar tamaño de la pagina, sino enviar page_size=none para no tener paginado",
+                required=False,
+            ),
+            OpenApiParameter(
+                "search",
+                OpenApiTypes.STR,
+                description="Busqueda por nombre, apellido o email",
+                required=False,
+            ),
+        ],
+        responses={200: ClientsSerializer},
+        methods=["GET"],
+    )
     def list(self, request, *args, **kwargs):
         self.pagination_class = self.get_pagination_class()
         return super().list(request, *args, **kwargs)

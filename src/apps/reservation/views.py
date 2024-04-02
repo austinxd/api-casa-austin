@@ -100,6 +100,12 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 description="Filter results by month (number 1 to 12)",
                 enum=list(range(1,13)),
             ),
+            OpenApiParameter(
+                "page_size",
+                OpenApiTypes.INT,
+                description="Enviar page_size=valor para determinar tamaño de la pagina, sino enviar page_size=none para no tener paginado",
+                required=False,
+            ),
         ],
         responses={200: ReservationListSerializer(many=True)},
         methods=["GET"],

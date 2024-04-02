@@ -1,8 +1,9 @@
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, viewsets
 from rest_framework.exceptions import ValidationError
 
 from apps.core.paginator import CustomPagination
-from apps.core.mixins import AdminMixin
+# from apps.core.mixins import AdminMixin
 
 from .models import Property, ProfitPropertyAirBnb
 from .serializers import PropertySerializer, ProfitPropertyAirBnbSerializer
@@ -25,7 +26,25 @@ class PropertyApiView(viewsets.ReadOnlyModelViewSet):
             return None
 
         return self.pagination_class
-    
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "page_size",
+                OpenApiTypes.INT,
+                description="Enviar page_size=valor para determinar tamaño de la pagina, sino enviar page_size=none para no tener paginado",
+                required=False,
+            ),
+            OpenApiParameter(
+                "search",
+                OpenApiTypes.STR,
+                description="Busqueda por nombre de propiedad",
+                required=False,
+            ),
+        ],
+        responses={200: PropertySerializer},
+        methods=["GET"],
+    )
     def list(self, request, *args, **kwargs):
         self.pagination_class = self.get_pagination_class()
         return super().list(request, *args, **kwargs)
@@ -74,7 +93,20 @@ class ProfitPropertyApiView(viewsets.ModelViewSet):
                     queryset = queryset.filter(month=month_param, year=year_param)
 
         return queryset
-
+    
+    
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "page_size",
+                OpenApiTypes.INT,
+                description="Enviar page_size=valor para determinar tamaño de la pagina, sino enviar page_size=none para no tener paginado",
+                required=False,
+            ),
+        ],
+        responses={200: ProfitPropertyAirBnbSerializer},
+        methods=["GET"],
+    )
     def list(self, request, *args, **kwargs):
         self.pagination_class = self.get_pagination_class()
         return super().list(request, *args, **kwargs)
