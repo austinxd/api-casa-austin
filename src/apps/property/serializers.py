@@ -9,6 +9,10 @@ class PropertySerializer(serializers.ModelSerializer):
         exclude = ["created", "updated", "deleted"]
 
 class ProfitPropertyAirBnbSerializer(serializers.ModelSerializer):
+    property = serializers.SerializerMethodField()
     class Meta:
         model = ProfitPropertyAirBnb
         exclude = ["created", "updated", "deleted"]
+
+    def get_property(self, instance):
+        return PropertySerializer(instance.property).data

@@ -1,11 +1,8 @@
-import calendar
-from datetime import datetime
-from django.db.models import Q
-
 from rest_framework import filters, viewsets
 from rest_framework.exceptions import ValidationError
 
 from apps.core.paginator import CustomPagination
+from apps.core.mixins import AdminMixin
 
 from .models import Property, ProfitPropertyAirBnb
 from .serializers import PropertySerializer, ProfitPropertyAirBnbSerializer
@@ -74,12 +71,10 @@ class ProfitPropertyApiView(viewsets.ModelViewSet):
                     except Exception:
                         raise ValidationError({"error_year_param": "Año debe ser un número entero positivo"})
 
-                    last_day_month = calendar.monthrange(year_param, month_param)[1]
-
-                    range_evaluate = (datetime(year_param, month_param, 1), datetime(year_param, month_param, last_day_month))
-                    queryset = queryset.filter(
-                        Q(check_in_date__range=range_evaluate) |
-                        Q(check_out_date__range=range_evaluate)
-                    )
+                    queryset = queryset.filter(month=month_param, year=year_param)
 
         return queryset
+
+    def list(self, request, *args, **kwargs):
+        self.pagination_class = self.get_pagination_class()
+        return super().list(request, *args, **kwargs)
