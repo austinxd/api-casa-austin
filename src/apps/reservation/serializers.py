@@ -44,7 +44,7 @@ class ReservationSerializer(serializers.ModelSerializer):
 
         # Check if checkin is after checkout
         if attrs.get('check_in_date') > attrs.get('check_out_date'):
-            raise serializers.ValidationError({'check_in_date':"Check in date must be later than Check out date"})
+            raise serializers.ValidationError({'check_in_date':"Fecha entrada debe ser anterior a fecha de salida"})
 
         # Check if this property si reserved in this range of date
         if Reservation.objects.filter(
@@ -55,7 +55,7 @@ class ReservationSerializer(serializers.ModelSerializer):
                 id=reservation_id
             ).exists():
 
-            raise serializers.ValidationError({'property':"The property is booked on those dates."})
+            raise serializers.ValidationError({'property':"Esta propiedad esta reservada en este rango de fecha"})
 
         
         return attrs

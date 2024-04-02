@@ -44,18 +44,18 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     try:
                         month_param = int(self.request.query_params['month'])
                         if not month_param in range(1,13):
-                            raise ValidationError({"error":"Month param must be a number between 1-12"})
+                            raise ValidationError({"error":"Parámetro Mes debe ser un número entre el 1 y el 12"})
 
                     except Exception:
-                        raise ValidationError({"error_month_param": "Month param must be a number between 1-12"})
+                        raise ValidationError({"error_month_param": "Parámetro Mes debe ser un número entre el 1 y el 12"})
                         
                     try: 
                         year_param = int(self.request.query_params['year'])
                         if year_param < 1:
-                            raise ValidationError({"error":"Month param must be a number between 1-12"})
+                            raise ValidationError({"error":"Parámetro Mes debe ser un número entre el 1 y el 12"})
                     
                     except Exception:
-                        raise ValidationError({"error_year_param": "Year param must be a postive integer number"})
+                        raise ValidationError({"error_year_param": "Año debe ser un número entero positivo"})
 
                     last_day_month = calendar.monthrange(year_param, month_param)[1]
 
