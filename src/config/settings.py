@@ -103,8 +103,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME':  env('MYSQL_DATABASE', default='casa_austin'),
         'USER':  env('MYSQL_USER', default='root'),
-        'PASSWORD': env('MYSQL_PASSWORD', default='pass'),
-        'HOST': env('MYSQL_HOST', default='localhost'),
+        'PASSWORD': 'pass', #env('MYSQL_PASSWORD', default='pass'),
+        'HOST': env('MYSQL_HOST', default='127.0.0.1'),
         'PORT':  env('MYSQL_PORT', default='3306'),
         'OPTIONS': {  
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"  
