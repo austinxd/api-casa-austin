@@ -10,6 +10,8 @@ from rest_framework.exceptions import ValidationError
 
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 
+from apps.core.paginator import CustomPagination
+
 from .models import Reservation, RentalReceipt
 from .serializers import ReservationSerializer, ReservationListSerializer, ReservationRetrieveSerializer, ReciptSerializer
 
@@ -17,6 +19,18 @@ from .serializers import ReservationSerializer, ReservationListSerializer, Reser
 class ReservationsApiView(viewsets.ModelViewSet):
     serializer_class = ReservationSerializer
     queryset = Reservation.objects.all().order_by("created")
+    pagination_class = CustomPagination
+
+    def get_pagination_class(self):
+        """Determinar si usar o no paginación
+        - page_size = valor
+        - valor = un numero entero, será el tamaño de la pagina
+        - valor = none, no se pagina el resultado
+        """
+        if self.request.GET.get("page_size") == "none":
+            return None
+
+        return self.pagination_class
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -30,18 +44,18 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     try:
                         month_param = int(self.request.query_params['month'])
                         if not month_param in range(1,13):
-                            raise ValidationError({"error":"Month param must be a number between 1-12"})
+                            raise ValidationError({"error":"Parámetro Mes debe ser un número entre el 1 y el 12"})
 
                     except Exception:
-                        raise ValidationError({"error_month_param": "Month param must be a number between 1-12"})
+                        raise ValidationError({"error_month_param": "Parámetro Mes debe ser un número entre el 1 y el 12"})
                         
                     try: 
                         year_param = int(self.request.query_params['year'])
                         if year_param < 1:
-                            raise ValidationError({"error":"Month param must be a number between 1-12"})
+                            raise ValidationError({"error":"Parámetro Mes debe ser un número entre el 1 y el 12"})
                     
                     except Exception:
-                        raise ValidationError({"error_year_param": "Year param must be a postive integer number"})
+                        raise ValidationError({"error_year_param": "Año debe ser un número entero positivo"})
 
                     last_day_month = calendar.monthrange(year_param, month_param)[1]
 
@@ -90,8 +104,9 @@ class ReservationsApiView(viewsets.ModelViewSet):
         responses={200: ReservationListSerializer(many=True)},
         methods=["GET"],
     )
-    def list(self, request):
-        return super().list(request)
+    def list(self, request, *args, **kwargs):
+        self.pagination_class = self.get_pagination_class()
+        return super().list(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         with transaction.atomic():
