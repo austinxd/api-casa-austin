@@ -1,4 +1,4 @@
-from .views import PropertyApiView
+from .views import PropertyApiView, ProfitPropertyApiView
 
 
 from django.urls import include, path
@@ -7,6 +7,7 @@ from rest_framework.routers import DefaultRouter
 router = DefaultRouter()
 
 router.register("property", PropertyApiView, basename="property")
+router.register("profit", ProfitPropertyApiView, basename="profit")
 
 urlpatterns = [
     path("", include(router.urls)),

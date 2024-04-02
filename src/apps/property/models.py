@@ -28,6 +28,8 @@ class ProfitPropertyAirBnb(BaseModel):
     year = models.PositiveIntegerField(null=False, blank=False, default=1)
     profit_sol = models.DecimalField(max_digits=20, decimal_places=2, verbose_name='Ganancia (Soles)')
     
+    class Meta:
+        unique_together = ('property', 'month', 'year')
 
     def __str__(self):
         return f"Ganancia AirBnB {self.property.name} - Mes: {self.month} Año: {self.year}"
