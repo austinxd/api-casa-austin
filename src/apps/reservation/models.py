@@ -40,15 +40,15 @@ class Reservation(BaseModel):
             AIR = "air", ("Airbnb")
             AUS = "aus", ("Austin")
 
-    client = models.ForeignKey(Clients, on_delete=models.CASCADE)
+    client = models.ForeignKey(Clients, on_delete=models.CASCADE, null=True, blank=True)
     property = models.ForeignKey(Property, on_delete=models.CASCADE, null=False, blank=False)
-    seller = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    seller = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
     check_in_date = models.DateField()
     check_out_date = models.DateField()
     guests = models.PositiveIntegerField(null=False, blank=False, default=1)
     price_usd = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
-    price_sol = models.DecimalField(max_digits=20, decimal_places=2)
-    advance_payment = models.DecimalField(max_digits=20, decimal_places=2)
+    price_sol = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
+    advance_payment = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
     advance_payment_currency = models.CharField(
         max_length=3, choices=AdvancePaymentTypeChoice.choices, default=AdvancePaymentTypeChoice.SOL
     )
@@ -60,7 +60,10 @@ class Reservation(BaseModel):
     objects = ManagerCustomReservation()
 
     def __str__(self):
-        return f"Reserva de {self.client.last_name}, {self.client.first_name} ({self.id})"
+        if self.client:
+            return f"Reserva de {self.client.last_name}, {self.client.first_name} ({self.id})"
+        else:
+            return f"Reserva desde API Airbnb (sin datos del cliente)"
 
 
 class RentalReceipt(BaseModel):
