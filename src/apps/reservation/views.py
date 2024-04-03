@@ -19,6 +19,12 @@ from .serializers import ReservationSerializer, ReservationListSerializer, Reser
 class ReservationsApiView(viewsets.ModelViewSet):
     serializer_class = ReservationSerializer
     queryset = Reservation.objects.all().order_by("created")
+    search_fields = [
+        "client__email",
+        "client__first_name",
+        "client__last_name",
+        "property__name"
+    ]
     pagination_class = CustomPagination
 
     def get_pagination_class(self):
