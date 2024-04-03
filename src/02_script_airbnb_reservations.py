@@ -19,8 +19,8 @@ url_base = "https://casaaustin.pe/api/prueba.php?ics_url="  # FIXME: poner en un
 query_property = Property.objects.exclude(airbnb_url__isnull=True)
 reservations_uid = Reservation.objects.all().values_list("uuid_external", flat=True)
 
-usuario = CustomUser.objects.all().first()
-cliente = Clients.objects.all().first()
+# usuario = CustomUser.objects.all().first()
+# cliente = Clients.objects.all().first()
 
 for q in query_property:
     if q.airbnb_url:
@@ -56,14 +56,11 @@ for q in query_property:
                         "check_out_date": date_end,
                         "property": q.id,
                         "origin": "air",
-                        "code": r["description"],
                         "price_usd": 0,
-                        "price_sol": 15500,
-                        "advance_payment": 1500,
-                        "client": cliente.id,
-                        "seller": usuario.id,
+                        "price_sol": 0,
+                        "advance_payment": 0,
                     }
-                    serializer = ReservationSerializer(data=data)
+                    serializer = ReservationSerializer(data=data, context={"script": True})
                     if serializer.is_valid():
                         serializer.save()
                     else:
