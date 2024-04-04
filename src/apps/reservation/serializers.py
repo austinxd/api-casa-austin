@@ -46,7 +46,7 @@ class ReservationSerializer(serializers.ModelSerializer):
         reservation_id = self.instance.id if self.instance else None
 
         # Check if checkin is after checkout
-        if attrs.get('check_in_date') > attrs.get('check_out_date'):
+        if attrs.get('check_in_date') >= attrs.get('check_out_date'):
             raise serializers.ValidationError("Fecha entrada debe ser anterior a fecha de salida")
 
         # Check if this property si reserved in this range of date
