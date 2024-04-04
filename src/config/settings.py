@@ -27,15 +27,17 @@ ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=['*'])
 CSRF_TRUSTED_ORIGINS = env.list(
     "DJANGO_CSRF_TRUSTED_ORIGINS", 
     default=[
-        'http://localhost:3000',
-        'http://localhost:8000',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:8000',
-        'https://api.casaaustin.pe'
+        'http://localhost:8000'
     ]
 )
 
 # CORS
+CORS_ALLOWED_ORIGINS = env.list(
+    "DJANGO_CORS_ALLOWED_ORIGINS", 
+    default=[
+        'http://localhost:3000'
+    ]
+)
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'https://reservas.casaaustin.pe/',
@@ -221,3 +223,5 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '0.7',
     'SERVE_INCLUDE_SCHEMA': False,
 }
+
+print('CORS: ', CORS_ALLOWED_ORIGINS)
