@@ -38,6 +38,7 @@ CSRF_TRUSTED_ORIGINS = env.list(
 # CORS
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
+    'https://reservas.casaaustin.pe/',
 ]
 
 # Application definition
