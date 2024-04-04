@@ -10,6 +10,7 @@ class Property(BaseModel):
     location = models.CharField(max_length=250, null=True, blank=True)
     airbnb_url = models.URLField(null=True, blank=True)
     capacity_max = models.IntegerField(null=True, blank=True)
+    background_color = models.CharField(max_length=255, null=False, blank=False, default="#fff")
 
     def __str__(self):
         return self.name
