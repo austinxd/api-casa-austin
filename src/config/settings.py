@@ -38,10 +38,6 @@ CORS_ALLOWED_ORIGINS = env.list(
         'http://localhost:3000'
     ]
 )
-CORS_ALLOWED_ORIGINS = [
-    'http://localhost:3000',
-    'https://reservas.casaaustin.pe/',
-]
 
 # Application definition
 DJANGO_APPS = [
