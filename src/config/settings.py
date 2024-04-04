@@ -202,7 +202,8 @@ REST_FRAMEWORK = {
 
     'NON_FIELD_ERRORS_KEY': 'detail',
 
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema'
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'EXCEPTION_HANDLER': 'apps.core.utils.custom_exception_handler',
 }
 
 SIMPLE_JWT = {
