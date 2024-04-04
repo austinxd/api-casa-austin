@@ -1,11 +1,17 @@
-from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
+from django.db.models import Q
+
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, OpenApiExample, extend_schema
 from rest_framework import filters, viewsets
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
 
 from apps.core.paginator import CustomPagination
 # from apps.core.mixins import AdminMixin
 
 from .models import Property, ProfitPropertyAirBnb
+from apps.reservation.models import Reservation
+
 from .serializers import PropertySerializer, ProfitPropertyAirBnbSerializer
 
 
@@ -110,3 +116,53 @@ class ProfitPropertyApiView(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         self.pagination_class = self.get_pagination_class()
         return super().list(request, *args, **kwargs)
+
+class CheckAvaiblePorperty(APIView):
+    serializer_class = None
+    
+    def post(self, request, format=None):
+        property_field = request.data['property']
+        check_out_date = request.data['check_out_date']
+        check_in_date = request.data['check_in_date']
+
+        content = {
+            'message': 'Propiedad disponible para esa fecha',
+            'condition': True
+        }
+        status_code = 200
+
+        if Reservation.objects.filter(property=property_field,).filter(
+                Q(check_in_date__lt=check_out_date) & Q(check_out_date__gt=check_in_date)
+            ).exists():
+                content = {
+                    'message': 'Propiedad no disponible para esa fecha',
+                    'condition': False
+                }
+                status_code = 404
+
+        return Response(content, status=status_code)
+    
+    def patch(self, request, format=None):
+        property_field = request.data['property']
+        check_out_date = request.data['check_out_date']
+        check_in_date = request.data['check_in_date']
+        reservation_id = request.data['reservation_id']
+
+        content = {
+            'message': 'Propiedad disponible para esa fecha',
+            'condition': True
+        }
+        status_code = 200
+
+        if Reservation.objects.filter(property=property_field,).filter(
+                Q(check_in_date__lt=check_out_date) & Q(check_out_date__gt=check_in_date)
+            ).exclude(
+                id=reservation_id
+            ).exists():
+                content = {
+                    'message': 'Propiedad no disponible para esa fecha',
+                    'condition': False
+                }
+                status_code = 404
+
+        return Response(content, status=status_code)
