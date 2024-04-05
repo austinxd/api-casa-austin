@@ -53,7 +53,8 @@ LOCAL_APPS = [
     'apps.accounts',
     'apps.clients',
     'apps.property',
-    'apps.reservation'
+    'apps.reservation',
+    'apps.dashboard'
 ]
 
 THIRD_APPS = [
