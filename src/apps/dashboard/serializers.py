@@ -5,12 +5,10 @@ from apps.property.serializers import PropertySerializer
 
 
 class DashboardSerializer(serializers.Serializer):
-    # id = serializers.UUIDField(required=False)
-    # property = PropertySerializer()
     num_reservas = serializers.IntegerField()
     property = serializers.SerializerMethodField()
     percentage = serializers.FloatField()
+    background_color = serializers.CharField()
     
     def get_property(self, instance):
-        prop = Property.objects.filter(id=instance["property"]).first()
-        return PropertySerializer(prop).data
+        return PropertySerializer(Property.objects.filter(id=instance["property"]).first()).data
