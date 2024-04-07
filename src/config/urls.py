@@ -17,7 +17,7 @@ urlpatterns = [
     path(settings.DJANGO_ADMIN_PATH, admin.site.urls),
     path('api/v1/test/', apiviews.TestApi.as_view()),
     path('api/v1/test/login/', apiviews.TestLogeoApi.as_view()),
-    path('api/v1/login/',  TokenObtainPairView.as_view(),),
+    path('api/v1/login/',  apiviews.CustomTokenObtainPairView.as_view(),),
     path('api/v1/token/refresh/', TokenRefreshView.as_view()),
     # urls endpoints
     # path('api/v1/clients/', include('apps.clients.urls')),

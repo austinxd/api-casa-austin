@@ -185,6 +185,7 @@ DEFAULT_PAGE_SIZE = 20
 REST_FRAMEWORK = {
    'DEFAULT_PERMISSION_CLASSES': (
     'rest_framework.permissions.IsAuthenticated',
+    'apps.core.permissions.CustomPermissions'
     # 'rest_framework.permissions.AllowAny',
    ),
    'DEFAULT_AUTHENTICATION_CLASSES': (
