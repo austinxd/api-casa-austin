@@ -30,7 +30,7 @@ class Clients(BaseModel):
         max_length=1, choices=GeneroChoice.choices, default=GeneroChoice.F
     )
 
-    email = models.EmailField(max_length=150)
+    email = models.EmailField(max_length=150, null=True, blank=True)
     date = models.DateField()
     tel_number = models.CharField(max_length=50, null=False, blank=False)
 
