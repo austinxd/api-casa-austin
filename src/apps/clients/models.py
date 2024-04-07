@@ -4,6 +4,11 @@ from apps.core.models import BaseModel
 class TokenApiClients(BaseModel):
     token = models.CharField(max_length=250, null=False, blank=False)
 
+    class Meta:
+        verbose_name = "Token rutificador"
+        verbose_name_plural = "Tokens rutificadores"
+        ordering = ['-created']
+
     def __str__(self):
         return f"Token: {self.token} creado: {self.created}"
 
