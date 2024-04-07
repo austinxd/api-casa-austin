@@ -1,6 +1,8 @@
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
-from rest_framework import filters, viewsets, generics
+from rest_framework import filters, viewsets
+from rest_framework.views import APIView
 from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from apps.core.paginator import CustomPagination
 
@@ -8,12 +10,12 @@ from .models import Clients, TokenApiClients
 from .serializers import ClientsSerializer, TokenApiClienteSerializer
 
 
-
-class TokenApiClientApiView(generics.ListCreateAPIView):
-    queryset = TokenApiClients.objects.exclude(deleted=True)
+class TokenApiClientApiView(APIView):
     serializer_class = TokenApiClienteSerializer
-    pagination_class = None
-
+    
+    def get(self, request):
+        content = self.serializer_class(TokenApiClients.objects.exclude(deleted=True).order_by("created").last()).data
+        return Response(content, status=200)
 
 class ClientsApiView(viewsets.ModelViewSet):
     serializer_class = ClientsSerializer
