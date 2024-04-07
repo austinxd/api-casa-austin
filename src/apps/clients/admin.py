@@ -1,4 +1,5 @@
 from django.contrib import admin
-from .models import TokenApiClients
+from .models import Clients, TokenApiClients
 
+admin.site.register(Clients)
 admin.site.register(TokenApiClients)

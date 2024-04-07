@@ -34,5 +34,8 @@ class Clients(BaseModel):
     date = models.DateField()
     tel_number = models.CharField(max_length=50, null=False, blank=False)
 
+    class Meta:
+        unique_together = ('document_type', 'number_doc')
+
     def __str__(self):
         return self.email
