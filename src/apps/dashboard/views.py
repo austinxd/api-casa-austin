@@ -63,19 +63,12 @@ class DashboardApiView(APIView):
 
         content['properties_more_reserved'] = list(content['properties_more_reserved']) + list_properties_without_reserved
 
-        # # Get usuarios vendedores
-        lta_ids_vendedores = CustomUser.objects.filter(groups__name='vendedor').values_list('id', flat=True)
-        # for x in CustomUser.objects.filter(groups__name='vendedor'):
-        #     print(x.groups.all())
-        #     # print(dir(x))
-
-
         # """" Vendedores """
         seller_more_reserved = Reservation.objects.filter(
                 created__gte=week,
                 created__lte=current_datetime,
                 seller__isnull=False,
-                seller__id__in=lta_ids_vendedores
+                seller__groups__name='vendedor'
             ).values(
                 'seller',
                 'seller__email',
@@ -90,14 +83,14 @@ class DashboardApiView(APIView):
                 created__gte=week,
                 created__lte=current_datetime,
                 seller__isnull=False,
-                seller__id__in=lta_ids_vendedores
+                seller__groups__name='vendedor'
             ).values_list(
                 'seller',
                 flat=True
             )
 
         list_seller_without_reserved = []
-        seller_without_reserved = CustomUser.objects.filter(id__in=lta_ids_vendedores).exclude(id__in=seller_list)
+        seller_without_reserved = CustomUser.objects.filter(groups__name='vendedor').exclude(id__in=seller_list)
         for s in seller_without_reserved:
             dict_aux = {
                 'seller': s.id,
