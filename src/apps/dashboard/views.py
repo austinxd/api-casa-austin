@@ -5,6 +5,7 @@ from datetime import timedelta
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from apps.property.models import Property
 from apps.reservation.models import Reservation
 
 from .serializers import DashboardSerializer
@@ -20,15 +21,38 @@ class DashboardApiView(APIView):
         current_datetime = timezone.now()
         week = current_datetime - timedelta(days=1)
         reservations_week = Reservation.objects.filter(created__gte=week, created__lte=current_datetime).count()
+
+        """" Propiedades """
         properties_more_reserved = Reservation.objects.filter(
                 created__gte=week,
                 created__lte=current_datetime
             ).values(
                 'property',
-                "property__background_color"
+                'property__background_color',
+                'property__name',
             ).annotate(
                 num_reservas=Count('id'),
             ).order_by('-num_reservas')
+
+        # Agregar propiedades que no tienen reservas
+        properties_list = Reservation.objects.filter(
+                created__gte=week,
+                created__lte=current_datetime
+            ).values_list(
+                'property',
+                flat=True
+            )
+        list_properties_without_reserved = []
+        prop_without_reserved = Property.objects.exclude(id__in=properties_list)
+        for p in prop_without_reserved:
+            dict_aux = {
+                'property': p.id,
+                'property__background_color': p.background_color,
+                'property__name': p.name,
+                'num_reservas': 0,
+                'percentage': float(0)
+            }
+            list_properties_without_reserved.append(dict_aux)
 
         content['properties_more_reserved'] = properties_more_reserved.annotate(
             percentage=ExpressionWrapper(
@@ -36,8 +60,23 @@ class DashboardApiView(APIView):
                 )
             )
 
+        content['properties_more_reserved'] = list(content['properties_more_reserved']) + list_properties_without_reserved
+
+        # """" Vendedores """
+        # seller_more_reserved = Reservation.objects.filter(
+        #         created__gte=week,
+        #         created__lte=current_datetime
+        #     ).values(
+        #         'property',
+        #         'property__background_color',
+        #         'property__name',
+        #     ).annotate(
+        #         num_reservas=Count('id'),
+        #     ).order_by('-num_reservas')
+
         reservations_week = Reservation.objects.filter(created__gte=week, created__lte=current_datetime).count()
         content["reservations_last_week"] = reservations_week
-
+        content["statistic_2"] = abs(reservations_week - 1)
+        content["statistic_3"] = abs(reservations_week - 3)
+        content["statistic_4"] = abs(reservations_week - 5)
         return Response(content, status=200)
-    
