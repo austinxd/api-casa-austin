@@ -20,7 +20,7 @@ class DashboardApiView(viewsets.ReadOnlyModelViewSet):
     # queryset = Reservation.objects.all()
     # filter_backends = [filters.SearchFilter]
     # search_fields = ["name"]
-    pagination_class = CustomPagination
+    pagination_class = None
     
     def get_queryset(self):
         week = datetime.now() - timedelta(days=1)

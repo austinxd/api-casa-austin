@@ -1,7 +1,12 @@
 from rest_framework import serializers
 
-from .models import Clients
+from .models import Clients, TokenApiClients
 
+
+class TokenApiClienteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TokenApiClients
+        exclude = ["id", "created", "updated", "deleted"]
 
 class ClientsSerializer(serializers.ModelSerializer):
     class Meta:

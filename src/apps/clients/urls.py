@@ -1,4 +1,4 @@
-from .views import ClientsApiView
+from .views import TokenApiClientApiView, ClientsApiView
 
 
 from django.urls import include, path
@@ -10,4 +10,5 @@ router.register("clients", ClientsApiView, basename="clients")
 
 urlpatterns = [
     path("", include(router.urls)),
+    path("get-api-token-clients/", TokenApiClientApiView.as_view())
 ]

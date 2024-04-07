@@ -1,11 +1,18 @@
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
-from rest_framework import filters, viewsets
+from rest_framework import filters, viewsets, generics
 from rest_framework.decorators import action
 
 from apps.core.paginator import CustomPagination
 
-from .models import Clients
-from .serializers import ClientsSerializer
+from .models import Clients, TokenApiClients
+from .serializers import ClientsSerializer, TokenApiClienteSerializer
+
+
+
+class TokenApiClientApiView(generics.ListCreateAPIView):
+    queryset = TokenApiClients.objects.exclude(deleted=True)
+    serializer_class = TokenApiClienteSerializer
+    pagination_class = None
 
 
 class ClientsApiView(viewsets.ModelViewSet):

@@ -10,8 +10,6 @@ from rest_framework.exceptions import ValidationError
 
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 
-
-from apps.core.permissions import CustomPermissions
 from apps.core.paginator import CustomPagination
 
 from .models import Reservation, RentalReceipt

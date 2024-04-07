@@ -1,13 +1,12 @@
 from django.db.models import Q
 
-from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, OpenApiExample, extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
 
 from apps.core.paginator import CustomPagination
-# from apps.core.mixins import AdminMixin
 
 from .models import Property, ProfitPropertyAirBnb
 from apps.reservation.models import Reservation
