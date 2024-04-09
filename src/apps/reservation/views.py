@@ -18,7 +18,7 @@ from .serializers import ReservationSerializer, ReservationListSerializer, Reser
 
 class ReservationsApiView(viewsets.ModelViewSet):
     serializer_class = ReservationSerializer
-    queryset = Reservation.objects.all().order_by("created")
+    queryset = Reservation.objects.all().order_by("check_in_date")
     search_fields = [
         "client__email",
         "client__first_name",
@@ -70,6 +70,13 @@ class ReservationsApiView(viewsets.ModelViewSet):
                         Q(check_in_date__range=range_evaluate) |
                         Q(check_out_date__range=range_evaluate)
                     )
+                
+                elif self.request.query_params.get('from') == 'today':
+                    queryset = queryset.filter(check_in_date__gte=datetime.now())
+
+                if self.request.query_params.get('type'):
+                    queryset = queryset.filter(origin=self.request.query_params.get('type'))
+
         elif self.action in ['partial_update', 'update', 'destroy']:
             queryset = queryset.filter(seller=self.request.user)
 
