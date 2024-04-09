@@ -18,7 +18,7 @@ def update_air_bnb_api(property_airbnb_url):
 
     print('Request a:', URL_BASE + property_airbnb_url)
     response = requests.get(URL_BASE + property_airbnb_url)
-        # response = requests.get(url_base+url_airbnb)
+
     if response.status_code == 200:
         reservations = response.json()
         for r in reservations:
