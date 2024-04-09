@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from drf_spectacular.utils import extend_schema_field
+
 from .models import Property, ProfitPropertyAirBnb
 
 
@@ -14,5 +16,6 @@ class ProfitPropertyAirBnbSerializer(serializers.ModelSerializer):
         model = ProfitPropertyAirBnb
         exclude = ["created", "updated", "deleted"]
 
+    @extend_schema_field(PropertySerializer)
     def get_property(self, instance):
         return PropertySerializer(instance.property).data
