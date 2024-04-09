@@ -5,7 +5,7 @@ from datetime import datetime
 from rest_framework import serializers
 
 
-URL_BASE = settings.AIRBNB_API_URL_BASE
+URL_BASE = settings.AIRBNB_API_URL_BASE+"="
 
 def recipt_directory_path(instance, filename):
     upload_to = os.path.join('rental_recipt', str(instance.reservation.id), filename)
