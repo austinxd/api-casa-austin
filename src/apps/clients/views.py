@@ -19,9 +19,8 @@ class TokenApiClientApiView(APIView):
 
 class ClientsApiView(viewsets.ModelViewSet):
     serializer_class = ClientsSerializer
-    # queryset = Clients.objects.all().order_by("last_name")
     filter_backends = [filters.SearchFilter]
-    search_fields = ["email", "first_name", "last_name"]
+    search_fields = ["email", "number_doc", "first_name", "last_name"]
     pagination_class = CustomPagination
 
     def get_pagination_class(self):
