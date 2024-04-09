@@ -9,5 +9,8 @@ class CustomUserAdmin(UserAdmin):
     form = CustomUserChangeForm
     model = CustomUser
 
+    fieldsets = UserAdmin.fieldsets + (
+        ('Extra data', {'fields': ('profile_photo',)}),
+    )
 
 admin.site.register(CustomUser, CustomUserAdmin)

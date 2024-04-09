@@ -10,7 +10,9 @@ from apps.property.models import Property
 from apps.reservation.models import Reservation
 
 from .serializers import DashboardSerializer
-from django.db.models import Count, F, ExpressionWrapper, DecimalField
+from django.db.models import Count, F, ExpressionWrapper, DecimalField, Value, CharField
+
+from django.db.models.functions import Concat
 
 
 class DashboardApiView(APIView):
@@ -18,9 +20,11 @@ class DashboardApiView(APIView):
     
     def get(self, request):
         content = {}
+        
+        media_url = request.scheme + '://' + request.get_host() + "/media/"
 
         current_datetime = timezone.now()
-        week = current_datetime - timedelta(days=1)
+        week = current_datetime - timedelta(days=30)
         reservations_week = Reservation.objects.filter(created__gte=week, created__lte=current_datetime).count()
         reservations_week_seller = Reservation.objects.filter(created__gte=week, created__lte=current_datetime, seller__isnull=False).count()
         """" Propiedades """
@@ -73,9 +77,10 @@ class DashboardApiView(APIView):
                 'seller',
                 'seller__email',
                 'seller__last_name',
-                'seller__first_name',
+                'seller__first_name'
             ).annotate(
                 num_reservas=Count('id'),
+                photo=Concat(Value(media_url), F('seller__profile_photo'),  output_field=CharField())
             ).order_by('-num_reservas')
         
         # Agregar propiedades que no tienen reservas

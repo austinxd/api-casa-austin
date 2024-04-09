@@ -11,6 +11,10 @@ def recipt_directory_path(instance, filename):
     upload_to = os.path.join('rental_recipt', str(instance.reservation.id), filename)
     return upload_to
 
+def user_directory_path(instance, filename):
+    upload_to = os.path.join('user_profile_photo', str(instance.id), filename)
+    return upload_to
+
 def update_air_bnb_api(property_airbnb_url):
     from apps.reservation import serializers as reservation_serializer
 

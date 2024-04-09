@@ -8,7 +8,6 @@ from django.conf.urls.static import static
 from . import apiviews
 
 from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
     TokenRefreshView,
 )
 
