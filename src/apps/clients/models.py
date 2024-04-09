@@ -45,4 +45,4 @@ class Clients(BaseModel):
         unique_together = ('document_type', 'number_doc')
 
     def __str__(self):
-        return self.email
+        return f"{self.email} {self.first_name} {self.last_name} {self.document_type} {self.number_doc}"
