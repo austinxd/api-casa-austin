@@ -15,7 +15,6 @@ def get_airbnb_reservations():
 
     for q in query_property:
         if q.airbnb_url:
-            print('Request a:', q.airbnb_url)
             update_air_bnb_api(q.airbnb_url)
 
     print('Finalizando proceso para obtener propeiedades de API de AirBnB')

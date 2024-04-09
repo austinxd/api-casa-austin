@@ -1,10 +1,11 @@
 import os
 import requests
+from django.conf import settings
 from datetime import datetime
 from rest_framework import serializers
 
 
-URL_BASE = "https://casaaustin.pe/api/prueba.php?ics_url="  # FIXME: poner en una variable de entorno la url
+URL_BASE = settings.AIRBNB_API_URL_BASE
 
 def recipt_directory_path(instance, filename):
     upload_to = os.path.join('rental_recipt', str(instance.reservation.id), filename)
@@ -15,6 +16,7 @@ def update_air_bnb_api(property_airbnb_url):
 
     reservations_uid = reservation_serializer.Reservation.objects.all().values_list("uuid_external", flat=True)
 
+    print('Request a:', URL_BASE + property_airbnb_url)
     response = requests.get(URL_BASE + property_airbnb_url)
         # response = requests.get(url_base+url_airbnb)
     if response.status_code == 200:

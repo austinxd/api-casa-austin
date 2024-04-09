@@ -98,21 +98,6 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 
 # Database
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME':  env('MYSQL_DATABASE', default='casa_austin'),
-#         'USER':  env('MYSQL_USER', default='root'),
-#         'PASSWORD': 'pass', #env('MYSQL_PASSWORD', default='pass'),
-#         'HOST': env('MYSQL_HOST', default='127.0.0.1'),
-#         'PORT':  env('MYSQL_PORT', default='3306'),
-#         'OPTIONS': {  
-#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"  
-#         }  
-#     }
-# }
-
-# Database
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -221,3 +206,5 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '0.7',
     'SERVE_INCLUDE_SCHEMA': False,
 }
+
+AIRBNB_API_URL_BASE = env('AIRBNB_API_URL_BASE')
