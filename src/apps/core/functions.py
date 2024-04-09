@@ -15,13 +15,13 @@ def user_directory_path(instance, filename):
     upload_to = os.path.join('user_profile_photo', str(instance.id), filename)
     return upload_to
 
-def update_air_bnb_api(property_airbnb_url):
+def update_air_bnb_api(property):
     from apps.reservation import serializers as reservation_serializer
 
     reservations_uid = reservation_serializer.Reservation.objects.all().values_list("uuid_external", flat=True)
 
-    print('Request a:', URL_BASE + property_airbnb_url)
-    response = requests.get(URL_BASE + property_airbnb_url)
+    print('Request a:', URL_BASE + property.airbnb_url)
+    response = requests.get(URL_BASE + property.airbnb_url)
 
     if response.status_code == 200:
         reservations = response.json()
@@ -50,7 +50,7 @@ def update_air_bnb_api(property_airbnb_url):
                     "uuid_external": r["uid"],
                     "check_in_date": date_start,
                     "check_out_date": date_end,
-                    "property": q.id,
+                    "property": property.id,
                     "origin": "air",
                     "price_usd": 0,
                     "price_sol": 0,

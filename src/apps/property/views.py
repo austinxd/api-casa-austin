@@ -134,7 +134,7 @@ class CheckAvaiblePorperty(APIView):
         try:
             property_object = Property.objects.get(id=property_field)
 
-            update_air_bnb_api(property_object.airbnb_url)
+            update_air_bnb_api(property_object)
         except:
             print('No puedo obtener propiedad solicitada')
 
