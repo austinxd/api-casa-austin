@@ -17,6 +17,7 @@ class Clients(BaseModel):
         DNI = "dni", ("Documento Nacional de Identidad")
         CARNET_EXTRANJERIA = "cex", ("Carnet de Extranjeria")
         PAS = "pas", ("Pasaporte")
+        RUC = "ruc", ("RUC")
 
     class GeneroChoice(models.TextChoices):
         M = "m", ("Masculino")
@@ -26,13 +27,14 @@ class Clients(BaseModel):
         max_length=3,
         choices=DocumentTypeChoice.choices,
         default=DocumentTypeChoice.DNI,
-        null=True,
+        null=False,
+        blank=False
     )
-    number_doc = models.CharField(max_length=50, null=False, blank=False)
-    first_name = models.CharField(max_length=30, null=True, blank=True)
+    number_doc = models.CharField(max_length=50, null=False, blank=False, default="1")
+    first_name = models.CharField(max_length=30, null=False, blank=False, default="nombre")
     last_name = models.CharField(max_length=30, null=True, blank=True)
     sex = models.CharField(
-        max_length=1, choices=GeneroChoice.choices, default=GeneroChoice.F
+        max_length=1, choices=GeneroChoice.choices, default=None, null=True, blank=True
     )
 
     email = models.EmailField(max_length=150, null=True, blank=True)
