@@ -119,6 +119,20 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 description="Enviar page_size=valor para determinar tamaño de la pagina, sino enviar page_size=none para no tener paginado",
                 required=False,
             ),
+            OpenApiParameter(
+                "from",
+                OpenApiTypes.STR,
+                description="Obtiene todas las reservas desde la fecha de hoy en adelante. Se puede combinar con type (tipo de reserva), pero no con year o month",
+                required=False,
+                enum=["today"]
+            ),
+            OpenApiParameter(
+                "type",
+                OpenApiTypes.STR,
+                description="Filtra las resevas según donde se generaron, AriBnB (air), Sistema Casa Austin (aus)",
+                required=False,
+                enum=["aus", "air"]
+            ),
         ],
         responses={200: ReservationListSerializer(many=True)},
         methods=["GET"],
