@@ -46,7 +46,13 @@ class ReservationSerializer(serializers.ModelSerializer):
         property_field = attrs.get('property')
         reservation_id = self.instance.id if self.instance else None
 
-        if request.method != 'PATCH' and attrs.get('check_in_date') and attrs.get('check_out_date'):
+        # Check if it's called from a view with patch verb
+        patch_cond = False
+        if request:
+            if request.method != 'PATCH':
+                patch_cond = True
+
+        if patch_cond and attrs.get('check_in_date') and attrs.get('check_out_date'):
             # Check if checkin is after checkout
             if attrs.get('check_in_date') >= attrs.get('check_out_date'):
                 raise serializers.ValidationError("Fecha entrada debe ser anterior a fecha de salida")
