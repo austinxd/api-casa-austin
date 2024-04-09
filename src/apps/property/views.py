@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
 
 from apps.core.paginator import CustomPagination
+from apps.core.functions import update_air_bnb_api
 
 from .models import Property, ProfitPropertyAirBnb
 from apps.reservation.models import Reservation
@@ -129,6 +130,13 @@ class CheckAvaiblePorperty(APIView):
             'condition': True
         }
         status_code = 200
+
+        try:
+            property_object = Property.objects.get(id=property_field)
+
+            update_air_bnb_api(property_object.airbnb_url)
+        except:
+            print('No puedo obtener propiedad solicitada')
 
         if Reservation.objects.filter(property=property_field,).filter(
                 Q(check_in_date__lt=check_out_date) & Q(check_out_date__gt=check_in_date)

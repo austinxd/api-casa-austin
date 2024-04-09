@@ -1,5 +1,57 @@
 import os
+import requests
+from datetime import datetime
+from rest_framework import serializers
+
+
+URL_BASE = "https://casaaustin.pe/api/prueba.php?ics_url="  # FIXME: poner en una variable de entorno la url
 
 def recipt_directory_path(instance, filename):
     upload_to = os.path.join('rental_recipt', str(instance.reservation.id), filename)
     return upload_to
+
+def update_air_bnb_api(property_airbnb_url):
+    from apps.reservation import serializers as reservation_serializer
+
+    reservations_uid = reservation_serializer.Reservation.objects.all().values_list("uuid_external", flat=True)
+
+    response = requests.get(URL_BASE + property_airbnb_url)
+        # response = requests.get(url_base+url_airbnb)
+    if response.status_code == 200:
+        reservations = response.json()
+        for r in reservations:
+            date_start = datetime.strptime(r["start_date"], "%Y%m%d").date()
+            date_end = datetime.strptime(r["end_date"], "%Y%m%d").date()
+            if r["uid"] in reservations_uid:
+                try:
+                    reservations_obj = reservation_serializer.Reservation.objects.get(
+                        uuid_external=r["uid"]
+                    )
+                except reservation_serializer.Reservation.DoesNotExist:
+                    raise serializers.ValidationError(
+                        {"detail": "Reservation not found"},
+                        code="Error_reservation",
+                    )
+
+                if reservations_obj.check_in_date != date_start:
+                    reservations_obj.check_in_date = date_start
+
+                if reservations_obj.check_out_date != date_end:
+                    reservations_obj.check_out_date = date_end
+                reservations_obj.save()
+            else:
+                data = {
+                    "uuid_external": r["uid"],
+                    "check_in_date": date_start,
+                    "check_out_date": date_end,
+                    "property": q.id,
+                    "origin": "air",
+                    "price_usd": 0,
+                    "price_sol": 0,
+                    "advance_payment": 0,
+                }
+                serializer = reservation_serializer.ReservationSerializer(data=data, context={"script": True})
+                if serializer.is_valid():
+                    serializer.save()
+                else:
+                    print(serializer.errors)
