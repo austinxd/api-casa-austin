@@ -56,6 +56,7 @@ class Reservation(BaseModel):
     origin = models.CharField(
         max_length=3, choices=OriginReservationTypeChoice.choices, default=OriginReservationTypeChoice.AUS
     )
+    tel_contact_number = models.CharField(max_length=255, null=True, blank=True)
 
     objects = ManagerCustomReservation()
 

@@ -78,7 +78,11 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     queryset = queryset.filter(origin=self.request.query_params.get('type'))
 
         elif self.action in ['partial_update', 'update', 'destroy']:
-            queryset = queryset.filter(seller=self.request.user)
+            if not "admin" in self.request.user.groups.all().values_list('name', flat=True):
+                queryset = queryset.filter(
+                    Q(origin="air") |
+                    Q(seller=self.request.user)
+                )
 
         return queryset
 

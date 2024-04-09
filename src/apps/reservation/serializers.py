@@ -41,24 +41,26 @@ class ReservationSerializer(serializers.ModelSerializer):
                 self.fields['seller'].read_only = False # FIXME: cambiar a true luego de definir las reservas de airbnb
 
     def validate(self, attrs):
+        request = self.context.get('request')
 
         property_field = attrs.get('property')
         reservation_id = self.instance.id if self.instance else None
 
-        # Check if checkin is after checkout
-        if attrs.get('check_in_date') >= attrs.get('check_out_date'):
-            raise serializers.ValidationError("Fecha entrada debe ser anterior a fecha de salida")
+        if request.method != 'PATCH' and attrs.get('check_in_date') and attrs.get('check_out_date'):
+            # Check if checkin is after checkout
+            if attrs.get('check_in_date') >= attrs.get('check_out_date'):
+                raise serializers.ValidationError("Fecha entrada debe ser anterior a fecha de salida")
 
-        # Check if this property si reserved in this range of date
-        if Reservation.objects.filter(
-                property=property_field,
-            ).filter(
-                Q(check_in_date__lt=attrs.get('check_out_date')) & Q(check_out_date__gt=attrs.get('check_in_date'))
-            ).exclude(
-                id=reservation_id
-            ).exists():
+            # Check if this property si reserved in this range of date
+            if Reservation.objects.filter(
+                    property=property_field,
+                ).filter(
+                    Q(check_in_date__lt=attrs.get('check_out_date')) & Q(check_out_date__gt=attrs.get('check_in_date'))
+                ).exclude(
+                    id=reservation_id
+                ).exists():
 
-            raise serializers.ValidationError("Esta propiedad esta reservada en este rango de fecha")
+                raise serializers.ValidationError("Esta propiedad esta reservada en este rango de fecha")
 
         
         return attrs
