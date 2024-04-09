@@ -8,9 +8,20 @@ class CustomUserAdmin(UserAdmin):
     add_form = CustomUserCreationForm
     form = CustomUserChangeForm
     model = CustomUser
+    
+    list_display = (
+        'username',
+        'last_name',
+        'first_name',
+        'is_staff',
+        'grupo_rol'
+        )
 
     fieldsets = UserAdmin.fieldsets + (
         ('Extra data', {'fields': ('profile_photo',)}),
     )
+
+    def grupo_rol(self, obj):
+        return obj.groups.all().first()
 
 admin.site.register(CustomUser, CustomUserAdmin)
