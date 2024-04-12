@@ -26,5 +26,13 @@ class CustomUserAdmin(UserAdmin):
     def grupo_rol(self, obj):
         return obj.groups.all().first()
 
+class LogAdmin(admin.ModelAdmin):
+    model = LogEntry
+
+    list_display = (
+        'action_time',
+        'object_repr',
+    )
+
 admin.site.register(CustomUser, CustomUserAdmin)
-admin.site.register(LogEntry)
+admin.site.register(LogEntry, LogAdmin)
