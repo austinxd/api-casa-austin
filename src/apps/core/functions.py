@@ -25,7 +25,7 @@ def user_directory_path(instance, filename):
 def update_air_bnb_api(property):
     from apps.reservation import serializers as reservation_serializer
 
-    reservations_uid = reservation_serializer.Reservation.objects.all().values_list("uuid_external", flat=True)
+    reservations_uid = reservation_serializer.Reservation.objects.exclude(origin='aus').values_list("uuid_external", flat=True)
 
     print('Request a:', f"{URL_BASE}{property.airbnb_url} ({property.name})")
     response = requests.get(URL_BASE + property.airbnb_url)
