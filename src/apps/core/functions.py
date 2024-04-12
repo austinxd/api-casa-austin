@@ -4,6 +4,13 @@ from django.conf import settings
 from datetime import datetime
 from rest_framework import serializers
 
+from icalendar import Calendar, Event
+from pathlib import Path
+
+from slugify import slugify
+
+# from apps.reservation.models import Reservation
+
 
 URL_BASE = settings.AIRBNB_API_URL_BASE+"="
 
@@ -61,3 +68,39 @@ def update_air_bnb_api(property):
                     serializer.save()
                 else:
                     print(serializer.errors)
+
+def confeccion_ics():
+    from apps.reservation.models import Reservation
+    from apps.property.models import Property
+
+    query_reservations = Reservation.objects.exclude(deleted=True).filter(origin='aus')
+
+    print('Comenzando proceso para confeccionar ICS')
+    
+
+    for prop in Property.objects.exclude(deleted=True):
+        cal = Calendar()
+        cal.add('VERSION', str(2.0))
+        cal.add('PRODID', "-//hacksw/handcal//NONSGML v1.0//EN")
+
+        for res in query_reservations.filter(property=prop, check_in_date__gte=datetime.now()):
+            # Creating icalendar/event
+            event = Event()
+            
+            event.add('uid', str(res.id))
+            event.add('description', f"Reserva de Casa Austin - {res.id}")
+            event.add('dtstart',  datetime.combine(res.check_in_date, datetime.min.time()))
+            event.add('dtend', datetime.combine(res.check_out_date, datetime.min.time()))
+            event.add('dtstamp', res.created)
+
+            # Adding events to calendar
+            cal.add_component(event)
+
+        directory = str(Path(__file__).parent.parent.parent) + "/media/"
+        casa_sluged = slugify(prop.name)
+
+        f = open(os.path.join(directory, f'{casa_sluged}.ics'), 'wb')
+        f.write(cal.to_ical())
+        f.close()
+
+    print('Finalizando proceso para confeccionar ICS')

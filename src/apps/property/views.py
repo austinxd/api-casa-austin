@@ -121,6 +121,7 @@ class CheckAvaiblePorperty(APIView):
     serializer_class = None
     
     def post(self, request, format=None):
+
         property_field = request.data['property']
         check_out_date = request.data['check_out_date']
         check_in_date = request.data['check_in_date']

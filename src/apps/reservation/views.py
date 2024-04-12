@@ -1,3 +1,7 @@
+import os
+from django.http import HttpResponse
+from pathlib import Path
+
 import calendar
 from datetime import datetime
 
@@ -10,7 +14,9 @@ from rest_framework.exceptions import ValidationError
 
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 
+from apps.core.functions import confeccion_ics
 from apps.core.paginator import CustomPagination
+from slugify import slugify
 
 from .models import Reservation, RentalReceipt
 from .serializers import ReservationSerializer, ReservationListSerializer, ReservationRetrieveSerializer, ReciptSerializer
@@ -154,6 +160,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     reservation=serializer.instance,
                     file=file
                 )
+        
+        confeccion_ics()
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -169,6 +177,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     file=file
                 )
         
+        confeccion_ics()
         return Response(serializer.data)
     
 class DeleteRecipeApiView(generics.DestroyAPIView):
@@ -180,3 +189,32 @@ class DeleteRecipeApiView(generics.DestroyAPIView):
         queryset = super().get_queryset()
 
         return queryset.filter(reservation__seller=self.request.user)
+
+class GetICSApiView(generics.GenericAPIView):
+    serializer_class = None
+
+    def get(self, request):
+
+        if self.request.query_params:
+            if self.request.query_params.get('q'):
+                casa_sluged_name = slugify(self.request.query_params.get('q'))
+
+
+                directory = str(Path(__file__).parent.parent.parent) + "/media/"
+                f = open(os.path.join(directory, f'{casa_sluged_name}.ics'), 'rb')
+
+                # Crear una respuesta HTTP con el contenido del archivo .ics
+                response = HttpResponse(f, content_type='text/calendar')
+                
+                # Establecer el encabezado de Content-Disposition para descargar el archivo
+                response['Content-Disposition'] = 'attachment; filename="evento.ics"'
+
+        return response
+    
+class UpdateICSApiView(generics.GenericAPIView):
+    serializer_class = None
+
+    def get(self, request):
+        confeccion_ics()
+
+        return Response({'message':'ok'}, status=200)

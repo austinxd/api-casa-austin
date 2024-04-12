@@ -1,4 +1,4 @@
-from .views import ReservationsApiView, DeleteRecipeApiView
+from .views import ReservationsApiView, DeleteRecipeApiView, GetICSApiView, UpdateICSApiView
 
 
 from django.urls import include, path
@@ -11,4 +11,6 @@ router.register("reservations", ReservationsApiView, basename="reservations")
 urlpatterns = [
     path("", include(router.urls)),
     path("delete-recipe/<uuid:pk>/", DeleteRecipeApiView.as_view()),
+    path("get-ics/", GetICSApiView.as_view()),
+    path("update-ics/", UpdateICSApiView.as_view()),
 ]
