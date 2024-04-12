@@ -17,20 +17,6 @@ from apps.property.models import Property
 from apps.core.functions import recipt_directory_path
 
 
-class ManagerCustomReservation(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset().exclude(deleted=True)
-
-    def all_objects(self):
-        return super().get_queryset()
-    
-class ManagerCustomRecipt(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset().exclude(deleted=True)
-
-    def all_objects(self):
-        return super().get_queryset()
-
 class Reservation(BaseModel):
     class AdvancePaymentTypeChoice(models.TextChoices):
             SOL = "sol", ("Soles")
@@ -58,8 +44,6 @@ class Reservation(BaseModel):
     )
     tel_contact_number = models.CharField(max_length=255, null=True, blank=True)
 
-    objects = ManagerCustomReservation()
-
     def __str__(self):
         if self.client:
             return f"Reserva de {self.client.last_name}, {self.client.first_name} ({self.id})"
@@ -70,8 +54,6 @@ class Reservation(BaseModel):
 class RentalReceipt(BaseModel):
     reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, null=False, blank=False)
     file = models.FileField(null=False, upload_to=recipt_directory_path)
-
-    objects = ManagerCustomRecipt()
 
 
 @receiver(post_delete, sender=RentalReceipt)

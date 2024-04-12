@@ -1,5 +1,5 @@
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
-from rest_framework import filters, viewsets
+from rest_framework import filters, viewsets, status
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -56,8 +56,16 @@ class ClientsApiView(viewsets.ModelViewSet):
         self.pagination_class = self.get_pagination_class()
         return super().list(request, *args, **kwargs)
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        
+        instance.deleted = True
+        instance.save()
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def get_queryset(self):
-        queryset = Clients.objects.all().order_by("last_name")
+        queryset = Clients.objects.exclude(deleted=True).order_by("last_name")
         if self.action == "search_clients":
             params = self.request.GET
             self.pagination_class = None
