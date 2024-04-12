@@ -7,6 +7,7 @@ class PropertyAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "location",
+        "deleted"
     )
 
 
