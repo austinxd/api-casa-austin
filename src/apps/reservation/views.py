@@ -11,6 +11,7 @@ from django.db.models import Q
 from rest_framework import generics, viewsets
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import AllowAny
 
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 
@@ -192,6 +193,7 @@ class DeleteRecipeApiView(generics.DestroyAPIView):
 
 class GetICSApiView(generics.GenericAPIView):
     serializer_class = None
+    permission_classes = [AllowAny]
 
     def get(self, request):
 
