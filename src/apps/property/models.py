@@ -15,6 +15,10 @@ class Property(BaseModel):
     def __str__(self):
         return self.name
 
+    def delete(self, *args, **kwargs):
+        self.deleted = True
+        self.save()
+
 class ProfitPropertyAirBnb(BaseModel):
     property = models.ForeignKey(Property, on_delete=models.CASCADE, null=False, blank=False)
     month = models.PositiveIntegerField(

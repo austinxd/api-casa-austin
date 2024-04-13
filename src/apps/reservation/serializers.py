@@ -58,8 +58,9 @@ class ReservationSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Fecha entrada debe ser anterior a fecha de salida")
 
             # Check if this property si reserved in this range of date
-            if Reservation.objects.filter(
-                    property=property_field,
+            if Reservation.objects.exclude(deleted=True
+                ).filter(
+                    property=property_field
                 ).filter(
                     Q(check_in_date__lt=attrs.get('check_out_date')) & Q(check_out_date__gt=attrs.get('check_in_date'))
                 ).exclude(

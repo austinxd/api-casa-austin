@@ -25,7 +25,7 @@ from .serializers import ReservationSerializer, ReservationListSerializer, Reser
 
 class ReservationsApiView(viewsets.ModelViewSet):
     serializer_class = ReservationSerializer
-    queryset = Reservation.objects.all().order_by("check_in_date")
+    queryset = Reservation.objects.exclude(deleted=True).order_by("check_in_date")
     search_fields = [
         "client__email",
         "client__first_name",
@@ -91,7 +91,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     Q(seller=self.request.user)
                 )
 
-        return queryset
+        return queryset.exclude(deleted=True)
 
     def get_serializer_class(self):
         if self.action == 'retrieve':

@@ -46,3 +46,8 @@ class Clients(BaseModel):
 
     def __str__(self):
         return f"{self.email} {self.first_name} {self.last_name} {self.document_type} {self.number_doc}"
+
+
+    def delete(self, *args, **kwargs):
+        self.deleted = True
+        self.save()

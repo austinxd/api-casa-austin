@@ -50,6 +50,9 @@ class Reservation(BaseModel):
         else:
             return f"Reserva desde API Airbnb (sin datos del cliente)"
 
+    def delete(self, *args, **kwargs):
+        self.deleted = True
+        self.save()
 
 class RentalReceipt(BaseModel):
     reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, null=False, blank=False)
