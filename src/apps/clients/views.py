@@ -9,6 +9,8 @@ from apps.core.paginator import CustomPagination
 from .models import Clients, TokenApiClients
 from .serializers import ClientsSerializer, TokenApiClienteSerializer
 
+from apps.core.functions import generate_audit
+
 
 class TokenApiClientApiView(APIView):
     serializer_class = TokenApiClienteSerializer
@@ -56,12 +58,46 @@ class ClientsApiView(viewsets.ModelViewSet):
         self.pagination_class = self.get_pagination_class()
         return super().list(request, *args, **kwargs)
 
+    def perform_create(self, serializer):
+        serializer.save()
+
+        generate_audit(
+            serializer.instance,
+            self.request.user,
+            "create",
+            "Cliente creado"
+        )
+
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        
+
+        self.perform_update(serializer)
+
+        generate_audit(
+            instance,
+            self.request.user,
+            "update",
+            "Cliente actulizado"
+        )
+        return Response(serializer.data)
+
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         
         instance.deleted = True
         instance.save()
         
+        generate_audit(
+            instance,
+            self.request.user,
+            "delete",
+            "Cliente eliminado"
+        )
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_queryset(self):

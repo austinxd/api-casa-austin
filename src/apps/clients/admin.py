@@ -5,6 +5,7 @@ class ClientsAdmin(admin.ModelAdmin):
     model = Clients
     search_fields = ['last_name', "first_name", "number_doc"]
     list_display = (
+        "id",
         "last_name",
         "first_name",
         "number_doc",

@@ -9,7 +9,9 @@ from pathlib import Path
 
 from slugify import slugify
 
-# from apps.reservation.models import Reservation
+from django.contrib.admin.models import LogEntry, CHANGE, ADDITION, DELETION
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.admin.models import LogEntry
 
 
 URL_BASE = settings.AIRBNB_API_URL_BASE+"="
@@ -34,7 +36,6 @@ def update_air_bnb_api(property):
 
     reservations_uid = reservation_serializer.Reservation.objects.exclude(origin='aus').values_list("uuid_external", flat=True)
 
-    # print('Request a:', f"{URL_BASE}{property.airbnb_url} ({property.name})")
     response = requests.get(URL_BASE + property.airbnb_url)
 
     if response.status_code == 200:
@@ -111,3 +112,31 @@ def confeccion_ics():
         f.close()
 
     print('Finalizando proceso para confeccionar ICS')
+
+def generate_audit(model_instance, user, flag_req, text_str):
+    """ Generar un registro de auditoria LogEntry en las views
+    Params:
+        - model_instance: Instancia del modelo que se esta creando
+        - user: Usuario que lanza la request
+        - flag: Un string que indica la acción a registrar create, update, delete (ADDITION, CHANGE, DELETION)
+        - text_str: Un string mensaje que da información al estilo Descripción de la acción realizada
+    """
+    
+    flag = ADDITION
+
+    if flag_req == 'create':
+        flag = ADDITION
+    elif flag_req == 'update':
+        flag = CHANGE
+    elif flag_req == 'delete':
+        flag = DELETION
+
+    content_type = ContentType.objects.get_for_model(model_instance)
+    LogEntry.objects.log_action(
+        user_id=user.pk,
+        content_type_id=content_type.pk,
+        object_id=model_instance.pk,
+        object_repr=str(model_instance),
+        action_flag=flag,
+        change_message=text_str,
+    )

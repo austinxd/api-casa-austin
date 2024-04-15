@@ -22,6 +22,8 @@ from slugify import slugify
 from .models import Reservation, RentalReceipt
 from .serializers import ReservationSerializer, ReservationListSerializer, ReservationRetrieveSerializer, ReciptSerializer
 
+from apps.core.functions import generate_audit
+
 
 class ReservationsApiView(viewsets.ModelViewSet):
     serializer_class = ReservationSerializer
@@ -164,6 +166,14 @@ class ReservationsApiView(viewsets.ModelViewSet):
         
         confeccion_ics()
 
+        generate_audit(
+            serializer.instance,
+            self.request.user,
+            "create",
+            "Reserva creada"
+        )
+
+
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
@@ -179,8 +189,28 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 )
         
         confeccion_ics()
+
+        generate_audit(
+            serializer.instance,
+            self.request.user,
+            "update",
+            "Reserva actulizada"
+        )
         return Response(serializer.data)
     
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+
+        generate_audit(
+            instance,
+            self.request.user,
+            "delete",
+            "Reserva eliminada"
+        )
+        return Response(status=204)
+    
+
 class DeleteRecipeApiView(generics.DestroyAPIView):
     queryset = RentalReceipt.objects.all()
     serializer_class = ReciptSerializer
