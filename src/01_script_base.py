@@ -64,7 +64,11 @@ def crear_cliente_mantenimiento():
         Clients.objects.create(
             number_doc="0",
             first_name="Mantenimiento",
-            date = datetime.now()
+            last_name="Mantenimiento",
+            sex="m",
+            date = datetime.now(),
+            tel_number=0,
+            email="mantenimiento@mail.com"
         )
     else:
         print('Ya existe cliente "Mantenimiento"')
