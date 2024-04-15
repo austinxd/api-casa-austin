@@ -17,7 +17,7 @@ from .serializers import PropertySerializer, ProfitPropertyAirBnbSerializer
 
 class PropertyApiView(viewsets.ReadOnlyModelViewSet):
     serializer_class = PropertySerializer
-    queryset = Property.objects.all().order_by("name")
+    queryset = Property.objects.exclude(deleted=True).order_by("name")
     filter_backends = [filters.SearchFilter]
     search_fields = ["name"]
     pagination_class = CustomPagination
@@ -57,7 +57,7 @@ class PropertyApiView(viewsets.ReadOnlyModelViewSet):
     
 class ProfitPropertyApiView(viewsets.ModelViewSet):
     serializer_class = ProfitPropertyAirBnbSerializer
-    queryset = ProfitPropertyAirBnb.objects.all().order_by("created")
+    queryset = ProfitPropertyAirBnb.objects.exclude(deleted=True).order_by("created")
     pagination_class = CustomPagination
 
     def get_pagination_class(self):

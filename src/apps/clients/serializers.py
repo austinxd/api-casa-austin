@@ -17,7 +17,7 @@ class ClientsSerializer(serializers.ModelSerializer):
         exclude = ["created", "updated", "deleted"]
         validators = [
             UniqueTogetherValidator(
-                queryset=Clients.objects.all(),
+                queryset=Clients.objects.exclude(deleted=True),
                 fields=['document_type', 'number_doc'],
                 message="Este número de documento/ruc ya ha sido registrado"
             )
