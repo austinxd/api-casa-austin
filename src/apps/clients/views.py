@@ -65,7 +65,11 @@ class ClientsApiView(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_queryset(self):
-        queryset = Clients.objects.exclude(deleted=True).order_by("last_name")
+        queryset = Clients.objects.exclude(deleted=True).order_by("last_name", "first_name")
+
+        if not "admin" in self.request.user.groups.all().values_list('name', flat=True):
+            queryset = queryset.exclude(first_name="Mantenimiento")
+
         if self.action == "search_clients":
             params = self.request.GET
             self.pagination_class = None

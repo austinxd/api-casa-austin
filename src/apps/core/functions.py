@@ -14,6 +14,13 @@ from slugify import slugify
 
 URL_BASE = settings.AIRBNB_API_URL_BASE+"="
 
+
+def check_user_has_rol(rol_str, user):
+    """ Retorna True si el usuario tiene entre sus grupos 'rol_str'
+    """
+    return rol_str in user.groups.all().values_list('name', flat=True)
+
+
 def recipt_directory_path(instance, filename):
     upload_to = os.path.join('rental_recipt', str(instance.reservation.id), filename)
     return upload_to

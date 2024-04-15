@@ -27,6 +27,10 @@ class ClientsSerializer(serializers.ModelSerializer):
 
         document_type = attrs.get('document_type', 'dni')
 
+        # Prevenir crear clientes con nombre mantenimiento
+        if attrs.get('first_name') == "Mantenimiento":
+            raise serializers.ValidationError('No se puede usar nombre "Mantenimiento" para clientes, esta reservado para uso interno')
+
         # Check if is a person or a company
         if document_type == 'dni' and not attrs.get('last_name'):
             raise serializers.ValidationError("Apellido es obligatorio en personas")

@@ -15,7 +15,7 @@ from rest_framework.permissions import AllowAny
 
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 
-from apps.core.functions import confeccion_ics
+from apps.core.functions import check_user_has_rol, confeccion_ics
 from apps.core.paginator import CustomPagination
 from slugify import slugify
 
@@ -85,7 +85,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     queryset = queryset.filter(origin=self.request.query_params.get('type'))
 
         elif self.action in ['partial_update', 'update', 'destroy']:
-            if not "admin" in self.request.user.groups.all().values_list('name', flat=True):
+            if not check_user_has_rol("admin", self.request.user):
                 queryset = queryset.filter(
                     Q(origin="air") |
                     Q(seller=self.request.user)

@@ -4,10 +4,13 @@ from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 
 from .models import Reservation, RentalReceipt
+from apps.clients.models import Clients
 
 from apps.accounts.serializers import SellerSerializer
 from apps.clients.serializers import ClientShortSerializer
 from apps.property.serializers import PropertySerializer
+
+from apps.core.functions import check_user_has_rol
 
 
 class ReciptSerializer(serializers.ModelSerializer):
@@ -40,8 +43,24 @@ class ReservationSerializer(serializers.ModelSerializer):
             if script:
                 self.fields['seller'].read_only = False # FIXME: cambiar a true luego de definir las reservas de airbnb
 
+    def to_internal_value(self, data):
+        new_data = data.copy()
+        query_client = Clients.objects.filter(id=data['client'])
+
+        if query_client.exists():
+            if query_client.first().first_name == 'Mantenimiento':
+                self.context['mantenimiento_client'] = query_client.first().first_name
+                new_data['origin'] = 'man'
+
+        return super().to_internal_value(new_data)
+
     def validate(self, attrs):
         request = self.context.get('request')
+
+        # Prevenir que usuarios sin rol Admin puedan crear eventos de mantenimiento
+        if self.context.get('mantenimiento_client') == 'Mantenimiento':
+            if not check_user_has_rol("admin", self.context['request'].user):
+                raise serializers.ValidationError("No puede registrar Eventos de Mantenimiento un usuario con rol distinto a Admin.")
 
         property_field = attrs.get('property')
         reservation_id = self.instance.id if self.instance else None

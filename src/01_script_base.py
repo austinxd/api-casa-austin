@@ -4,9 +4,12 @@ import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
 
+from datetime import datetime
+
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
 
+from apps.clients.models import Clients
 from django.contrib.auth.models import Group
 from apps.accounts.models import CustomUser
 
@@ -23,6 +26,7 @@ def create_group(group_name):
 
 # Creamos Roles bases del proyecto
 def crear_super_user_and_groups():
+    print('*** Comenzar procedimiento de Super User & Roles/Groups***')
 
     grupo_admin_instance = create_group('admin')
     create_group('vendedor')
@@ -51,8 +55,23 @@ def crear_super_user_and_groups():
         us.groups.add(grupo_admin_instance)
 
     print('Super usuario creado exitosamente') if creado else None
-    print('*** Finalizar procedimiento de Super User ***')
+    print('*** Finalizar procedimiento de Super User & Roles/Groups***')
+
+def crear_cliente_mantenimiento():
+    print('*** Comenzar procedimiento Cliente Mantenimiento ***')
+    if not Clients.objects.filter(first_name="Mantenimiento").exists():
+        print('Creando cliente "Mantenimiento"')
+        Clients.objects.create(
+            number_doc="0",
+            first_name="Mantenimiento",
+            date = datetime.now()
+        )
+    else:
+        print('Ya existe cliente "Mantenimiento"')
+
+    print('*** Finalizar procedimiento Cliente Mantenimiento ***')
 
 
 if __name__ == "__main__":
     crear_super_user_and_groups()
+    crear_cliente_mantenimiento()

@@ -25,6 +25,7 @@ class Reservation(BaseModel):
     class OriginReservationTypeChoice(models.TextChoices):
             AIR = "air", ("Airbnb")
             AUS = "aus", ("Austin")
+            MAN = "man", ("Mantenimiento")
 
     client = models.ForeignKey(Clients, on_delete=models.CASCADE, null=True, blank=True)
     property = models.ForeignKey(Property, on_delete=models.CASCADE, null=False, blank=False)
