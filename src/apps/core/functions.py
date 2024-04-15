@@ -34,7 +34,7 @@ def update_air_bnb_api(property):
 
     reservations_uid = reservation_serializer.Reservation.objects.exclude(origin='aus').values_list("uuid_external", flat=True)
 
-    print('Request a:', f"{URL_BASE}{property.airbnb_url} ({property.name})")
+    # print('Request a:', f"{URL_BASE}{property.airbnb_url} ({property.name})")
     response = requests.get(URL_BASE + property.airbnb_url)
 
     if response.status_code == 200:
