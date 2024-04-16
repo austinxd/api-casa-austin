@@ -22,7 +22,13 @@ class TokenApiClientApiView(APIView):
 class ClientsApiView(viewsets.ModelViewSet):
     serializer_class = ClientsSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ["email", "number_doc", "first_name", "last_name"]
+    search_fields = [
+        "email",
+        "number_doc",
+        "first_name", 
+        "last_name",
+        "tel_number"
+    ]
     pagination_class = CustomPagination
 
     def get_pagination_class(self):
