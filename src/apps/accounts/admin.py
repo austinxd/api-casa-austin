@@ -19,6 +19,21 @@ class CustomUserAdmin(UserAdmin):
         'grupo_rol'
         )
 
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': (
+                'first_name',
+                'last_name',
+                'email',
+                'profile_photo',
+                'password1',
+                'password2',
+                'groups',
+            ),
+        }),
+    )
+
     fieldsets = UserAdmin.fieldsets + (
         ('Extra data', {'fields': ('profile_photo',)}),
     )

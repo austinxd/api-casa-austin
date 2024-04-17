@@ -8,6 +8,13 @@ class CustomUserCreationForm(UserCreationForm):
         model = CustomUser
         fields = UserCreationForm.Meta.fields
 
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.username = self.cleaned_data['email']
+        if commit:
+            user.save()
+        return user
+
 class CustomUserChangeForm(UserChangeForm):
     class Meta:
         model = CustomUser
