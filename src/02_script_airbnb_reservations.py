@@ -10,7 +10,7 @@ from apps.core.functions import update_air_bnb_api
 
 
 def get_airbnb_reservations():
-    print('Comenzando proceso para obtener propeiedades de API de AirBnB')
+    print('Comenzando proceso para obtener propiedades de API de AirBnB')
     query_property = Property.objects.exclude(airbnb_url__isnull=True)
 
     for q in query_property:
