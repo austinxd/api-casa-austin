@@ -44,6 +44,11 @@ class Reservation(BaseModel):
     )
     tel_contact_number = models.CharField(max_length=255, null=True, blank=True)
 
+    full_payment = models.BooleanField(default=False)
+
+    # Activar o desactivar piscina temperada
+    temperature_pool = models.BooleanField(default=False)
+
     def __str__(self):
         if self.client:
             return f"Reserva de {self.client.last_name}, {self.client.first_name} ({self.id})"
