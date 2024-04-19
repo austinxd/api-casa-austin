@@ -102,6 +102,7 @@ class DashboardApiView(APIView):
                 total_ventas_mes_vendedor = '%.2f' % float(total_ventas_mes_vendedor['total_ventas'])
 
             best_sellers.append({
+                'id': v.id,
                 'nombre': v.first_name,
                 'apellido': v.last_name,
                 'ventas_soles': total_ventas_mes_vendedor,
