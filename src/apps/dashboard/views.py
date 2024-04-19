@@ -57,6 +57,7 @@ def get_days_without_reservations(fecha_actual, last_day):
 
         days_without_reservations_per_property.append({
             'casa':p.name,
+            'property__background_color':p.background_color,
             'dias_libres': len(days_without_reservations),
             'dias_ocupada': len(all_days) - len(days_without_reservations),
             'dinero_por_cobrar': adelantos_propiedad_mes,
