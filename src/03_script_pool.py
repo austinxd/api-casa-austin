@@ -17,20 +17,27 @@ def pool_temperature():
     tomorrow = datetime.today() + timedelta(days=1)
 
     for p in properties:
-        query_reservations = Reservation.objects.filter(property=p, check_in_date=tomorrow.date())
-        if query_reservations:
-            if query_reservations.first().temperature_pool and p.on_temperature_pool_url:
-                requests.get(p.on_temperature_pool_url)
-            elif not query_reservations.first().temperature_pool and p.off_temperature_pool_url:
-                requests.get(p.off_temperature_pool_url) # FIXME: aqui hay que evaluar si ejecutamos off, o tambien manejamos un campo para saber cuando esta apagada o encendida la temperatura
-        else:
-            """En caso que no existan reservas para el dia siguiente, lo que evaluo es una hora estimada de check out, 
-            suele ser 10 AM pero pongo un horario estimativo a las 12 del mediodia,
-            donde eso esta sujeto a evaluacion, para asi apagar la temperatura"""
-            hour_check_out = time(11, 0)
-            hour_now = datetime.now().time()
-            if hour_now >= hour_check_out:
-                requests.get(p.off_temperature_pool_url)
+        if p.on_temperature_pool_url and p.off_temperature_pool_url:
+            print(p.name)
+            query_reservations = Reservation.objects.filter(property=p, check_in_date=tomorrow.date())
+            print('Reservas de mañana: ', query_reservations)
+            if query_reservations:
+                print('-------')
+                if query_reservations.first().temperature_pool and p.on_temperature_pool_url:
+                    print('La reserva solicitó piscina temperada - Apagar piscina')
+                    requests.get(p.on_temperature_pool_url)
+                elif not query_reservations.first().temperature_pool and p.off_temperature_pool_url:
+                    print('La reserva no solicitó piscina temperada - Apagar piscina')
+                    requests.get(p.off_temperature_pool_url) # FIXME: aqui hay que evaluar si ejecutamos off, o tambien manejamos un campo para saber cuando esta apagada o encendida la temperatura
+            else:
+                """En caso que no existan reservas para el dia siguiente, lo que evaluo es una hora estimada de check out, 
+                suele ser 10 AM pero pongo un horario estimativo a las 12 del mediodia,
+                donde eso esta sujeto a evaluacion, para asi apagar la temperatura"""
+                print('Apagando por defecto')
+                hour_check_out = time(11, 0)
+                hour_now = datetime.now().time()
+                if hour_now >= hour_check_out:
+                    requests.get(p.off_temperature_pool_url)
 
     print('Finalizando controlador de automatizacion de piscina temperada')
 
