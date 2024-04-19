@@ -25,7 +25,7 @@ def pool_temperature():
                 requests.get(p.off_temperature_pool_url) # FIXME: aqui hay que evaluar si ejecutamos off, o tambien manejamos un campo para saber cuando esta apagada o encendida la temperatura
         else:
             """En caso que no existan reservas para el dia siguiente, lo que evaluo es una hora estimada de check out, 
-            suele ser 10 AM pero pongo un horario estimativo a las 12 del mediodia, 
+            suele ser 10 AM pero pongo un horario estimativo a las 12 del mediodia,
             donde eso esta sujeto a evaluacion, para asi apagar la temperatura"""
             hour_check_out = time(11, 0)
             hour_now = datetime.now().time()

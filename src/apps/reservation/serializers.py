@@ -64,6 +64,26 @@ class ReservationSerializer(serializers.ModelSerializer):
 
         property_field = attrs.get('property')
         reservation_id = self.instance.id if self.instance else None
+        
+        print("\n\n")
+        print('self comtext!!! ', attrs)
+        print("\n\n")
+        
+        print("\n\n")
+        print('self ATTRSSSS!!! ', attrs['advance_payment'])
+        print("\n\n")
+        if attrs.get('advance_payment_currency') == 'usd' and attrs.get('advance_payment') > 0:
+            print("\n\n")
+            print('ENTRO PRIMER IFF CURRENCY USD!!!' )
+            print("\n\n")
+            # Calculo cotizacion 1 dolar = soles
+            usd_x_sol = attrs.get('price_sol')/attrs.get('price_usd')
+            attrs['advance_payment'] = attrs.get('advance_payment')*usd_x_sol
+
+        if attrs.get('full_payment') == True:
+            attrs['advance_payment'] = attrs.get('price_sol')
+            attrs['advance_payment_currency'] == 'sol'
+
 
         # Check if it's called from a view with patch verb
         patch_cond = False
