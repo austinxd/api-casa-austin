@@ -33,10 +33,10 @@ def pool_temperature():
                 """En caso que no existan reservas para el dia siguiente, lo que evaluo es una hora estimada de check out, 
                 suele ser 10 AM pero pongo un horario estimativo a las 12 del mediodia,
                 donde eso esta sujeto a evaluacion, para asi apagar la temperatura"""
-                print('Apagando por defecto')
                 hour_check_out = time(11, 0)
                 hour_now = datetime.now().time()
                 if hour_now >= hour_check_out:
+                    print('Apagando por defecto')
                     requests.get(p.off_temperature_pool_url)
 
     print('Finalizando controlador de automatizacion de piscina temperada')
