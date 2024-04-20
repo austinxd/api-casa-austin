@@ -45,7 +45,8 @@ class ReservationSerializer(serializers.ModelSerializer):
 
     def to_internal_value(self, data):
         new_data = data.copy()
-        query_client = Clients.objects.filter(id=data['client'])
+
+        query_client = Clients.objects.filter(id=data.get('client'))
 
         if query_client.exists():
             if query_client.first().first_name == 'Mantenimiento':

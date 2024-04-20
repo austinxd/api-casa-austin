@@ -32,9 +32,9 @@ class Reservation(BaseModel):
     check_in_date = models.DateField()
     check_out_date = models.DateField()
     guests = models.PositiveIntegerField(null=False, blank=False, default=1)
-    price_usd = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
-    price_sol = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
-    advance_payment = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
+    price_usd = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True, default=0)
+    price_sol = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True, default=0)
+    advance_payment = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True, default=0)
     advance_payment_currency = models.CharField(
         max_length=3, choices=AdvancePaymentTypeChoice.choices, default=AdvancePaymentTypeChoice.SOL
     )

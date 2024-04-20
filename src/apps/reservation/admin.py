@@ -7,6 +7,7 @@ class ReservationAdmin(admin.ModelAdmin):
         "property",
         "check_in_date",
         "check_out_date",
+        "origin",
         "deleted"
     )
 
