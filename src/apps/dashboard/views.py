@@ -26,9 +26,6 @@ def get_days_without_reservations(fecha_actual, last_day):
     total_por_cobrar = 0
     total_facturado = 0
 
-    # Genera una lista de todos los días dentro del mes
-    all_days = [first_day + timedelta(days=i) for i in range((last_day - first_day).days +1)]
-
     total_days_for_all_properties = 0
     for p in Property.objects.exclude(deleted=True):
         reservations = Reservation.objects.filter(
@@ -51,6 +48,9 @@ def get_days_without_reservations(fecha_actual, last_day):
             dinero_cobrado_propiedad_mes = float(dinero_cobrado_propiedad_mes['pagos'])
         else:
             dinero_cobrado_propiedad_mes = 0
+
+        # Genera una lista de todos los días desde la fecha actual a fin del mes
+        all_days = [fecha_actual + timedelta(days=i) for i in range((last_day - fecha_actual).days + 1)]
 
         # Encuentra los días sin reservaciones
         days_without_reservations = [day.date() for day in all_days if not any((reservation.check_in_date <= day.date() <= reservation.check_out_date) for reservation in reservations)]
