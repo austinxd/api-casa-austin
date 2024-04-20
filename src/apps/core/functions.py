@@ -9,6 +9,7 @@ from pathlib import Path
 
 from slugify import slugify
 
+from django.db.models import Q
 from django.contrib.admin.models import LogEntry, CHANGE, ADDITION, DELETION
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.admin.models import LogEntry
@@ -85,22 +86,27 @@ def confeccion_ics():
     from apps.reservation.models import Reservation
     from apps.property.models import Property
 
-    query_reservations = Reservation.objects.exclude(deleted=True).filter(origin='aus')
-
+    query_reservations = Reservation.objects.exclude(deleted=True).filter(
+                    Q(origin="aus") |
+                    Q(origin="man")
+                )
+ 
     print('Comenzando proceso para confeccionar ICS')
     
 
     for prop in Property.objects.exclude(deleted=True):
+        print('Procesando propiedad ', prop.name)
         cal = Calendar()
         cal.add('VERSION', str(2.0))
         cal.add('PRODID', "-//hacksw/handcal//NONSGML v1.0//EN")
-
+        
         for res in query_reservations.filter(property=prop, check_in_date__gte=datetime.now()):
+            print('Procesando reserva ', res)
             # Creating icalendar/event
             event = Event()
             
             event.add('uid', str(res.id))
-            event.add('description', f"Reserva de Casa Austin - {res.id}")
+            event.add('description', f"Reserva de Casa Austin - {res.id} ({res.origin})")
             event.add('dtstart',  datetime.combine(res.check_in_date, datetime.min.time()))
             event.add('dtend', datetime.combine(res.check_out_date, datetime.min.time()))
             event.add('dtstamp', res.created)

@@ -51,7 +51,7 @@ class Reservation(BaseModel):
 
     def __str__(self):
         if self.client:
-            return f"Reserva de {self.client.last_name}, {self.client.first_name} ({self.id})"
+            return f"Reserva de {self.client.last_name}, {self.client.first_name} ({self.id}) - {self.origin} -"
         else:
             return f"Reserva desde API Airbnb (sin datos del cliente)"
 
