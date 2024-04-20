@@ -3,6 +3,7 @@ from django.db import models
 
 from apps.core.functions import user_directory_path
 
+
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
     profile_photo = models.ImageField(upload_to=user_directory_path, null=True, blank=True, default=None)

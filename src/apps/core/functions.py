@@ -13,8 +13,6 @@ from django.contrib.admin.models import LogEntry, CHANGE, ADDITION, DELETION
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.admin.models import LogEntry
 
-from apps.accounts.models import CustomUser
-
 
 URL_BASE = settings.AIRBNB_API_URL_BASE+"="
 
@@ -75,7 +73,7 @@ def update_air_bnb_api(property):
                     "price_usd": 0,
                     "price_sol": 0,
                     "advance_payment": 0,
-                    'seller': CustomUser.objects.get(first_name='AirBnB').id
+                    'seller': reservation_serializer.CustomUser.objects.get(first_name='AirBnB').id
                 }
                 serializer = reservation_serializer.ReservationSerializer(data=data, context={"script": True})
                 if serializer.is_valid():
