@@ -75,7 +75,39 @@ def crear_cliente_mantenimiento():
 
     print('*** Finalizar procedimiento Cliente Mantenimiento ***')
 
+def create_airbnb_cliente_user():
+    print('*** Iniciar procedimiento Setup AirBnB ***')
+    if not Clients.objects.filter(first_name="AirBnB").exists():
+        print('Creando cliente "AirBnB"')
+        Clients.objects.create(
+            number_doc="00",
+            first_name="AirBnB",
+            last_name="*",
+            sex="m",
+            date = datetime.now(),
+            tel_number=0,
+            email="airbnb@mail.com"
+        )
+    else:
+        print('Ya existe cliente "AirBnB"')
+
+    if not CustomUser.objects.filter(first_name="AirBnB").exists():
+        print('Creando vendedor fake "AirBnB"')
+        airbnb_seller = CustomUser.objects.create(
+            first_name='AirBnB',
+            last_name='*',
+            username=f"airbnb@mail.com",
+            email=f"airbnb@mail.com",
+            password=make_password(f"{settings.DATABASES['default']['PASSWORD']}")
+        )
+
+        # Add rol vendedor
+        airbnb_seller.groups.add(Group.objects.get(name="vendedor"))
+    else:
+        print('Ya existe cliente "AirBnB"')
+    print('*** Finalizar procedimiento Setup AirBnB ***')
 
 if __name__ == "__main__":
     crear_super_user_and_groups()
     crear_cliente_mantenimiento()
+    create_airbnb_cliente_user()
