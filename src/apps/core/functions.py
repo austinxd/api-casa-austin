@@ -86,10 +86,7 @@ def confeccion_ics():
     from apps.reservation.models import Reservation
     from apps.property.models import Property
 
-    query_reservations = Reservation.objects.exclude(deleted=True).filter(
-                    Q(origin="aus") |
-                    Q(origin="man")
-                )
+    query_reservations = Reservation.objects.exclude(deleted=True)
  
     print('Comenzando proceso para confeccionar ICS')
     
