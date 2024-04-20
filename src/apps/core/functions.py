@@ -36,11 +36,14 @@ def update_air_bnb_api(property):
 
     reservations_uid = reservation_serializer.Reservation.objects.exclude(origin='aus').values_list("uuid_external", flat=True)
 
+    print('Request to AirBnb: ', URL_BASE + property.airbnb_url)
     response = requests.get(URL_BASE + property.airbnb_url)
 
     if response.status_code == 200:
         reservations = response.json()
+        print('Reservations from AirBnB', reservations)
         for r in reservations:
+            print('Sync AirBnB Reservation, Property:', property.name)
             date_start = datetime.strptime(r["start_date"], "%Y%m%d").date()
             date_end = datetime.strptime(r["end_date"], "%Y%m%d").date()
             if r["uid"] in reservations_uid:

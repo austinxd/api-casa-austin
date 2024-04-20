@@ -5,6 +5,7 @@ from drf_spectacular.utils import extend_schema_field
 
 from .models import Reservation, RentalReceipt
 from apps.clients.models import Clients
+from apps.accounts.models import CustomUser
 
 from apps.accounts.serializers import SellerSerializer
 from apps.clients.serializers import ClientShortSerializer
@@ -35,7 +36,6 @@ class ReservationSerializer(serializers.ModelSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
         if not self.instance:
             self.fields['seller'].required = False
             self.fields['seller'].read_only = True
@@ -52,6 +52,15 @@ class ReservationSerializer(serializers.ModelSerializer):
             if query_client.first().first_name == 'Mantenimiento':
                 self.context['mantenimiento_client'] = query_client.first().first_name
                 new_data['origin'] = 'man'
+                new_data['price_usd'] = 0
+                new_data['price_sol'] = 0
+                new_data['advance_payment'] = 0
+                new_data['full_payment'] = False
+                new_data['temperature_pool'] = False
+
+            elif query_client.first().first_name == 'AirBnB':
+                new_data['origin'] = 'air'
+                new_data['seller'] = CustomUser.objects.get(first_name='AirBnB')
 
         return super().to_internal_value(new_data)
 

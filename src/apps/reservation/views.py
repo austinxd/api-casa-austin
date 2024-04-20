@@ -22,6 +22,8 @@ from slugify import slugify
 from .models import Reservation, RentalReceipt
 from .serializers import ReservationSerializer, ReservationListSerializer, ReservationRetrieveSerializer, ReciptSerializer
 
+from apps.accounts.models import CustomUser
+
 from apps.core.functions import generate_audit
 
 
@@ -156,7 +158,11 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         with transaction.atomic():
-            serializer.save(seller=self.request.user)
+            user_seller = self.request.user
+            if self.request.POST['origin'].lower() == 'air':
+                user_seller = CustomUser.objects.get(first_name='AirBnB')
+
+            serializer.save(seller=user_seller)
 
             for file in self.request.FILES.getlist('file'):
                 RentalReceipt.objects.create(
