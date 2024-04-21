@@ -17,6 +17,15 @@ from apps.core.functions import recipt_directory_path
 
 
 class Reservation(BaseModel):
+    @property
+    def adelanto_normalizado(self):
+        res = float(self.advance_payment) if self.advance_payment else 0
+
+        if self.advance_payment_currency == 'usd' and self.advance_payment != 0:
+            res = (float(self.price_usd)/float(self.price_sol)) * float(self.advance_payment)
+
+        return round(res, 2)
+
     class AdvancePaymentTypeChoice(models.TextChoices):
             SOL = "sol", ("Soles")
             USD = "usd", ("Dólares")
