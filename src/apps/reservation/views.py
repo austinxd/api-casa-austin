@@ -8,6 +8,7 @@ from datetime import datetime
 from django.db import transaction
 from django.db.models import Q
 
+from rest_framework.views import APIView
 from rest_framework import generics, viewsets
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
@@ -227,7 +228,7 @@ class DeleteRecipeApiView(generics.DestroyAPIView):
 
         return queryset.filter(reservation__seller=self.request.user)
 
-class GetICSApiView(generics.GenericAPIView):
+class GetICSApiView(APIView):
     serializer_class = None
     permission_classes = [AllowAny]
 
@@ -249,7 +250,7 @@ class GetICSApiView(generics.GenericAPIView):
 
         return response
     
-class UpdateICSApiView(generics.GenericAPIView):
+class UpdateICSApiView(APIView):
     serializer_class = None
 
     def get(self, request):
