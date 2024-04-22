@@ -91,7 +91,8 @@ class DashboardApiView(APIView):
     def get(self, request):
         content = {}
         
-        media_url = request.scheme + '://' + request.get_host() + "/media/"
+        base_url = request.scheme + '://' + request.get_host()
+        media_url = base_url + "/media/"
 
         # Best Sellers Card
         fecha_actual = datetime.now()
@@ -115,7 +116,7 @@ class DashboardApiView(APIView):
                 'nombre': v.first_name,
                 'apellido': v.last_name,
                 'ventas_soles': total_ventas_mes_vendedor,
-                'foto_perfil': media_url+str(v.profile_photo)
+                'foto_perfil': media_url+str(v.profile_photo) if v.profile_photo else base_url+'/static/default-user.jpg'
             })
 
         content['best_sellers'] = best_sellers
