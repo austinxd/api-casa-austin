@@ -36,25 +36,25 @@ def get_days_without_reservations(fecha_actual, last_day):
                 ).filter(
                     Q(check_in_date__gte=first_day, check_in_date__lt=last_day) |
                     Q(check_out_date__gte=first_day, check_out_date__lt=last_day)
-                )
+                ).exclude(check_out_date__lt=fecha_actual)
 
         noches_reservadas = 0
-        print('*'*50)
-        print('FECHA SERVIDOR', fecha_actual)
-        print('propiedad', p.name)
+        # print('*'*50)
+        # print('FECHA SERVIDOR', fecha_actual)
+        # print('propiedad', p.name)
         for r in reservations.exclude(deleted=True).order_by('check_in_date'):
-            print('x'*50)
-            print('r', r)
-            print('ci', r.check_in_date)
-            print('co', r.check_out_date)
-            print('deleted', r.deleted)
+            # print('x'*50)
+            # print('r', r)
+            # print('ci', r.check_in_date)
+            # print('co', r.check_out_date)
+            # print('deleted', r.deleted)
             noches_reservadas += contar_noches_reserva(r.check_in_date, r.check_out_date, last_day.date())
-            print('Noches reservada: ', noches_reservadas)
+        #     print('Noches reservada: ', noches_reservadas)
 
-        print('*'*50)
+        # print('*'*50)
         noches_totales = noches_restantes_mes(fecha_actual.date(), last_day.date())
 
-        print('Noches evaluar:', noches_totales)
+        # print('Noches evaluar:', noches_totales)
 
         pagos_recibidos_propiedad_mes = 0
 
