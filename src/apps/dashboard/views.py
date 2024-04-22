@@ -87,7 +87,6 @@ def get_days_without_reservations(fecha_actual, last_day):
         total_por_cobrar += valor_propiedad_mes - pagos_recibidos_propiedad_mes
         total_facturado += pagos_recibidos_propiedad_mes + profit_propiedad_mes_airbnb
 
-    total_days_for_all_properties -= days_without_reservations_total
 
     return days_without_reservations_per_property, days_without_reservations_total, total_days_for_all_properties, '%.2f' % total_por_cobrar, '%.2f' % total_facturado
 
