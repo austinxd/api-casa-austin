@@ -1,7 +1,7 @@
 import os
 import requests
 from django.conf import settings
-from datetime import datetime
+from datetime import datetime, timedelta
 from rest_framework import serializers
 
 from icalendar import Calendar, Event
@@ -9,13 +9,40 @@ from pathlib import Path
 
 from slugify import slugify
 
-from django.db.models import Q
 from django.contrib.admin.models import LogEntry, CHANGE, ADDITION, DELETION
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.admin.models import LogEntry
 
 
 URL_BASE = settings.AIRBNB_API_URL_BASE+"="
+
+
+def noches_restantes_mes(fecha_actual, fecha_fin_mes):
+    """ Retornar las noches que quedan en el mesa dada una fecha
+    """
+
+    diferencia = (fecha_fin_mes + timedelta(days=1)) - fecha_actual
+    noches = diferencia.days
+
+    return noches
+
+def contar_noches_reserva(fecha_inicio, fecha_fin, limit):
+    """ Dado dos objetos Datefield retornar la diferencia entre dias entre ambos valores
+        Params:
+            - Fecha inicio a evaluar (Check in)
+            - Fecha fin a evaluar (Check out)
+            - Fecha limite a evaluar (último día del mes)
+        
+        Return:
+            - Noches entre reservas
+    """
+
+    eval_fecha_fin = fecha_fin if fecha_fin < limit else limit + timedelta(days=1)  # En caso que salga por el else me intersa saber el dia siguiente porque es la noche del ultimo dia del mes
+
+    diferencia = eval_fecha_fin - fecha_inicio
+    noches = diferencia.days
+
+    return noches
 
 
 def check_user_has_rol(rol_str, user):

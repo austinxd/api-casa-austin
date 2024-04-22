@@ -13,6 +13,9 @@ from apps.reservation.models import Reservation
 from .serializers import DashboardSerializer
 from django.db.models import Sum, Q
 
+from apps.core.functions import contar_noches_reserva, noches_restantes_mes
+
+
 
 def get_days_without_reservations(fecha_actual, last_day):
 
@@ -35,6 +38,11 @@ def get_days_without_reservations(fecha_actual, last_day):
                     Q(check_out_date__gte=first_day, check_out_date__lt=last_day)
                 )
 
+        noches_reservadas = 0
+        for r in reservations.order_by('check_in_date'):
+            noches_reservadas += contar_noches_reserva(r.check_in_date, r.check_out_date, last_day.date())
+
+        noches_totales = noches_restantes_mes(fecha_actual.date(), last_day.date())
 
         pagos_recibidos_propiedad_mes = 0
 
@@ -49,11 +57,11 @@ def get_days_without_reservations(fecha_actual, last_day):
         else:
             valor_propiedad_mes = 0
 
-        # Genera una lista de todos los días desde la fecha actual a fin del mes
-        all_days = [fecha_actual + timedelta(days=i) for i in range((last_day - fecha_actual).days + 1)]
+        # # Genera una lista de todos los días desde la fecha actual a fin del mes
+        # all_days = [fecha_actual + timedelta(days=i) for i in range((last_day - fecha_actual).days + 1)]
 
-        # Encuentra los días sin reservaciones
-        days_without_reservations = [day.date() for day in all_days if not any((reservation.check_in_date <= day.date() <= reservation.check_out_date) for reservation in reservations)]
+        # # Encuentra los días sin reservaciones
+        # days_without_reservations = [day.date() for day in all_days if not any((reservation.check_in_date <= day.date() <= reservation.check_out_date) for reservation in reservations)]
 
         query_profit_airbnb_property = ProfitPropertyAirBnb.objects.filter(
           property = p,
@@ -66,17 +74,16 @@ def get_days_without_reservations(fecha_actual, last_day):
         days_without_reservations_per_property.append({
             'casa':p.name,
             'property__background_color':p.background_color,
-            'dias_libres': len(days_without_reservations),
-            'dias_ocupada': len(all_days) - len(days_without_reservations),
+            'dias_libres': noches_totales - noches_reservadas,
+            'dias_ocupada': noches_reservadas,
             'dinero_por_cobrar': round(valor_propiedad_mes - pagos_recibidos_propiedad_mes, 2),
             'dinero_facturado': round(pagos_recibidos_propiedad_mes + profit_propiedad_mes_airbnb),
         })
 
-        days_without_reservations_total += len(days_without_reservations)
+        days_without_reservations_total += noches_totales - noches_reservadas
 
-        total_days_for_all_properties += len(all_days)
+        total_days_for_all_properties += noches_reservadas
 
-        # FIXME ACA TENGO QUE HACER 
         total_por_cobrar += valor_propiedad_mes - pagos_recibidos_propiedad_mes
         total_facturado += pagos_recibidos_propiedad_mes + profit_propiedad_mes_airbnb
 
