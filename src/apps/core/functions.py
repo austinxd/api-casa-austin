@@ -17,6 +17,32 @@ from django.contrib.admin.models import LogEntry
 URL_BASE = settings.AIRBNB_API_URL_BASE+"="
 
 
+def get_month_name(month_number):
+    if month_number == 1:
+        return 'enero'
+    elif month_number == 2:
+        return 'febrero'
+    elif month_number == 3:
+        return 'marzo'
+    elif month_number == 4:
+        return 'abril'
+    elif month_number == 5:
+        return 'mayo'
+    elif month_number == 6:
+        return 'junio'
+    elif month_number == 7:
+        return 'julio'
+    elif month_number == 8:
+        return 'agosto'
+    elif month_number == 9:
+        return 'septiembre'
+    elif month_number == 10:
+        return 'octubre'
+    elif month_number == 11:
+        return 'noviembre'
+    
+    return 'diciembre'
+
 def noches_restantes_mes(fecha_actual, fecha_fin_mes):
     """ Retornar las noches que quedan en el mesa dada una fecha
     """

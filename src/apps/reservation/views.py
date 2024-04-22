@@ -257,3 +257,28 @@ class UpdateICSApiView(APIView):
         confeccion_ics()
 
         return Response({'message':'ok'}, status=200)
+
+from apps.core.functions import get_month_name
+from apps.dashboard.utils import get_days_without_reservations
+
+class ProfitApiView(APIView):
+    serializer_class = None
+
+    def get(self, request):
+        rta = {}
+
+        evaluate_year = int(self.request.query_params['year'])
+        for m in range(1,13):
+            last_day_month = calendar.monthrange(evaluate_year, m)[1]
+
+            _, _, _, _, total_facturado = get_days_without_reservations(
+                datetime(evaluate_year, m, 1),
+                last_day_month
+            )
+            
+            rta[get_month_name(m)] = total_facturado 
+
+        return Response(
+            rta,
+            status=200
+        )    
