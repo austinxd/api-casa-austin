@@ -39,7 +39,7 @@ def get_days_without_reservations(fecha_actual, last_day):
                 )
 
         noches_reservadas = 0
-        for r in reservations.order_by('check_in_date'):
+        for r in reservations.exclude(deleted=True).order_by('check_in_date'):
             noches_reservadas += contar_noches_reserva(r.check_in_date, r.check_out_date, last_day.date())
 
         noches_totales = noches_restantes_mes(fecha_actual.date(), last_day.date())
