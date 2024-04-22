@@ -40,6 +40,7 @@ def get_days_without_reservations(fecha_actual, last_day):
 
         noches_reservadas = 0
         print('*'*50)
+        print('FECHA SERVIDOR', fecha_actual)
         print('propiedad', p.name)
         for r in reservations.exclude(deleted=True).order_by('check_in_date'):
             print('x'*50)
