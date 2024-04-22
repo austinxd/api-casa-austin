@@ -15,8 +15,8 @@ from rest_framework_simplejwt.views import (
 urlpatterns = [
     path(settings.DJANGO_ADMIN_PATH, admin.site.urls),
     path('api/v1/test/', apiviews.TestApi.as_view()),
-    path('api/v1/test/login/', apiviews.TestLogeoApi.as_view()),
-    path('api/v1/login/',  apiviews.CustomTokenObtainPairView.as_view(),),
+    path('api/v1/test/login/', apiviews.TestLogeoApi.as_view(), name='test_token'),
+    path('api/v1/login/',  apiviews.CustomTokenObtainPairView.as_view(), name='login_jwt'),
     path('api/v1/token/refresh/', TokenRefreshView.as_view()),
     # urls endpoints
     # path('api/v1/clients/', include('apps.clients.urls')),

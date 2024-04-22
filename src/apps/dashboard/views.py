@@ -26,7 +26,9 @@ def get_days_without_reservations(fecha_actual, last_day):
 
     total_days_for_all_properties = 0
     for p in Property.objects.exclude(deleted=True):
-        reservations = Reservation.objects.filter(
+        reservations = Reservation.objects.exclude(
+            deleted=True
+        ).filter(
             property=p
                 ).filter(
                     Q(check_in_date__gte=first_day, check_in_date__lt=last_day) |
