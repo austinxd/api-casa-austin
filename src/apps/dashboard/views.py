@@ -99,7 +99,7 @@ class DashboardApiView(APIView):
         last_day_month = calendar.monthrange(fecha_actual.year, fecha_actual.month)[1]
 
         range_evaluate = (datetime(fecha_actual.year, fecha_actual.month, 1), datetime(fecha_actual.year, fecha_actual.month, last_day_month))
-        query_reservation_current_month = Reservation.objects.filter(check_in_date__range=range_evaluate)
+        query_reservation_current_month = Reservation.objects.exclude(deleted=True).filter(check_in_date__range=range_evaluate)
         
         best_sellers = []
         for v in CustomUser.objects.filter(groups__name='vendedor'):
