@@ -36,18 +36,18 @@ def get_days_without_reservations(fecha_actual, last_day):
                 )
 
 
-        adelantos_propiedad_mes = 0
+        pagos_recibidos_propiedad_mes = 0
 
         for r in reservations:
             # opero con una property
-            adelantos_propiedad_mes += r.adelanto_normalizado
+            pagos_recibidos_propiedad_mes += r.adelanto_normalizado
 
-        dinero_cobrado_propiedad_mes = reservations.aggregate(pagos=Sum('price_sol'))
+        valor_propiedad_mes = reservations.aggregate(pagos=Sum('price_sol'))
 
-        if dinero_cobrado_propiedad_mes['pagos']:
-            dinero_cobrado_propiedad_mes = float(dinero_cobrado_propiedad_mes['pagos'])
+        if valor_propiedad_mes['pagos']:
+            valor_propiedad_mes = float(valor_propiedad_mes['pagos'])
         else:
-            dinero_cobrado_propiedad_mes = 0
+            valor_propiedad_mes = 0
 
         # Genera una lista de todos los días desde la fecha actual a fin del mes
         all_days = [fecha_actual + timedelta(days=i) for i in range((last_day - fecha_actual).days + 1)]
@@ -61,15 +61,15 @@ def get_days_without_reservations(fecha_actual, last_day):
           year=fecha_actual.year  
         )
 
-        dinero_cobrado_propiedad_mes_airbnb = query_profit_airbnb_property.profit_sol if query_profit_airbnb_property else 0
+        profit_propiedad_mes_airbnb = float(query_profit_airbnb_property.first().profit_sol) if query_profit_airbnb_property else 0
 
         days_without_reservations_per_property.append({
             'casa':p.name,
             'property__background_color':p.background_color,
             'dias_libres': len(days_without_reservations),
             'dias_ocupada': len(all_days) - len(days_without_reservations),
-            'dinero_por_cobrar': adelantos_propiedad_mes,
-            'dinero_facturado': dinero_cobrado_propiedad_mes + dinero_cobrado_propiedad_mes_airbnb,
+            'dinero_por_cobrar': round(valor_propiedad_mes - pagos_recibidos_propiedad_mes, 2),
+            'dinero_facturado': round(pagos_recibidos_propiedad_mes + profit_propiedad_mes_airbnb),
         })
 
         days_without_reservations_total += len(days_without_reservations)
@@ -77,8 +77,8 @@ def get_days_without_reservations(fecha_actual, last_day):
         total_days_for_all_properties += len(all_days)
 
         # FIXME ACA TENGO QUE HACER 
-        total_por_cobrar += dinero_cobrado_propiedad_mes - adelantos_propiedad_mes
-        total_facturado += dinero_cobrado_propiedad_mes + dinero_cobrado_propiedad_mes_airbnb
+        total_por_cobrar += valor_propiedad_mes - pagos_recibidos_propiedad_mes
+        total_facturado += pagos_recibidos_propiedad_mes + profit_propiedad_mes_airbnb
 
     total_days_for_all_properties -= days_without_reservations_total
 
