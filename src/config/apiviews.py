@@ -40,6 +40,7 @@ class TestLogeoApi(APIView):
 
         content = {
             'message': 'Bienvenido/a a Casa Austin. API y Token Funcionando ok!',
+            "id": usuario.id,
             'email': usuario.email
         }
 
@@ -50,6 +51,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
 
+        data['id'] = self.user.id
         data['groups'] = self.user.groups.values_list('name', flat=True)
         return data
 
