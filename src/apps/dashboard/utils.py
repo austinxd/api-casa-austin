@@ -6,7 +6,7 @@ from django.db.models import Sum, Q
 
 from apps.core.functions import contar_noches_reserva, noches_restantes_mes
 
-def get_days_without_reservations(fecha_actual, last_day):
+def get_stadistics_period(fecha_actual, last_day):
 
     first_day = datetime(fecha_actual.year, fecha_actual.month, 1)
     last_day = datetime(fecha_actual.year, fecha_actual.month, last_day)

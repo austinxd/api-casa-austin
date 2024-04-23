@@ -10,7 +10,7 @@ from apps.reservation.models import Reservation
 from .serializers import DashboardSerializer
 from django.db.models import Sum
 
-from .utils import get_days_without_reservations
+from .utils import get_stadistics_period
 
 
 class DashboardApiView(APIView):
@@ -52,7 +52,7 @@ class DashboardApiView(APIView):
         # END Best Sellers Card
 
         # Free days
-        free_days_per_house, free_days_total, ocuppied_days_total, total_por_cobrar, total_facturado = get_days_without_reservations(fecha_actual, last_day_month)
+        free_days_per_house, free_days_total, ocuppied_days_total, total_por_cobrar, total_facturado = get_stadistics_period(fecha_actual, last_day_month)
 
         content['free_days_per_house'] = free_days_per_house
         content['free_days_total'] = free_days_total

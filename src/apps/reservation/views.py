@@ -16,7 +16,6 @@ from rest_framework.permissions import AllowAny
 
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 
-from apps.core.functions import check_user_has_rol, confeccion_ics
 from apps.core.paginator import CustomPagination
 from slugify import slugify
 
@@ -25,7 +24,8 @@ from .serializers import ReservationSerializer, ReservationListSerializer, Reser
 
 from apps.accounts.models import CustomUser
 
-from apps.core.functions import generate_audit
+from apps.core.functions import get_month_name, generate_audit, check_user_has_rol, confeccion_ics
+from apps.dashboard.utils import get_stadistics_period
 
 
 class ReservationsApiView(viewsets.ModelViewSet):
@@ -258,9 +258,6 @@ class UpdateICSApiView(APIView):
 
         return Response({'message':'ok'}, status=200)
 
-from apps.core.functions import get_month_name
-from apps.dashboard.utils import get_days_without_reservations
-
 class ProfitApiView(APIView):
     serializer_class = None
 
@@ -271,7 +268,7 @@ class ProfitApiView(APIView):
         for m in range(1,13):
             last_day_month = calendar.monthrange(evaluate_year, m)[1]
 
-            _, _, _, _, total_facturado = get_days_without_reservations(
+            _, _, _, _, total_facturado = get_stadistics_period(
                 datetime(evaluate_year, m, 1),
                 last_day_month
             )
