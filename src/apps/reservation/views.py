@@ -161,7 +161,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
         with transaction.atomic():
             user_seller = self.request.user
             if self.request.POST['origin'].lower() == 'air':
-                user_seller = CustomUser.objects.get(first_name='AirBnB')
+                user_seller = CustomUser.objects.get(first_name='AirBnB').id
 
             serializer.save(seller=user_seller)
 
