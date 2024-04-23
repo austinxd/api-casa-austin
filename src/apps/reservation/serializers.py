@@ -60,7 +60,7 @@ class ReservationSerializer(serializers.ModelSerializer):
 
             elif query_client.first().first_name == 'AirBnB':
                 new_data['origin'] = 'air'
-                new_data['seller'] = CustomUser.objects.get(first_name='AirBnB')
+                new_data['seller'] = CustomUser.objects.get(first_name='AirBnB').id
 
         return super().to_internal_value(new_data)
 
