@@ -95,6 +95,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     Q(origin="air") |
                     Q(seller=self.request.user)
                 )
+        if self.request.query_params.get('exclude'):
+            queryset = queryset.exclude(origin=self.request.query_params['exclude'])
 
         return queryset.exclude(deleted=True)
 
@@ -145,9 +147,16 @@ class ReservationsApiView(viewsets.ModelViewSet):
             OpenApiParameter(
                 "type",
                 OpenApiTypes.STR,
-                description="Filtra las resevas según donde se generaron, AriBnB (air), Sistema Casa Austin (aus)",
+                description="Filtra las resevas según donde se generaron, AriBnB (air), Sistema Casa Austin (aus), Mantenimiento (man)",
                 required=False,
-                enum=["aus", "air"]
+                enum=["aus", "air", "man"]
+            ),
+            OpenApiParameter(
+                "type",
+                OpenApiTypes.STR,
+                description="Excluye las resevas según donde se generaron, AriBnB (air), Sistema Casa Austin (aus), Mantenimiento (man)",
+                required=False,
+                enum=["aus", "air", "man"]
             ),
         ],
         responses={200: ReservationListSerializer(many=True)},
