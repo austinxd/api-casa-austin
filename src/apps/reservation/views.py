@@ -189,6 +189,17 @@ class ReservationsApiView(viewsets.ModelViewSet):
             "Reserva creada"
         )
 
+    def perform_update(self, serializer):
+        confeccion_ics()
+
+        generate_audit(
+            serializer.instance,
+            self.request.user,
+            "update",
+            "Reserva actulizada full"
+        )
+
+        return super().perform_update(serializer)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -217,6 +228,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         self.perform_destroy(instance)
+
+        confeccion_ics()
 
         generate_audit(
             instance,
