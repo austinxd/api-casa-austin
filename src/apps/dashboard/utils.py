@@ -18,7 +18,8 @@ def get_stadistics_period(fecha_actual, last_day):
 
     total_days_for_all_properties = 0
     for p in Property.objects.exclude(deleted=True):
-        reservations = Reservation.objects.exclude(
+        # Query 1 para contar las noches libresd e aca en adelante
+        reservations_from_current_day = Reservation.objects.exclude(
             deleted=True
         ).filter(
             property=p
@@ -26,20 +27,34 @@ def get_stadistics_period(fecha_actual, last_day):
                     Q(check_in_date__gte=first_day, check_in_date__lt=last_day) |
                     Q(check_out_date__gte=first_day, check_out_date__lt=last_day)
                 ).exclude(check_out_date__lt=fecha_actual)
+        
+        # Query 2 para contar las ganancias en todo el mes
+        reservations_month = Reservation.objects.exclude(
+                deleted=True
+            ).filter(
+            property=p
+                ).filter(
+                    Q(check_in_date__gte=first_day, check_in_date__lt=last_day) |
+                    Q(check_out_date__gte=first_day, check_out_date__lt=last_day)
+                )
 
         noches_reservadas = 0
-        for r in reservations.exclude(deleted=True).order_by('check_in_date'):
+        for r in reservations_month.exclude(deleted=True).order_by('check_in_date'):
             noches_reservadas += contar_noches_reserva(r.check_in_date, r.check_out_date, last_day.date())
+
+        noches_reservadas_hoy_a_fin_mes = 0
+        for r in reservations_from_current_day.exclude(deleted=True).order_by('check_in_date'):
+            noches_reservadas_hoy_a_fin_mes += contar_noches_reserva(r.check_in_date, r.check_out_date, last_day.date())
 
         noches_totales = noches_restantes_mes(fecha_actual.date(), last_day.date())
 
         pagos_recibidos_propiedad_mes = 0
 
-        for r in reservations:
+        for r in reservations_month:
             # opero con una property
             pagos_recibidos_propiedad_mes += r.adelanto_normalizado
 
-        valor_propiedad_mes = reservations.aggregate(pagos=Sum('price_sol'))
+        valor_propiedad_mes = reservations_month.aggregate(pagos=Sum('price_sol'))
 
         if valor_propiedad_mes['pagos']:
             valor_propiedad_mes = float(valor_propiedad_mes['pagos'])
@@ -58,13 +73,13 @@ def get_stadistics_period(fecha_actual, last_day):
         days_without_reservations_per_property.append({
             'casa':p.name,
             'property__background_color':p.background_color,
-            'dias_libres': noches_totales - noches_reservadas,
+            'dias_libres': noches_totales - noches_reservadas_hoy_a_fin_mes,
             'dias_ocupada': noches_reservadas,
             'dinero_por_cobrar': round(valor_propiedad_mes - pagos_recibidos_propiedad_mes, 2),
             'dinero_facturado': round(pagos_recibidos_propiedad_mes + profit_propiedad_mes_airbnb),
         })
 
-        days_without_reservations_total += noches_totales - noches_reservadas
+        days_without_reservations_total += noches_totales - noches_reservadas_hoy_a_fin_mes
 
         total_days_for_all_properties += noches_reservadas
 

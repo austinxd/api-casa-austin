@@ -68,7 +68,6 @@ def contar_noches_reserva(fecha_inicio, fecha_fin, limit):
     eval_fecha_fin = fecha_fin if fecha_fin < limit else limit + timedelta(days=1)  # En caso que salga por el else me intersa saber el dia siguiente porque es la noche del ultimo dia del mes
     eval_fecha_inicio = dia_actual if dia_actual > fecha_inicio else fecha_inicio
 
-
     diferencia = eval_fecha_fin - eval_fecha_inicio
     noches = diferencia.days
 
