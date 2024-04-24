@@ -52,7 +52,7 @@ def noches_restantes_mes(fecha_actual, fecha_fin_mes):
 
     return noches
 
-def contar_noches_reserva(fecha_inicio, fecha_fin, limit):
+def contar_noches_reserva(fecha_inicio, fecha_fin, limit, count_all_month=True):
     """ Dado dos objetos Datefield retornar la diferencia entre dias entre ambos valores
         Params:
             - Fecha inicio a evaluar (Check in)
@@ -66,7 +66,11 @@ def contar_noches_reserva(fecha_inicio, fecha_fin, limit):
     dia_actual = datetime.now().date()
 
     eval_fecha_fin = fecha_fin if fecha_fin < limit else limit + timedelta(days=1)  # En caso que salga por el else me intersa saber el dia siguiente porque es la noche del ultimo dia del mes
-    eval_fecha_inicio = dia_actual if dia_actual > fecha_inicio else fecha_inicio
+    
+    eval_fecha_inicio = fecha_inicio
+    # True cuenta todos los dias del mes
+    if count_all_month:
+        eval_fecha_inicio = dia_actual if dia_actual > fecha_inicio else fecha_inicio
 
     diferencia = eval_fecha_fin - eval_fecha_inicio
     noches = diferencia.days
