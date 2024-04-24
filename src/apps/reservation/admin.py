@@ -3,6 +3,7 @@ from .models import Reservation, RentalReceipt
 
 class ReservationAdmin(admin.ModelAdmin):
     search_fields = ['property__name', 'origin']
+    list_filter = ("deleted", "origin", )
     list_display = (
         "id",
         "property",
