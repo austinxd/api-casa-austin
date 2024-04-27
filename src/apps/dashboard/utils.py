@@ -29,14 +29,14 @@ def get_stadistics_period(fecha_actual, last_day):
                 ).exclude(check_out_date__lt=fecha_actual)
         
         # Query 2 para contar las ganancias en todo el mes
-        reservations_month = Reservation.objects.exclude(
-                deleted=True
-            ).filter(
-            property=p
-                ).filter(
-                    Q(check_in_date__gte=first_day, check_in_date__lt=last_day) |
-                    Q(check_out_date__gte=first_day, check_out_date__lt=last_day)
-                )
+        # reservations_month = Reservation.objects.exclude(
+        #         deleted=True
+        #     ).filter(
+        #     property=p
+        #         ).filter(
+        #             Q(check_in_date__gte=first_day, check_in_date__lt=last_day) |
+        #             Q(check_out_date__gte=first_day, check_out_date__lt=last_day)
+        #         )
 
         range_evaluate = (first_day, last_day)
         query_reservation_check_in_month = Reservation.objects.exclude(
