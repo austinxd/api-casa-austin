@@ -88,7 +88,7 @@ def get_stadistics_period(fecha_actual, last_day):
             'dias_libres': dias_libres_hoy_fin_mes,
             'dias_ocupada': noches_reservadas,
             'dinero_por_cobrar': round(valor_propiedad_mes - pagos_recibidos_propiedad_mes, 2),
-            'dinero_facturado': round(pagos_recibidos_propiedad_mes + profit_propiedad_mes_airbnb),
+            'dinero_facturado': round(valor_propiedad_mes + profit_propiedad_mes_airbnb),
         })
 
         days_without_reservations_total += dias_libres_hoy_fin_mes
@@ -96,7 +96,7 @@ def get_stadistics_period(fecha_actual, last_day):
         total_days_for_all_properties += noches_reservadas
 
         total_por_cobrar += valor_propiedad_mes - pagos_recibidos_propiedad_mes
-        total_facturado += pagos_recibidos_propiedad_mes + profit_propiedad_mes_airbnb
+        total_facturado += valor_propiedad_mes + profit_propiedad_mes_airbnb
 
 
     return days_without_reservations_per_property, days_without_reservations_total, total_days_for_all_properties, '%.2f' % total_por_cobrar, '%.2f' % total_facturado
