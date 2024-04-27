@@ -39,9 +39,6 @@ class ReservationSerializer(serializers.ModelSerializer):
         if not self.instance:
             self.fields['seller'].required = False
             self.fields['seller'].read_only = True
-            # script = self.context.get("script", None) # es para determinar si la creacion de reserva viene del script
-            # # if script:
-            # #     self.fields['seller'].read_only = False # FIXME: cambiar a true luego de definir las reservas de airbnb
 
     def to_internal_value(self, data):
         new_data = data.copy()
@@ -75,11 +72,6 @@ class ReservationSerializer(serializers.ModelSerializer):
         property_field = attrs.get('property')
         reservation_id = self.instance.id if self.instance else None
 
-        # if attrs.get('advance_payment_currency') == 'usd' and attrs.get('advance_payment') > 0:
-        #     # Calculo cotizacion 1 dolar = soles
-        #     usd_x_sol = attrs.get('price_sol')/attrs.get('price_usd')
-        #     attrs['advance_payment'] = attrs.get('advance_payment')*usd_x_sol
-
         if attrs.get('full_payment') == True:
             if attrs['advance_payment_currency'] == 'sol':
                 attrs['advance_payment'] = attrs.get('price_sol')
@@ -108,7 +100,6 @@ class ReservationSerializer(serializers.ModelSerializer):
                 ).exists():
 
                 raise serializers.ValidationError("Esta propiedad esta reservada en este rango de fecha")
-
         
         return attrs
 
@@ -116,6 +107,7 @@ class ReservationListSerializer(ReservationSerializer):
     client = serializers.SerializerMethodField()
     seller = serializers.SerializerMethodField()
     property = serializers.SerializerMethodField()
+    resta_pagar = serializers.SerializerMethodField()
     
     @extend_schema_field(ClientShortSerializer)
     def get_client(self, instance):
@@ -128,6 +120,10 @@ class ReservationListSerializer(ReservationSerializer):
     @extend_schema_field(PropertySerializer)
     def get_property(self, instance):
         return PropertySerializer(instance.property).data
+    
+    @extend_schema_field(serializers.FloatField())
+    def get_resta_pagar(self, instance):
+        return '%.2f' % round(float(instance.price_sol) - instance.adelanto_normalizado, 2)
 
 class ReservationRetrieveSerializer(ReservationListSerializer):
     recipts = serializers.SerializerMethodField()
