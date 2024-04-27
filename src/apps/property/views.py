@@ -139,7 +139,7 @@ class CheckAvaiblePorperty(APIView):
         except:
             print('No puedo obtener propiedad solicitada')
 
-        if Reservation.objects.filter(property=property_field,).filter(
+        if Reservation.objects.exclude(deleted=True).filter(property=property_field,).filter(
                 Q(check_in_date__lt=check_out_date) & Q(check_out_date__gt=check_in_date)
             ).exists():
                 content = {
@@ -162,7 +162,7 @@ class CheckAvaiblePorperty(APIView):
         }
         status_code = 200
 
-        if Reservation.objects.filter(property=property_field,).filter(
+        if Reservation.objects.exclude(deleted=True).filter(property=property_field,).filter(
                 Q(check_in_date__lt=check_out_date) & Q(check_out_date__gt=check_in_date)
             ).exclude(
                 id=reservation_id
