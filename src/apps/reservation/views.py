@@ -77,11 +77,16 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
                     last_day_month = calendar.monthrange(year_param, month_param)[1]
 
+                    
                     range_evaluate = (datetime(year_param, month_param, 1), datetime(year_param, month_param, last_day_month))
-                    queryset = queryset.filter(
-                        Q(check_in_date__range=range_evaluate) |
-                        Q(check_out_date__range=range_evaluate)
-                    )
+
+                    if self.request.query_params.get('from_check_in') == 'true':
+                        queryset = queryset.filter(check_in_date__range=range_evaluate)
+                    else:
+                        queryset = queryset.filter(
+                            Q(check_in_date__range=range_evaluate) |
+                            Q(check_out_date__range=range_evaluate)
+                        )
                 
                 elif self.request.query_params.get('from') == 'today':
                     queryset = queryset.filter(check_in_date__gte=datetime.now())
@@ -143,6 +148,13 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 description="Obtiene todas las reservas desde la fecha de hoy en adelante. Se puede combinar con type (tipo de reserva), pero no con year o month",
                 required=False,
                 enum=["today"]
+            ),
+            OpenApiParameter(
+                "from_check_in",
+                OpenApiTypes.STR,
+                description="Obtiene todas las reservas que hayan comenzado este mes. Se usa en combinacion de los queryparams year y month",
+                required=False,
+                enum=["true"]
             ),
             OpenApiParameter(
                 "type",
