@@ -38,6 +38,9 @@ def get_stadistics_period(fecha_actual, last_day):
                     Q(check_out_date__gte=first_day, check_out_date__lt=last_day)
                 )
 
+        range_evaluate = (first_day, last_day)
+        query_reservation_check_in_month = Reservation.objects.exclude(deleted=True).filter(check_in_date__range=range_evaluate)
+
         noches_reservadas = 0
         for r in reservations_month.exclude(origin='man').exclude(deleted=True).order_by('check_in_date'):
             noches_reservadas += contar_noches_reserva(r.check_in_date, r.check_out_date, last_day.date(), count_all_month=False)
@@ -54,11 +57,11 @@ def get_stadistics_period(fecha_actual, last_day):
 
         pagos_recibidos_propiedad_mes = 0
 
-        for r in reservations_month:
+        for r in query_reservation_check_in_month:
             # opero con una property
             pagos_recibidos_propiedad_mes += r.adelanto_normalizado
 
-        valor_propiedad_mes = reservations_month.aggregate(pagos=Sum('price_sol'))
+        valor_propiedad_mes = query_reservation_check_in_month.aggregate(pagos=Sum('price_sol'))
 
         if valor_propiedad_mes['pagos']:
             valor_propiedad_mes = float(valor_propiedad_mes['pagos'])
