@@ -1,7 +1,10 @@
 from django.contrib import admin
 from .models import Clients, TokenApiClients
 
-class ClientsAdmin(admin.ModelAdmin):
+from apps.core.utils import ExportCsvMixin, ExportJsonMixin
+
+
+class ClientsAdmin(admin.ModelAdmin, ExportCsvMixin, ExportJsonMixin):
     model = Clients
     search_fields = ['last_name', "first_name", "number_doc"]
     list_display = (
@@ -11,6 +14,7 @@ class ClientsAdmin(admin.ModelAdmin):
         "number_doc",
         "deleted"
     )
+    actions = ["export_as_csv", "export_as_json"]
 
 
 admin.site.register(Clients, ClientsAdmin)
