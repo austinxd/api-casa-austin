@@ -43,6 +43,16 @@ def get_month_name(month_number):
     
     return 'diciembre'
 
+def normalizar_fecha(date_unformated):
+    """ Funcion que normaliza fechas formato LATAM a formato BD
+        Params:
+            - date_unformated: DD/MM/YYYY
+        Return:
+            - formated_date: yyyy-mm-dd
+    """
+    date_obj = datetime.strptime(date_unformated, "%d/%m/%Y")
+    return date_obj.strftime("%Y-%m-%d")
+
 def noches_restantes_mes(fecha_actual, fecha_fin_mes):
     """ Retornar las noches que quedan en el mesa dada una fecha
     """
