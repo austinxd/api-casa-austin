@@ -8,7 +8,7 @@ from apps.accounts.models import CustomUser
 from apps.reservation.models import Reservation
 
 from .serializers import DashboardSerializer
-from django.db.models import Sum
+from django.db.models import Sum, Q
 
 from .utils import get_stadistics_period
 
@@ -31,7 +31,11 @@ class DashboardApiView(APIView):
         query_reservation_current_month = Reservation.objects.exclude(deleted=True).filter(check_in_date__range=range_evaluate)
         
         best_sellers = []
-        for v in CustomUser.objects.filter(groups__name='vendedor'):
+        query_vendedores = CustomUser.objects.exclude(deleted=True).filter(
+            Q(groups__name='vendedor') | Q(groups__name='admin')
+        )
+
+        for v in query_vendedores:
             total_ventas_mes_vendedor = query_reservation_current_month.filter(seller=v).aggregate(total_ventas=Sum('price_sol'))
 
             if total_ventas_mes_vendedor['total_ventas'] is None:
