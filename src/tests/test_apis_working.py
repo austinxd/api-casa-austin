@@ -26,6 +26,10 @@ class APIGeneralTest(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual("token" in response.data, True)
 
+    def test_mensaje_fidelidad_response(self):
+        response = self.client.get(reverse('mensaje_fidelidad'))
+        self.assertEqual(response.status_code, 200)        
+
     def test_property_response(self):
         url = reverse('property-list')
         response = self.client.get(url)
