@@ -107,14 +107,14 @@ def update_air_bnb_api(property):
 
     reservations_uid = reservation_serializer.Reservation.objects.exclude(origin='aus').values_list("uuid_external", flat=True)
 
-    print('Request to AirBnb: ', URL_BASE + property.airbnb_url)
+    # print('Request to AirBnb: ', URL_BASE + property.airbnb_url)
     response = requests.get(URL_BASE + property.airbnb_url)
 
     if response.status_code == 200:
         reservations = response.json()
-        print('Reservations from AirBnB', reservations)
+        # print('Reservations from AirBnB', reservations)
         for r in reservations:
-            print('Sync AirBnB Reservation, Property:', property.name)
+            # print('Sync AirBnB Reservation, Property:', property.name)
             date_start = datetime.strptime(r["start_date"], "%Y%m%d").date()
             date_end = datetime.strptime(r["end_date"], "%Y%m%d").date()
             if r["uid"] in reservations_uid:
@@ -150,7 +150,8 @@ def update_air_bnb_api(property):
                 if serializer.is_valid():
                     serializer.save()
                 else:
-                    print(serializer.errors)
+                    # print(serializer.errors)
+                    pass
 
 def confeccion_ics():
     from apps.reservation.models import Reservation
@@ -158,17 +159,17 @@ def confeccion_ics():
 
     query_reservations = Reservation.objects.exclude(deleted=True)
  
-    print('Comenzando proceso para confeccionar ICS')
+    # print('Comenzando proceso para confeccionar ICS')
     
 
     for prop in Property.objects.exclude(deleted=True):
-        print('Procesando propiedad ', prop.name)
+        # print('Procesando propiedad ', prop.name)
         cal = Calendar()
         cal.add('VERSION', str(2.0))
         cal.add('PRODID', "-//hacksw/handcal//NONSGML v1.0//EN")
         
         for res in query_reservations.filter(property=prop, check_in_date__gte=datetime.now()):
-            print('Procesando reserva ', res)
+            # print('Procesando reserva ', res)
             # Creating icalendar/event
             event = Event()
             
@@ -188,7 +189,7 @@ def confeccion_ics():
         f.write(cal.to_ical())
         f.close()
 
-    print('Finalizando proceso para confeccionar ICS')
+    # print('Finalizando proceso para confeccionar ICS')
 
 def generate_audit(model_instance, user, flag_req, text_str):
     """ Generar un registro de auditoria LogEntry en las views

@@ -1,4 +1,4 @@
-from .views import TokenApiClientApiView, ClientsApiView
+from .views import MensajeFidelidadApiView, TokenApiClientApiView, ClientsApiView
 
 
 from django.urls import include, path
@@ -10,5 +10,6 @@ router.register("clients", ClientsApiView, basename="clients")
 
 urlpatterns = [
     path("", include(router.urls)),
+    path("mensaje-fidelidad/", MensajeFidelidadApiView.as_view(), name="mensaje_fidelidad"),
     path("get-api-token-clients/", TokenApiClientApiView.as_view(), name="token_rutificador")
 ]

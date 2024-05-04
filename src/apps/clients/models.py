@@ -2,6 +2,14 @@ from django.db import models
 
 from apps.core.models import BaseModel
 
+class MensajeFidelidad(models.Model):
+    activo = models.BooleanField(default=True)
+    mensaje = models.CharField(
+        max_length=255,
+        null=False,
+        blank=False, 
+        help_text="Mensaje que se enviará a los clientes luego de saludarlos. Ej: Hola Augusto, --mensaje--"
+    )
 
 class TokenApiClients(BaseModel):
     token = models.CharField(max_length=250, null=False, blank=False)

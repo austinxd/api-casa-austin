@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Clients, TokenApiClients
+from .models import Clients, MensajeFidelidad, TokenApiClients
 
 from apps.core.utils import ExportCsvMixin, ExportJsonMixin
 
@@ -18,4 +18,5 @@ class ClientsAdmin(admin.ModelAdmin, ExportCsvMixin, ExportJsonMixin):
 
 
 admin.site.register(Clients, ClientsAdmin)
+admin.site.register(MensajeFidelidad)
 admin.site.register(TokenApiClients)

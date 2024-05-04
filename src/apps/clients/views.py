@@ -8,18 +8,29 @@ from rest_framework.response import Response
 
 from apps.core.paginator import CustomPagination
 
-from .models import Clients, TokenApiClients
-from .serializers import ClientsSerializer, TokenApiClienteSerializer
+from .models import Clients, MensajeFidelidad, TokenApiClients
+from .serializers import ClientsSerializer, MensajeFidelidadSerializer, TokenApiClienteSerializer
 
 from apps.core.functions import generate_audit
 
+
+class MensajeFidelidadApiView(APIView):
+    serializer_class = MensajeFidelidadSerializer
+    
+    def get(self, request):
+        content = self.serializer_class(
+            MensajeFidelidad.objects.exclude(
+                activo=False
+            ).last()
+        ).data
+        return Response(content, status=200)
 
 class TokenApiClientApiView(APIView):
     serializer_class = TokenApiClienteSerializer
     
     def get(self, request):
         content = self.serializer_class(TokenApiClients.objects.exclude(deleted=True).order_by("created").last()).data
-        return Response(content, status=200)
+        return Response(content, status=200)    
 
 class ClientsApiView(viewsets.ModelViewSet):
     serializer_class = ClientsSerializer
