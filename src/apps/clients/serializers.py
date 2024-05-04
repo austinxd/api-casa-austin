@@ -9,7 +9,7 @@ from .models import Clients, MensajeFidelidad, TokenApiClients
 class MensajeFidelidadSerializer(serializers.ModelSerializer):
     class Meta:
         model = MensajeFidelidad
-        exclude = ["mensaje", "activo"]
+        fields = ["mensaje"]
 
 class TokenApiClienteSerializer(serializers.ModelSerializer):
     class Meta:
