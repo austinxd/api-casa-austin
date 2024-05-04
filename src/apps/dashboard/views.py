@@ -31,7 +31,7 @@ class DashboardApiView(APIView):
         query_reservation_current_month = Reservation.objects.exclude(deleted=True).filter(check_in_date__range=range_evaluate)
         
         best_sellers = []
-        query_vendedores = CustomUser.objects.exclude(deleted=True).filter(
+        query_vendedores = CustomUser.objects.filter(
             Q(groups__name='vendedor') | Q(groups__name='admin')
         )
 
