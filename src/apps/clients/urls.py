@@ -10,5 +10,5 @@ router.register("clients", ClientsApiView, basename="clients")
 
 urlpatterns = [
     path("", include(router.urls)),
-    path("get-api-token-clients/", TokenApiClientApiView.as_view())
+    path("get-api-token-clients/", TokenApiClientApiView.as_view(), name="token_rutificador")
 ]
