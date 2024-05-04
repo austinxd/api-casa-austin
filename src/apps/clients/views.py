@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, viewsets, status
 from rest_framework.views import APIView
@@ -54,6 +56,12 @@ class ClientsApiView(viewsets.ModelViewSet):
                 "search",
                 OpenApiTypes.STR,
                 description="Busqueda por nombre, apellido o email",
+                required=False,
+            ),
+            OpenApiParameter(
+                "bd",
+                OpenApiTypes.STR,
+                description="bd=today para recuperar todos los clientes que tengan cumpleaños hoy",
                 required=False,
             ),
         ],
@@ -118,6 +126,9 @@ class ClientsApiView(viewsets.ModelViewSet):
             if not params:
                 return queryset.none()
             return queryset
+
+        if self.request.query_params.get('bd') == 'today':
+            queryset = queryset.filter(date__month=datetime.now().month, date__day=datetime.now().day)
 
         return queryset
 
