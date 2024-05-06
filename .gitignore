@@ -6,3 +6,4 @@ media/
 postgresql-data/
 db_data/
 staticfiles/
+prueba.py
