@@ -12,7 +12,7 @@ from apps.clients.models import Clients, TokenApiClients
 
 from apps.core.functions import normalizar_fecha
 
-URL_BASE = "https://script.google.com/macros/s/AKfycbyoBhxuklU5D3LTguTcYAS85klwFINHxxd-FroauC4CmFVvS0ua/exec"
+URL_BASE = "https://script.google.com/macros/s/AKfycbxtHPLO20nmW5Vy4r_9MGcC5bQUCFXg1LaKUA-aIUpQ4K3oo-Mz8smlIfcWQJCefWF0Zw/exec"
 
 
 def import_clients():
@@ -55,7 +55,7 @@ def import_clients():
                                 document_type='dni',
                                 number_doc=current_dni,
                                 date=formatted_date,
-                                sex=serialized_data['sexo'],
+                                sex=serialized_data['sexo'].lower(),
                                 tel_number=row[1]
                             )
                         except Exception as e:
