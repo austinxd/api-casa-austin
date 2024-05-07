@@ -39,7 +39,7 @@ def import_clients():
                     try:
                         serialized_data = json.loads(req.content)['data']
 
-                        print('Datos obtenidos del api externo: ',json.loads(req.content)['data'])
+                        print('Datos obtenidos del api externo: ',serialized_data)
                         print('*'*50)
                         print('*'*50)
 
