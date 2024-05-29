@@ -168,7 +168,7 @@ def confeccion_ics():
         cal.add('VERSION', str(2.0))
         cal.add('PRODID', "-//hacksw/handcal//NONSGML v1.0//EN")
         
-        for res in query_reservations.filter(property=prop, check_in_date__gte=datetime.now()):
+        for res in query_reservations.filter(property=prop, check_out_date__gte=datetime.now()):
             # print('Procesando reserva ', res)
             # Creating icalendar/event
             event = Event()
