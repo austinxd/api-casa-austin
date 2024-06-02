@@ -144,7 +144,8 @@ def update_air_bnb_api(property):
                     "price_usd": 0,
                     "price_sol": 0,
                     "advance_payment": 0,
-                    'seller': reservation_serializer.CustomUser.objects.get(first_name='AirBnB').id
+                    "seller": reservation_serializer.CustomUser.objects.get(first_name='AirBnB').id,
+                    "client": reservation_serializer.Clients.objects.get(first_name='AirBnB').id
                 }
                 serializer = reservation_serializer.ReservationSerializer(data=data, context={"script": True})
                 if serializer.is_valid():
