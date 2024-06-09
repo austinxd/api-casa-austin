@@ -51,6 +51,9 @@ class Clients(BaseModel):
     date = models.DateField()
     tel_number = models.CharField(max_length=50, null=False, blank=False)
 
+    manychat = models.PositiveIntegerField(null=True, blank=True)
+    id_manychat = models.PositiveIntegerField(null=True, blank=True)
+
     class Meta:
         unique_together = ('document_type', 'number_doc')
 
