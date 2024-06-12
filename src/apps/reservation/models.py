@@ -17,6 +17,8 @@ from apps.core.functions import recipt_directory_path
 
 
 class Reservation(BaseModel):
+    ManychatFecha = models.IntegerField(default=0)
+
     @property
     def adelanto_normalizado(self):
         res = float(self.advance_payment) if self.advance_payment else 0
