@@ -44,12 +44,13 @@ def notify_new_reservation(reservation):
         logger.debug(f"Archivo de recibo: {rental_receipt.file}")
         if rental_receipt.file.name:
             image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
-            logger.debug(f"URL de la imagen: {image_url}")
+            full_image_url = f"http://api.casaaustin.pe{image_url}"
+            logger.debug(f"URL de la imagen completa: {full_image_url}")
         else:
             logger.debug("El campo file del RentalReceipt no tiene un nombre de archivo.")
 
-    logger.debug(f"Enviando mensaje de Telegram: {message} con imagen: {image_url}")
-    send_telegram_message(message, image_url)
+    logger.debug(f"Enviando mensaje de Telegram: {message} con imagen: {full_image_url}")
+    send_telegram_message(message, full_image_url)
 
 @receiver(post_save, sender=Reservation)
 def notify_reservation_creation(sender, instance, created, **kwargs):
