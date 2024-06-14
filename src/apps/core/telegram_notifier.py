@@ -8,7 +8,10 @@ from concurrent.futures import ThreadPoolExecutor
 logger = logging.getLogger('apps')
 
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-CHAT_ID = 'your-chat-id'  # Reemplaza esto con el ID del chat donde quieres recibir las notificaciones
+CHAT_ID = os.getenv('CHAT_ID')
+
+logger.debug(f"TELEGRAM_BOT_TOKEN: {TELEGRAM_BOT_TOKEN}")
+logger.debug(f"CHAT_ID: {CHAT_ID}")
 
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 

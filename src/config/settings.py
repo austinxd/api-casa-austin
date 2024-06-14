@@ -209,6 +209,7 @@ SPECTACULAR_SETTINGS = {
 
 AIRBNB_API_URL_BASE = env('AIRBNB_API_URL_BASE')
 
+# Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -221,7 +222,7 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'WARNING',  # Cambia a 'WARNING' para reducir la verbosidad de Django
+            'level': 'WARNING',  # Reducir la verbosidad de Django
         },
         'apps': {
             'handlers': ['console'],
@@ -230,3 +231,10 @@ LOGGING = {
         },
     },
 }
+
+# Verificar que las variables de entorno se cargan correctamente
+import logging
+
+logger = logging.getLogger('apps')
+logger.debug(f"TELEGRAM_BOT_TOKEN: {env('TELEGRAM_BOT_TOKEN', default='No token')}")
+logger.debug(f"CHAT_ID: {env('CHAT_ID', default='No chat ID')}")
