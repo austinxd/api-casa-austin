@@ -215,20 +215,16 @@ LOGGING = {
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-        },
-        'file': {
             'level': 'DEBUG',
-            'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'casaaustin_debug.log'),
         },
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'WARNING',  # Cambia a 'WARNING' para reducir la verbosidad
+            'level': 'WARNING',  # Cambia a 'WARNING' para reducir la verbosidad de Django
         },
         'apps': {
-            'handlers': ['file'],
+            'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': False,  # Evitar que se propague a otros loggers
         },
