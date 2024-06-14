@@ -219,18 +219,18 @@ LOGGING = {
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
-            'filename': '/var/log/gunicorn/casaaustin_debug.log',
+            'filename': os.path.join(BASE_DIR, 'casaaustin_debug.log'),
         },
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'INFO',  # Cambia a 'INFO' para reducir la verbosidad
+            'level': 'WARNING',  # Cambia a 'WARNING' para reducir la verbosidad
         },
         'apps': {
             'handlers': ['file'],
             'level': 'DEBUG',
-            'propagate': True,
+            'propagate': False,  # Evitar que se propague a otros loggers
         },
     },
 }
