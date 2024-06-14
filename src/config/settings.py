@@ -209,23 +209,3 @@ SPECTACULAR_SETTINGS = {
 
 AIRBNB_API_URL_BASE = env('AIRBNB_API_URL_BASE')
 
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'DEBUG',  # Cambia a 'DEBUG' para ver los mensajes de depuración
-        },
-        'apps': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
-    },
-}
