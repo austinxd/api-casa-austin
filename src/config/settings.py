@@ -209,3 +209,28 @@ SPECTACULAR_SETTINGS = {
 
 AIRBNB_API_URL_BASE = env('AIRBNB_API_URL_BASE')
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': '/var/log/gunicorn/casaaustin_debug.log',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',  # Cambia a 'INFO' para reducir la verbosidad
+        },
+        'apps': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
