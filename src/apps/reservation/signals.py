@@ -42,8 +42,11 @@ def notify_new_reservation(reservation):
     logger.debug(f"RentalReceipt encontrado: {rental_receipt}")
     if rental_receipt and rental_receipt.file:
         logger.debug(f"Archivo de recibo: {rental_receipt.file}")
-        image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
-        logger.debug(f"URL de la imagen: {image_url}")
+        if rental_receipt.file.name:
+            image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
+            logger.debug(f"URL de la imagen: {image_url}")
+        else:
+            logger.debug("El campo file del RentalReceipt no tiene un nombre de archivo.")
 
     logger.debug(f"Enviando mensaje de Telegram: {message} con imagen: {image_url}")
     send_telegram_message(message, image_url)
