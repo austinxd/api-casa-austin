@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from pathlib import Path
 
 import calendar
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.db import transaction
 from django.db.models import Q
@@ -74,7 +74,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     try:
                         year_param = int(self.request.query_params['year'])
                         if year_param < 1:
-                            raise ValidationError({"error": "Parámetro Mes debe ser un número entre el 1 y el 12"})
+                            raise ValidationError({"error": "Parámetro Año debe ser un número entero positivo"})
 
                     except Exception:
                         raise ValidationError({"error_year_param": "Año debe ser un número entero positivo"})
@@ -94,7 +94,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 if from_param == 'today':
                     queryset = queryset.filter(check_in_date__gte=now)
                 elif from_param == 'in_progress':
-                    queryset = queryset.filter(check_in_date__lte=now, check_out_date__gte=now)
+                    queryset = queryset.filter(check_in_date__lte=now, check_out_date__gt=now + timedelta(days=1))
 
                 if self.request.query_params.get('type'):
                     queryset = queryset.filter(origin=self.request.query_params.get('type'))
