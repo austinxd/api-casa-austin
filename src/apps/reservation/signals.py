@@ -4,7 +4,15 @@ from .models import Reservation
 from ..core.telegram_notifier import send_telegram_message
 
 def notify_new_reservation(reservation):
-    message = f"Se ha creado una nueva reserva:\nID: {reservation.id}\nCliente: {reservation.cliente}\nFecha de check-in: {reservation.check_in_date}"
+    client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
+    message = (
+        f"Se ha creado una nueva reserva:\n"
+        f"ID: {reservation.id}\n"
+        f"Cliente: {client_name}\n"
+        f"Fecha de check-in: {reservation.check_in_date}\n"
+        f"Propiedad: {reservation.property}\n"
+        f"Invitados: {reservation.guests}"
+    )
     send_telegram_message(message)
 
 @receiver(post_save, sender=Reservation)
