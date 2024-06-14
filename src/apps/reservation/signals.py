@@ -8,14 +8,19 @@ logger = logging.getLogger('apps')
 
 def notify_new_reservation(reservation):
     client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
+    temperature_pool_status = "Sí" if reservation.temperature_pool else "No"
+    check_in_date = reservation.check_in_date.strftime("%d de %B del %Y")
+    check_out_date = reservation.check_out_date.strftime("%d de %B del %Y")
+
     message = (
-        f"Se ha creado una nueva reserva:\n"
-        f"ID: {reservation.id}\n"
+        f"Reserva en {reservation.property}\n"
         f"Cliente: {client_name}\n"
-        f"Fecha de check-in: {reservation.check_in_date}\n"
-        f"Propiedad: {reservation.property}\n"
-        f"Invitados: {reservation.guests}"
+        f"Check-in : {check_in_date}\n"
+        f"Check-out : {check_out_date}\n"
+        f"Invitados : {reservation.guests}\n"
+        f"Temperado : {temperature_pool_status}"
     )
+    
     logger.debug(f"Enviando mensaje de Telegram: {message}")
     send_telegram_message(message)
 
