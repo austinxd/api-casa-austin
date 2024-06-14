@@ -6,11 +6,25 @@ from ..core.telegram_notifier import send_telegram_message
 
 logger = logging.getLogger('apps')
 
+# Diccionario para traducir los meses al español
+MONTHS_ES = {
+    1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
+    5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
+    9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
+}
+
+def format_date_es(date):
+    day = date.day
+    month = MONTHS_ES[date.month]
+    year = date.year
+    return f"{day} de {month} del {year}"
+
 def notify_new_reservation(reservation):
     client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
     temperature_pool_status = "Sí" if reservation.temperature_pool else "No"
-    check_in_date = reservation.check_in_date.strftime("%d de %B del %Y")
-    check_out_date = reservation.check_out_date.strftime("%d de %B del %Y")
+
+    check_in_date = format_date_es(reservation.check_in_date)
+    check_out_date = format_date_es(reservation.check_out_date)
 
     message = (
         f"Reserva en {reservation.property}\n"
@@ -20,7 +34,7 @@ def notify_new_reservation(reservation):
         f"Invitados : {reservation.guests}\n"
         f"Temperado : {temperature_pool_status}"
     )
-    
+
     logger.debug(f"Enviando mensaje de Telegram: {message}")
     send_telegram_message(message)
 
