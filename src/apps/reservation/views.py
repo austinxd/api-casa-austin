@@ -58,26 +58,29 @@ class ReservationsApiView(viewsets.ModelViewSet):
         """
         if self.action == 'list':
             if self.request.query_params:
+                from_param = self.request.query_params.get('from')
+                type_param = self.request.query_params.get('type')
+                now = datetime.now()
+
                 if self.request.query_params.get('year') and self.request.query_params.get('month'):
                     try:
                         month_param = int(self.request.query_params['month'])
-                        if not month_param in range(1,13):
-                            raise ValidationError({"error":"Parámetro Mes debe ser un número entre el 1 y el 12"})
+                        if not month_param in range(1, 13):
+                            raise ValidationError({"error": "Parámetro Mes debe ser un número entre el 1 y el 12"})
 
                     except Exception:
                         raise ValidationError({"error_month_param": "Parámetro Mes debe ser un número entre el 1 y el 12"})
-                        
-                    try: 
+
+                    try:
                         year_param = int(self.request.query_params['year'])
                         if year_param < 1:
-                            raise ValidationError({"error":"Parámetro Mes debe ser un número entre el 1 y el 12"})
-                    
+                            raise ValidationError({"error": "Parámetro Mes debe ser un número entre el 1 y el 12"})
+
                     except Exception:
                         raise ValidationError({"error_year_param": "Año debe ser un número entero positivo"})
 
                     last_day_month = calendar.monthrange(year_param, month_param)[1]
 
-                    
                     range_evaluate = (datetime(year_param, month_param, 1), datetime(year_param, month_param, last_day_month))
 
                     if self.request.query_params.get('from_check_in') == 'true':
@@ -87,9 +90,11 @@ class ReservationsApiView(viewsets.ModelViewSet):
                             Q(check_in_date__range=range_evaluate) |
                             Q(check_out_date__range=range_evaluate)
                         )
-                
-                elif self.request.query_params.get('from') == 'today':
-                    queryset = queryset.filter(check_in_date__gte=datetime.now())
+
+                if from_param == 'today':
+                    queryset = queryset.filter(check_in_date__gte=now)
+                elif from_param == 'in_progress':
+                    queryset = queryset.filter(check_in_date__lte=now, check_out_date__gte=now)
 
                 if self.request.query_params.get('type'):
                     queryset = queryset.filter(origin=self.request.query_params.get('type'))
@@ -100,6 +105,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     Q(origin="air") |
                     Q(seller=self.request.user)
                 )
+
         if self.request.query_params.get('exclude'):
             queryset = queryset.exclude(origin=self.request.query_params['exclude'])
 
@@ -119,7 +125,6 @@ class ReservationsApiView(viewsets.ModelViewSet):
             context['retrieve'] = True
         return context
 
-
     @extend_schema(
         parameters=[
             OpenApiParameter(
@@ -134,7 +139,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 OpenApiTypes.INT,
                 required=False,
                 description="Filter results by month (number 1 to 12)",
-                enum=list(range(1,13)),
+                enum=list(range(1, 13)),
             ),
             OpenApiParameter(
                 "page_size",
@@ -147,7 +152,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 OpenApiTypes.STR,
                 description="Obtiene todas las reservas desde la fecha de hoy en adelante. Se puede combinar con type (tipo de reserva), pero no con year o month",
                 required=False,
-                enum=["today"]
+                enum=["today", "in_progress"]
             ),
             OpenApiParameter(
                 "from_check_in",
@@ -164,7 +169,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 enum=["aus", "air", "man"]
             ),
             OpenApiParameter(
-                "type",
+                "exclude",
                 OpenApiTypes.STR,
                 description="Excluye las resevas según donde se generaron, AriBnB (air), Sistema Casa Austin (aus), Mantenimiento (man)",
                 required=False,
@@ -191,7 +196,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     reservation=serializer.instance,
                     file=file
                 )
-        
+
         confeccion_ics()
 
         generate_audit(
@@ -208,7 +213,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
             serializer.instance,
             self.request.user,
             "update",
-            "Reserva actulizada full"
+            "Reserva actualizada full"
         )
 
         return super().perform_update(serializer)
@@ -217,7 +222,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        
+
         with transaction.atomic():
             self.perform_update(serializer)
 
@@ -226,17 +231,17 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     reservation=instance,
                     file=file
                 )
-        
+
         confeccion_ics()
 
         generate_audit(
             serializer.instance,
             self.request.user,
             "update",
-            "Reserva actulizada"
+            "Reserva actualizada"
         )
         return Response(serializer.data)
-    
+
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         self.perform_destroy(instance)
@@ -250,17 +255,16 @@ class ReservationsApiView(viewsets.ModelViewSet):
             "Reserva eliminada"
         )
         return Response(status=204)
-    
+
 
 class DeleteRecipeApiView(generics.DestroyAPIView):
     queryset = RentalReceipt.objects.all()
     serializer_class = ReciptSerializer
 
-
     def get_queryset(self):
         queryset = super().get_queryset()
-
         return queryset.filter(reservation__seller=self.request.user)
+
 
 class GetICSApiView(APIView):
     serializer_class = None
@@ -272,25 +276,25 @@ class GetICSApiView(APIView):
             if self.request.query_params.get('q'):
                 casa_sluged_name = slugify(self.request.query_params.get('q'))
 
-
                 directory = str(Path(__file__).parent.parent.parent) + "/media/"
                 f = open(os.path.join(directory, f'{casa_sluged_name}.ics'), 'rb')
 
                 # Crear una respuesta HTTP con el contenido del archivo .ics
                 response = HttpResponse(f, content_type='text/calendar')
-                
+
                 # Establecer el encabezado de Content-Disposition para descargar el archivo
                 response['Content-Disposition'] = 'attachment; filename="evento.ics"'
 
         return response
-    
+
+
 class UpdateICSApiView(APIView):
     serializer_class = None
 
     def get(self, request):
         confeccion_ics()
+        return Response({'message': 'ok'}, status=200)
 
-        return Response({'message':'ok'}, status=200)
 
 class ProfitApiView(APIView):
     serializer_class = None
@@ -299,17 +303,17 @@ class ProfitApiView(APIView):
         rta = {}
 
         evaluate_year = int(self.request.query_params['year'])
-        for m in range(1,13):
+        for m in range(1, 13):
             last_day_month = calendar.monthrange(evaluate_year, m)[1]
 
             _, _, _, _, total_facturado = get_stadistics_period(
                 datetime(evaluate_year, m, 1),
                 last_day_month
             )
-            
-            rta[get_month_name(m)] = total_facturado 
+
+            rta[get_month_name(m)] = total_facturado
 
         return Response(
             rta,
             status=200
-        )    
+        )
