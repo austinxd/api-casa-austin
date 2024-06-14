@@ -70,6 +70,9 @@ class Reservation(BaseModel):
         self.deleted = True
         self.save()
 
+def recipt_directory_path(instance, filename):
+    return f'rental_recipt/{instance.reservation.id}/{filename}'
+
 class RentalReceipt(BaseModel):
     reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, null=False, blank=False)
     file = models.FileField(null=False, upload_to=recipt_directory_path)

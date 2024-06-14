@@ -39,7 +39,9 @@ def notify_new_reservation(reservation):
     # Verificar si hay un recibo asociado con una imagen
     image_url = None
     rental_receipt = RentalReceipt.objects.filter(reservation=reservation).first()
+    logger.debug(f"RentalReceipt encontrado: {rental_receipt}")
     if rental_receipt and rental_receipt.file:
+        logger.debug(f"Archivo de recibo: {rental_receipt.file}")
         image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
         logger.debug(f"URL de la imagen: {image_url}")
 
@@ -51,4 +53,3 @@ def notify_reservation_creation(sender, instance, created, **kwargs):
     if created:
         logger.debug(f"Notificación de nueva reserva para: {instance}")
         notify_new_reservation(instance)
-
