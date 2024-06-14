@@ -4,7 +4,7 @@ from django.dispatch import receiver
 from .models import Reservation
 from ..core.telegram_notifier import send_telegram_message
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('apps')
 
 def notify_new_reservation(reservation):
     client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"

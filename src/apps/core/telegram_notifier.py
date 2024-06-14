@@ -1,7 +1,10 @@
 import os
 import asyncio
+import logging
 from telegram import Bot
 from concurrent.futures import ThreadPoolExecutor
+
+logger = logging.getLogger('apps')
 
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 CHAT_ID = 'your-chat-id'  # Reemplaza esto con el ID del chat donde quieres recibir las notificaciones
@@ -19,8 +22,12 @@ def run_async(func):
 
 @run_async
 async def async_send_telegram_message(message):
+    logger.debug("Enviando mensaje asincrónicamente a Telegram.")
     await bot.send_message(chat_id=CHAT_ID, text=message)
+    logger.debug("Mensaje enviado.")
 
 def send_telegram_message(message):
+    logger.debug(f"Preparando para enviar mensaje: {message}")
     executor = ThreadPoolExecutor()
     executor.submit(async_send_telegram_message, message)
+    logger.debug("Mensaje enviado a través del executor.")
