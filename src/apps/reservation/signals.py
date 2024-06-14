@@ -41,6 +41,7 @@ def notify_new_reservation(reservation):
     rental_receipt = RentalReceipt.objects.filter(reservation=reservation).first()
     if rental_receipt and rental_receipt.file:
         image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
+        logger.debug(f"URL de la imagen: {image_url}")
 
     logger.debug(f"Enviando mensaje de Telegram: {message} con imagen: {image_url}")
     send_telegram_message(message, image_url)
@@ -50,3 +51,4 @@ def notify_reservation_creation(sender, instance, created, **kwargs):
     if created:
         logger.debug(f"Notificación de nueva reserva para: {instance}")
         notify_new_reservation(instance)
+
