@@ -36,8 +36,10 @@ def notify_new_reservation(reservation):
         f"Temperado : {temperature_pool_status}"
     )
 
+    # Inicializar full_image_url
+    full_image_url = None
+
     # Verificar si hay un recibo asociado con una imagen
-    image_url = None
     rental_receipt = RentalReceipt.objects.filter(reservation=reservation).first()
     logger.debug(f"RentalReceipt encontrado: {rental_receipt}")
     if rental_receipt and rental_receipt.file:
