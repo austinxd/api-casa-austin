@@ -25,16 +25,19 @@ def run_async(func):
     return wrapper
 
 @run_async
-async def async_send_telegram_message(message):
+async def async_send_telegram_message(message, image_url=None):
     try:
         logger.debug("Enviando mensaje asincrónicamente a Telegram.")
-        await bot.send_message(chat_id=CHAT_ID, text=message)
+        if image_url:
+            await bot.send_photo(chat_id=CHAT_ID, photo=image_url, caption=message)
+        else:
+            await bot.send_message(chat_id=CHAT_ID, text=message)
         logger.debug("Mensaje enviado.")
     except TelegramError as e:
         logger.error(f"Error enviando mensaje a Telegram: {e}")
 
-def send_telegram_message(message):
+def send_telegram_message(message, image_url=None):
     logger.debug(f"Preparando para enviar mensaje: {message}")
     executor = ThreadPoolExecutor()
-    executor.submit(async_send_telegram_message, message)
+    executor.submit(async_send_telegram_message, message, image_url)
     logger.debug("Mensaje enviado a través del executor.")

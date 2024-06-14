@@ -1,8 +1,9 @@
 import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Reservation
+from .models import Reservation, RentalReceipt
 from ..core.telegram_notifier import send_telegram_message
+from django.conf import settings
 
 logger = logging.getLogger('apps')
 
@@ -27,7 +28,7 @@ def notify_new_reservation(reservation):
     check_out_date = format_date_es(reservation.check_out_date)
 
     message = (
-        f"Reserva en {reservation.property}\n"
+        f"Reserva en {reservation.property.name}\n"
         f"Cliente: {client_name}\n"
         f"Check-in : {check_in_date}\n"
         f"Check-out : {check_out_date}\n"
@@ -35,8 +36,14 @@ def notify_new_reservation(reservation):
         f"Temperado : {temperature_pool_status}"
     )
 
-    logger.debug(f"Enviando mensaje de Telegram: {message}")
-    send_telegram_message(message)
+    # Verificar si hay un recibo asociado con una imagen
+    image_url = None
+    rental_receipt = RentalReceipt.objects.filter(reservation=reservation).first()
+    if rental_receipt and rental_receipt.file:
+        image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
+
+    logger.debug(f"Enviando mensaje de Telegram: {message} con imagen: {image_url}")
+    send_telegram_message(message, image_url)
 
 @receiver(post_save, sender=Reservation)
 def notify_reservation_creation(sender, instance, created, **kwargs):
