@@ -40,7 +40,7 @@ def notify_new_reservation(reservation):
     advance_payment = f"{reservation.advance_payment:.2f} {reservation.advance_payment_currency.upper()}"
 
     message = (
-        f"Reserva en {reservation.property.name}\n"
+        f"***Reserva en {reservation.property.name}***\n"
         f"Cliente: {client_name}\n"
         f"Check-in : {check_in_date}\n"
         f"Check-out : {check_out_date}\n"
@@ -49,10 +49,10 @@ def notify_new_reservation(reservation):
         f"Precio (USD) : {price_usd}\n"
         f"Precio (Soles) : {price_sol}\n"
         f"Adelanto : {advance_payment}\n"
-        f"Teléfono : {reservation.tel_contact_number}"
+        f"Teléfono : +{reservation.tel_contact_number}"
     )
 
-    # Inicializar full_image_url
+    # Inicializar full_image_urls
     full_image_url = None
 
     # Verificar si hay un recibo asociado con una imagen
