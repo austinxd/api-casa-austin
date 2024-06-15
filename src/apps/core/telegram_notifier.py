@@ -18,10 +18,19 @@ bot = Bot(token=TELEGRAM_BOT_TOKEN)
 def run_async(func):
     """Runs the given async function using the event loop"""
     def wrapper(*args, **kwargs):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(func(*args, **kwargs))
-        loop.close()
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(func(*args, **kwargs))
+            else:
+                loop.run_until_complete(func(*args, **kwargs))
+        except RuntimeError as e:
+            logger.error(f"Error in event loop: {e}")
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(func(*args, **kwargs))
+        finally:
+            loop.close()
     return wrapper
 
 @run_async
