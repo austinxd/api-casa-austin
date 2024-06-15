@@ -40,7 +40,7 @@ def notify_new_reservation(reservation):
     advance_payment = f"{reservation.advance_payment:.2f} {reservation.advance_payment_currency.upper()}"
 
     message = (
-        f"***Reserva en {reservation.property.name}***\n"
+        f"******Reserva en {reservation.property.name}******\n"
         f"Cliente: {client_name}\n"
         f"Check-in : {check_in_date}\n"
         f"Check-out : {check_out_date}\n"
