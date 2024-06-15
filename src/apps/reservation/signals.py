@@ -34,8 +34,10 @@ def notify_new_reservation(reservation):
     check_in_date = format_date_es(reservation.check_in_date)
     check_out_date = format_date_es(reservation.check_out_date)
     
-    # Obtener precio
-    price = f"{reservation.price_sol} soles" if reservation.advance_payment_currency == "sol" else f"{reservation.price_usd} dólares"
+    # Obtener precios y adelanto
+    price_usd = f"{reservation.price_usd} dólares"
+    price_sol = f"{reservation.price_sol} soles"
+    advance_payment = f"{reservation.advance_payment} {reservation.advance_payment_currency.upper()}"
 
     message = (
         f"Reserva en {reservation.property.name}\n"
@@ -44,7 +46,9 @@ def notify_new_reservation(reservation):
         f"Check-out : {check_out_date}\n"
         f"Invitados : {reservation.guests}\n"
         f"Temperado : {temperature_pool_status}\n"
-        f"Precio : {price}\n"
+        f"Precio (USD) : {price_usd}\n"
+        f"Precio (Soles) : {price_sol}\n"
+        f"Adelanto : {advance_payment}\n"
         f"Teléfono : {reservation.tel_contact_number}"
     )
 
