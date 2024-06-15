@@ -14,18 +14,28 @@ MONTHS_ES = {
     9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
 }
 
+# Diccionario para traducir los días de la semana al español
+DAYS_ES = {
+    0: "Lunes", 1: "Martes", 2: "Miércoles", 3: "Jueves",
+    4: "Viernes", 5: "Sábado", 6: "Domingo"
+}
+
 def format_date_es(date):
     day = date.day
     month = MONTHS_ES[date.month]
-    year = date.year
-    return f"{day} de {month} del {year}"
+    week_day = DAYS_ES[date.weekday()]
+    return f"{week_day} {day} de {month}"
 
 def notify_new_reservation(reservation):
     client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
     temperature_pool_status = "Sí" if reservation.temperature_pool else "No"
-
+    
+    # Formatear fechas
     check_in_date = format_date_es(reservation.check_in_date)
     check_out_date = format_date_es(reservation.check_out_date)
+    
+    # Obtener precio
+    price = f"{reservation.price_sol} soles" if reservation.advance_payment_currency == "sol" else f"{reservation.price_usd} dólares"
 
     message = (
         f"Reserva en {reservation.property.name}\n"
@@ -33,7 +43,9 @@ def notify_new_reservation(reservation):
         f"Check-in : {check_in_date}\n"
         f"Check-out : {check_out_date}\n"
         f"Invitados : {reservation.guests}\n"
-        f"Temperado : {temperature_pool_status}"
+        f"Temperado : {temperature_pool_status}\n"
+        f"Precio : {price}\n"
+        f"Teléfono : {reservation.tel_contact_number}"
     )
 
     # Inicializar full_image_url
