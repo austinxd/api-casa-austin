@@ -35,9 +35,9 @@ def notify_new_reservation(reservation):
     check_out_date = format_date_es(reservation.check_out_date)
     
     # Obtener precios y adelanto
-    price_usd = f"{reservation.price_usd} dólares"
-    price_sol = f"{reservation.price_sol} soles"
-    advance_payment = f"{reservation.advance_payment} {reservation.advance_payment_currency.upper()}"
+    price_usd = f"{reservation.price_usd:.2f} dólares"
+    price_sol = f"{reservation.price_sol:.2f} soles"
+    advance_payment = f"{reservation.advance_payment:.2f} {reservation.advance_payment_currency.upper()}"
 
     message = (
         f"Reserva en {reservation.property.name}\n"
