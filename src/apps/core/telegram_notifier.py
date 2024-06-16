@@ -26,11 +26,11 @@ def run_async(func):
                 loop.run_until_complete(func(*args, **kwargs))
         except RuntimeError as e:
             logger.error(f"Error in event loop: {e}")
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(func(*args, **kwargs))
-        finally:
-            loop.close()
+            new_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(new_loop)
+            new_loop.run_until_complete(func(*args, **kwargs))
+        except TelegramError as e:
+            logger.error(f"Error enviando mensaje a Telegram: {e}")
     return wrapper
 
 @run_async
@@ -47,6 +47,15 @@ async def async_send_telegram_message(message, image_url=None):
 
 def send_telegram_message(message, image_url=None):
     logger.debug(f"Preparando para enviar mensaje: {message}")
-    executor = ThreadPoolExecutor()
-    executor.submit(async_send_telegram_message, message, image_url)
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(async_send_telegram_message(message, image_url))
+        else:
+            loop.run_until_complete(async_send_telegram_message(message, image_url))
+    except RuntimeError as e:
+        logger.error(f"Error in event loop: {e}")
+        new_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(new_loop)
+        new_loop.run_until_complete(async_send_telegram_message(message, image_url))
     logger.debug("Mensaje enviado a través del executor.")
