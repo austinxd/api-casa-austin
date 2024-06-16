@@ -1,15 +1,13 @@
 import environ
 import os
 from datetime import timedelta
-
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env()
-env_file = os.path.join(os.path.dirname(BASE_DIR),".env")
-
+env_file = os.path.join(os.path.dirname(BASE_DIR), ".env")
 env.read_env(env_file=env_file)
 
 # Quick-start development settings - unsuitable for production
@@ -96,14 +94,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-
 # Database
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': env('MYSQL_DATABASE', default='my_database'),
-        'USER':  'Reservas',
-        'PASSWORD':  env('MYSQL_PASSWORD', default='!Leonel123'),
+        'USER': 'Reservas',
+        'PASSWORD': env('MYSQL_PASSWORD', default='!Leonel123'),
         'HOST': env('MYSQL_HOST', default='172.18.0.2'),
         'PORT': env('MYSQL_PORT', default='3306'),
         'OPTIONS': {'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"}
@@ -128,7 +125,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
@@ -139,7 +135,6 @@ TIME_ZONE = "America/Atikokan"
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
@@ -154,7 +149,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Configuraciones del media
 MEDIA_URL = '/media/'
-
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
@@ -232,10 +226,15 @@ LOGGING = {
     },
 }
 
+# Telegram settings
+TELEGRAM_BOT_TOKEN = env('TELEGRAM_BOT_TOKEN', default='No token')
+CHAT_ID = env('CHAT_ID', default='No chat ID')
+SECOND_CHAT_ID = env('SECOND_CHAT_ID', default='No second chat ID')
+
 # Verificar que las variables de entorno se cargan correctamente
 import logging
 
 logger = logging.getLogger('apps')
-logger.debug(f"TELEGRAM_BOT_TOKEN: {env('TELEGRAM_BOT_TOKEN', default='No token')}")
-logger.debug(f"CHAT_ID: {env('CHAT_ID', default='No chat ID')}")
-SECOND_CHAT_ID = os.getenv('SECOND_CHAT_ID')
+logger.debug(f"TELEGRAM_BOT_TOKEN: {TELEGRAM_BOT_TOKEN}")
+logger.debug(f"CHAT_ID: {CHAT_ID}")
+logger.debug(f"SECOND_CHAT_ID: {SECOND_CHAT_ID}")
