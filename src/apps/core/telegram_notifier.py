@@ -3,7 +3,6 @@ import asyncio
 import logging
 from telegram import Bot
 from telegram.error import TelegramError
-from concurrent.futures import ThreadPoolExecutor
 
 logger = logging.getLogger('apps')
 
@@ -15,25 +14,6 @@ logger.debug(f"CHAT_ID: {CHAT_ID}")
 
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
-def run_async(func):
-    """Runs the given async function using the event loop"""
-    def wrapper(*args, **kwargs):
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                loop.create_task(func(*args, **kwargs))
-            else:
-                loop.run_until_complete(func(*args, **kwargs))
-        except RuntimeError as e:
-            logger.error(f"Error in event loop: {e}")
-            new_loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(new_loop)
-            new_loop.run_until_complete(func(*args, **kwargs))
-        except TelegramError as e:
-            logger.error(f"Error enviando mensaje a Telegram: {e}")
-    return wrapper
-
-@run_async
 async def async_send_telegram_message(message, image_url=None):
     try:
         logger.debug("Enviando mensaje asincrónicamente a Telegram.")
@@ -50,7 +30,7 @@ def send_telegram_message(message, image_url=None):
     try:
         loop = asyncio.get_event_loop()
         if loop.is_running():
-            loop.create_task(async_send_telegram_message(message, image_url))
+            asyncio.ensure_future(async_send_telegram_message(message, image_url))
         else:
             loop.run_until_complete(async_send_telegram_message(message, image_url))
     except RuntimeError as e:
