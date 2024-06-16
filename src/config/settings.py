@@ -238,3 +238,4 @@ import logging
 logger = logging.getLogger('apps')
 logger.debug(f"TELEGRAM_BOT_TOKEN: {env('TELEGRAM_BOT_TOKEN', default='No token')}")
 logger.debug(f"CHAT_ID: {env('CHAT_ID', default='No chat ID')}")
+SECOND_CHAT_ID = os.getenv('SECOND_CHAT_ID')

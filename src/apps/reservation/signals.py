@@ -4,6 +4,7 @@ from django.dispatch import receiver
 from .models import Reservation, RentalReceipt
 from ..core.telegram_notifier import send_telegram_message
 from django.conf import settings
+from datetime import datetime
 
 logger = logging.getLogger('apps')
 
@@ -52,6 +53,15 @@ def notify_new_reservation(reservation):
         f"Teléfono : +{reservation.tel_contact_number}"
     )
 
+    message_today = (
+        f"******PARA HOYYYY******\n"
+        f"Cliente: {client_name}\n"
+        f"Check-in : {check_in_date}\n"
+        f"Check-out : {check_out_date}\n"
+        f"Invitados : {reservation.guests}\n"
+        f"Temperado : {temperature_pool_status}\n"
+    )
+
     # Inicializar full_image_urls
     full_image_url = None
 
@@ -67,8 +77,14 @@ def notify_new_reservation(reservation):
         else:
             logger.debug("El campo file del RentalReceipt no tiene un nombre de archivo.")
 
+    # Enviar mensaje al primer canal
     logger.debug(f"Enviando mensaje de Telegram: {message} con imagen: {full_image_url}")
-    send_telegram_message(message, full_image_url)
+    send_telegram_message(message, settings.CHAT_ID, full_image_url)
+
+    # Verificar si la reserva es para el mismo día y enviar un mensaje al segundo canal
+    if reservation.check_in_date == datetime.today().date():
+        logger.debug("Reserva para el mismo día detectada, enviando al segundo canal.")
+        send_telegram_message(message_today, settings.SECOND_CHAT_ID, full_image_url)
 
 @receiver(post_save, sender=Reservation)
 def notify_reservation_creation(sender, instance, created, **kwargs):
