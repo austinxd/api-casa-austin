@@ -99,18 +99,13 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     # Verificar reservas que están en curso
                     now_time = now.time()
                     today_date = now.date()
-                    check_in_today = datetime.combine(today_date, check_in_time)
-                    check_out_today = datetime.combine(today_date, check_out_time)
-                    tomorrow = today_date + timedelta(days=1)
-                    check_out_tomorrow = datetime.combine(tomorrow, check_out_time)
-                    
+                    tomorrow_date = today_date + timedelta(days=1)
+
                     queryset = queryset.filter(
                         Q(check_in_date__lt=today_date, check_out_date__gt=today_date) |
-                        (Q(check_in_date=today_date, check_in_date__lte=check_in_today) &
-                         Q(check_out_date=today_date, check_out_date__gte=check_out_today)) |
-                        (Q(check_out_date=today_date, check_out_date__gt=now_time) &
-                         Q(check_out_date=today_date)) |
-                        Q(check_out_date=tomorrow, check_out_date__gte=check_out_tomorrow)
+                        (Q(check_in_date=today_date) & Q(check_out_date__gt=today_date)) |
+                        (Q(check_out_date=today_date) & Q(check_out_date__gt=now)) |
+                        (Q(check_out_date=tomorrow_date) & Q(check_out_date__gt=datetime.combine(tomorrow_date, check_out_time)))
                     )
 
                 if self.request.query_params.get('type'):
