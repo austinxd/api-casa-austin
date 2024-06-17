@@ -3,7 +3,7 @@ from django.http import HttpResponse
 from pathlib import Path
 
 import calendar
-from datetime import datetime, timedelta
+from datetime import datetime, time
 
 from django.db import transaction
 from django.db.models import Q
@@ -61,6 +61,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 from_param = self.request.query_params.get('from')
                 type_param = self.request.query_params.get('type')
                 now = datetime.now()
+                check_out_time = datetime.combine(now.date(), time(11, 0))  # 11 AM hoy
 
                 if self.request.query_params.get('year') and self.request.query_params.get('month'):
                     try:
@@ -94,7 +95,13 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 if from_param == 'today':
                     queryset = queryset.filter(check_in_date__gte=now)
                 elif from_param == 'in_progress':
-                    queryset = queryset.filter(check_in_date__lte=now, check_out_date__gt=now + timedelta(days=1))
+                    queryset = queryset.filter(
+                        check_in_date__lte=now,
+                        check_out_date__gt=now
+                    ) | queryset.filter(
+                        check_out_date=now.date(),
+                        check_out_time__gt=now.time()
+                    )
 
                 if self.request.query_params.get('type'):
                     queryset = queryset.filter(origin=self.request.query_params.get('type'))
