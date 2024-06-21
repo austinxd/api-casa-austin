@@ -4,7 +4,7 @@ from django.dispatch import receiver
 from .models import Reservation, RentalReceipt
 from ..core.telegram_notifier import send_telegram_message
 from django.conf import settings
-from datetime import datetime
+from datetime import datetime, date
 
 logger = logging.getLogger('apps')
 
@@ -26,6 +26,10 @@ def format_date_es(date):
     month = MONTHS_ES[date.month]
     week_day = DAYS_ES[date.weekday()]
     return f"{week_day} {day} de {month}"
+
+def calculate_age(born):
+    today = date.today()
+    return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
 
 def notify_new_reservation(reservation):
     client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
@@ -68,7 +72,7 @@ def notify_new_reservation(reservation):
     # Verificar si hay un recibo asociado con una imagen
     rental_receipt = RentalReceipt.objects.filter(reservation=reservation).first()
     logger.debug(f"RentalReceipt encontrado: {rental_receipt}")
-    if (rental_receipt and rental_receipt.file):
+    if rental_receipt and rental_receipt.file:
         logger.debug(f"Archivo de recibo: {rental_receipt.file}")
         if rental_receipt.file.name:
             image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
@@ -88,10 +92,11 @@ def notify_new_reservation(reservation):
     
     # Enviar mensaje al usuario personal con el formato específico
     birthday = format_date_es(reservation.client.date) if reservation.client and reservation.client.date else "No disponible"
+    age = calculate_age(reservation.client.date) if reservation.client and reservation.client.date else "No disponible"
     message_personal_channel = (
         f"******Reserva en {reservation.property.name}******\n"
         f"Cliente: {client_name}\n"
-        f"Cumpleaños: {birthday}\n"
+        f"Cumpleaños: {birthday} (Cumple {age} años)\n"
         f"Check-in : {check_in_date}\n"
         f"Check-out : {check_out_date}\n"
         f"Invitados : {reservation.guests}\n"
