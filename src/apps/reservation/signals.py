@@ -68,7 +68,7 @@ def notify_new_reservation(reservation):
     # Verificar si hay un recibo asociado con una imagen
     rental_receipt = RentalReceipt.objects.filter(reservation=reservation).first()
     logger.debug(f"RentalReceipt encontrado: {rental_receipt}")
-    if rental_receipt and rental_receipt.file:
+    if (rental_receipt and rental_receipt.file):
         logger.debug(f"Archivo de recibo: {rental_receipt.file}")
         if rental_receipt.file.name:
             image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
@@ -87,7 +87,7 @@ def notify_new_reservation(reservation):
         send_telegram_message(message_today, settings.SECOND_CHAT_ID, full_image_url)
     
     # Enviar mensaje al usuario personal con el formato específico
-    birthday = format_date_es(reservation.client.birthday) if reservation.client and reservation.client.birthday else "No disponible"
+    birthday = format_date_es(reservation.client.date) if reservation.client and reservation.client.date else "No disponible"
     message_personal_channel = (
         f"******Reserva en {reservation.property.name}******\n"
         f"Cliente: {client_name}\n"
