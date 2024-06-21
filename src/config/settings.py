@@ -228,9 +228,9 @@ LOGGING = {
 
 # Telegram settings
 TELEGRAM_BOT_TOKEN = env('TELEGRAM_BOT_TOKEN', default='No token')
-CHAT_ID = env('CHAT_ID', default='No chat ID')
-SECOND_CHAT_ID = env('SECOND_CHAT_ID', default='No second chat ID')
-THIRD_CHAT_ID = env('THIRD_CHAT_ID', default='No third chat ID')
+CHAT_ID = env('CHAT_ID', default='N° chat ID')
+SECOND_CHAT_ID = env('SECOND_CHAT_ID', default='N° second chat ID')
+PERSONAL_CHAT_ID = env('PERSONAL_CHAT_ID', default='N° personal chat ID')
 
 # Verificar que las variables de entorno se cargan correctamente
 import logging
@@ -239,4 +239,4 @@ logger = logging.getLogger('apps')
 logger.debug(f"TELEGRAM_BOT_TOKEN: {TELEGRAM_BOT_TOKEN}")
 logger.debug(f"CHAT_ID: {CHAT_ID}")
 logger.debug(f"SECOND_CHAT_ID: {SECOND_CHAT_ID}")
-logger.debug(f"THIRD_CHAT_ID: {THIRD_CHAT_ID}")
+logger.debug(f"PERSONAL_CHAT_ID: {PERSONAL_CHAT_ID}")

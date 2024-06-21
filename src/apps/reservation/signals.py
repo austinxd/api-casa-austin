@@ -86,9 +86,9 @@ def notify_new_reservation(reservation):
         logger.debug("Reserva para el mismo día detectada, enviando al segundo canal.")
         send_telegram_message(message_today, settings.SECOND_CHAT_ID, full_image_url)
     
-    # Enviar mensaje al tercer canal con el formato específico
+    # Enviar mensaje al usuario personal con el formato específico
     birthday = format_date_es(reservation.client.birthday) if reservation.client and reservation.client.birthday else "No disponible"
-    message_third_channel = (
+    message_personal_channel = (
         f"******Reserva en {reservation.property.name}******\n"
         f"Cliente: {client_name}\n"
         f"Cumpleaños: {birthday}\n"
@@ -98,8 +98,8 @@ def notify_new_reservation(reservation):
         f"Temperado : {temperature_pool_status}\n"
         f"Teléfono : +{reservation.tel_contact_number}"
     )
-    logger.debug(f"Enviando mensaje de Telegram al tercer canal: {message_third_channel} con imagen: {full_image_url}")
-    send_telegram_message(message_third_channel, settings.THIRD_CHAT_ID, full_image_url)
+    logger.debug(f"Enviando mensaje de Telegram al canal personal: {message_personal_channel} con imagen: {full_image_url}")
+    send_telegram_message(message_personal_channel, settings.PERSONAL_CHAT_ID, full_image_url)
 
 @receiver(post_save, sender=Reservation)
 def notify_reservation_creation(sender, instance, created, **kwargs):
