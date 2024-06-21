@@ -27,9 +27,11 @@ def format_date_es(date):
     week_day = DAYS_ES[date.weekday()]
     return f"{week_day} {day} de {month}"
 
-def calculate_age(born):
+def calculate_upcoming_age(born):
     today = date.today()
-    return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+    this_year_birthday = date(today.year, born.month, born.day)
+    next_birthday = this_year_birthday if today <= this_year_birthday else date(today.year + 1, born.month, born.day)
+    return next_birthday.year - born.year
 
 def notify_new_reservation(reservation):
     client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
@@ -92,16 +94,16 @@ def notify_new_reservation(reservation):
     
     # Enviar mensaje al usuario personal con el formato específico
     birthday = format_date_es(reservation.client.date) if reservation.client and reservation.client.date else "No disponible"
-    age = calculate_age(reservation.client.date) if reservation.client and reservation.client.date else "No disponible"
+    upcoming_age = calculate_upcoming_age(reservation.client.date) if reservation.client and reservation.client.date else "No disponible"
     message_personal_channel = (
         f"******Reserva en {reservation.property.name}******\n"
         f"Cliente: {client_name}\n"
-        f"Cumpleaños: {birthday} (Cumple {age} años)\n"
+        f"Cumpleaños: {birthday} (Cumple {upcoming_age} años)\n"
         f"Check-in : {check_in_date}\n"
         f"Check-out : {check_out_date}\n"
         f"Invitados : {reservation.guests}\n"
         f"Temperado : {temperature_pool_status}\n"
-        f"Teléfono : +{reservation.tel_contact_number}"
+        f"Teléfono : https://wa.me/{reservation.tel_contact_number}"
     )
     logger.debug(f"Enviando mensaje de Telegram al canal personal: {message_personal_channel} con imagen: {full_image_url}")
     send_telegram_message(message_personal_channel, settings.PERSONAL_CHAT_ID, full_image_url)
