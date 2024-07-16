@@ -40,7 +40,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
     pagination_class = CustomPagination
 
     def get_pagination_class(self):
-        """Determinar si usar o no paginación
+        """
+        Determinar si usar o no paginación
         - page_size = valor
         - valor = un numero entero, será el tamaño de la pagina
         - valor = none, no se pagina el resultado
@@ -328,6 +329,7 @@ class ProfitApiView(APIView):
             rta,
             status=200
         )
+
 
 class ReservationCalendarView(viewsets.ReadOnlyModelViewSet):
     serializer_class = ReservationSerializer
