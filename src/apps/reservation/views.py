@@ -337,6 +337,7 @@ class VistaCalendarioApiView(viewsets.ReadOnlyModelViewSet):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
     permission_classes = [AllowAny]  # Ajusta según tus requisitos de seguridad
+    pagination_class = None  # Desactiva la paginación
 
     def get_queryset(self):
         # Aquí puedes ajustar la consulta si necesitas filtrar los resultados
