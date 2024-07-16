@@ -268,6 +268,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
         )
         return Response(status=204)
 
+
 class DeleteRecipeApiView(generics.DestroyAPIView):
     queryset = RentalReceipt.objects.all()
     serializer_class = ReciptSerializer
@@ -328,4 +329,3 @@ class ProfitApiView(APIView):
             rta,
             status=200
         )
-
