@@ -40,8 +40,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
     pagination_class = CustomPagination
 
     def get_pagination_class(self):
-        """
-        Determinar si usar o no paginación
+        """Determinar si usar o no paginación
         - page_size = valor
         - valor = un numero entero, será el tamaño de la pagina
         - valor = none, no se pagina el resultado
@@ -330,16 +329,3 @@ class ProfitApiView(APIView):
             status=200
         )
 
-
-class ReservationCalendarView(viewsets.ReadOnlyModelViewSet):
-    serializer_class = ReservationSerializer
-    queryset = Reservation.objects.exclude(deleted=True).order_by("check_in_date")
-
-    @extend_schema(
-        summary="List all reservations without pagination",
-        responses={200: ReservationSerializer(many=True)}
-    )
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
