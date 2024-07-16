@@ -7,8 +7,6 @@ from rest_framework.routers import DefaultRouter
 router = DefaultRouter()
 
 router.register("reservations", ReservationsApiView, basename="reservations")
-router.register("vistacalendario", ReservationCalendarView, basename="vistacalendario")
-
 
 urlpatterns = [
     path("", include(router.urls)),
@@ -17,4 +15,3 @@ urlpatterns = [
     path("update-ics/", UpdateICSApiView.as_view()),
     path("profit-resume/", ProfitApiView.as_view())
 ]
-    
