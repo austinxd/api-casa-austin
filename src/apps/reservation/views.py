@@ -329,3 +329,15 @@ class ProfitApiView(APIView):
             rta,
             status=200
         )
+
+class VistaCalendarioApiView(viewsets.ReadOnlyModelViewSet):
+    """
+    API endpoint que permite obtener reservaciones sin paginación para uso en calendarios.
+    """
+    queryset = Reservation.objects.all()
+    serializer_class = ReservationSerializer
+    permission_classes = [AllowAny]  # Ajusta según tus requisitos de seguridad
+
+    def get_queryset(self):
+        # Aquí puedes ajustar la consulta si necesitas filtrar los resultados
+        return super().get_queryset()
