@@ -7,6 +7,7 @@ from rest_framework.routers import DefaultRouter
 router = DefaultRouter()
 
 router.register("reservations", ReservationsApiView, basename="reservations")
+router.register("vistacalendario", VistaCalendarioViewSet, basename="vistacalendario")  # Nueva vista
 
 urlpatterns = [
     path("", include(router.urls)),
