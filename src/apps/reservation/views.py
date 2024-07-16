@@ -329,8 +329,3 @@ class ProfitApiView(APIView):
             rta,
             status=200
         )
-    
-class VistaCalendarioView(generics.ListAPIView):
-    queryset = Reservation.objects.all()
-    serializer_class = ReservationSerializer
-    pagination_class = None  # Desactivar paginación
