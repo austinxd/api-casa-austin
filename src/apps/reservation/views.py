@@ -559,7 +559,7 @@ def download_contract(request, reservation_id):
         client = Client.objects.get(id=reservation.client_id)
         property = Property.objects.get(id=reservation.property_id)
 
-        doc = DocxTemplate("/path_to_your_template/Plantilla (1).docx")
+        doc = DocxTemplate("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
         context = {
             'nombre': f"{client.first_name} {client.last_name}",
             'document_type': client.document_type,
