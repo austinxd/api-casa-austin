@@ -310,7 +310,6 @@ class ReservationsApiView(viewsets.ModelViewSet):
             print(f"Context: {context}")
 
             def replace_text(paragraph, key, value):
-                # Reemplaza el texto de una variable en un párrafo y agrega el texto reemplazado en negrita
                 for run in paragraph.runs:
                     if key in run.text:
                         run.text = run.text.replace(key, value)
@@ -318,14 +317,13 @@ class ReservationsApiView(viewsets.ModelViewSet):
                         print(f"Reemplazado {key} con {value} en run: {run.text}")
 
             def replace_text_in_paragraph(paragraph, context):
-                # Reemplazar las variables en el párrafo
                 inline = paragraph.runs
-                full_text = ''.join(run.text for run in inline)
                 for key, value in context.items():
-                    if f'{{{key}}}' in full_text:
-                        print(f"Reemplazando {key} en el párrafo: {full_text}")  # Depuración
-                        for run in inline:
-                            replace_text(run, f'{{{key}}}', value)
+                    for run in inline:
+                        if f'{{{key}}}' in run.text:
+                            run.text = run.text.replace(f'{{{key}}}', value)
+                            run.bold = True
+                            print(f"Reemplazado {key} con {value} en run: {run.text}")
 
             # Reemplazar las variables en los párrafos de la plantilla
             for paragraph in doc.paragraphs:
