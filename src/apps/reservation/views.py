@@ -303,26 +303,25 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 'numpax': str(reservation.guests)
             }
 
-            def replace_text_and_bold(paragraph, key, value):
-                if key in paragraph.text:
-                    for run in paragraph.runs:
-                        if key in run.text:
-                            run.text = run.text.replace(key, value)
-                            run.bold = True
+            def replace_text(doc, context):
+                for key, value in context.items():
+                    for paragraph in doc.paragraphs:
+                        if f'{{{key}}}' in paragraph.text:
+                            for run in paragraph.runs:
+                                run.text = run.text.replace(f'{{{key}}}', str(value))
+                                run.bold = True
 
-            def replace_text_in_doc(doc, context):
-                for paragraph in doc.paragraphs:
-                    for key, value in context.items():
-                        replace_text_and_bold(paragraph, f'{{{key}}}', str(value))
-                for table in doc.tables:
-                    for row in table.rows:
-                        for cell in row.cells:
-                            for paragraph in cell.paragraphs:
-                                for key, value in context.items():
-                                    replace_text_and_bold(paragraph, f'{{{key}}}', str(value))
+                    for table in doc.tables:
+                        for row in table.rows:
+                            for cell in row.cells:
+                                for paragraph in cell.paragraphs:
+                                    if f'{{{key}}}' in paragraph.text:
+                                        for run in paragraph.runs:
+                                            run.text = run.text.replace(f'{{{key}}}', str(value))
+                                            run.bold = True
 
-            # Reemplazar las variables en la plantilla y poner en negrita
-            replace_text_in_doc(doc, context)
+            # Reemplazar las variables en la plantilla
+            replace_text(doc, context)
 
             # Guardar el documento en un archivo de bytes
             file_stream = io.BytesIO()
