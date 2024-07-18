@@ -304,23 +304,22 @@ class ReservationsApiView(viewsets.ModelViewSet):
             }
 
             def replace_text_and_bold(paragraph, key, value):
-                for run in paragraph.runs:
-                    if key in run.text:
-                        run.text = run.text.replace(key, value)
-                        run.bold = True
+                if key in paragraph.text:
+                    for run in paragraph.runs:
+                        if key in run.text:
+                            run.text = run.text.replace(key, value)
+                            run.bold = True
 
             def replace_text_in_doc(doc, context):
                 for paragraph in doc.paragraphs:
                     for key, value in context.items():
-                        if f'{{{key}}}' in paragraph.text:
-                            replace_text_and_bold(paragraph, f'{{{key}}}', str(value))
+                        replace_text_and_bold(paragraph, f'{{{key}}}', str(value))
                 for table in doc.tables:
                     for row in table.rows:
                         for cell in row.cells:
                             for paragraph in cell.paragraphs:
                                 for key, value in context.items():
-                                    if f'{{{key}}}' in paragraph.text:
-                                        replace_text_and_bold(paragraph, f'{{{key}}}', str(value))
+                                    replace_text_and_bold(paragraph, f'{{{key}}}', str(value))
 
             # Reemplazar las variables en la plantilla y poner en negrita
             replace_text_in_doc(doc, context)
