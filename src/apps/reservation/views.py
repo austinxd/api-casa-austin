@@ -189,6 +189,13 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 required=False,
                 enum=["aus", "air", "man"]
             ),
+            OpenApiParameter(
+                name='id',
+                description='A numeric ID identifying this reservation.',
+                required=True,
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.PATH
+            ),
         ],
         responses={200: ReservationListSerializer(many=True)},
         methods=["GET"],
