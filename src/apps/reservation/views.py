@@ -554,48 +554,46 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
     
 
 ###### Contratos ######
-@api_view(['POST'])
-@extend_schema(
-    parameters=[
-        OpenApiParameter("reservation_id", description="ID of the reservation", required=True, type=OpenApiTypes.STR)
-    ],
-    responses={
-        200: OpenApiTypes.BINARY,
-        400: OpenApiTypes.STR
-    },
-    description="Downloads a contract document based on reservation ID via a POST request.",
-    methods=['POST']
-)
-def download_contract(request):
-    try:
-        # Extract the reservation_id from the POST data
-        reservation_id = request.data.get('reservation_id')
-        if not reservation_id:
-            return HttpResponse("Reservation ID is required.", status=400)
+class DownloadContractView(APIView):
+    @extend_schema(
+        request=None,
+        responses={200: OpenApiTypes.BINARY, 400: OpenApiTypes.STR},
+        description="Downloads a contract document based on reservation ID.",
+        methods=['POST'],
+        parameters=[
+            OpenApiParameter("reservation_id", type=OpenApiTypes.STR, description="ID of the reservation", required=True)
+        ]
+    )
+    def download_contract(request):
+        try:
+            # Extract the reservation_id from the POST data
+            reservation_id = request.data.get('reservation_id')
+            if not reservation_id:
+                return HttpResponse("Reservation ID is required.", status=400)
 
-        reservation = Reservation.objects.get(id=reservation_id)
-        client = Client.objects.get(id=reservation.client_id)
-        property = Property.objects.get(id=reservation.property_id)
+            reservation = Reservation.objects.get(id=reservation_id)
+            client = Client.objects.get(id=reservation.client_id)
+            property = Property.objects.get(id=reservation.property_id)
 
-        doc = DocxTemplate("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
-        context = {
-            'nombre': f"{client.first_name} {client.last_name}",
-            'document_type': client.document_type,
-            'dni': client.number_doc,
-            'propiedad': property.name,
-            'checkin': reservation.check_in_date,
-            'checkout': reservation.check_out_date,
-            'preciodolares': reservation.price_usd,
-            'numpax': reservation.guests
-        }
-        doc.render(context)
-        file_stream = io.BytesIO()
-        doc.save(file_stream)
-        file_stream.seek(0)
-        response = HttpResponse(file_stream, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-        response['Content-Disposition'] = 'attachment; filename="contract.docx"'
-        return response
-    except Reservation.DoesNotExist:
-        return HttpResponse("Reservation not found.", status=404)
-    except Exception as e:
-        return HttpResponse(f"Error processing your request: {str(e)}", status=400)
+            doc = DocxTemplate("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
+            context = {
+                'nombre': f"{client.first_name} {client.last_name}",
+                'document_type': client.document_type,
+                'dni': client.number_doc,
+                'propiedad': property.name,
+                'checkin': reservation.check_in_date,
+                'checkout': reservation.check_out_date,
+                'preciodolares': reservation.price_usd,
+                'numpax': reservation.guests
+            }
+            doc.render(context)
+            file_stream = io.BytesIO()
+            doc.save(file_stream)
+            file_stream.seek(0)
+            response = HttpResponse(file_stream, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+            response['Content-Disposition'] = 'attachment; filename="contract.docx"'
+            return response
+        except Reservation.DoesNotExist:
+            return HttpResponse("Reservation not found.", status=404)
+        except Exception as e:
+            return HttpResponse(f"Error processing your request: {str(e)}", status=400)
