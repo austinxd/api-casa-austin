@@ -309,21 +309,19 @@ class ReservationsApiView(viewsets.ModelViewSet):
             # Depuración: Verificar el contexto
             print(f"Context: {context}")
 
-            def replace_text(paragraph, key, value):
-                for run in paragraph.runs:
-                    if key in run.text:
-                        run.text = run.text.replace(key, value)
-                        run.bold = True
-                        print(f"Reemplazado {key} con {value} en run: {run.text}")
-
             def replace_text_in_paragraph(paragraph, context):
                 inline = paragraph.runs
+                full_text = ''.join(run.text for run in inline)
                 for key, value in context.items():
-                    for run in inline:
-                        if f'{{{key}}}' in run.text:
-                            run.text = run.text.replace(f'{{{key}}}', value)
-                            run.bold = True
-                            print(f"Reemplazado {key} con {value} en run: {run.text}")
+                    if f'{{{key}}}' in full_text:
+                        print(f"Reemplazando {key} en el párrafo: {full_text}")  # Depuración
+                        full_text = full_text.replace(f'{{{key}}}', value)
+                for i, run in enumerate(inline):
+                    if i == 0:
+                        run.text = full_text
+                    else:
+                        run.text = ""
+                    run.bold = any(f'{{{key}}}' in run.text for key in context.keys())
 
             # Reemplazar las variables en los párrafos de la plantilla
             for paragraph in doc.paragraphs:
