@@ -301,9 +301,16 @@ class ReservationsApiView(viewsets.ModelViewSet):
             if document_type is None:
                 raise ValueError(f"Tipo de documento desconocido: {client.document_type}")
 
+            # Depuración: Verificar el valor de document_type
+            print(f"Tipo de documento mapeado: {document_type}")
+
             # Formatear las fechas en español
             checkin_date = format_date(reservation.check_in_date, format='d \'de\' MMMM \'del\' YYYY', locale='es')
             checkout_date = format_date(reservation.check_out_date, format='d \'de\' MMMM \'del\' YYYY', locale='es')
+
+            # Depuración: Verificar las fechas formateadas
+            print(f"Fecha de check-in formateada: {checkin_date}")
+            print(f"Fecha de check-out formateada: {checkout_date}")
 
             # Cargar la plantilla existente usando docxtpl
             doc = DocxTemplate("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
@@ -340,8 +347,10 @@ class ReservationsApiView(viewsets.ModelViewSet):
         except Property.DoesNotExist:
             return Response({'error': 'Property not found'}, status=404)
         except ValueError as e:
+            print(f"Error de valor: {e}")
             return Response({'error': str(e)}, status=400)
         except Exception as e:
+            print(f"Error inesperado: {e}")
             return Response({'error': str(e)}, status=400)
 ###### FIN MOD #######
 
