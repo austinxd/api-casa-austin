@@ -291,13 +291,13 @@ class ReservationsApiView(viewsets.ModelViewSet):
             # Crear el contexto con los datos necesarios
             context = {
                 'nombre': f"{client.first_name.upper()} {client.last_name.upper()}",
-                'document_type': client.document_type,
+                'document_type': client.document_type.upper(),
                 'dni': client.number_doc,
                 'propiedad': property.name,
                 'checkin': reservation.check_in_date.strftime('%d/%m/%Y'),
                 'checkout': reservation.check_out_date.strftime('%d/%m/%Y'),
                 'preciodolares': f"${reservation.price_usd:.2f}",
-                'numpax': reservation.guests
+                'numpax': str(reservation.guests)
             }
 
             def replace_text_and_bold(paragraph, key, value):
