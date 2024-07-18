@@ -294,7 +294,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
             # Crear el contexto con los datos necesarios
             context = {
                 'nombre': f"{client.first_name.upper()} {client.last_name.upper()}",
-                'TipoDocCasa': document_type.upper(),
+                'tipodocumento': document_type.upper(),
                 'dni': client.number_doc,
                 'propiedad': property.name,
                 'checkin': reservation.check_in_date.strftime('%d/%m/%Y'),
@@ -304,27 +304,31 @@ class ReservationsApiView(viewsets.ModelViewSet):
             }
 
             def replace_text_in_paragraph(paragraph, context):
-                for run in paragraph.runs:
-                    original_text = run.text
-                    for key, value in context.items():
-                        key_with_brackets = f'{{{key}}}'
-                        # Utilizar expresiones regulares para buscar el marcador con cualquier caracter no alfabético después
-                        pattern = key_with_brackets + r'(?=\W|$)'
-                        if re.search(pattern, run.text):
-                            run.text = re.sub(pattern, value, run.text)
+                full_text = ''.join(run.text for run in paragraph.runs)
+                original_text = full_text  # Copiar el texto original para referencia
+                
+                for key, value in context.items():
+                    key_with_brackets = f'{{{key}}}'
+                    if key_with_brackets in full_text:
+                        full_text = full_text.replace(key_with_brackets, value)
+
+                if full_text != original_text:
+                    # Clear all runs and add a new run with the updated full text
+                    paragraph.clear()
+                    paragraph.add_run(full_text)
 
             # Reemplazar las variables en los párrafos de la plantilla
             for paragraph in doc.paragraphs:
                 replace_text_in_paragraph(paragraph, context)
 
-            # Reemplazar las variables en las celdas de las tablas (si hay tablas en la plantilla)
+            # Reemplazar las variables en las celdas de las tablas
             for table in doc.tables:
                 for row in table.rows:
                     for cell in row.cells:
                         for paragraph in cell.paragraphs:
                             replace_text_in_paragraph(paragraph, context)
 
-            # Guardar el documento en un archivo de bytes
+            # Guardar el documento modificado
             file_stream = io.BytesIO()
             doc.save(file_stream)
             file_stream.seek(0)
