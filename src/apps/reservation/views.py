@@ -557,7 +557,7 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
 @api_view(['POST'])
 @extend_schema(
     parameters=[
-        OpenApiParameter("reservation_id", description="ID of the reservation", required=True, type=OpenApiTypes.INT)
+        OpenApiParameter("reservation_id", description="ID of the reservation", required=True, type=OpenApiTypes.STR)
     ],
     responses={
         200: OpenApiTypes.BINARY,
@@ -595,5 +595,7 @@ def download_contract(request):
         response = HttpResponse(file_stream, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
         response['Content-Disposition'] = 'attachment; filename="contract.docx"'
         return response
+    except Reservation.DoesNotExist:
+        return HttpResponse("Reservation not found.", status=404)
     except Exception as e:
         return HttpResponse(f"Error processing your request: {str(e)}", status=400)
