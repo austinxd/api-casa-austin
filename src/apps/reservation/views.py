@@ -27,7 +27,7 @@ from apps.accounts.models import CustomUser
 
 from apps.core.functions import get_month_name, generate_audit, check_user_has_rol, confeccion_ics
 from apps.dashboard.utils import get_stadistics_period
-from docxtpl import DocxTemplate
+from docx import Document
 import io
 
 class ReservationsApiView(viewsets.ModelViewSet):
@@ -284,21 +284,39 @@ class ReservationsApiView(viewsets.ModelViewSet):
             client = Clients.objects.get(id=reservation.client_id)
             property = Property.objects.get(id=reservation.property_id)
 
-            doc = DocxTemplate("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
+            # Crear un nuevo documento
+            doc = Document()
+
+            # Agregar contenido al documento
+            doc.add_heading('Contrato de Alquiler', level=1)
+
             context = {
-                'nombre': f"{client.first_name} {client.last_name}",
+                'NOMBRE': f"{client.first_name.upper()} {client.last_name.upper()}",
                 'document_type': client.document_type,
                 'dni': client.number_doc,
                 'propiedad': property.name,
-                'checkin': reservation.check_in_date,
-                'checkout': reservation.check_out_date,
-                'preciodolares': reservation.price_usd,
-                'numpax': reservation.guests
+                'checkin': reservation.check_in_date.strftime('%d/%m/%Y'),
+                'checkout': reservation.check_out_date.strftime('%d/%m/%Y'),
+                'preciodolares': f"${reservation.price_usd:.2f}",
+                'numpax': str(reservation.guests)
             }
-            doc.render(context)
+
+            # Agregar contenido formateado al documento
+            doc.add_paragraph(f"Nombre: {context['NOMBRE']}")
+            doc.add_paragraph(f"Tipo de Documento: {context['document_type']}")
+            doc.add_paragraph(f"DNI: {context['dni']}")
+            doc.add_paragraph(f"Propiedad: {context['propiedad']}")
+            doc.add_paragraph(f"Check-in: {context['checkin']}")
+            doc.add_paragraph(f"Check-out: {context['checkout']}")
+            doc.add_paragraph(f"Precio en Dólares: {context['preciodolares']}")
+            doc.add_paragraph(f"Número de Huéspedes: {context['numpax']}")
+
+            # Guardar el documento en un archivo de bytes
             file_stream = io.BytesIO()
             doc.save(file_stream)
             file_stream.seek(0)
+
+            # Preparar la respuesta HTTP
             response = HttpResponse(file_stream, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
             response['Content-Disposition'] = f'attachment; filename="{property.name}_contract.docx"'
             return response
