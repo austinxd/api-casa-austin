@@ -284,7 +284,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
             reservation = self.get_object()
             client = Clients.objects.get(id=reservation.client_id)
             property = Property.objects.get(id=reservation.property_id)
-            
+
             # Obtener document_type de clients_clients
             document_type = client.document_type
 
