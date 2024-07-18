@@ -293,19 +293,24 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 'dni': 'DNI'
             }
 
+            # Depuración: Verificar el valor de client.document_type
+            print(f"Tipo de documento original: {client.document_type}")
+
             # Obtener el tipo de documento en español
-            document_type = document_type_map.get(client.document_type, client.document_type)
+            document_type = document_type_map.get(client.document_type, None)
+            if document_type is None:
+                raise ValueError(f"Tipo de documento desconocido: {client.document_type}")
 
             # Formatear las fechas en español
-            checkin_date = format_date(reservation.check_in_date, format='d ' 'MMMM ' 'YYYY', locale='es')
-            checkout_date = format_date(reservation.check_out_date, format='d ' 'MMMM ' 'YYYY', locale='es')
+            checkin_date = format_date(reservation.check_in_date, format='d \'de\' MMMM \'del\' YYYY', locale='es')
+            checkout_date = format_date(reservation.check_out_date, format='d \'de\' MMMM \'del\' YYYY', locale='es')
 
             # Cargar la plantilla existente usando docxtpl
             doc = DocxTemplate("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
 
             # Crear el contexto con los datos necesarios
             context = {
-                'nombre': f"{client.last_name.upper()}, {client.first_name.upper()}",
+                'nombre': f"{client.first_name.upper()} {client.last_name.upper()}",
                 'tipodocumento': document_type.upper(),
                 'dni': client.number_doc,
                 'propiedad': property.name,
@@ -314,6 +319,9 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 'preciodolares': f"${reservation.price_usd:.2f}",
                 'numpax': str(reservation.guests)
             }
+
+            # Depuración: Verificar el contexto
+            print(f"Context: {context}")
 
             # Usar el método render para aplicar el contexto a la plantilla
             doc.render(context)
@@ -331,6 +339,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
             return Response({'error': 'Client not found'}, status=404)
         except Property.DoesNotExist:
             return Response({'error': 'Property not found'}, status=404)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=400)
         except Exception as e:
             return Response({'error': str(e)}, status=400)
 ###### FIN MOD #######
