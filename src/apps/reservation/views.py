@@ -286,19 +286,26 @@ class ReservationsApiView(viewsets.ModelViewSet):
             client = Clients.objects.get(id=reservation.client_id)
             property = Property.objects.get(id=reservation.property_id)
 
-            # Obtener document_type de clients_clients
-            document_type = client.document_type
+            # Mapear los tipos de documentos
+            document_type_map = {
+                'pas': 'pasaporte',
+                'cex': 'carnet de extranjería',
+                'dni': 'DNI'
+            }
+
+            # Obtener el tipo de documento en español
+            document_type = document_type_map.get(client.document_type, client.document_type)
 
             # Formatear las fechas en español
-            checkin_date = format_date(reservation.check_in_date, format='long', locale='es')
-            checkout_date = format_date(reservation.check_out_date, format='long', locale='es')
+            checkin_date = format_date(reservation.check_in_date, format='d ' 'MMMM ' 'YYYY', locale='es')
+            checkout_date = format_date(reservation.check_out_date, format='d ' 'MMMM ' 'YYYY', locale='es')
 
             # Cargar la plantilla existente usando docxtpl
             doc = DocxTemplate("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
 
             # Crear el contexto con los datos necesarios
             context = {
-                'nombre': f"{client.first_name.upper()} {client.last_name.upper()}",
+                'nombre': f"{client.last_name.upper()}, {client.first_name.upper()}",
                 'tipodocumento': document_type.upper(),
                 'dni': client.number_doc,
                 'propiedad': property.name,
