@@ -277,45 +277,60 @@ class ReservationsApiView(viewsets.ModelViewSet):
         )
         return Response(status=204)
 ###### MOD AUSTIN ######
-    @action(detail=True, methods=['get'], url_path='contrato')
-    def contrato(self, request, pk=None):
-        try:
-            reservation = self.get_object()
-            client = Clients.objects.get(id=reservation.client_id)
-            property = Property.objects.get(id=reservation.property_id)
+@action(detail=True, methods=['get'], url_path='contrato')
+def contrato(self, request, pk=None):
+    try:
+        reservation = self.get_object()
+        client = Clients.objects.get(id=reservation.client_id)
+        property = Property.objects.get(id=reservation.property_id)
 
-            # Cargar la plantilla existente
-            doc = Document("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
+        # Cargar la plantilla existente
+        doc = Document("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
 
-            # Crear el contexto con los datos necesarios
-            context = {
-                'nombre': f"{client.first_name.upper()} {client.last_name.upper()}",
-                'document_type': client.document_type,
-                'dni': client.number_doc,
-                'propiedad': property.name,
-                'checkin': reservation.check_in_date.strftime('%d/%m/%Y'),
-                'checkout': reservation.check_out_date.strftime('%d/%m/%Y'),
-                'preciodolares': f"${reservation.price_usd:.2f}",
-                'numpax': reservation.guests
-            }
+        # Crear el contexto con los datos necesarios
+        context = {
+            'nombre': f"{client.first_name.upper()} {client.last_name.upper()}",
+            'document_type': client.document_type,
+            'dni': client.number_doc,
+            'propiedad': property.name,
+            'checkin': reservation.check_in_date.strftime('%d/%m/%Y'),
+            'checkout': reservation.check_out_date.strftime('%d/%m/%Y'),
+            'preciodolares': f"${reservation.price_usd:.2f}",
+            'numpax': reservation.guests
+        }
 
-            # Reemplazar las variables en la plantilla
-            for paragraph in doc.paragraphs:
-                for key, value in context.items():
-                    if f'{{{key}}}' in paragraph.text:
-                        paragraph.text = paragraph.text.replace(f'{{{key}}}', str(value))
+        # Reemplazar las variables en la plantilla y poner en negrita
+        for paragraph in doc.paragraphs:
+            inline = paragraph.runs
+            for key, value in context.items():
+                for item in inline:
+                    if f'{{{key}}}' in item.text:
+                        item.text = item.text.replace(f'{{{key}}}', str(value))
+                        item.bold = True
 
-            # Guardar el documento en un archivo de bytes
-            file_stream = io.BytesIO()
-            doc.save(file_stream)
-            file_stream.seek(0)
+        # Reemplazar las variables en las tablas (si hay tablas en la plantilla)
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        inline = paragraph.runs
+                        for key, value in context.items():
+                            for item in inline:
+                                if f'{{{key}}}' in item.text:
+                                    item.text = item.text.replace(f'{{{key}}}', str(value))
+                                    item.bold = True
 
-            # Preparar la respuesta HTTP
-            response = HttpResponse(file_stream, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-            response['Content-Disposition'] = f'attachment; filename="{property.name}_contract.docx"'
-            return response
-        except Exception as e:
-            return Response({'error': str(e)}, status=400)
+        # Guardar el documento en un archivo de bytes
+        file_stream = io.BytesIO()
+        doc.save(file_stream)
+        file_stream.seek(0)
+
+        # Preparar la respuesta HTTP
+        response = HttpResponse(file_stream, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        response['Content-Disposition'] = f'attachment; filename="{property.name}_contract.docx"'
+        return response
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
 ###### FIN MOD #######
 
 class DeleteRecipeApiView(generics.DestroyAPIView):
