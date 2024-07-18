@@ -320,7 +320,9 @@ class ReservationsApiView(viewsets.ModelViewSet):
             # Reemplazar las variables en la plantilla y poner en negrita
             for paragraph in doc.paragraphs:
                 for key, value in context.items():
-                    replace_text_and_bold(paragraph, f'{{{key}}}', str(value))
+                    if f'{{{key}}}' in paragraph.text:
+                        print(f"Reemplazando {key} en el párrafo: {paragraph.text}")  # Depuración
+                        replace_text_and_bold(paragraph, f'{{{key}}}', str(value))
 
             # Reemplazar las variables en las tablas (si hay tablas en la plantilla)
             for table in doc.tables:
@@ -328,7 +330,9 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     for cell in row.cells:
                         for paragraph in cell.paragraphs:
                             for key, value in context.items():
-                                replace_text_and_bold(paragraph, f'{{{key}}}', str(value))
+                                if f'{{{key}}}' in paragraph.text:
+                                    print(f"Reemplazando {key} en la celda: {paragraph.text}")  # Depuración
+                                    replace_text_and_bold(paragraph, f'{{{key}}}', str(value))
 
             # Guardar el documento en un archivo de bytes
             file_stream = io.BytesIO()
