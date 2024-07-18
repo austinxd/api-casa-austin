@@ -287,6 +287,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
             # Obtener document_type de clients_clients
             document_type = client.document_type
+            print(f"Document Type: {document_type}")  # Depuración: Imprimir el tipo de documento
 
             # Cargar la plantilla existente
             doc = Document("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
@@ -302,6 +303,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 'preciodolares': f"${reservation.price_usd:.2f}",
                 'numpax': str(reservation.guests)
             }
+            print(f"Context: {context}")  # Depuración: Imprimir el contexto
 
             def replace_text_and_bold(paragraph, key, value):
                 if key in paragraph.text:
