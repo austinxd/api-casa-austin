@@ -288,13 +288,16 @@ class ReservationsApiView(viewsets.ModelViewSet):
             # Obtener document_type de clients_clients
             document_type = client.document_type
 
+            # Depuración: Verificar que estamos obteniendo el document_type
+            print(f"Document Type: {document_type}")
+
             # Cargar la plantilla existente
             doc = Document("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
 
             # Crear el contexto con los datos necesarios
             context = {
                 'nombre': f"{client.first_name.upper()} {client.last_name.upper()}",
-                'tipodoc': document_type.upper(),  # Usando 'tipodocumento' en lugar de 'document_type'
+                'tipodocumento': document_type.upper(),
                 'dni': client.number_doc,
                 'propiedad': property.name,
                 'checkin': reservation.check_in_date.strftime('%d/%m/%Y'),
@@ -302,6 +305,9 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 'preciodolares': f"${reservation.price_usd:.2f}",
                 'numpax': str(reservation.guests)
             }
+
+            # Depuración: Verificar el contexto
+            print(f"Context: {context}")
 
             def replace_text_and_bold(paragraph, key, value):
                 if key in paragraph.text:
