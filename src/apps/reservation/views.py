@@ -284,25 +284,26 @@ class ReservationsApiView(viewsets.ModelViewSet):
             client = Clients.objects.get(id=reservation.client_id)
             property = Property.objects.get(id=reservation.property_id)
 
-            # Abrir la plantilla existente
+            # Cargar la plantilla existente
             doc = Document("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
 
+            # Crear el contexto con los datos necesarios
             context = {
-                'NOMBRE': f"{client.first_name.upper()} {client.last_name.upper()}",
+                'nombre': f"{client.first_name.upper()} {client.last_name.upper()}",
                 'document_type': client.document_type,
                 'dni': client.number_doc,
                 'propiedad': property.name,
                 'checkin': reservation.check_in_date.strftime('%d/%m/%Y'),
                 'checkout': reservation.check_out_date.strftime('%d/%m/%Y'),
                 'preciodolares': f"${reservation.price_usd:.2f}",
-                'numpax': str(reservation.guests)
+                'numpax': reservation.guests
             }
 
-            # Renderizar la plantilla con los datos del contexto
+            # Reemplazar las variables en la plantilla
             for paragraph in doc.paragraphs:
                 for key, value in context.items():
                     if f'{{{key}}}' in paragraph.text:
-                        paragraph.text = paragraph.text.replace(f'{{{key}}}', value)
+                        paragraph.text = paragraph.text.replace(f'{{{key}}}', str(value))
 
             # Guardar el documento en un archivo de bytes
             file_stream = io.BytesIO()
