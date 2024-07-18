@@ -1,4 +1,4 @@
-from .views import ReservationsApiView, VistaCalendarioApiView, DeleteRecipeApiView, GetICSApiView, UpdateICSApiView, ProfitApiView
+from .views import ReservationsApiView, VistaCalendarioApiView, DeleteRecipeApiView, GetICSApiView, UpdateICSApiView, ProfitApiView, download_contract
 
 
 from django.urls import include, path
@@ -15,5 +15,6 @@ urlpatterns = [
     path("delete-recipe/<uuid:pk>/", DeleteRecipeApiView.as_view()),
     path("get-ics/", GetICSApiView.as_view()),
     path("update-ics/", UpdateICSApiView.as_view()),
-    path("profit-resume/", ProfitApiView.as_view())
+    path("profit-resume/", ProfitApiView.as_view()),
+    path('download-contract/<int:reservation_id>/', download_contract, name='download-contract'),
 ]

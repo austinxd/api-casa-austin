@@ -19,14 +19,15 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from apps.core.paginator import CustomPagination
 from slugify import slugify
 
-from .models import Reservation, RentalReceipt
+from .models import Reservation, RentalReceipt, Client, Property
 from .serializers import ReservationSerializer, ReservationListSerializer, ReservationRetrieveSerializer, ReciptSerializer
 
 from apps.accounts.models import CustomUser
 
 from apps.core.functions import get_month_name, generate_audit, check_user_has_rol, confeccion_ics
 from apps.dashboard.utils import get_stadistics_period
-
+from docx import Document
+import io
 
 class ReservationsApiView(viewsets.ModelViewSet):
     serializer_class = ReservationSerializer
@@ -549,3 +550,32 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
             "Reserva eliminada"
         )
         return Response(status=204)
+    
+
+###### Contratos ######
+def download_contract(request, reservation_id):
+    try:
+        reservation = Reservation.objects.get(id=reservation_id)
+        client = Client.objects.get(id=reservation.client_id)
+        property = Property.objects.get(id=reservation.property_id)
+
+        doc = DocxTemplate("/path_to_your_template/Plantilla (1).docx")
+        context = {
+            'nombre': f"{client.first_name} {client.last_name}",
+            'document_type': client.document_type,
+            'dni': client.number_doc,
+            'propiedad': property.name,
+            'checkin': reservation.check_in_date,
+            'checkout': reservation.check_out_date,
+            'preciodolares': reservation.price_usd,
+            'numpax': reservation.guests
+        }
+        doc.render(context)
+        file_stream = io.BytesIO()
+        doc.save(file_stream)
+        file_stream.seek(0)
+        response = HttpResponse(file_stream, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        response['Content-Disposition'] = 'attachment; filename="contract.docx"'
+        return response
+    except Exception as e:
+        return HttpResponse(str(e), status=400)
