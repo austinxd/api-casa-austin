@@ -277,49 +277,49 @@ class ReservationsApiView(viewsets.ModelViewSet):
         )
         return Response(status=204)
 ###### MOD AUSTIN ######
-    @action(detail=True, methods=['get'], url_path='contrato')
-    def contrato(self, request, pk=None):
-        try:
-            reservation = self.get_object()
-            client = Clients.objects.get(id=reservation.client_id)
-            property = Property.objects.get(id=reservation.property_id)
+@action(detail=True, methods=['get'], url_path='contrato')
+def contrato(self, request, pk=None):
+    try:
+        reservation = self.get_object()
+        client = Clients.objects.get(id=reservation.client_id)
+        property = Property.objects.get(id=reservation.property_id)
 
-            # Obtener document_type de clients_clients
-            document_type = client.document_type
+        # Obtener document_type de clients_clients
+        document_type = client.document_type
 
-            # Cargar la plantilla existente con MailMerge
-            document = MailMerge("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
+        # Cargar la plantilla existente con DocxTemplate
+        doc = DocxTemplate("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
 
-            # Ver los campos de combinación de correspondencia disponibles en el documento
-            print(document.get_merge_fields())
+        # Crear el contexto con los datos necesarios para llenar la plantilla
+        context = {
+            'nombre': f"{client.first_name.upper()} {client.last_name.upper()}",
+            'tipodocumento': document_type.upper(),
+            'dni': client.number_doc,
+            'propiedad': property.name,
+            'checkin': reservation.check_in_date.strftime('%d/%m/%Y'),
+            'checkout': reservation.check_out_date.strftime('%d/%m/%Y'),
+            'preciodolares': f"${reservation.price_usd:.2f}",
+            'numpax': str(reservation.guests)
+        }
 
-            # Completar los campos de combinación de correspondencia
-            document.merge(
-                nombre=f"{client.first_name.upper()} {client.last_name.upper()}",
-                tipodocumento=document_type.upper(),
-                dni=client.number_doc,
-                propiedad=property.name,
-                checkin=reservation.check_in_date.strftime('%d/%m/%Y'),
-                checkout=reservation.check_out_date.strftime('%d/%m/%Y'),
-                preciodolares=f"${reservation.price_usd:.2f}",
-                numpax=str(reservation.guests)
-            )
+        # Aplicar el contexto a la plantilla para reemplazar los marcadores
+        doc.render(context)
 
-            # Guardar el documento en un archivo de bytes
-            file_stream = io.BytesIO()
-            document.write(file_stream)
-            file_stream.seek(0)
+        # Guardar el documento en un archivo de bytes
+        file_stream = io.BytesIO()
+        doc.save(file_stream)
+        file_stream.seek(0)
 
-            # Preparar la respuesta HTTP
-            response = HttpResponse(file_stream.read(), content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-            response['Content-Disposition'] = f'attachment; filename="{property.name}_contract.docx"'
-            return response
-        except Clients.DoesNotExist:
-            return Response({'error': 'Client not found'}, status=404)
-        except Property.DoesNotExist:
-            return Response({'error': 'Property not found'}, status=404)
-        except Exception as e:
-            return Response({'error': str(e)}, status=400)
+        # Preparar la respuesta HTTP
+        response = HttpResponse(file_stream.read(), content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        response['Content-Disposition'] = f'attachment; filename="{property.name}_contract.docx"'
+        return response
+    except Clients.DoesNotExist:
+        return Response({'error': 'Client not found'}, status=404)
+    except Property.DoesNotExist:
+        return Response({'error': 'Property not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
 ###### FIN MOD #######
 
 class DeleteRecipeApiView(generics.DestroyAPIView):
