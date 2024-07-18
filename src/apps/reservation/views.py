@@ -328,7 +328,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
             file_stream.seek(0)
 
             # Preparar la respuesta HTTP
-            response = HttpResponse(file_stream, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+            response = HttpResponse(file_stream.read(), content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
             response['Content-Disposition'] = f'attachment; filename="{property.name}_contract.docx"'
             return response
         except Clients.DoesNotExist:
