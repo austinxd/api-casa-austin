@@ -293,8 +293,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
             # Crear el contexto con los datos necesarios
             context = {
-                'nombre': f"{client.first_name.upper()} {client.last_name.upper()}",
-                'document_type': document_type.upper(),
+                'nombre': f"{client.last_name.upper()}, {client.first_name.upper()}",
+                'TipoDocumento': document_type.upper(),  # Usando 'TipoDocumento' en lugar de 'document_type'
                 'dni': client.number_doc,
                 'propiedad': property.name,
                 'checkin': reservation.check_in_date.strftime('%d/%m/%Y'),
