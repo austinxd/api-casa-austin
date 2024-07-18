@@ -305,10 +305,15 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
             def replace_text_in_paragraph(paragraph, context):
                 for run in paragraph.runs:
+                    original_text = run.text  # Guardar el texto original del run
                     for key, value in context.items():
+                        # Expandir la búsqueda para incluir texto comúnmente adyacente
                         key_with_brackets = f'{{{key}}}'
-                        if key_with_brackets in run.text:
-                            run.text = run.text.replace(key_with_brackets, value)
+                        # Buscar el marcador seguido de cualquier texto no alfabético (como "N. °")
+                        pattern = key_with_brackets + r'(?=\W)'
+                        if re.search(pattern, run.text):
+                            # Reemplazar solo el marcador, manteniendo el texto adyacente intacto
+                            run.text = re.sub(pattern, value, run.text)
                             print(f"Reemplazado {key_with_brackets} con {value} en run: {run.text}")
 
             # Reemplazar las variables en los párrafos de la plantilla
