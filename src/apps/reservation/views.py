@@ -313,12 +313,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 for key, value in context.items():
                     key_with_brackets = f'{{{key}}}'
                     if key_with_brackets in paragraph.text:
-                        inline = paragraph.runs
-                        for run in inline:
-                            if key_with_brackets in run.text:
-                                run.text = run.text.replace(key_with_brackets, value)
-                                run.bold = True
-                                print(f"Reemplazado {key_with_brackets} con {value} en run: {run.text}")
+                        paragraph.text = paragraph.text.replace(key_with_brackets, value)
+                        print(f"Reemplazado {key_with_brackets} con {value} en párrafo: {paragraph.text}")
 
             # Reemplazar las variables en los párrafos de la plantilla
             for paragraph in doc.paragraphs:
