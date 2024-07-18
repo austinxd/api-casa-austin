@@ -274,7 +274,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
     def contrato(self, request, pk=None):
         try:
             reservation = self.get_object()
-            client = Clients.objects.get(id=reservation.client_id)  # Usa Clients aquí
+            client = Clients.objects.get(id=reservation.client_id)
             property = Property.objects.get(id=reservation.property_id)
 
             doc = DocxTemplate("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
