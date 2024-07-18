@@ -28,6 +28,8 @@ from apps.accounts.models import CustomUser
 from apps.core.functions import get_month_name, generate_audit, check_user_has_rol, confeccion_ics
 from apps.dashboard.utils import get_stadistics_period
 from docxtpl import DocxTemplate
+from babel.dates import format_date
+from datetime import datetime
 import io
 
 class ReservationsApiView(viewsets.ModelViewSet):
@@ -287,6 +289,10 @@ class ReservationsApiView(viewsets.ModelViewSet):
             # Obtener document_type de clients_clients
             document_type = client.document_type
 
+            # Formatear las fechas en español
+            checkin_date = format_date(reservation.check_in_date, format='long', locale='es')
+            checkout_date = format_date(reservation.check_out_date, format='long', locale='es')
+
             # Cargar la plantilla existente usando docxtpl
             doc = DocxTemplate("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
 
@@ -296,8 +302,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 'tipodocumento': document_type.upper(),
                 'dni': client.number_doc,
                 'propiedad': property.name,
-                'checkin': reservation.check_in_date.strftime('%d/%m/%Y'),
-                'checkout': reservation.check_out_date.strftime('%d/%m/%Y'),
+                'checkin': checkin_date,
+                'checkout': checkout_date,
                 'preciodolares': f"${reservation.price_usd:.2f}",
                 'numpax': str(reservation.guests)
             }
