@@ -284,11 +284,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
             client = Clients.objects.get(id=reservation.client_id)
             property = Property.objects.get(id=reservation.property_id)
 
-            # Crear un nuevo documento
-            doc = Document()
-
-            # Agregar contenido al documento
-            doc.add_heading('Contrato de Alquiler', level=1)
+            # Abrir la plantilla existente
+            doc = Document("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
 
             context = {
                 'NOMBRE': f"{client.first_name.upper()} {client.last_name.upper()}",
@@ -301,15 +298,11 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 'numpax': str(reservation.guests)
             }
 
-            # Agregar contenido formateado al documento
-            doc.add_paragraph(f"Nombre: {context['NOMBRE']}")
-            doc.add_paragraph(f"Tipo de Documento: {context['document_type']}")
-            doc.add_paragraph(f"DNI: {context['dni']}")
-            doc.add_paragraph(f"Propiedad: {context['propiedad']}")
-            doc.add_paragraph(f"Check-in: {context['checkin']}")
-            doc.add_paragraph(f"Check-out: {context['checkout']}")
-            doc.add_paragraph(f"Precio en Dólares: {context['preciodolares']}")
-            doc.add_paragraph(f"Número de Huéspedes: {context['numpax']}")
+            # Renderizar la plantilla con los datos del contexto
+            for paragraph in doc.paragraphs:
+                for key, value in context.items():
+                    if f'{{{key}}}' in paragraph.text:
+                        paragraph.text = paragraph.text.replace(f'{{{key}}}', value)
 
             # Guardar el documento en un archivo de bytes
             file_stream = io.BytesIO()
