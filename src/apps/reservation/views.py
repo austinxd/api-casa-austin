@@ -284,6 +284,9 @@ class ReservationsApiView(viewsets.ModelViewSet):
             reservation = self.get_object()
             client = Clients.objects.get(id=reservation.client_id)
             property = Property.objects.get(id=reservation.property_id)
+            
+            # Obtener document_type de clients_clients
+            document_type = client.document_type
 
             # Cargar la plantilla existente
             doc = Document("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
@@ -291,7 +294,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
             # Crear el contexto con los datos necesarios
             context = {
                 'nombre': f"{client.first_name.upper()} {client.last_name.upper()}",
-                'document_type': client.document_type.upper(),
+                'document_type': document_type.upper(),
                 'dni': client.number_doc,
                 'propiedad': property.name,
                 'checkin': reservation.check_in_date.strftime('%d/%m/%Y'),
@@ -303,11 +306,10 @@ class ReservationsApiView(viewsets.ModelViewSet):
             def replace_text_and_bold(paragraph, key, value):
                 if key in paragraph.text:
                     inline = paragraph.runs
-                    for i in range(len(inline)):
-                        if key in inline[i].text:
-                            text = inline[i].text.replace(key, value)
-                            inline[i].text = text
-                            inline[i].bold = True
+                    for run in inline:
+                        if key in run.text:
+                            run.text = run.text.replace(key, value)
+                            run.bold = True
 
             # Reemplazar las variables en la plantilla y poner en negrita
             for paragraph in doc.paragraphs:
