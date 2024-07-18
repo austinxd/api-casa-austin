@@ -310,18 +310,28 @@ class ReservationsApiView(viewsets.ModelViewSet):
             print(f"Context: {context}")
 
             def replace_text_in_paragraph(paragraph, context):
-                inline = paragraph.runs
-                full_text = ''.join(run.text for run in inline)
+                # Guardar los estilos originales
+                styles = [(run.bold, run.text) for run in paragraph.runs]
+                full_text = ''.join(run.text for run in paragraph.runs)
+
+                # Reemplazar las variables en el texto completo
                 for key, value in context.items():
                     if f'{{{key}}}' in full_text:
                         print(f"Reemplazando {key} en el párrafo: {full_text}")  # Depuración
                         full_text = full_text.replace(f'{{{key}}}', value)
-                for i, run in enumerate(inline):
-                    if i == 0:
-                        run.text = full_text
-                    else:
-                        run.text = ""
-                    run.bold = any(f'{{{key}}}' in run.text for key in context.keys())
+
+                # Limpiar todos los runs del párrafo
+                for run in paragraph.runs:
+                    run.text = ""
+
+                # Crear nuevos runs con el texto reemplazado y mantener los estilos
+                index = 0
+                for bold, text in styles:
+                    run = paragraph.add_run(full_text[index:index + len(text)])
+                    run.bold = bold
+                    if f'{{' not in run.text and '}}' not in run.text:
+                        run.bold = bold or any(key in run.text for key in context.keys())
+                    index += len(text)
 
             # Reemplazar las variables en los párrafos de la plantilla
             for paragraph in doc.paragraphs:
