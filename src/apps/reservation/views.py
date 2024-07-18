@@ -309,25 +309,25 @@ class ReservationsApiView(viewsets.ModelViewSet):
             # Depuración: Verificar el contexto
             print(f"Context: {context}")
 
-            def replace_text_in_run(run, context):
+            def replace_text_in_paragraph(paragraph, context):
+                inline = paragraph.runs
                 for key, value in context.items():
                     key_with_brackets = f'{{{key}}}'
-                    if key_with_brackets in run.text:
-                        run.text = run.text.replace(key_with_brackets, value)
-                        print(f"Reemplazado {key_with_brackets} con {value} en run: {run.text}")
+                    for run in inline:
+                        if key_with_brackets in run.text:
+                            run.text = run.text.replace(key_with_brackets, value)
+                            print(f"Reemplazado {key_with_brackets} con {value} en run: {run.text}")
 
             # Reemplazar las variables en los párrafos de la plantilla
             for paragraph in doc.paragraphs:
-                for run in paragraph.runs:
-                    replace_text_in_run(run, context)
+                replace_text_in_paragraph(paragraph, context)
 
             # Reemplazar las variables en las celdas de las tablas (si hay tablas en la plantilla)
             for table in doc.tables:
                 for row in table.rows:
                     for cell in row.cells:
                         for paragraph in cell.paragraphs:
-                            for run in paragraph.runs:
-                                replace_text_in_run(run, context)
+                            replace_text_in_paragraph(paragraph, context)
 
             # Guardar el documento en un archivo de bytes
             file_stream = io.BytesIO()
