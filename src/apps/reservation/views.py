@@ -314,6 +314,13 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     if key in run.text:
                         run.text = run.text.replace(key, value)
                         run.bold = True
+                    else:
+                        combined_text = ''.join(run.text for run in paragraph.runs)
+                        if key in combined_text:
+                            combined_text = combined_text.replace(key, value)
+                            for i, run in enumerate(paragraph.runs):
+                                run.text = combined_text[i*len(run.text):(i+1)*len(run.text)]
+                                run.bold = True
 
             # Reemplazar las variables en los párrafos de la plantilla y poner en negrita
             for paragraph in doc.paragraphs:
