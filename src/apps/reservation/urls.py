@@ -16,5 +16,4 @@ urlpatterns = [
     path("get-ics/", GetICSApiView.as_view()),
     path("update-ics/", UpdateICSApiView.as_view()),
     path("profit-resume/", ProfitApiView.as_view()),
-    path('download-contract/', DownloadContractView.as_view(), name='download-contract'),  # Actualizado para usar la nueva vista
 ]

@@ -9,7 +9,7 @@ from django.db import transaction
 from django.db.models import Q
 
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view
+from rest_framework.decorators import action
 from rest_framework import generics, viewsets
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
@@ -20,14 +20,14 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from apps.core.paginator import CustomPagination
 from slugify import slugify
 
-from .models import Reservation, RentalReceipt, Clients, Property
+from .models import Reservation, RentalReceipt, Client, Property
 from .serializers import ReservationSerializer, ReservationListSerializer, ReservationRetrieveSerializer, ReciptSerializer
 
 from apps.accounts.models import CustomUser
 
 from apps.core.functions import get_month_name, generate_audit, check_user_has_rol, confeccion_ics
 from apps.dashboard.utils import get_stadistics_period
-from docx import Document
+from docxtpl import DocxTemplate
 import io
 
 class ReservationsApiView(viewsets.ModelViewSet):
@@ -269,7 +269,35 @@ class ReservationsApiView(viewsets.ModelViewSet):
             "Reserva eliminada"
         )
         return Response(status=204)
+###### MOD AUSTIN ######
+    @action(detail=True, methods=['get'], url_path='contrato')
+    def contrato(self, request, pk=None):
+        try:
+            reservation = self.get_object()
+            client = Client.objects.get(id=reservation.client_id)
+            property = Property.objects.get(id=reservation.property_id)
 
+            doc = DocxTemplate("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
+            context = {
+                'nombre': f"{client.first_name} {client.last_name}",
+                'document_type': client.document_type,
+                'dni': client.number_doc,
+                'propiedad': property.name,
+                'checkin': reservation.check_in_date,
+                'checkout': reservation.check_out_date,
+                'preciodolares': reservation.price_usd,
+                'numpax': reservation.guests
+            }
+            doc.render(context)
+            file_stream = io.BytesIO()
+            doc.save(file_stream)
+            file_stream.seek(0)
+            response = HttpResponse(file_stream, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+            response['Content-Disposition'] = f'attachment; filename="{property.name}_contract.docx"'
+            return response
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
+###### FIN MOD #######
 
 class DeleteRecipeApiView(generics.DestroyAPIView):
     queryset = RentalReceipt.objects.all()
@@ -552,48 +580,3 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
         )
         return Response(status=204)
     
-
-###### Contratos ######
-class DownloadContractView(APIView):
-    @extend_schema(
-        request=None,
-        responses={200: OpenApiTypes.BINARY, 400: OpenApiTypes.STR},
-        description="Downloads a contract document based on reservation ID.",
-        methods=['POST'],
-        parameters=[
-            OpenApiParameter("reservation_id", type=OpenApiTypes.STR, description="ID of the reservation", required=True)
-        ]
-    )
-    def download_contract(request):
-        try:
-            # Extract the reservation_id from the POST data
-            reservation_id = request.data.get('reservation_id')
-            if not reservation_id:
-                return HttpResponse("Reservation ID is required.", status=400)
-
-            reservation = Reservation.objects.get(id=reservation_id)
-            client = Client.objects.get(id=reservation.client_id)
-            property = Property.objects.get(id=reservation.property_id)
-
-            doc = DocxTemplate("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
-            context = {
-                'nombre': f"{client.first_name} {client.last_name}",
-                'document_type': client.document_type,
-                'dni': client.number_doc,
-                'propiedad': property.name,
-                'checkin': reservation.check_in_date,
-                'checkout': reservation.check_out_date,
-                'preciodolares': reservation.price_usd,
-                'numpax': reservation.guests
-            }
-            doc.render(context)
-            file_stream = io.BytesIO()
-            doc.save(file_stream)
-            file_stream.seek(0)
-            response = HttpResponse(file_stream, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-            response['Content-Disposition'] = 'attachment; filename="contract.docx"'
-            return response
-        except Reservation.DoesNotExist:
-            return HttpResponse("Reservation not found.", status=404)
-        except Exception as e:
-            return HttpResponse(f"Error processing your request: {str(e)}", status=400)
