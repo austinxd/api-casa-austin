@@ -27,8 +27,7 @@ from apps.accounts.models import CustomUser
 
 from apps.core.functions import get_month_name, generate_audit, check_user_has_rol, confeccion_ics
 from apps.dashboard.utils import get_stadistics_period
-from docx import Document
-from docx.shared import Pt
+from mailmerge import MailMerge
 import io
 
 class ReservationsApiView(viewsets.ModelViewSet):
@@ -288,44 +287,27 @@ class ReservationsApiView(viewsets.ModelViewSet):
             # Obtener document_type de clients_clients
             document_type = client.document_type
 
-            # Cargar la plantilla existente
-            doc = Document("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
+            # Cargar la plantilla existente con MailMerge
+            document = MailMerge("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
 
-            # Crear el contexto con los datos necesarios
-            context = {
-                'nombre': f"{client.first_name.upper()} {client.last_name.upper()}",
-                'tipodocumento': document_type.upper(),
-                'dni': client.number_doc,
-                'propiedad': property.name,
-                'checkin': reservation.check_in_date.strftime('%d/%m/%Y'),
-                'checkout': reservation.check_out_date.strftime('%d/%m/%Y'),
-                'preciodolares': f"${reservation.price_usd:.2f}",
-                'numpax': str(reservation.guests)
-            }
+            # Ver los campos de combinación de correspondencia disponibles en el documento
+            print(document.get_merge_fields())
 
-            def replace_text_in_paragraph(paragraph, context):
-                for run in paragraph.runs:
-                    original_text = run.text
-                    for key, value in context.items():
-                        key_with_brackets = f'{{{key}}}'
-                        if key_with_brackets in run.text:
-                            run.text = run.text.replace(key_with_brackets, value)
-                            print(f"Reemplazado {key_with_brackets} con {value} en run: {run.text} (antes: {original_text})")
-
-            # Reemplazar las variables en los párrafos de la plantilla
-            for paragraph in doc.paragraphs:
-                replace_text_in_paragraph(paragraph, context)
-
-            # Reemplazar las variables en las celdas de las tablas (si hay tablas en la plantilla)
-            for table in doc.tables:
-                for row in table.rows:
-                    for cell in row.cells:
-                        for paragraph in cell.paragraphs:
-                            replace_text_in_paragraph(paragraph, context)
+            # Completar los campos de combinación de correspondencia
+            document.merge(
+                nombre=f"{client.first_name.upper()} {client.last_name.upper()}",
+                tipodocumento=document_type.upper(),
+                dni=client.number_doc,
+                propiedad=property.name,
+                checkin=reservation.check_in_date.strftime('%d/%m/%Y'),
+                checkout=reservation.check_out_date.strftime('%d/%m/%Y'),
+                preciodolares=f"${reservation.price_usd:.2f}",
+                numpax=str(reservation.guests)
+            )
 
             # Guardar el documento en un archivo de bytes
             file_stream = io.BytesIO()
-            doc.save(file_stream)
+            document.write(file_stream)
             file_stream.seek(0)
 
             # Preparar la respuesta HTTP
