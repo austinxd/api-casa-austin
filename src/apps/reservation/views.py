@@ -553,8 +553,25 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
     
 
 ###### Contratos ######
-def download_contract(request, reservation_id):
+@api_view(['POST'])
+@extend_schema(
+    parameters=[
+        OpenApiParameter("reservation_id", description="ID of the reservation", required=True, type=OpenApiTypes.INT)
+    ],
+    responses={
+        200: OpenApiTypes.BINARY,
+        400: OpenApiTypes.STR
+    },
+    description="Downloads a contract document based on reservation ID via a POST request.",
+    methods=['POST']
+)
+def download_contract(request):
     try:
+        # Extract the reservation_id from the POST data
+        reservation_id = request.data.get('reservation_id')
+        if not reservation_id:
+            return HttpResponse("Reservation ID is required.", status=400)
+
         reservation = Reservation.objects.get(id=reservation_id)
         client = Client.objects.get(id=reservation.client_id)
         property = Property.objects.get(id=reservation.property_id)
@@ -578,4 +595,4 @@ def download_contract(request, reservation_id):
         response['Content-Disposition'] = 'attachment; filename="contract.docx"'
         return response
     except Exception as e:
-        return HttpResponse(str(e), status=400)
+        return HttpResponse(f"Error processing your request: {str(e)}", status=400)
