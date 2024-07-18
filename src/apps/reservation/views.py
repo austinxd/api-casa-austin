@@ -19,7 +19,7 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from apps.core.paginator import CustomPagination
 from slugify import slugify
 
-from .models import Reservation, RentalReceipt, Client, Property
+from .models import Reservation, RentalReceipt, Clients, Property
 from .serializers import ReservationSerializer, ReservationListSerializer, ReservationRetrieveSerializer, ReciptSerializer
 
 from apps.accounts.models import CustomUser
