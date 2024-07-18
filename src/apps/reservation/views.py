@@ -28,6 +28,7 @@ from apps.accounts.models import CustomUser
 from apps.core.functions import get_month_name, generate_audit, check_user_has_rol, confeccion_ics
 from apps.dashboard.utils import get_stadistics_period
 from docx import Document
+from docx.shared import Pt
 import io
 
 class ReservationsApiView(viewsets.ModelViewSet):
@@ -300,11 +301,13 @@ class ReservationsApiView(viewsets.ModelViewSet):
             }
 
             def replace_text_and_bold(paragraph, key, value):
-                for run in paragraph.runs:
-                    if key in run.text:
-                        run.text = run.text.replace(key, value)
-                        run.font.bold = True
-                        run.font.size = Pt(12)  # Asegurarse de que la fuente sea consistente
+                if key in paragraph.text:
+                    inline = paragraph.runs
+                    for i in range(len(inline)):
+                        if key in inline[i].text:
+                            text = inline[i].text.replace(key, value)
+                            inline[i].text = text
+                            inline[i].bold = True
 
             # Reemplazar las variables en la plantilla y poner en negrita
             for paragraph in doc.paragraphs:
@@ -328,6 +331,10 @@ class ReservationsApiView(viewsets.ModelViewSet):
             response = HttpResponse(file_stream, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
             response['Content-Disposition'] = f'attachment; filename="{property.name}_contract.docx"'
             return response
+        except Clients.DoesNotExist:
+            return Response({'error': 'Client not found'}, status=404)
+        except Property.DoesNotExist:
+            return Response({'error': 'Property not found'}, status=404)
         except Exception as e:
             return Response({'error': str(e)}, status=400)
 ###### FIN MOD #######
