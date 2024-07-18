@@ -309,32 +309,40 @@ class ReservationsApiView(viewsets.ModelViewSet):
             # Depuración: Verificar el contexto
             print(f"Context: {context}")
 
-            def replace_text(paragraph, key, value):
+            def replace_text_and_bold(paragraph, key, value):
                 for run in paragraph.runs:
                     if key in run.text:
                         run.text = run.text.replace(key, value)
-                        # Crear un nuevo run solo para el valor reemplazado en negrita
-                        new_run = paragraph.add_run(value)
-                        new_run.bold = True
-                        # Eliminar el texto original
-                        run.text = run.text.replace(value, '')
+                        run.bold = True
+
+            def replace_text_in_paragraph(paragraph, context):
+                # Combinar todos los runs en un solo texto
+                full_text = ''.join(run.text for run in paragraph.runs)
+                for key, value in context.items():
+                    if f'{{{key}}}' in full_text:
+                        print(f"Reemplazando {key} en el párrafo: {full_text}")  # Depuración
+                        full_text = full_text.replace(f'{{{key}}}', value)
+                # Limpiar todos los runs del párrafo
+                for run in paragraph.runs:
+                    run.text = ""
+                # Crear un nuevo run para cada segmento de texto
+                parts = full_text.split()
+                for part in parts:
+                    new_run = paragraph.add_run(part + " ")
+                    for key in context.keys():
+                        if key in part:
+                            new_run.bold = True
 
             # Reemplazar las variables en los párrafos de la plantilla
             for paragraph in doc.paragraphs:
-                for key, value in context.items():
-                    if f'{{{key}}}' in paragraph.text:
-                        print(f"Reemplazando {key} en el párrafo: {paragraph.text}")  # Depuración
-                        replace_text(paragraph, f'{{{key}}}', str(value))
+                replace_text_in_paragraph(paragraph, context)
 
             # Reemplazar las variables en las celdas de las tablas (si hay tablas en la plantilla)
             for table in doc.tables:
                 for row in table.rows:
                     for cell in row.cells:
                         for paragraph in cell.paragraphs:
-                            for key, value in context.items():
-                                if f'{{{key}}}' in paragraph.text:
-                                    print(f"Reemplazando {key} en la celda: {paragraph.text}")  # Depuración
-                                    replace_text(paragraph, f'{{{key}}}', str(value))
+                            replace_text_in_paragraph(paragraph, context)
 
             # Guardar el documento en un archivo de bytes
             file_stream = io.BytesIO()
