@@ -288,9 +288,6 @@ class ReservationsApiView(viewsets.ModelViewSet):
             # Obtener document_type de clients_clients
             document_type = client.document_type
 
-            # Depuración: Verificar que estamos obteniendo el document_type
-            print(f"Document Type: {document_type}")
-
             # Cargar la plantilla existente
             doc = Document("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
 
@@ -306,11 +303,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 'numpax': str(reservation.guests)
             }
 
-            # Depuración: Verificar el contexto
-            print(f"Context: {context}")
-
             def replace_text_in_paragraph(paragraph, context):
-                # Revisar cada 'run' dentro del párrafo
                 for run in paragraph.runs:
                     original_text = run.text
                     for key, value in context.items():
