@@ -309,25 +309,22 @@ class ReservationsApiView(viewsets.ModelViewSet):
             # Depuración: Verificar el contexto
             print(f"Context: {context}")
 
-            def replace_text_and_bold(paragraph, key, value):
-                # Combina todos los runs en un solo texto
-                full_text = ''.join(run.text for run in paragraph.runs)
-                if key in full_text:
-                    full_text = full_text.replace(key, value)
-                    # Vuelve a dividir el texto en los runs originales
-                    offset = 0
-                    for run in paragraph.runs:
-                        run_length = len(run.text)
-                        run.text = full_text[offset:offset+run_length]
-                        run.bold = True
-                        offset += run_length
+            def replace_text(paragraph, key, value):
+                for run in paragraph.runs:
+                    if key in run.text:
+                        run.text = run.text.replace(key, value)
+                        # Crear un nuevo run solo para el valor reemplazado en negrita
+                        new_run = paragraph.add_run(value)
+                        new_run.bold = True
+                        # Eliminar el texto original
+                        run.text = run.text.replace(value, '')
 
-            # Reemplazar las variables en los párrafos de la plantilla y poner en negrita
+            # Reemplazar las variables en los párrafos de la plantilla
             for paragraph in doc.paragraphs:
                 for key, value in context.items():
                     if f'{{{key}}}' in paragraph.text:
                         print(f"Reemplazando {key} en el párrafo: {paragraph.text}")  # Depuración
-                        replace_text_and_bold(paragraph, f'{{{key}}}', str(value))
+                        replace_text(paragraph, f'{{{key}}}', str(value))
 
             # Reemplazar las variables en las celdas de las tablas (si hay tablas en la plantilla)
             for table in doc.tables:
@@ -337,7 +334,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                             for key, value in context.items():
                                 if f'{{{key}}}' in paragraph.text:
                                     print(f"Reemplazando {key} en la celda: {paragraph.text}")  # Depuración
-                                    replace_text_and_bold(paragraph, f'{{{key}}}', str(value))
+                                    replace_text(paragraph, f'{{{key}}}', str(value))
 
             # Guardar el documento en un archivo de bytes
             file_stream = io.BytesIO()
