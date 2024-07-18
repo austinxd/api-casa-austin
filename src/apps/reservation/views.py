@@ -310,17 +310,17 @@ class ReservationsApiView(viewsets.ModelViewSet):
             print(f"Context: {context}")
 
             def replace_text_and_bold(paragraph, key, value):
-                for run in paragraph.runs:
-                    if key in run.text:
-                        run.text = run.text.replace(key, value)
+                # Combina todos los runs en un solo texto
+                full_text = ''.join(run.text for run in paragraph.runs)
+                if key in full_text:
+                    full_text = full_text.replace(key, value)
+                    # Vuelve a dividir el texto en los runs originales
+                    offset = 0
+                    for run in paragraph.runs:
+                        run_length = len(run.text)
+                        run.text = full_text[offset:offset+run_length]
                         run.bold = True
-                    else:
-                        combined_text = ''.join(run.text for run in paragraph.runs)
-                        if key in combined_text:
-                            combined_text = combined_text.replace(key, value)
-                            for i, run in enumerate(paragraph.runs):
-                                run.text = combined_text[i*len(run.text):(i+1)*len(run.text)]
-                                run.bold = True
+                        offset += run_length
 
             # Reemplazar las variables en los párrafos de la plantilla y poner en negrita
             for paragraph in doc.paragraphs:
