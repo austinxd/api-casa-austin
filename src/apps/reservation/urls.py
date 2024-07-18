@@ -1,4 +1,4 @@
-from .views import ReservationsApiView, VistaCalendarioApiView, DeleteRecipeApiView, GetICSApiView, UpdateICSApiView, ProfitApiView, DownloadContractView
+from .views import ReservationsApiView, VistaCalendarioApiView, DeleteRecipeApiView, GetICSApiView, UpdateICSApiView, ProfitApiView
 
 
 from django.urls import include, path
