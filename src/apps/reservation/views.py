@@ -27,7 +27,7 @@ from apps.accounts.models import CustomUser
 
 from apps.core.functions import get_month_name, generate_audit, check_user_has_rol, confeccion_ics
 from apps.dashboard.utils import get_stadistics_period
-from docx2pdf import convert
+import subprocess
 from docxtpl import DocxTemplate
 from babel.dates import format_date
 from datetime import datetime
@@ -339,9 +339,9 @@ class ReservationsApiView(viewsets.ModelViewSet):
             temp_pdf_path = "/tmp/temp_contract.pdf"
             doc.save(temp_doc_path)
 
-            print("Convirtiendo DOCX a PDF")
-            # Convertir el archivo DOCX a PDF
-            convert(temp_doc_path, temp_pdf_path)
+            print("Convirtiendo DOCX a PDF usando LibreOffice")
+            # Convertir el archivo DOCX a PDF usando LibreOffice
+            subprocess.run(['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', '/tmp', temp_doc_path], check=True)
 
             print("Leyendo el archivo PDF generado")
             # Leer el archivo PDF generado
@@ -367,6 +367,9 @@ class ReservationsApiView(viewsets.ModelViewSet):
         except ValueError as e:
             print(f"Error: {e}")
             return Response({'error': str(e)}, status=400)
+        except subprocess.CalledProcessError as e:
+            print(f"Error en la conversión de LibreOffice: {e}")
+            return Response({'error': 'Error converting DOCX to PDF'}, status=500)
         except Exception as e:
             print(f"Error inesperado: {e}")
             return Response({'error': str(e)}, status=400)
