@@ -283,41 +283,25 @@ class ReservationsApiView(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='contrato')
     def contrato(self, request, pk=None):
         try:
-            print("Obteniendo la reserva")
             reservation = self.get_object()
-            print(f"Reserva obtenida: {reservation}")
-
-            print("Obteniendo el cliente")
             client = Clients.objects.get(id=reservation.client_id)
-            print(f"Cliente obtenido: {client}")
-
-            print("Obteniendo la propiedad")
             property = Property.objects.get(id=reservation.property_id)
-            print(f"Propiedad obtenida: {property}")
 
-            # Mapear los tipos de documentos
             document_type_map = {
                 'pas': 'pasaporte',
                 'cex': 'carnet de extranjería',
                 'dni': 'DNI'
             }
 
-            print("Mapeando el tipo de documento")
-            # Obtener el tipo de documento en español
             document_type = document_type_map.get(client.document_type, None)
             if document_type is None:
                 raise ValueError(f"Tipo de documento desconocido: {client.document_type}")
 
-            # Formatear las fechas en español
-            print("Formateando las fechas")
             checkin_date = format_date(reservation.check_in_date, format="d 'de' MMMM 'del' YYYY", locale='es')
             checkout_date = format_date(reservation.check_out_date, format="d 'de' MMMM 'del' YYYY", locale='es')
 
-            print("Cargando la plantilla DOCX")
-            # Cargar la plantilla existente usando docxtpl
             doc = DocxTemplate("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
 
-            # Crear el contexto con los datos necesarios
             context = {
                 'nombre': f"{client.first_name.upper()} {client.last_name.upper()}",
                 'tipodocumento': document_type.upper(),
@@ -329,49 +313,33 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 'numpax': str(reservation.guests)
             }
 
-            print("Renderizando la plantilla con el contexto")
-            # Usar el método render para aplicar el contexto a la plantilla
             doc.render(context)
 
-            print("Guardando el documento temporal DOCX")
-            # Guardar el documento modificado en un archivo temporal
             temp_doc_path = "/tmp/temp_contract.docx"
             temp_pdf_path = "/tmp/temp_contract.pdf"
             doc.save(temp_doc_path)
 
-            print("Convirtiendo DOCX a PDF usando LibreOffice")
-            # Convertir el archivo DOCX a PDF usando LibreOffice
             subprocess.run(['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', '/tmp', temp_doc_path], check=True)
 
-            print("Leyendo el archivo PDF generado")
-            # Leer el archivo PDF generado
             with open(temp_pdf_path, "rb") as pdf_file:
                 pdf_data = pdf_file.read()
 
-            # Preparar la respuesta HTTP
             response = HttpResponse(pdf_data, content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{property.name}_contract.pdf"'
 
-            print("Limpiando los archivos temporales")
-            # Limpiar los archivos temporales
             os.remove(temp_doc_path)
             os.remove(temp_pdf_path)
 
             return response
         except Clients.DoesNotExist:
-            print("Error: Cliente no encontrado")
             return Response({'error': 'Client not found'}, status=404)
         except Property.DoesNotExist:
-            print("Error: Propiedad no encontrada")
             return Response({'error': 'Property not found'}, status=404)
         except ValueError as e:
-            print(f"Error: {e}")
             return Response({'error': str(e)}, status=400)
         except subprocess.CalledProcessError as e:
-            print(f"Error en la conversión de LibreOffice: {e}")
             return Response({'error': 'Error converting DOCX to PDF'}, status=500)
         except Exception as e:
-            print(f"Error inesperado: {e}")
             return Response({'error': str(e)}, status=400)
 ###### FIN MOD #######
 
