@@ -8,6 +8,7 @@ from datetime import datetime, time, timedelta
 from django.db import transaction
 from django.db.models import Q
 
+from docx2pdf import convert
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework import generics, viewsets
@@ -320,14 +321,26 @@ class ReservationsApiView(viewsets.ModelViewSet):
             # Usar el método render para aplicar el contexto a la plantilla
             doc.render(context)
 
-            # Guardar el documento modificado en un archivo de bytes
-            file_stream = io.BytesIO()
-            doc.save(file_stream)
-            file_stream.seek(0)
+            # Guardar el documento modificado en un archivo temporal
+            temp_doc_path = "/tmp/temp_contract.docx"
+            temp_pdf_path = "/tmp/temp_contract.pdf"
+            doc.save(temp_doc_path)
+
+            # Convertir el archivo DOCX a PDF
+            convert(temp_doc_path, temp_pdf_path)
+
+            # Leer el archivo PDF generado
+            with open(temp_pdf_path, "rb") as pdf_file:
+                pdf_data = pdf_file.read()
 
             # Preparar la respuesta HTTP
-            response = HttpResponse(file_stream.read(), content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-            response['Content-Disposition'] = f'attachment; filename="{property.name}_contract.docx"'
+            response = HttpResponse(pdf_data, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{property.name}_contract.pdf"'
+
+            # Limpiar los archivos temporales
+            os.remove(temp_doc_path)
+            os.remove(temp_pdf_path)
+
             return response
         except Clients.DoesNotExist:
             return Response({'error': 'Client not found'}, status=404)
