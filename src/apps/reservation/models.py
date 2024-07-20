@@ -65,18 +65,13 @@ class Reservation(BaseModel):
         else:
             return f"Reserva desde API Airbnb (sin datos del cliente)"
 
-    def save(self, *args, **kwargs):
-        if self.late_checkout and self.check_out_date:
-            self.late_check_out_date = self.check_out_date
-            self.check_out_date = self.check_out_date + timedelta(days=1)
-        super(Reservation, self).save(*args, **kwargs)
-
     def delete(self, *args, **kwargs):
         self.deleted = True
         self.save()
 
 def recipt_directory_path(instance, filename):
     return f'rental_recipt/{instance.reservation.id}/{filename}'
+
 
 class RentalReceipt(BaseModel):
     reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, null=False, blank=False)
