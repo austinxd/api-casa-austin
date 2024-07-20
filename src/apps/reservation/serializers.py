@@ -12,6 +12,7 @@ from apps.clients.serializers import ClientShortSerializer
 from apps.property.serializers import PropertySerializer
 
 from apps.core.functions import check_user_has_rol
+from datetime import timedelta
 
 
 class ReciptSerializer(serializers.ModelSerializer):
@@ -32,7 +33,6 @@ class ReservationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reservation
         exclude = ["created", "updated", "deleted"]
-
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -89,7 +89,7 @@ class ReservationSerializer(serializers.ModelSerializer):
             if attrs.get('check_in_date') >= attrs.get('check_out_date'):
                 raise serializers.ValidationError("Fecha entrada debe ser anterior a fecha de salida")
 
-            # Check if this property si reserved in this range of date
+            # Check if this property is reserved in this range of date
             if Reservation.objects.exclude(deleted=True
                 ).filter(
                     property=property_field
@@ -99,8 +99,13 @@ class ReservationSerializer(serializers.ModelSerializer):
                     id=reservation_id
                 ).exists():
 
-                raise serializers.ValidationError("Esta propiedad esta reservada en este rango de fecha")
-        
+                raise serializers.ValidationError("Esta propiedad está reservada en este rango de fecha")
+
+        # Handle late checkout
+        if attrs.get('late_checkout') and attrs.get('check_out_date'):
+            attrs['late_check_out_date'] = attrs.get('check_out_date')
+            attrs['check_out_date'] = attrs.get('check_out_date') + timedelta(days=1)
+
         return attrs
 
 class ReservationListSerializer(ReservationSerializer):

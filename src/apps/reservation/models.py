@@ -14,10 +14,12 @@ from apps.clients.models import Clients
 from apps.property.models import Property
 
 from apps.core.functions import recipt_directory_path
-
+from datetime import timedelta
 
 class Reservation(BaseModel):
     ManychatFecha = models.IntegerField(default=0)
+    late_checkout = models.BooleanField(default=False)
+    late_check_out_date = models.DateField(null=True, blank=True)
 
     @property
     def adelanto_normalizado(self):
@@ -29,13 +31,13 @@ class Reservation(BaseModel):
         return round(res, 2)
 
     class AdvancePaymentTypeChoice(models.TextChoices):
-            SOL = "sol", ("Soles")
-            USD = "usd", ("Dólares")
+        SOL = "sol", ("Soles")
+        USD = "usd", ("Dólares")
 
     class OriginReservationTypeChoice(models.TextChoices):
-            AIR = "air", ("Airbnb")
-            AUS = "aus", ("Austin")
-            MAN = "man", ("Mantenimiento")
+        AIR = "air", ("Airbnb")
+        AUS = "aus", ("Austin")
+        MAN = "man", ("Mantenimiento")
 
     client = models.ForeignKey(Clients, on_delete=models.CASCADE, null=True, blank=True)
     property = models.ForeignKey(Property, on_delete=models.CASCADE, null=False, blank=False)
@@ -54,10 +56,7 @@ class Reservation(BaseModel):
         max_length=3, choices=OriginReservationTypeChoice.choices, default=OriginReservationTypeChoice.AUS
     )
     tel_contact_number = models.CharField(max_length=255, null=True, blank=True)
-
     full_payment = models.BooleanField(default=False)
-
-    # Activar o desactivar piscina temperada
     temperature_pool = models.BooleanField(default=False)
 
     def __str__(self):
@@ -65,6 +64,12 @@ class Reservation(BaseModel):
             return f"Reserva de {self.client.last_name}, {self.client.first_name} ({self.id}) - {self.origin} -"
         else:
             return f"Reserva desde API Airbnb (sin datos del cliente)"
+
+    def save(self, *args, **kwargs):
+        if self.late_checkout and self.check_out_date:
+            self.late_check_out_date = self.check_out_date
+            self.check_out_date = self.check_out_date + timedelta(days=1)
+        super(Reservation, self).save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         self.deleted = True

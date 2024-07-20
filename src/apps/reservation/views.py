@@ -30,7 +30,6 @@ from apps.dashboard.utils import get_stadistics_period
 import subprocess
 from docxtpl import DocxTemplate
 from babel.dates import format_date
-from datetime import datetime
 import io
 
 class ReservationsApiView(viewsets.ModelViewSet):
@@ -213,32 +212,43 @@ class ReservationsApiView(viewsets.ModelViewSet):
             if self.request.POST['origin'].lower() == 'air':
                 user_seller = CustomUser.objects.get(first_name='AirBnB')
 
-            serializer.save(seller=user_seller)
+            instance = serializer.save(seller=user_seller)
+            if instance.late_checkout:
+                instance.check_out_date = instance.check_out_date + timedelta(days=1)
+                instance.late_check_out_date = instance.check_out_date
+                instance.save()
 
             for file in self.request.FILES.getlist('file'):
                 RentalReceipt.objects.create(
-                    reservation=serializer.instance,
+                    reservation=instance,
                     file=file
                 )
 
         confeccion_ics()
 
         generate_audit(
-            serializer.instance,
+            instance,
             self.request.user,
             "create",
             "Reserva creada"
         )
 
     def perform_update(self, serializer):
-        confeccion_ics()
+        with transaction.atomic():
+            instance = serializer.save()
+            if instance.late_checkout:
+                instance.check_out_date = instance.check_out_date + timedelta(days=1)
+                instance.late_check_out_date = instance.check_out_date
+                instance.save()
 
-        generate_audit(
-            serializer.instance,
-            self.request.user,
-            "update",
-            "Reserva actualizada full"
-        )
+            confeccion_ics()
+
+            generate_audit(
+                instance,
+                self.request.user,
+                "update",
+                "Reserva actualizada full"
+            )
 
         return super().perform_update(serializer)
 
@@ -557,32 +567,43 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
             if self.request.POST['origin'].lower() == 'air':
                 user_seller = CustomUser.objects.get(first_name='AirBnB')
 
-            serializer.save(seller=user_seller)
+            instance = serializer.save(seller=user_seller)
+            if instance.late_checkout:
+                instance.check_out_date = instance.check_out_date + timedelta(days=1)
+                instance.late_check_out_date = instance.check_out_date
+                instance.save()
 
             for file in self.request.FILES.getlist('file'):
                 RentalReceipt.objects.create(
-                    reservation=serializer.instance,
+                    reservation=instance,
                     file=file
                 )
 
         confeccion_ics()
 
         generate_audit(
-            serializer.instance,
+            instance,
             self.request.user,
             "create",
             "Reserva creada"
         )
 
     def perform_update(self, serializer):
-        confeccion_ics()
+        with transaction.atomic():
+            instance = serializer.save()
+            if instance.late_checkout:
+                instance.check_out_date = instance.check_out_date + timedelta(days=1)
+                instance.late_check_out_date = instance.check_out_date
+                instance.save()
 
-        generate_audit(
-            serializer.instance,
-            self.request.user,
-            "update",
-            "Reserva actualizada full"
-        )
+            confeccion_ics()
+
+            generate_audit(
+                instance,
+                self.request.user,
+                "update",
+                "Reserva actualizada full"
+            )
 
         return super().perform_update(serializer)
 
@@ -623,4 +644,3 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
             "Reserva eliminada"
         )
         return Response(status=204)
-    
