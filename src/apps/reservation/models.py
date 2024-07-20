@@ -20,6 +20,7 @@ class Reservation(BaseModel):
     ManychatFecha = models.IntegerField(default=0)
     late_checkout = models.BooleanField(default=False)
     late_check_out_date = models.DateField(null=True, blank=True)
+    comentarios_reservas = models.TextField(null=True, blank=True, help_text="Comentarios adicionales sobre la reserva.")
 
     @property
     def adelanto_normalizado(self):

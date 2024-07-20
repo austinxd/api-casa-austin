@@ -39,6 +39,7 @@ class ReservationSerializer(serializers.ModelSerializer):
         if not self.instance:
             self.fields['seller'].required = False
             self.fields['seller'].read_only = True
+        self.fields["comentarios_reservas"] = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     def to_internal_value(self, data):
         new_data = data.copy()
