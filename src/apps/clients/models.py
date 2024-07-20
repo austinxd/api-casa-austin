@@ -53,6 +53,8 @@ class Clients(BaseModel):
 
     manychat = models.PositiveIntegerField(null=True, blank=True)
     id_manychat = models.PositiveIntegerField(null=True, blank=True)
+    comentarios_clientes = models.TextField(blank=True, null=True, help_text="Comentarios sobre el cliente")
+
 
     class Meta:
         unique_together = ('document_type', 'number_doc')
