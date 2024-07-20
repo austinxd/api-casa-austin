@@ -214,8 +214,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
             instance = serializer.save(seller=user_seller)
             if instance.late_checkout:
-                instance.check_out_date = instance.check_out_date + timedelta(days=1)
                 instance.late_check_out_date = instance.check_out_date
+                instance.check_out_date = instance.check_out_date + timedelta(days=1)
                 instance.save()
 
             for file in self.request.FILES.getlist('file'):
@@ -237,8 +237,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
         with transaction.atomic():
             instance = serializer.save()
             if instance.late_checkout:
-                instance.check_out_date = instance.check_out_date + timedelta(days=1)
                 instance.late_check_out_date = instance.check_out_date
+                instance.check_out_date = instance.check_out_date + timedelta(days=1)
                 instance.save()
 
             confeccion_ics()
@@ -289,6 +289,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
             "Reserva eliminada"
         )
         return Response(status=204)
+
 ###### MOD AUSTIN ######
     @action(detail=True, methods=['get'], url_path='contrato')
     def contrato(self, request, pk=None):
@@ -569,8 +570,8 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
 
             instance = serializer.save(seller=user_seller)
             if instance.late_checkout:
-                instance.check_out_date = instance.check_out_date + timedelta(days=1)
                 instance.late_check_out_date = instance.check_out_date
+                instance.check_out_date = instance.check_out_date + timedelta(days=1)
                 instance.save()
 
             for file in self.request.FILES.getlist('file'):
@@ -592,8 +593,8 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
         with transaction.atomic():
             instance = serializer.save()
             if instance.late_checkout:
-                instance.check_out_date = instance.check_out_date + timedelta(days=1)
                 instance.late_check_out_date = instance.check_out_date
+                instance.check_out_date = instance.check_out_date + timedelta(days=1)
                 instance.save()
 
             confeccion_ics()

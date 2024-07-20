@@ -26,7 +26,7 @@ class Reservation(BaseModel):
         res = float(self.advance_payment) if self.advance_payment else 0
 
         if self.advance_payment_currency == 'usd' and self.advance_payment != 0:
-            res = (float(self.price_sol)/float(self.price_usd)) * float(self.advance_payment)
+            res = (float(self.price_sol) / float(self.price_usd)) * float(self.advance_payment)
 
         return round(res, 2)
 
