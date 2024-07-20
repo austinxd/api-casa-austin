@@ -214,8 +214,9 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
             instance = serializer.save(seller=user_seller)
             if instance.late_checkout:
-                instance.late_check_out_date = instance.check_out_date
-                instance.check_out_date = instance.check_out_date + timedelta(days=1)
+                original_check_out_date = instance.check_out_date - timedelta(days=1)
+                instance.late_check_out_date = original_check_out_date
+                instance.check_out_date = original_check_out_date + timedelta(days=1)
                 instance.save()
 
             for file in self.request.FILES.getlist('file'):
@@ -238,8 +239,9 @@ class ReservationsApiView(viewsets.ModelViewSet):
             instance = serializer.save()
             if instance.late_checkout:
                 if instance.late_check_out_date is None:
-                    instance.late_check_out_date = instance.check_out_date
-                    instance.check_out_date = instance.check_out_date + timedelta(days=1)
+                    original_check_out_date = instance.check_out_date - timedelta(days=1)
+                    instance.late_check_out_date = original_check_out_date
+                    instance.check_out_date = original_check_out_date + timedelta(days=1)
                 instance.save()
 
             confeccion_ics()
@@ -253,34 +255,36 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
         return super().perform_update(serializer)
 
-def partial_update(self, request, *args, **kwargs):
-    instance = self.get_object()
-    serializer = self.get_serializer(instance, data=request.data, partial=True)
-    serializer.is_valid(raise_exception=True)
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
 
-    with transaction.atomic():
-        instance = serializer.save()
-        if instance.late_checkout:
-            if instance.late_check_out_date is None:
-                instance.late_check_out_date = instance.check_out_date
-                instance.check_out_date = instance.check_out_date + timedelta(days=1)
-            instance.save()
+        with transaction.atomic():
+            instance = serializer.save()
+            if instance.late_checkout:
+                if instance.late_check_out_date is None:
+                    original_check_out_date = instance.check_out_date - timedelta(days=1)
+                    instance.late_check_out_date = original_check_out_date
+                    instance.check_out_date = original_check_out_date + timedelta(days=1)
+                instance.save()
 
-        for file in request.FILES.getlist('file'):
-            RentalReceipt.objects.create(
-                reservation=instance,
-                file=file
-            )
+            for file in request.FILES.getlist('file'):
+                RentalReceipt.objects.create(
+                    reservation=instance,
+                    file=file
+                )
 
-    confeccion_ics()
+        confeccion_ics()
 
-    generate_audit(
-        serializer.instance,
-        self.request.user,
-        "update",
-        "Reserva actualizada"
-    )
-    return Response(serializer.data)
+        generate_audit(
+            serializer.instance,
+            self.request.user,
+            "update",
+            "Reserva actualizada"
+        )
+        return Response(serializer.data)
+
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
