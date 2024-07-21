@@ -30,10 +30,12 @@ class DashboardApiView(APIView):
         if month and year:
             month = int(month)
             year = int(year)
+            is_current_month = False
         else:
             fecha_actual = datetime.now()
             month = fecha_actual.month
             year = fecha_actual.year
+            is_current_month = True
         
         last_day_month = calendar.monthrange(year, month)[1]
         range_evaluate = (datetime(year, month, 1), datetime(year, month, last_day_month))
@@ -64,7 +66,7 @@ class DashboardApiView(APIView):
         content['best_sellers'] = best_sellers
         
         # Free days
-        free_days_per_house, free_days_total, ocuppied_days_total, total_por_cobrar, total_facturado = get_stadistics_period(datetime(year, month, 1), last_day_month)
+        free_days_per_house, free_days_total, ocuppied_days_total, total_por_cobrar, total_facturado = get_stadistics_period(year, month, last_day_month, is_current_month)
         
         content['free_days_per_house'] = free_days_per_house
         content['free_days_total'] = free_days_total
