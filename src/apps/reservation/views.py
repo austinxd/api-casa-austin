@@ -214,10 +214,12 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
             instance = serializer.save(seller=user_seller)
             if instance.late_checkout:
-                original_check_out_date = instance.check_out_date - timedelta(days=1)
+                original_check_out_date = instance.check_out_date
                 instance.late_check_out_date = original_check_out_date
                 instance.check_out_date = original_check_out_date + timedelta(days=1)
-                instance.save()
+            else:
+                instance.late_check_out_date = None
+            instance.save()
 
             for file in self.request.FILES.getlist('file'):
                 RentalReceipt.objects.create(
@@ -238,14 +240,16 @@ class ReservationsApiView(viewsets.ModelViewSet):
         with transaction.atomic():
             instance = self.get_object()
             original_late_checkout = instance.late_checkout
+            original_check_out_date = instance.check_out_date
             instance = serializer.save()
 
             if instance.late_checkout and not original_late_checkout:
-                if instance.late_check_out_date is None:
-                    original_check_out_date = instance.check_out_date - timedelta(days=1)
-                    instance.late_check_out_date = original_check_out_date
-                    instance.check_out_date = original_check_out_date + timedelta(days=1)
-                instance.save()
+                instance.late_check_out_date = original_check_out_date
+                instance.check_out_date = original_check_out_date + timedelta(days=1)
+            elif not instance.late_checkout and original_late_checkout:
+                instance.check_out_date = instance.late_check_out_date
+                instance.late_check_out_date = None
+            instance.save()
 
             confeccion_ics()
 
@@ -265,14 +269,16 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
         with transaction.atomic():
             original_late_checkout = instance.late_checkout
+            original_check_out_date = instance.check_out_date
             instance = serializer.save()
 
             if instance.late_checkout and not original_late_checkout:
-                if instance.late_check_out_date is None:
-                    original_check_out_date = instance.check_out_date - timedelta(days=1)
-                    instance.late_check_out_date = original_check_out_date
-                    instance.check_out_date = original_check_out_date + timedelta(days=1)
-                instance.save()
+                instance.late_check_out_date = original_check_out_date
+                instance.check_out_date = original_check_out_date + timedelta(days=1)
+            elif not instance.late_checkout and original_late_checkout:
+                instance.check_out_date = instance.late_check_out_date
+                instance.late_check_out_date = None
+            instance.save()
 
             for file in request.FILES.getlist('file'):
                 RentalReceipt.objects.create(
