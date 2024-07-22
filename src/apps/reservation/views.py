@@ -242,15 +242,15 @@ class ReservationsApiView(viewsets.ModelViewSet):
             previous_instance = Reservation.objects.get(pk=instance.pk)
             
             # Verificar cambio en el estado de late_checkout
-            if instance.late_checkout and not previous_instance.late_checkout:
-                # late_checkout activado
-                instance.late_check_out_date = previous_instance.check_out_date
-                instance.check_out_date = previous_instance.check_out_date + timedelta(days=1)
-                instance.save()
-            elif not instance.late_checkout and previous_instance.late_checkout:
-                # late_checkout desactivado
-                instance.check_out_date = instance.late_check_out_date
-                instance.late_check_out_date = None
+            if instance.late_checkout != previous_instance.late_checkout:
+                if instance.late_checkout:
+                    # late_checkout activado
+                    instance.late_check_out_date = previous_instance.check_out_date
+                    instance.check_out_date = previous_instance.check_out_date + timedelta(days=1)
+                else:
+                    # late_checkout desactivado
+                    instance.check_out_date = instance.late_check_out_date
+                    instance.late_check_out_date = None
                 instance.save()
 
             confeccion_ics()
@@ -276,15 +276,15 @@ class ReservationsApiView(viewsets.ModelViewSet):
             previous_instance = Reservation.objects.get(pk=instance.pk)
 
             # Verificar cambio en el estado de late_checkout
-            if instance.late_checkout and not previous_instance.late_checkout:
-                # late_checkout activado
-                instance.late_check_out_date = previous_instance.check_out_date
-                instance.check_out_date = previous_instance.check_out_date + timedelta(days=1)
-                instance.save()
-            elif not instance.late_checkout and previous_instance.late_checkout:
-                # late_checkout desactivado
-                instance.check_out_date = instance.late_check_out_date
-                instance.late_check_out_date = None
+            if instance.late_checkout != previous_instance.late_checkout:
+                if instance.late_checkout:
+                    # late_checkout activado
+                    instance.late_check_out_date = previous_instance.check_out_date
+                    instance.check_out_date = previous_instance.check_out_date + timedelta(days=1)
+                else:
+                    # late_checkout desactivado
+                    instance.check_out_date = instance.late_check_out_date
+                    instance.late_check_out_date = None
                 instance.save()
 
             for file in request.FILES.getlist('file'):
