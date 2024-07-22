@@ -236,8 +236,11 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         with transaction.atomic():
+            instance = self.get_object()
+            original_late_checkout = instance.late_checkout
             instance = serializer.save()
-            if instance.late_checkout:
+
+            if instance.late_checkout and not original_late_checkout:
                 if instance.late_check_out_date is None:
                     original_check_out_date = instance.check_out_date - timedelta(days=1)
                     instance.late_check_out_date = original_check_out_date
@@ -261,8 +264,10 @@ class ReservationsApiView(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         with transaction.atomic():
+            original_late_checkout = instance.late_checkout
             instance = serializer.save()
-            if instance.late_checkout:
+
+            if instance.late_checkout and not original_late_checkout:
                 if instance.late_check_out_date is None:
                     original_check_out_date = instance.check_out_date - timedelta(days=1)
                     instance.late_check_out_date = original_check_out_date
