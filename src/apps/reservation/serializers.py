@@ -12,8 +12,6 @@ from apps.clients.serializers import ClientShortSerializer
 from apps.property.serializers import PropertySerializer
 
 from apps.core.functions import check_user_has_rol
-from datetime import datetime, timedelta
-
 
 
 class ReciptSerializer(serializers.ModelSerializer):
@@ -35,12 +33,12 @@ class ReservationSerializer(serializers.ModelSerializer):
         model = Reservation
         exclude = ["created", "updated", "deleted"]
 
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.instance:
             self.fields['seller'].required = False
             self.fields['seller'].read_only = True
-        self.fields["comentarios_reservas"] = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     def to_internal_value(self, data):
         new_data = data.copy()
@@ -66,53 +64,43 @@ class ReservationSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         request = self.context.get('request')
 
-        # Prevenir la creación de eventos de mantenimiento por usuarios que no sean administradores
+        # Prevenir que usuarios sin rol Admin puedan crear eventos de mantenimiento
         if self.context.get('mantenimiento_client') == 'Mantenimiento':
-            if not check_user_has_rol("admin", request.user):
+            if not check_user_has_rol("admin", self.context['request'].user):
                 raise serializers.ValidationError("No puede registrar Eventos de Mantenimiento un usuario con rol distinto a Admin.")
 
-        # Extraer los campos de 'property' y 'reservation_id' desde 'attrs' y 'instance'
         property_field = attrs.get('property')
         reservation_id = self.instance.id if self.instance else None
 
-        # Lógica para asignar el pago adelantado basado en la moneda especificada
         if attrs.get('full_payment') == True:
             if attrs['advance_payment_currency'] == 'sol':
                 attrs['advance_payment'] = attrs.get('price_sol')
             else:
                 attrs['advance_payment'] = attrs.get('price_usd')
 
-        # Verificar si la solicitud actual es una actualización (PATCH) y si existe una instancia de reserva
-        if request and request.method == 'PATCH' and self.instance:
-            # Si 'late_checkout' ha sido enviado y es diferente al valor existente en la base de datos
-            if 'late_checkout' in attrs and attrs['late_checkout'] != self.instance.late_checkout:
-                # Y si 'late_checkout' es verdadero y se proporciona una fecha de salida
-                check_out_date = attrs.get('check_out_date')
-                if attrs.get('late_checkout') and check_out_date and isinstance(check_out_date, datetime):
-                    # Entonces ajustar la fecha de salida agregando un día
-                    attrs['late_check_out_date'] = check_out_date
-                    attrs['check_out_date'] = check_out_date + timedelta(days=1)
-                else:
-                    raise serializers.ValidationError("Fecha de salida no válida o no definida.")
+        # Check if it's called from a view with patch verb
+        patch_cond = False
+        if request:
+            if request.method != 'PATCH':
+                patch_cond = True
 
-        # Si la solicitud no es PATCH o no existe una instancia
-        else:
-            # Verificar que la fecha de entrada no sea posterior a la fecha de salida
-            check_in_date = attrs.get('check_in_date')
-            check_out_date = attrs.get('check_out_date')
-            if check_in_date and check_out_date:
-                if check_in_date >= check_out_date:
-                    raise serializers.ValidationError("Fecha de entrada debe ser anterior a fecha de salida")
+        if patch_cond and attrs.get('check_in_date') and attrs.get('check_out_date'):
+            # Check if checkin is after checkout
+            if attrs.get('check_in_date') >= attrs.get('check_out_date'):
+                raise serializers.ValidationError("Fecha entrada debe ser anterior a fecha de salida")
 
-            # Verificar si la propiedad está reservada en el rango de fechas dado, excluyendo la reserva actual si existe
-            if Reservation.objects.exclude(deleted=True).filter(
-                property=property_field,
-                check_in_date__lt=check_out_date,
-                check_out_date__gt=check_in_date
-            ).exclude(id=reservation_id).exists():
-                raise serializers.ValidationError("Esta propiedad está reservada en este rango de fecha")
+            # Check if this property si reserved in this range of date
+            if Reservation.objects.exclude(deleted=True
+                ).filter(
+                    property=property_field
+                ).filter(
+                    Q(check_in_date__lt=attrs.get('check_out_date')) & Q(check_out_date__gt=attrs.get('check_in_date'))
+                ).exclude(
+                    id=reservation_id
+                ).exists():
 
-        # Devolver los atributos validados
+                raise serializers.ValidationError("Esta propiedad esta reservada en este rango de fecha")
+        
         return attrs
 
 class ReservationListSerializer(ReservationSerializer):
