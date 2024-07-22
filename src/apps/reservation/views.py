@@ -213,7 +213,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 user_seller = CustomUser.objects.get(first_name='AirBnB')
 
             instance = serializer.save(seller=user_seller)
-            if instance.late_checkout:
+            if instance.late_checkout and instance.late_check_out_date is None:
                 original_check_out_date = instance.check_out_date - timedelta(days=1)
                 instance.late_check_out_date = original_check_out_date
                 instance.check_out_date = original_check_out_date + timedelta(days=1)
@@ -237,11 +237,10 @@ class ReservationsApiView(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         with transaction.atomic():
             instance = serializer.save()
-            if instance.late_checkout:
-                if instance.late_check_out_date is None:
-                    original_check_out_date = instance.check_out_date - timedelta(days=1)
-                    instance.late_check_out_date = original_check_out_date
-                    instance.check_out_date = original_check_out_date + timedelta(days=1)
+            if instance.late_checkout and instance.late_check_out_date is None:
+                original_check_out_date = instance.check_out_date - timedelta(days=1)
+                instance.late_check_out_date = original_check_out_date
+                instance.check_out_date = original_check_out_date + timedelta(days=1)
                 instance.save()
 
             confeccion_ics()
@@ -262,11 +261,10 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
         with transaction.atomic():
             instance = serializer.save()
-            if instance.late_checkout:
-                if instance.late_check_out_date is None:
-                    original_check_out_date = instance.check_out_date - timedelta(days=1)
-                    instance.late_check_out_date = original_check_out_date
-                    instance.check_out_date = original_check_out_date + timedelta(days=1)
+            if instance.late_checkout and instance.late_check_out_date is None:
+                original_check_out_date = instance.check_out_date - timedelta(days=1)
+                instance.late_check_out_date = original_check_out_date
+                instance.check_out_date = original_check_out_date + timedelta(days=1)
                 instance.save()
 
             for file in request.FILES.getlist('file'):
