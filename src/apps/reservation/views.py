@@ -237,19 +237,20 @@ class ReservationsApiView(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         with transaction.atomic():
             instance = serializer.save()
-            
+
             # Obtener el valor anterior de late_checkout y late_check_out_date
             previous_instance = Reservation.objects.get(pk=instance.pk)
             
-            if instance.late_checkout != previous_instance.late_checkout:
-                if instance.late_checkout:
-                    # late_checkout activado
-                    instance.late_check_out_date = previous_instance.check_out_date
-                    instance.check_out_date = previous_instance.check_out_date + timedelta(days=1)
-                else:
-                    # late_checkout desactivado
-                    instance.check_out_date = instance.late_check_out_date
-                    instance.late_check_out_date = None
+            # Verificar cambio en el estado de late_checkout
+            if instance.late_checkout and not previous_instance.late_checkout:
+                # late_checkout activado
+                instance.late_check_out_date = previous_instance.check_out_date
+                instance.check_out_date = previous_instance.check_out_date + timedelta(days=1)
+                instance.save()
+            elif not instance.late_checkout and previous_instance.late_checkout:
+                # late_checkout desactivado
+                instance.check_out_date = instance.late_check_out_date
+                instance.late_check_out_date = None
                 instance.save()
 
             confeccion_ics()
@@ -270,19 +271,20 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
         with transaction.atomic():
             instance = serializer.save()
-            
+
             # Obtener el valor anterior de late_checkout y late_check_out_date
             previous_instance = Reservation.objects.get(pk=instance.pk)
-            
-            if instance.late_checkout != previous_instance.late_checkout:
-                if instance.late_checkout:
-                    # late_checkout activado
-                    instance.late_check_out_date = previous_instance.check_out_date
-                    instance.check_out_date = previous_instance.check_out_date + timedelta(days=1)
-                else:
-                    # late_checkout desactivado
-                    instance.check_out_date = instance.late_check_out_date
-                    instance.late_check_out_date = None
+
+            # Verificar cambio en el estado de late_checkout
+            if instance.late_checkout and not previous_instance.late_checkout:
+                # late_checkout activado
+                instance.late_check_out_date = previous_instance.check_out_date
+                instance.check_out_date = previous_instance.check_out_date + timedelta(days=1)
+                instance.save()
+            elif not instance.late_checkout and previous_instance.late_checkout:
+                # late_checkout desactivado
+                instance.check_out_date = instance.late_check_out_date
+                instance.late_check_out_date = None
                 instance.save()
 
             for file in request.FILES.getlist('file'):
@@ -300,6 +302,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
             "Reserva actualizada"
         )
         return Response(serializer.data)
+
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
