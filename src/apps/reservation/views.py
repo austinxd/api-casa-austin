@@ -213,54 +213,32 @@ class ReservationsApiView(viewsets.ModelViewSet):
             if self.request.POST['origin'].lower() == 'air':
                 user_seller = CustomUser.objects.get(first_name='AirBnB')
 
-            instance = serializer.save(seller=user_seller)
-            if instance.late_checkout:
-                instance.late_check_out_date = instance.check_out_date
-                instance.check_out_date = instance.check_out_date + timedelta(days=1)
-                instance.save()
+            serializer.save(seller=user_seller)
 
             for file in self.request.FILES.getlist('file'):
                 RentalReceipt.objects.create(
-                    reservation=instance,
+                    reservation=serializer.instance,
                     file=file
                 )
 
         confeccion_ics()
 
         generate_audit(
-            instance,
+            serializer.instance,
             self.request.user,
             "create",
             "Reserva creada"
         )
 
     def perform_update(self, serializer):
-        with transaction.atomic():
-            instance = serializer.save()
+        confeccion_ics()
 
-            # Obtener el valor anterior de late_checkout y late_check_out_date
-            previous_instance = Reservation.objects.get(pk=instance.pk)
-            
-            # Verificar cambio en el estado de late_checkout
-            if instance.late_checkout and not previous_instance.late_checkout:
-                # late_checkout activado
-                instance.late_check_out_date = previous_instance.check_out_date
-                instance.check_out_date = previous_instance.check_out_date + timedelta(days=1)
-                instance.save()
-            elif not instance.late_checkout and previous_instance.late_checkout:
-                # late_checkout desactivado
-                instance.check_out_date = previous_instance.late_check_out_date
-                instance.late_check_out_date = None
-                instance.save()
-
-            confeccion_ics()
-
-            generate_audit(
-                instance,
-                self.request.user,
-                "update",
-                "Reserva actualizada full"
-            )
+        generate_audit(
+            serializer.instance,
+            self.request.user,
+            "update",
+            "Reserva actualizada full"
+        )
 
         return super().perform_update(serializer)
 
@@ -270,22 +248,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         with transaction.atomic():
-            instance = serializer.save()
-
-            # Obtener el valor anterior de late_checkout y late_check_out_date
-            previous_instance = Reservation.objects.get(pk=instance.pk)
-
-            # Verificar cambio en el estado de late_checkout
-            if instance.late_checkout and not previous_instance.late_checkout:
-                # late_checkout activado
-                instance.late_check_out_date = previous_instance.check_out_date
-                instance.check_out_date = previous_instance.check_out_date + timedelta(days=1)
-                instance.save()
-            elif not instance.late_checkout and previous_instance.late_checkout:
-                # late_checkout desactivado
-                instance.check_out_date = previous_instance.late_check_out_date
-                instance.late_check_out_date = None
-                instance.save()
+            self.perform_update(serializer)
 
             for file in request.FILES.getlist('file'):
                 RentalReceipt.objects.create(
