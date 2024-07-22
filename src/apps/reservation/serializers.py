@@ -12,7 +12,8 @@ from apps.clients.serializers import ClientShortSerializer
 from apps.property.serializers import PropertySerializer
 
 from apps.core.functions import check_user_has_rol
-from datetime import timedelta
+from datetime import datetime, timedelta
+
 
 
 class ReciptSerializer(serializers.ModelSerializer):
@@ -63,7 +64,6 @@ class ReservationSerializer(serializers.ModelSerializer):
         return super().to_internal_value(new_data)
 
     def validate(self, attrs):
-        # Obtener el objeto 'request' desde el contexto del serializer
         request = self.context.get('request')
 
         # Prevenir la creación de eventos de mantenimiento por usuarios que no sean administradores
@@ -87,23 +87,28 @@ class ReservationSerializer(serializers.ModelSerializer):
             # Si 'late_checkout' ha sido enviado y es diferente al valor existente en la base de datos
             if 'late_checkout' in attrs and attrs['late_checkout'] != self.instance.late_checkout:
                 # Y si 'late_checkout' es verdadero y se proporciona una fecha de salida
-                if attrs.get('late_checkout') and attrs.get('check_out_date'):
+                check_out_date = attrs.get('check_out_date')
+                if attrs.get('late_checkout') and check_out_date and isinstance(check_out_date, datetime):
                     # Entonces ajustar la fecha de salida agregando un día
-                    attrs['late_check_out_date'] = attrs['check_out_date']
-                    attrs['check_out_date'] += timedelta(days=1)
+                    attrs['late_check_out_date'] = check_out_date
+                    attrs['check_out_date'] = check_out_date + timedelta(days=1)
+                else:
+                    raise serializers.ValidationError("Fecha de salida no válida o no definida.")
 
         # Si la solicitud no es PATCH o no existe una instancia
         else:
             # Verificar que la fecha de entrada no sea posterior a la fecha de salida
-            if attrs.get('check_in_date') and attrs.get('check_out_date'):
-                if attrs['check_in_date'] >= attrs['check_out_date']:
+            check_in_date = attrs.get('check_in_date')
+            check_out_date = attrs.get('check_out_date')
+            if check_in_date and check_out_date:
+                if check_in_date >= check_out_date:
                     raise serializers.ValidationError("Fecha de entrada debe ser anterior a fecha de salida")
 
             # Verificar si la propiedad está reservada en el rango de fechas dado, excluyendo la reserva actual si existe
             if Reservation.objects.exclude(deleted=True).filter(
                 property=property_field,
-                check_in_date__lt=attrs.get('check_out_date'),
-                check_out_date__gt=attrs.get('check_in_date')
+                check_in_date__lt=check_out_date,
+                check_out_date__gt=check_in_date
             ).exclude(id=reservation_id).exists():
                 raise serializers.ValidationError("Esta propiedad está reservada en este rango de fecha")
 
