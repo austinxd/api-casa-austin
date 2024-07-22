@@ -30,6 +30,7 @@ from apps.dashboard.utils import get_stadistics_period
 import subprocess
 from docxtpl import DocxTemplate
 from babel.dates import format_date
+from datetime import datetime
 import io
 
 class ReservationsApiView(viewsets.ModelViewSet):
@@ -213,10 +214,9 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 user_seller = CustomUser.objects.get(first_name='AirBnB')
 
             instance = serializer.save(seller=user_seller)
-            if instance.late_checkout and instance.late_check_out_date is None:
-                original_check_out_date = instance.check_out_date
-                instance.late_check_out_date = original_check_out_date
-                instance.check_out_date = original_check_out_date + timedelta(days=1)
+            if instance.late_checkout:
+                instance.late_check_out_date = instance.check_out_date
+                instance.check_out_date = instance.check_out_date + timedelta(days=1)
                 instance.save()
 
             for file in self.request.FILES.getlist('file'):
@@ -237,10 +237,19 @@ class ReservationsApiView(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         with transaction.atomic():
             instance = serializer.save()
-            if instance.late_checkout and instance.late_check_out_date is None:
-                original_check_out_date = instance.check_out_date
-                instance.late_check_out_date = original_check_out_date
-                instance.check_out_date = original_check_out_date + timedelta(days=1)
+            
+            # Obtener el valor anterior de late_checkout y late_check_out_date
+            previous_instance = Reservation.objects.get(pk=instance.pk)
+            
+            if instance.late_checkout != previous_instance.late_checkout:
+                if instance.late_checkout:
+                    # late_checkout activado
+                    instance.late_check_out_date = previous_instance.check_out_date
+                    instance.check_out_date = previous_instance.check_out_date + timedelta(days=1)
+                else:
+                    # late_checkout desactivado
+                    instance.check_out_date = instance.late_check_out_date
+                    instance.late_check_out_date = None
                 instance.save()
 
             confeccion_ics()
@@ -252,7 +261,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 "Reserva actualizada full"
             )
 
-        return super().perform_update(serializer)   
+        return super().perform_update(serializer)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -261,10 +270,19 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
         with transaction.atomic():
             instance = serializer.save()
-            if instance.late_checkout and instance.late_check_out_date is None:
-                original_check_out_date = instance.check_out_date
-                instance.late_check_out_date = original_check_out_date
-                instance.check_out_date = original_check_out_date + timedelta(days=1)
+            
+            # Obtener el valor anterior de late_checkout y late_check_out_date
+            previous_instance = Reservation.objects.get(pk=instance.pk)
+            
+            if instance.late_checkout != previous_instance.late_checkout:
+                if instance.late_checkout:
+                    # late_checkout activado
+                    instance.late_check_out_date = previous_instance.check_out_date
+                    instance.check_out_date = previous_instance.check_out_date + timedelta(days=1)
+                else:
+                    # late_checkout desactivado
+                    instance.check_out_date = instance.late_check_out_date
+                    instance.late_check_out_date = None
                 instance.save()
 
             for file in request.FILES.getlist('file'):
@@ -283,7 +301,6 @@ class ReservationsApiView(viewsets.ModelViewSet):
         )
         return Response(serializer.data)
 
-
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         self.perform_destroy(instance)
@@ -297,7 +314,6 @@ class ReservationsApiView(viewsets.ModelViewSet):
             "Reserva eliminada"
         )
         return Response(status=204)
-
 ###### MOD AUSTIN ######
     @action(detail=True, methods=['get'], url_path='contrato')
     def contrato(self, request, pk=None):
@@ -576,50 +592,32 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
             if self.request.POST['origin'].lower() == 'air':
                 user_seller = CustomUser.objects.get(first_name='AirBnB')
 
-            instance = serializer.save(seller=user_seller)
-            if instance.late_checkout:
-                instance.late_check_out_date = instance.check_out_date
-                instance.check_out_date = instance.check_out_date + timedelta(days=1)
-                instance.save()
+            serializer.save(seller=user_seller)
 
             for file in self.request.FILES.getlist('file'):
                 RentalReceipt.objects.create(
-                    reservation=instance,
+                    reservation=serializer.instance,
                     file=file
                 )
 
         confeccion_ics()
 
         generate_audit(
-            instance,
+            serializer.instance,
             self.request.user,
             "create",
             "Reserva creada"
         )
 
     def perform_update(self, serializer):
-        with transaction.atomic():
-            instance = serializer.save()
-            
-            if instance.late_checkout and instance.late_check_out_date is None:
-                # late_checkout activado por primera vez
-                instance.late_check_out_date = instance.check_out_date
-                instance.check_out_date = instance.check_out_date + timedelta(days=1)
-                instance.save()
-            elif not instance.late_checkout and instance.late_check_out_date is not None:
-                # late_checkout desactivado
-                instance.check_out_date = instance.late_check_out_date
-                instance.late_check_out_date = None
-                instance.save()
+        confeccion_ics()
 
-            confeccion_ics()
-
-            generate_audit(
-                instance,
-                self.request.user,
-                "update",
-                "Reserva actualizada full"
-            )
+        generate_audit(
+            serializer.instance,
+            self.request.user,
+            "update",
+            "Reserva actualizada full"
+        )
 
         return super().perform_update(serializer)
 
@@ -629,18 +627,7 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         with transaction.atomic():
-            instance = serializer.save()
-            
-            if instance.late_checkout and instance.late_check_out_date is None:
-                # late_checkout activado por primera vez
-                instance.late_check_out_date = instance.check_out_date
-                instance.check_out_date = instance.check_out_date + timedelta(days=1)
-                instance.save()
-            elif not instance.late_checkout and instance.late_check_out_date is not None:
-                # late_checkout desactivado
-                instance.check_out_date = instance.late_check_out_date
-                instance.late_check_out_date = None
-                instance.save()
+            self.perform_update(serializer)
 
             for file in request.FILES.getlist('file'):
                 RentalReceipt.objects.create(
@@ -671,3 +658,4 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
             "Reserva eliminada"
         )
         return Response(status=204)
+    
