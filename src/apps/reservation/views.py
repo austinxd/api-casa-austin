@@ -214,7 +214,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
             instance = serializer.save(seller=user_seller)
             if instance.late_checkout and instance.late_check_out_date is None:
-                original_check_out_date = instance.check_out_date - timedelta(days=1)
+                original_check_out_date = instance.check_out_date
                 instance.late_check_out_date = original_check_out_date
                 instance.check_out_date = original_check_out_date + timedelta(days=1)
                 instance.save()
@@ -238,7 +238,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
         with transaction.atomic():
             instance = serializer.save()
             if instance.late_checkout and instance.late_check_out_date is None:
-                original_check_out_date = instance.check_out_date - timedelta(days=1)
+                original_check_out_date = instance.check_out_date
                 instance.late_check_out_date = original_check_out_date
                 instance.check_out_date = original_check_out_date + timedelta(days=1)
                 instance.save()
@@ -252,7 +252,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 "Reserva actualizada full"
             )
 
-        return super().perform_update(serializer)
+        return super().perform_update(serializer)   
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -262,7 +262,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
         with transaction.atomic():
             instance = serializer.save()
             if instance.late_checkout and instance.late_check_out_date is None:
-                original_check_out_date = instance.check_out_date - timedelta(days=1)
+                original_check_out_date = instance.check_out_date
                 instance.late_check_out_date = original_check_out_date
                 instance.check_out_date = original_check_out_date + timedelta(days=1)
                 instance.save()
