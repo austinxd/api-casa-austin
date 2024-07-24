@@ -32,13 +32,13 @@ def get_stadistics_period(fecha_actual, last_day):
         # Contar noches reservadas desde el primer día del mes hasta el último día del mes
         noches_reservadas = 0
         for r in reservations_in_month.exclude(origin='man').exclude(deleted=True).order_by('check_in_date'):
-            noches_reservadas += contar_noches_reserva(r.check_in_date.date(), r.check_out_date.date(), last_day, count_all_month=False)
+            noches_reservadas += contar_noches_reserva(r.check_in_date, r.check_out_date, last_day, count_all_month=False)
 
         # Contar noches reservadas desde el día actual hasta el último día del mes
         noches_reservadas_hoy_a_fin_mes = 0
         for r in reservations_in_month.exclude(deleted=True).order_by('check_in_date'):
-            if r.check_out_date.date() >= fecha_actual:
-                noches_reservadas_hoy_a_fin_mes += contar_noches_reserva(max(r.check_in_date.date(), fecha_actual), r.check_out_date.date(), last_day)
+            if r.check_out_date >= fecha_actual:
+                noches_reservadas_hoy_a_fin_mes += contar_noches_reserva(max(r.check_in_date, fecha_actual), r.check_out_date, last_day)
 
         noches_restantes_mes_days = noches_restantes_mes(fecha_actual, last_day)
         dias_libres_hoy_fin_mes = noches_restantes_mes_days - noches_reservadas_hoy_a_fin_mes
