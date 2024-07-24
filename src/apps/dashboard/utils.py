@@ -16,7 +16,7 @@ def contar_noches_reservadas_del_mes(inicio, fin, first_day, last_day):
     if inicio < first_day:
         inicio = first_day
     if fin > last_day:
-        fin = last_day
+        fin = last_day + 1
     return (fin - inicio).days
 
 def contar_noches_entre_fechas(inicio, fin, fecha_actual, last_day):
