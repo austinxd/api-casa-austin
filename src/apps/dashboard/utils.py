@@ -47,9 +47,11 @@ def get_stadistics_period(fecha_actual, last_day):
             total_days_in_month = (last_day - first_day).days + 1
             noches_libres = total_days_in_month - noches_ocupadas
 
-        # Calcular el valor total de las reservas y los pagos recibidos para la propiedad en el mes actual
+        # Calcular el valor total de las reservas para la propiedad en el mes actual
         valor_propiedad_mes = reservations_in_month.aggregate(pagos=Sum('price_sol'))['pagos'] or 0
-        pagos_recibidos_propiedad_mes = reservations_in_month.aggregate(pagos=Sum('adelanto_normalizado'))['pagos'] or 0
+
+        # Calcular los pagos recibidos manualmente usando adelanto_normalizado
+        pagos_recibidos_propiedad_mes = sum(r.adelanto_normalizado for r in reservations_in_month)
 
         # Calcular el total facturado incluyendo el profit de Airbnb si existe
         query_profit_airbnb_property = ProfitPropertyAirBnb.objects.filter(
