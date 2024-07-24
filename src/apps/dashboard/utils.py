@@ -1,8 +1,10 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from apps.property.models import Property, ProfitPropertyAirBnb
 from apps.reservation.models import Reservation
+
 from django.db.models import Sum, Q
-from apps.core.functions import noches_restantes_mes
+
+from apps.core.functions import contar_noches_reserva, noches_restantes_mes
 
 def contar_noches_reservadas_del_mes(inicio, fin, first_day, last_day):
     """
@@ -15,9 +17,7 @@ def contar_noches_reservadas_del_mes(inicio, fin, first_day, last_day):
     return (fin - inicio).days
 
 def contar_noches_entre_fechas(inicio, fin, fecha_actual, last_day):
-    """
-    Cuenta las noches de una reserva desde la fecha actual hasta el fin de la reserva o fin de mes.
-    """
+    # Asegúrate de que inicio no sea antes de hoy y fin no sea después del último día del mes
     if inicio < fecha_actual:
         inicio = fecha_actual
     if fin > last_day:
@@ -46,12 +46,22 @@ def get_stadistics_period(fecha_actual, last_day):
             Q(check_out_date__gte=first_day, check_out_date__lt=last_day)
         ).exclude(check_out_date__lt=fecha_actual)
 
-        # Query para contar las reservas en todo el mes
+        # Query 2 para contar las ganancias en todo el mes
+        # reservations_month = Reservation.objects.exclude(
+        #         deleted=True
+        #     ).filter(
+        #     property=p
+        #         ).filter(
+        #             Q(check_in_date__gte=first_day, check_in_date__lt=last_day) |
+        #             Q(check_out_date__gte=first_day, check_out_date__lt=last_day)
+        #         )
+
+        range_evaluate = (first_day, last_day)
         query_reservation_check_in_month = Reservation.objects.exclude(
             deleted=True
         ).filter(
             property=p,
-            check_in_date__range=(first_day, last_day)
+            check_in_date__range=range_evaluate
         )
 
         noches_reservadas = 0
