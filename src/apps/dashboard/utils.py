@@ -37,6 +37,7 @@ def contar_noches_entre_fechas(inicio, fin, fecha_actual, last_day):
 def get_stadistics_period(fecha_actual, last_day):
     today = datetime.now().date()
     es_mes_actual = (fecha_actual.month == today.month and fecha_actual.year == today.year)
+    es_mes_futuro = fecha_actual > today
 
     first_day = datetime(fecha_actual.year, fecha_actual.month, 1).date()
     last_day = datetime(fecha_actual.year, fecha_actual.month, last_day).date()
@@ -79,7 +80,11 @@ def get_stadistics_period(fecha_actual, last_day):
             noches_reservadas_hoy_a_fin_mes += contar_noches_entre_fechas(r.check_in_date, r.check_out_date, today, last_day)
 
         # Calcula las noches restantes incluyendo la noche del día de hoy
-        noches_restantes_mes_days = noches_restantes_mes(today if es_mes_actual else first_day, last_day)
+        if es_mes_futuro:
+            noches_restantes_mes_days = noches_restantes_mes(first_day, last_day)
+        else:
+            noches_restantes_mes_days = noches_restantes_mes(today if es_mes_actual else first_day, last_day)
+
         dias_libres_hoy_fin_mes = noches_restantes_mes_days - noches_reservadas_hoy_a_fin_mes
 
         pagos_recibidos_propiedad_mes = 0
