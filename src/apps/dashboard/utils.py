@@ -1,9 +1,7 @@
 from datetime import datetime
 from apps.property.models import Property, ProfitPropertyAirBnb
 from apps.reservation.models import Reservation
-
 from django.db.models import Sum, Q
-
 from apps.core.functions import contar_noches_reserva, noches_restantes_mes
 
 def get_stadistics_period(fecha_actual, last_day):
@@ -23,18 +21,18 @@ def get_stadistics_period(fecha_actual, last_day):
             deleted=True
         ).filter(
             property=p
-                ).filter(
-                    Q(check_in_date__gte=first_day, check_in_date__lt=last_day) |
-                    Q(check_out_date__gte=first_day, check_out_date__lt=last_day)
-                ).exclude(check_out_date__lt=fecha_actual)
-        
+        ).filter(
+            Q(check_in_date__gte=first_day, check_in_date__lt=last_day) |
+            Q(check_out_date__gte=first_day, check_out_date__lt=last_day)
+        ).exclude(check_out_date__lt=fecha_actual)
+
         range_evaluate = (first_day, last_day)
         query_reservation_check_in_month = Reservation.objects.exclude(
             deleted=True
-            ).filter(
-                property=p,
-                check_in_date__range=range_evaluate
-                )
+        ).filter(
+            property=p,
+            check_in_date__range=range_evaluate
+        )
 
         noches_reservadas = 0
         for r in query_reservation_check_in_month.exclude(origin='man').exclude(deleted=True).order_by('check_in_date'):
@@ -66,16 +64,16 @@ def get_stadistics_period(fecha_actual, last_day):
             valor_propiedad_mes = 0
 
         query_profit_airbnb_property = ProfitPropertyAirBnb.objects.filter(
-          property = p,
-          month=fecha_actual.month,
-          year=fecha_actual.year  
+            property=p,
+            month=fecha_actual.month,
+            year=fecha_actual.year  
         )
 
         profit_propiedad_mes_airbnb = float(query_profit_airbnb_property.first().profit_sol) if query_profit_airbnb_property else 0
 
         days_without_reservations_per_property.append({
-            'casa':p.name,
-            'property__background_color':p.background_color,
+            'casa': p.name,
+            'property__background_color': p.background_color,
             'dias_libres': dias_libres_hoy_fin_mes,
             'dias_ocupada': noches_reservadas,
             'dinero_por_cobrar': round(valor_propiedad_mes - pagos_recibidos_propiedad_mes, 2),
