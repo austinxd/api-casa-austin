@@ -60,7 +60,7 @@ def get_stadistics_period(fecha_actual, last_day):
         profit_propiedad_mes_airbnb = float(query_profit_airbnb_property.first().profit_sol) if query_profit_airbnb_property else 0
 
         dinero_facturado = valor_propiedad_mes + profit_propiedad_mes_airbnb
-        dinero_por_cobrar = dinero_facturado - pagos_recibidos_propiedad_mes
+        dinero_por_cobrar = valor_propiedad_mes - pagos_recibidos_propiedad_mes
 
         days_without_reservations_per_property.append({
             'casa': p.name,
