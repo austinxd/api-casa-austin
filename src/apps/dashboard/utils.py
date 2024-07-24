@@ -34,10 +34,10 @@ def get_last_day_of_month(year, month):
     else:
         return (datetime(year, month + 1, 1) - timedelta(days=1)).day
 
-def get_stadistics_period(month, year):
+def get_stadistics_period(month, year, last_day):
     today = datetime.now().date()
     first_day = datetime(year, month, 1).date()
-    last_day = datetime(year, month, get_last_day_of_month(year, month)).date()
+    last_day = datetime(year, month, last_day).date()
 
     days_without_reservations_per_property = []
     days_without_reservations_total = 0
@@ -119,3 +119,9 @@ def get_stadistics_period(month, year):
         total_facturado += valor_propiedad_mes + profit_propiedad_mes_airbnb
 
     return days_without_reservations_per_property, days_without_reservations_total, total_days_for_all_properties, '%.2f' % total_por_cobrar, '%.2f' % total_facturado
+
+# Llamada a la función con los parámetros correctos
+month = 7
+year = 2024
+last_day = get_last_day_of_month(year, month)
+result = get_stadistics_period(month, year, last_day)
