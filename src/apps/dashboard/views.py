@@ -22,12 +22,32 @@ class DashboardApiView(APIView):
         base_url = request.scheme + '://' + request.get_host()
         media_url = base_url + "/media/"
 
+        # Obtener parámetros de mes y año
+        month = request.GET.get('month')
+        year = request.GET.get('year')
+
+        if month and year:
+            try:
+                month = int(month)
+                year = int(year)
+            except ValueError:
+                return Response({'error': 'Month and year must be integers'}, status=400)
+        else:
+            fecha_actual = datetime.now()
+            month = fecha_actual.month
+            year = fecha_actual.year
+
+        # Validar mes y año
+        if month < 1 or month > 12:
+            return Response({'error': 'Month must be between 1 and 12'}, status=400)
+
+        if year < 1900 or year > 2100:
+            return Response({'error': 'Year must be between 1900 and 2100'}, status=400)
+
         # Best Sellers Card
-        fecha_actual = datetime.now()
+        last_day_month = calendar.monthrange(year, month)[1]
 
-        last_day_month = calendar.monthrange(fecha_actual.year, fecha_actual.month)[1]
-
-        range_evaluate = (datetime(fecha_actual.year, fecha_actual.month, 1), datetime(fecha_actual.year, fecha_actual.month, last_day_month))
+        range_evaluate = (datetime(year, month, 1), datetime(year, month, last_day_month))
         query_reservation_current_month = Reservation.objects.exclude(deleted=True).filter(check_in_date__range=range_evaluate)
         
         best_sellers = []
@@ -56,6 +76,7 @@ class DashboardApiView(APIView):
         # END Best Sellers Card
 
         # Free days
+        fecha_actual = datetime(year, month, 1)
         free_days_per_house, free_days_total, ocuppied_days_total, total_por_cobrar, total_facturado = get_stadistics_period(fecha_actual, last_day_month)
 
         content['free_days_per_house'] = free_days_per_house
