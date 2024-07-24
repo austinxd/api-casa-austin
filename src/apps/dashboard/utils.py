@@ -36,8 +36,6 @@ def get_last_day_of_month(year, month):
 
 def get_stadistics_period(month, year):
     today = datetime.now().date()
-    fecha_actual = datetime(year, month, today.day).date()
-
     first_day = datetime(year, month, 1).date()
     last_day = datetime(year, month, get_last_day_of_month(year, month)).date()
 
