@@ -8,10 +8,10 @@ def contar_noches_reservadas_del_mes(inicio, fin, first_day, last_day):
     """
     Cuenta las noches de una reserva dentro del mes en curso.
     """
-    inicio = inicio if isinstance(inicio, datetime) else datetime.combine(inicio, datetime.min.time())
-    fin = fin if isinstance(fin, datetime) else datetime.combine(fin, datetime.min.time())
-    first_day = first_day if isinstance(first_day, datetime) else datetime.combine(first_day, datetime.min.time())
-    last_day = last_day if isinstance(last_day, datetime) else datetime.combine(last_day, datetime.min.time())
+    inicio = inicio.date() if isinstance(inicio, datetime) else inicio
+    fin = fin.date() if isinstance(fin, datetime) else fin
+    first_day = first_day.date() if isinstance(first_day, datetime) else first_day
+    last_day = last_day.date() if isinstance(last_day, datetime) else last_day
 
     if inicio < first_day:
         inicio = first_day
@@ -23,10 +23,10 @@ def contar_noches_entre_fechas(inicio, fin, fecha_actual, last_day):
     """
     Cuenta las noches de una reserva desde la fecha actual hasta el fin de la reserva o fin de mes.
     """
-    inicio = inicio if isinstance(inicio, datetime) else datetime.combine(inicio, datetime.min.time())
-    fin = fin if isinstance(fin, datetime) else datetime.combine(fin, datetime.min.time())
-    fecha_actual = fecha_actual if isinstance(fecha_actual, datetime) else datetime.combine(fecha_actual, datetime.min.time())
-    last_day = last_day if isinstance(last_day, datetime) else datetime.combine(last_day, datetime.min.time())
+    inicio = inicio.date() if isinstance(inicio, datetime) else inicio
+    fin = fin.date() if isinstance(fin, datetime) else fin
+    fecha_actual = fecha_actual.date() if isinstance(fecha_actual, datetime) else fecha_actual
+    last_day = last_day.date() if isinstance(last_day, datetime) else last_day
 
     if inicio < fecha_actual:
         inicio = fecha_actual
@@ -37,7 +37,6 @@ def contar_noches_entre_fechas(inicio, fin, fecha_actual, last_day):
 def get_stadistics_period(fecha_actual, last_day):
     today = datetime.now().date()
     es_mes_actual = (fecha_actual.month == today.month and fecha_actual.year == today.year)
-    es_mes_futuro = fecha_actual > today
 
     first_day = datetime(fecha_actual.year, fecha_actual.month, 1).date()
     last_day = datetime(fecha_actual.year, fecha_actual.month, last_day).date()
@@ -80,11 +79,7 @@ def get_stadistics_period(fecha_actual, last_day):
             noches_reservadas_hoy_a_fin_mes += contar_noches_entre_fechas(r.check_in_date, r.check_out_date, today, last_day)
 
         # Calcula las noches restantes incluyendo la noche del día de hoy
-        if es_mes_futuro:
-            noches_restantes_mes_days = noches_restantes_mes(first_day, last_day)
-        else:
-            noches_restantes_mes_days = noches_restantes_mes(today if es_mes_actual else first_day, last_day)
-
+        noches_restantes_mes_days = noches_restantes_mes(today if es_mes_actual else first_day, last_day)
         dias_libres_hoy_fin_mes = noches_restantes_mes_days - noches_reservadas_hoy_a_fin_mes
 
         pagos_recibidos_propiedad_mes = 0
