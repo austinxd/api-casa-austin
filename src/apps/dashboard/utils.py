@@ -39,9 +39,8 @@ def get_stadistics_period(fecha_actual, last_day):
     es_mes_actual = (fecha_actual.month == today.month and fecha_actual.year == today.year)
 
     first_day = datetime(fecha_actual.year, fecha_actual.month, 1).date()
-    if es_mes_actual:
-        first_day = today
     last_day = datetime(fecha_actual.year, fecha_actual.month, last_day).date()
+    fecha_inicio_calculo = today if es_mes_actual else first_day
 
     days_without_reservations_per_property = []
     days_without_reservations_total = 0
@@ -56,12 +55,12 @@ def get_stadistics_period(fecha_actual, last_day):
         ).filter(
             property=p
         ).filter(
-            Q(check_in_date__gte=first_day, check_in_date__lt=last_day + timedelta(days=1)) |
-            Q(check_out_date__gte=first_day, check_out_date__lt=last_day + timedelta(days=1))
+            Q(check_in_date__gte=fecha_inicio_calculo, check_in_date__lt=last_day + timedelta(days=1)) |
+            Q(check_out_date__gte=fecha_inicio_calculo, check_out_date__lt=last_day + timedelta(days=1))
         )
 
         if es_mes_actual:
-            reservations_from_current_day = reservations_from_current_day.exclude(check_out_date__lt=first_day)
+            reservations_from_current_day = reservations_from_current_day.exclude(check_out_date__lt=today)
 
         # Query para contar las reservas en todo el mes
         query_reservation_check_in_month = Reservation.objects.exclude(
@@ -77,10 +76,10 @@ def get_stadistics_period(fecha_actual, last_day):
 
         noches_reservadas_hoy_a_fin_mes = 0
         for r in reservations_from_current_day.exclude(deleted=True).order_by('check_in_date'):
-            noches_reservadas_hoy_a_fin_mes += contar_noches_entre_fechas(r.check_in_date, r.check_out_date, first_day, last_day)
+            noches_reservadas_hoy_a_fin_mes += contar_noches_entre_fechas(r.check_in_date, r.check_out_date, today, last_day)
 
         # Calcula las noches restantes incluyendo la noche del día de hoy
-        noches_restantes_mes_days = noches_restantes_mes(first_day, last_day)
+        noches_restantes_mes_days = noches_restantes_mes(today if es_mes_actual else first_day, last_day)
         dias_libres_hoy_fin_mes = noches_restantes_mes_days - noches_reservadas_hoy_a_fin_mes
 
         pagos_recibidos_propiedad_mes = 0
