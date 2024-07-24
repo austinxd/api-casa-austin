@@ -53,6 +53,7 @@ def get_stadistics_period(fecha_actual, last_day):
     days_without_reservations_total = 0
     total_por_cobrar = 0
     total_facturado = 0
+    total_noches_man = 0
 
     total_days_for_all_properties = 0
     for p in Property.objects.exclude(deleted=True):
@@ -77,6 +78,9 @@ def get_stadistics_period(fecha_actual, last_day):
             check_in_date__range=(first_day, last_day)
         )
 
+        # Query para contar las noches de "man"
+        query_reservation_check_in_month_man = query_reservation_check_in_month.filter(origin='man')
+
         noches_reservadas = 0
         for r in query_reservation_check_in_month.exclude(origin='man').exclude(deleted=True).order_by('check_in_date'):
             noches_reservadas += contar_noches_reservadas_del_mes(r.check_in_date, r.check_out_date, first_day, last_day)
@@ -84,6 +88,10 @@ def get_stadistics_period(fecha_actual, last_day):
         noches_reservadas_hoy_a_fin_mes = 0
         for r in reservations_from_current_day.exclude(deleted=True).order_by('check_in_date'):
             noches_reservadas_hoy_a_fin_mes += contar_noches_entre_fechas(r.check_in_date, r.check_out_date, fecha_inicio_calculo, last_day)
+
+        noches_man = 0
+        for r in query_reservation_check_in_month_man.exclude(deleted=True).order_by('check_in_date'):
+            noches_man += contar_noches_reservadas_del_mes(r.check_in_date, r.check_out_date, first_day, last_day)
 
         # Calcula las noches restantes incluyendo la noche del día de hoy
         noches_restantes_mes_days = noches_restantes_mes(fecha_inicio_calculo, last_day)
@@ -113,13 +121,15 @@ def get_stadistics_period(fecha_actual, last_day):
             'property__background_color': p.background_color,
             'dias_libres': dias_libres_hoy_fin_mes,
             'dias_ocupada': noches_reservadas,
+            'noches_man': noches_man,
             'dinero_por_cobrar': round(valor_propiedad_mes - pagos_recibidos_propiedad_mes, 2),
             'dinero_facturado': round(valor_propiedad_mes + profit_propiedad_mes_airbnb),
         })
 
         days_without_reservations_total += dias_libres_hoy_fin_mes
         total_days_for_all_properties += noches_reservadas
+        total_noches_man += noches_man
         total_por_cobrar += valor_propiedad_mes - pagos_recibidos_propiedad_mes
         total_facturado += valor_propiedad_mes + profit_propiedad_mes_airbnb
 
-    return days_without_reservations_per_property, days_without_reservations_total, total_days_for_all_properties, '%.2f' % total_por_cobrar, '%.2f' % total_facturado
+    return days_without_reservations_per_property, days_without_reservations_total, total_days_for_all_properties, total_noches_man, '%.2f' % total_por_cobrar, '%.2f' % total_facturado
