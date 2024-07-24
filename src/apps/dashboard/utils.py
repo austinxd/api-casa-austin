@@ -8,8 +8,9 @@ from apps.core.functions import contar_noches_reserva, noches_restantes_mes
 
 def get_stadistics_period(fecha_actual, last_day):
 
-    first_day = datetime(fecha_actual.year, fecha_actual.month, 1)
-    last_day = datetime(fecha_actual.year, fecha_actual.month, last_day)
+    first_day = datetime(fecha_actual.year, fecha_actual.month, 1).date()
+    last_day = datetime(fecha_actual.year, fecha_actual.month, last_day).date()
+    fecha_actual = fecha_actual.date()
 
     days_without_reservations_per_property = []
     days_without_reservations_total = 0
@@ -18,7 +19,7 @@ def get_stadistics_period(fecha_actual, last_day):
 
     total_days_for_all_properties = 0
     for p in Property.objects.exclude(deleted=True):
-        # Query 1 para contar las noches libres desde hoy en adelante
+        # Query para contar las noches libres desde hoy en adelante
         reservations_from_current_day = Reservation.objects.exclude(
             deleted=True
         ).filter(
@@ -30,12 +31,12 @@ def get_stadistics_period(fecha_actual, last_day):
         noches_reservadas_hoy_a_fin_mes = 0
         for r in reservations_from_current_day.exclude(deleted=True).order_by('check_in_date'):
             noches_reservadas_hoy_a_fin_mes += contar_noches_reserva(
-                max(r.check_in_date, fecha_actual), 
-                min(r.check_out_date, last_day), 
-                last_day.date()
+                max(r.check_in_date.date(), fecha_actual), 
+                min(r.check_out_date.date(), last_day), 
+                last_day
             )
         
-        noches_restantes_mes_days = noches_restantes_mes(fecha_actual.date(), last_day.date())
+        noches_restantes_mes_days = noches_restantes_mes(fecha_actual, last_day)
         dias_libres_hoy_fin_mes = noches_restantes_mes_days - noches_reservadas_hoy_a_fin_mes
 
         pagos_recibidos_propiedad_mes = 0
