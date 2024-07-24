@@ -1,15 +1,18 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from apps.property.models import Property, ProfitPropertyAirBnb
 from apps.reservation.models import Reservation
-
 from django.db.models import Sum, Q
-
-from apps.core.functions import contar_noches_reserva, noches_restantes_mes
+from apps.core.functions import noches_restantes_mes
 
 def contar_noches_reservadas_del_mes(inicio, fin, first_day, last_day):
     """
     Cuenta las noches de una reserva dentro del mes en curso.
     """
+    inicio = inicio.date() if isinstance(inicio, datetime) else inicio
+    fin = fin.date() if isinstance(fin, datetime) else fin
+    first_day = first_day.date() if isinstance(first_day, datetime) else first_day
+    last_day = last_day.date() if isinstance(last_day, datetime) else last_day
+
     if inicio < first_day:
         inicio = first_day
     if fin > last_day:
@@ -17,7 +20,14 @@ def contar_noches_reservadas_del_mes(inicio, fin, first_day, last_day):
     return (fin - inicio).days
 
 def contar_noches_entre_fechas(inicio, fin, fecha_actual, last_day):
-    # Asegúrate de que inicio no sea antes de hoy y fin no sea después del último día del mes
+    """
+    Cuenta las noches de una reserva desde la fecha actual hasta el fin de la reserva o fin de mes.
+    """
+    inicio = inicio.date() if isinstance(inicio, datetime) else inicio
+    fin = fin.date() if isinstance(fin, datetime) else fin
+    fecha_actual = fecha_actual.date() if isinstance(fecha_actual, datetime) else fecha_actual
+    last_day = last_day.date() if isinstance(last_day, datetime) else last_day
+
     if inicio < fecha_actual:
         inicio = fecha_actual
     if fin > last_day:
@@ -26,8 +36,8 @@ def contar_noches_entre_fechas(inicio, fin, fecha_actual, last_day):
 
 def get_stadistics_period(fecha_actual, last_day):
 
-    first_day = datetime(fecha_actual.year, fecha_actual.month, 1)
-    last_day = datetime(fecha_actual.year, fecha_actual.month, last_day)
+    first_day = datetime(fecha_actual.year, fecha_actual.month, 1).date()
+    last_day = datetime(fecha_actual.year, fecha_actual.month, last_day).date()
 
     days_without_reservations_per_property = []
     days_without_reservations_total = 0
@@ -46,22 +56,12 @@ def get_stadistics_period(fecha_actual, last_day):
             Q(check_out_date__gte=first_day, check_out_date__lt=last_day)
         ).exclude(check_out_date__lt=fecha_actual)
 
-        # Query 2 para contar las ganancias en todo el mes
-        # reservations_month = Reservation.objects.exclude(
-        #         deleted=True
-        #     ).filter(
-        #     property=p
-        #         ).filter(
-        #             Q(check_in_date__gte=first_day, check_in_date__lt=last_day) |
-        #             Q(check_out_date__gte=first_day, check_out_date__lt=last_day)
-        #         )
-
-        range_evaluate = (first_day, last_day)
+        # Query para contar las reservas en todo el mes
         query_reservation_check_in_month = Reservation.objects.exclude(
             deleted=True
         ).filter(
             property=p,
-            check_in_date__range=range_evaluate
+            check_in_date__range=(first_day, last_day)
         )
 
         noches_reservadas = 0
@@ -70,10 +70,10 @@ def get_stadistics_period(fecha_actual, last_day):
 
         noches_reservadas_hoy_a_fin_mes = 0
         for r in reservations_from_current_day.exclude(deleted=True).order_by('check_in_date'):
-            noches_reservadas_hoy_a_fin_mes += contar_noches_entre_fechas(r.check_in_date, r.check_out_date, fecha_actual.date(), last_day.date())
+            noches_reservadas_hoy_a_fin_mes += contar_noches_entre_fechas(r.check_in_date, r.check_out_date, fecha_actual, last_day)
 
         # Calcula las noches restantes incluyendo la noche del día de hoy
-        noches_restantes_mes_days = noches_restantes_mes(fecha_actual.date(), last_day.date())
+        noches_restantes_mes_days = noches_restantes_mes(fecha_actual.date(), last_day)
         dias_libres_hoy_fin_mes = noches_restantes_mes_days - noches_reservadas_hoy_a_fin_mes
 
         pagos_recibidos_propiedad_mes = 0
