@@ -2,27 +2,12 @@ from datetime import datetime, timedelta
 from apps.property.models import Property, ProfitPropertyAirBnb
 from apps.reservation.models import Reservation
 from django.db.models import Sum, Q
-
 from apps.core.functions import contar_noches_reserva, noches_restantes_mes
 
-def contar_noches_reserva(check_in_date, check_out_date, last_day, count_all_month=True):
-    # Asegurarse de que las fechas de check-in y check-out estén dentro del rango de evaluación
-    check_in_date = max(check_in_date, last_day)
-    check_out_date = min(check_out_date, last_day + timedelta(days=1))  # incluir noche del último día
-    
-    # Calcular el número de noches entre check-in y check-out
-    delta = (check_out_date - check_in_date).days
-    return delta if delta > 0 else 0
-
-def noches_restantes_mes(fecha_actual, last_day):
-    # Calcular el número de noches desde hoy hasta el fin del mes, incluyendo la noche del último día
-    delta = (last_day - fecha_actual).days + 1
-    return delta if delta >= 0 else 0
-
 def get_stadistics_period(fecha_actual, last_day):
-    first_day = datetime(fecha_actual.year, fecha_actual.month, 1).date()
-    last_day = datetime(fecha_actual.year, fecha_actual.month, last_day).date()
-    fecha_actual = fecha_actual.date()  # Asegurarse de que fecha_actual sea un objeto date
+
+    first_day = datetime(fecha_actual.year, fecha_actual.month, 1)
+    last_day = datetime(fecha_actual.year, fecha_actual.month, last_day)
 
     days_without_reservations_per_property = []
     days_without_reservations_total = 0
@@ -30,37 +15,42 @@ def get_stadistics_period(fecha_actual, last_day):
     total_facturado = 0
 
     total_days_for_all_properties = 0
-
     for p in Property.objects.exclude(deleted=True):
-        # Query para contar las reservas dentro del período del mes actual
-        reservations_in_month = Reservation.objects.exclude(
+        # Query para contar las noches libres de acá en adelante
+        reservations_from_current_day = Reservation.objects.exclude(
             deleted=True
         ).filter(
             property=p
         ).filter(
-            Q(check_in_date__lte=last_day) &
-            Q(check_out_date__gte=first_day)
+            Q(check_in_date__gte=first_day, check_in_date__lte=last_day) |
+            Q(check_out_date__gte=first_day, check_out_date__lte=last_day)
+        ).exclude(check_out_date__lt=fecha_actual)
+
+        range_evaluate = (first_day, last_day)
+        query_reservation_check_in_month = Reservation.objects.exclude(
+            deleted=True
+        ).filter(
+            property=p,
+            check_in_date__range=range_evaluate
         )
 
-        # Contar noches reservadas desde el primer día del mes hasta el último día del mes
         noches_reservadas = 0
-        for r in reservations_in_month.exclude(deleted=True).order_by('check_in_date'):
-            noches_reservadas += contar_noches_reserva(max(r.check_in_date, first_day), min(r.check_out_date, last_day), last_day)
+        for r in query_reservation_check_in_month.exclude(origin='man').exclude(deleted=True).order_by('check_in_date'):
+            noches_reservadas += contar_noches_reserva(r.check_in_date, r.check_out_date, last_day.date(), count_all_month=False)
 
-        # Contar noches reservadas desde el día actual hasta el último día del mes
         noches_reservadas_hoy_a_fin_mes = 0
-        for r in reservations_in_month.exclude(deleted=True).order_by('check_in_date'):
-            if r.check_out_date >= fecha_actual:
-                noches_reservadas_hoy_a_fin_mes += contar_noches_reserva(max(r.check_in_date, fecha_actual), min(r.check_out_date, last_day), last_day)
+        for r in reservations_from_current_day.exclude(deleted=True).order_by('check_in_date'):
+            noches_reservadas_hoy_a_fin_mes += contar_noches_reserva(r.check_in_date, r.check_out_date, last_day.date())
 
-        noches_restantes_mes_days = noches_restantes_mes(fecha_actual, last_day)
+        # Calcula las noches restantes incluyendo la noche del día de hoy
+        noches_restantes_mes_days = noches_restantes_mes(fecha_actual.date(), last_day.date())
         dias_libres_hoy_fin_mes = noches_restantes_mes_days - noches_reservadas_hoy_a_fin_mes
 
         pagos_recibidos_propiedad_mes = 0
-        for r in reservations_in_month:
+        for r in query_reservation_check_in_month:
             pagos_recibidos_propiedad_mes += r.adelanto_normalizado
 
-        valor_propiedad_mes = reservations_in_month.aggregate(pagos=Sum('price_sol'))
+        valor_propiedad_mes = query_reservation_check_in_month.aggregate(pagos=Sum('price_sol'))
 
         if valor_propiedad_mes['pagos']:
             valor_propiedad_mes = float(valor_propiedad_mes['pagos'])
@@ -68,9 +58,9 @@ def get_stadistics_period(fecha_actual, last_day):
             valor_propiedad_mes = 0
 
         query_profit_airbnb_property = ProfitPropertyAirBnb.objects.filter(
-          property=p,
-          month=fecha_actual.month,
-          year=fecha_actual.year  
+            property=p,
+            month=fecha_actual.month,
+            year=fecha_actual.year
         )
 
         profit_propiedad_mes_airbnb = float(query_profit_airbnb_property.first().profit_sol) if query_profit_airbnb_property else 0
