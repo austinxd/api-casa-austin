@@ -4,14 +4,20 @@ from apps.reservation.models import Reservation
 from django.db.models import Sum, Q
 from apps.core.functions import noches_restantes_mes
 
+def convertir_a_fecha(fecha):
+    """
+    Convierte un objeto datetime o date a un objeto date.
+    """
+    return fecha.date() if isinstance(fecha, datetime) else fecha
+
 def contar_noches_reservadas_del_mes(inicio, fin, first_day, last_day):
     """
     Cuenta las noches de una reserva dentro del mes en curso.
     """
-    inicio = inicio.date() if isinstance(inicio, datetime) else inicio
-    fin = fin.date() if isinstance(fin, datetime) else fin
-    first_day = first_day.date() if isinstance(first_day, datetime) else first_day
-    last_day = last_day.date() if isinstance(last_day, datetime) else last_day
+    inicio = convertir_a_fecha(inicio)
+    fin = convertir_a_fecha(fin)
+    first_day = convertir_a_fecha(first_day)
+    last_day = convertir_a_fecha(last_day)
 
     if inicio < first_day:
         inicio = first_day
@@ -23,10 +29,10 @@ def contar_noches_entre_fechas(inicio, fin, fecha_actual, last_day):
     """
     Cuenta las noches de una reserva desde la fecha actual hasta el fin de la reserva o fin de mes.
     """
-    inicio = inicio.date() if isinstance(inicio, datetime) else inicio
-    fin = fin.date() if isinstance(fin, datetime) else fin
-    fecha_actual = fecha_actual.date() if isinstance(fecha_actual, datetime) else fecha_actual
-    last_day = last_day.date() if isinstance(last_day, datetime) else last_day
+    inicio = convertir_a_fecha(inicio)
+    fin = convertir_a_fecha(fin)
+    fecha_actual = convertir_a_fecha(fecha_actual)
+    last_day = convertir_a_fecha(last_day)
 
     if inicio < fecha_actual:
         inicio = fecha_actual
