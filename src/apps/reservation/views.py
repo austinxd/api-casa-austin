@@ -424,7 +424,7 @@ class ProfitApiView(APIView):
         for m in range(1, 13):
             last_day_month = calendar.monthrange(evaluate_year, m)[1]
 
-            _, _, _, _, total_facturado = get_stadistics_period(
+            _, _, _, _, _, total_facturado = get_stadistics_period(
                 datetime(evaluate_year, m, 1),
                 last_day_month
             )
@@ -435,6 +435,7 @@ class ProfitApiView(APIView):
             rta,
             status=200
         )
+
 
 ############ Austin MOD ############
 class VistaCalendarioApiView(viewsets.ModelViewSet):
