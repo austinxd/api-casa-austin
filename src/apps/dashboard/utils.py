@@ -2,11 +2,11 @@ from datetime import datetime, timedelta
 from apps.property.models import Property, ProfitPropertyAirBnb
 from apps.reservation.models import Reservation
 from django.db.models import Sum, Q
-from apps.core.functions import contar_noches_reserva, noches_restantes_mes
 
 def get_stadistics_period(fecha_actual, last_day):
-    first_day = datetime(fecha_actual.year, fecha_actual.month, 1)
-    last_day = datetime(fecha_actual.year, fecha_actual.month, last_day)
+    first_day = datetime(fecha_actual.year, fecha_actual.month, 1).date()
+    last_day = datetime(fecha_actual.year, fecha_actual.month, last_day).date()
+    fecha_actual = fecha_actual.date()
 
     days_without_reservations_per_property = []
     total_free_days = 0
@@ -20,7 +20,7 @@ def get_stadistics_period(fecha_actual, last_day):
             deleted=True
         ).filter(
             property=p,
-            check_in_date__lt=last_day,
+            check_in_date__lt=last_day + timedelta(days=1),
             check_out_date__gte=first_day
         )
 
