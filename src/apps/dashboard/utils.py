@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 from apps.property.models import Property, ProfitPropertyAirBnb
 from apps.reservation.models import Reservation
 
@@ -56,9 +55,9 @@ def get_stadistics_period(fecha_actual, last_day):
         valor_propiedad_mes = query_reservation_check_in_month.aggregate(pagos=Sum('price_sol'))
 
         if valor_propiedad_mes['pagos']:
-            valor_propiedad_mes = Decimal(valor_propiedad_mes['pagos'])
+            valor_propiedad_mes = float(valor_propiedad_mes['pagos'])
         else:
-            valor_propiedad_mes = Decimal(0)
+            valor_propiedad_mes = 0
 
         query_profit_airbnb_property = ProfitPropertyAirBnb.objects.filter(
             property=p,
@@ -66,24 +65,21 @@ def get_stadistics_period(fecha_actual, last_day):
             year=fecha_actual.year
         )
 
-        profit_propiedad_mes_airbnb = Decimal(query_profit_airbnb_property.first().profit_sol) if query_profit_airbnb_property else Decimal(0)
-
-        dinero_facturado = valor_propiedad_mes + profit_propiedad_mes_airbnb
-        dinero_por_cobrar = valor_propiedad_mes - pagos_recibidos_propiedad_mes
+        profit_propiedad_mes_airbnb = float(query_profit_airbnb_property.first().profit_sol) if query_profit_airbnb_property else 0
 
         days_without_reservations_per_property.append({
             'casa': p.name,
             'property__background_color': p.background_color,
             'dias_libres': dias_libres_hoy_fin_mes,
             'dias_ocupada': noches_reservadas,
-            'dinero_por_cobrar': round(dinero_por_cobrar, 2),
-            'dinero_facturado': round(dinero_facturado, 2),
+            'dinero_por_cobrar': round(valor_propiedad_mes - pagos_recibidos_propiedad_mes, 2),
+            'dinero_facturado': round(valor_propiedad_mes + profit_propiedad_mes_airbnb),
         })
 
         days_without_reservations_total += dias_libres_hoy_fin_mes
         total_days_for_all_properties += noches_reservadas
 
-        total_por_cobrar += dinero_por_cobrar
-        total_facturado += dinero_facturado
+        total_por_cobrar += valor_propiedad_mes - pagos_recibidos_propiedad_mes
+        total_facturado += valor_propiedad_mes + profit_propiedad_mes_airbnb
 
     return days_without_reservations_per_property, days_without_reservations_total, total_days_for_all_properties, '%.2f' % total_por_cobrar, '%.2f' % total_facturado
