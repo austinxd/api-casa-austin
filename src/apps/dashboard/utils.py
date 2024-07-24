@@ -31,15 +31,21 @@ def get_stadistics_period(fecha_actual, last_day):
         )
 
         # Calcular noches ocupadas para la propiedad
-        noches_ocupadas = sum((min(r.check_out_date, last_day) - max(r.check_in_date, first_day)).days for r in reservations_in_month)
+        noches_ocupadas = sum(
+            (min(r.check_out_date, last_day) - max(r.check_in_date, first_day)).days 
+            for r in reservations_in_month
+        )
 
-        # Calcular noches libres para la propiedad
+        # Calcular noches libres para la propiedad en el rango completo del mes
         total_days_in_month = (last_day - first_day).days + 1
         noches_libres = total_days_in_month - noches_ocupadas
 
         # Calcular noches libres desde hoy hasta fin de mes para el mes actual
-        noches_ocupadas_hasta_fin_mes = sum((min(r.check_out_date, last_day) - max(r.check_in_date, first_day_free_days)).days for r in reservations_in_month)
-        noches_libres_hasta_fin_mes = (last_day - first_day_free_days).days + 1 - noches_ocupadas_hasta_fin_mes
+        noches_ocupadas_hasta_fin_mes = sum(
+            (min(r.check_out_date, last_day) - max(r.check_in_date, first_day_free_days)).days 
+            for r in reservations_in_month
+        )
+        noches_libres_hasta_fin_mes = max((last_day - first_day_free_days).days + 1 - noches_ocupadas_hasta_fin_mes, 0)
 
         # Calcular el dinero por cobrar y facturado
         pagos_recibidos_propiedad_mes = reservations_in_month.aggregate(pagos=Sum('advance_payment'))['pagos'] or 0
@@ -60,7 +66,11 @@ def get_stadistics_period(fecha_actual, last_day):
             'dinero_facturado': round(valor_propiedad_mes + profit_propiedad_mes_airbnb),
         })
 
-        total_free_days += noches_libres_hasta_fin_mes
+        if fecha_actual.month == today.month and fecha_actual.year == today.year:
+            total_free_days += noches_libres_hasta_fin_mes
+        else:
+            total_free_days += noches_libres
+
         total_ocuppied_days += noches_ocupadas
         total_por_cobrar += valor_propiedad_mes - pagos_recibidos_propiedad_mes
         total_facturado += valor_propiedad_mes + profit_propiedad_mes_airbnb
