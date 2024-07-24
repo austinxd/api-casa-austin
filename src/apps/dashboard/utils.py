@@ -42,8 +42,8 @@ def contar_noches_entre_fechas(inicio, fin, fecha_actual, last_day):
 
 def get_stadistics_period(fecha_actual, last_day):
     today = datetime.now().date()
+    fecha_actual = convertir_a_fecha(fecha_actual)
     es_mes_actual = (fecha_actual.month == today.month and fecha_actual.year == today.year)
-    es_mes_anterior = (fecha_actual < today.replace(day=1))
 
     first_day = datetime(fecha_actual.year, fecha_actual.month, 1).date()
     last_day = datetime(fecha_actual.year, fecha_actual.month, last_day).date()
