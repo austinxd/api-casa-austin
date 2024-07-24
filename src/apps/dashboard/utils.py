@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from apps.property.models import Property, ProfitPropertyAirBnb
 from apps.reservation.models import Reservation
 
