@@ -35,9 +35,13 @@ def contar_noches_entre_fechas(inicio, fin, fecha_actual, last_day):
     return (fin - inicio).days
 
 def get_stadistics_period(fecha_actual, last_day):
-
+    fecha_actual = datetime.now().date()
     first_day = datetime(fecha_actual.year, fecha_actual.month, 1).date()
     last_day = datetime(fecha_actual.year, fecha_actual.month, last_day).date()
+
+    # Si estamos en el mes actual, ajustamos el 'first_day' para que comience hoy
+    if first_day.year == fecha_actual.year and first_day.month == fecha_actual.month:
+        first_day = fecha_actual
 
     days_without_reservations_per_property = []
     days_without_reservations_total = 0
@@ -46,7 +50,6 @@ def get_stadistics_period(fecha_actual, last_day):
 
     total_days_for_all_properties = 0
     for p in Property.objects.exclude(deleted=True):
-        # Query 1 para contar las noches libres de acá en adelante
         reservations_from_current_day = Reservation.objects.exclude(
             deleted=True
         ).filter(
@@ -56,7 +59,6 @@ def get_stadistics_period(fecha_actual, last_day):
             Q(check_out_date__gte=first_day, check_out_date__lt=last_day + timedelta(days=1))
         ).exclude(check_out_date__lt=fecha_actual)
 
-        # Query para contar las reservas en todo el mes
         query_reservation_check_in_month = Reservation.objects.exclude(
             deleted=True
         ).filter(
@@ -72,8 +74,7 @@ def get_stadistics_period(fecha_actual, last_day):
         for r in reservations_from_current_day.exclude(deleted=True).order_by('check_in_date'):
             noches_reservadas_hoy_a_fin_mes += contar_noches_entre_fechas(r.check_in_date, r.check_out_date, fecha_actual, last_day)
 
-        # Calcula las noches restantes incluyendo la noche del día de hoy
-        noches_restantes_mes_days = noches_restantes_mes(fecha_actual.date(), last_day)
+        noches_restantes_mes_days = noches_restantes_mes(first_day, last_day)
         dias_libres_hoy_fin_mes = noches_restantes_mes_days - noches_reservadas_hoy_a_fin_mes
 
         pagos_recibidos_propiedad_mes = 0
