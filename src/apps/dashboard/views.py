@@ -77,15 +77,14 @@ class DashboardApiView(APIView):
 
         # Free days
         fecha_actual = datetime(year, month, 1)
-        free_days_per_house, free_days_total, ocuppied_days_total, total_por_cobrar, total_facturado = get_stadistics_period(fecha_actual, last_day_month)
+        free_days_per_house, free_days_total, ocuppied_days_total, noches_man, total_por_cobrar, total_facturado = get_stadistics_period(fecha_actual, last_day_month)
 
         content['free_days_per_house'] = free_days_per_house
         content['free_days_total'] = free_days_total
         content['ocuppied_days_total'] = ocuppied_days_total
-
+        content['noches_man'] = noches_man
         content['dinero_por_cobrar'] = total_por_cobrar
         content['dinero_total_facturado'] = total_facturado
-
 
         # End Free days
 
