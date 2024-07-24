@@ -1,21 +1,22 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from apps.property.models import Property, ProfitPropertyAirBnb
 from apps.reservation.models import Reservation
 from django.db.models import Sum, Q
 from apps.core.functions import contar_noches_reserva, noches_restantes_mes
 
 def get_stadistics_period(fecha_actual, last_day):
-    first_day = datetime(fecha_actual.year, fecha_actual.month, 1)
-    last_day = datetime(fecha_actual.year, fecha_actual.month, last_day)
+    first_day = datetime(fecha_actual.year, fecha_actual.month, 1).date()
+    last_day = datetime(fecha_actual.year, fecha_actual.month, last_day).date()
+    fecha_actual = fecha_actual.date()
 
     days_without_reservations_per_property = []
-    days_without_reservations_total = 0
+    total_free_days = 0
+    total_ocuppied_days = 0
     total_por_cobrar = 0
     total_facturado = 0
 
-    total_days_for_all_properties = 0
     for p in Property.objects.exclude(deleted=True):
-        # Query 1 para contar las noches libres de acá en adelante
+        # Query para contar las noches libres de acá en adelante
         reservations_from_current_day = Reservation.objects.exclude(
             deleted=True
         ).filter(
@@ -25,7 +26,7 @@ def get_stadistics_period(fecha_actual, last_day):
             Q(check_out_date__gte=first_day, check_out_date__lt=last_day)
         ).exclude(check_out_date__lt=fecha_actual)
 
-        # Query 2 para contar las ganancias en todo el mes
+        # Query para contar las reservas en el mes actual
         range_evaluate = (first_day, last_day)
         query_reservation_check_in_month = Reservation.objects.exclude(
             deleted=True
@@ -36,18 +37,18 @@ def get_stadistics_period(fecha_actual, last_day):
 
         noches_reservadas = 0
         for r in query_reservation_check_in_month.exclude(origin='man').exclude(deleted=True).order_by('check_in_date'):
-            noches_reservadas += contar_noches_reserva(r.check_in_date, r.check_out_date, last_day.date(), count_all_month=False)
+            noches_reservadas += contar_noches_reserva(r.check_in_date, r.check_out_date, last_day, count_all_month=False)
 
         noches_reservadas_hoy_a_fin_mes = 0
         for r in reservations_from_current_day.exclude(deleted=True).order_by('check_in_date'):
-            noches_reservadas_hoy_a_fin_mes += contar_noches_reserva(r.check_in_date, r.check_out_date, last_day.date())
+            noches_reservadas_hoy_a_fin_mes += contar_noches_reserva(r.check_in_date, r.check_out_date, last_day)
 
-        noches_restantes_mes_days = noches_restantes_mes(fecha_actual.date(), last_day.date())
+        noches_restantes_mes_days = noches_restantes_mes(fecha_actual, last_day)
         dias_libres_hoy_fin_mes = noches_restantes_mes_days - noches_reservadas_hoy_a_fin_mes
 
         pagos_recibidos_propiedad_mes = 0
         for r in query_reservation_check_in_month:
-            pagos_recibidos_propiedad_mes += r.adelanto_normalizado
+            pagos_recibidos_propiedad_mes += r.advance_payment  # Cambiado a advance_payment
 
         valor_propiedad_mes = query_reservation_check_in_month.aggregate(pagos=Sum('price_sol'))
         if valor_propiedad_mes['pagos']:
@@ -72,9 +73,9 @@ def get_stadistics_period(fecha_actual, last_day):
             'dinero_facturado': round(valor_propiedad_mes + profit_propiedad_mes_airbnb),
         })
 
-        days_without_reservations_total += dias_libres_hoy_fin_mes
-        total_days_for_all_properties += noches_reservadas
+        total_free_days += dias_libres_hoy_fin_mes
+        total_ocuppied_days += noches_reservadas
         total_por_cobrar += valor_propiedad_mes - pagos_recibidos_propiedad_mes
         total_facturado += valor_propiedad_mes + profit_propiedad_mes_airbnb
 
-    return days_without_reservations_per_property, days_without_reservations_total, total_days_for_all_properties, '%.2f' % total_por_cobrar, '%.2f' % total_facturado
+    return days_without_reservations_per_property, total_free_days, total_ocuppied_days, '%.2f' % total_por_cobrar, '%.2f' % total_facturado
