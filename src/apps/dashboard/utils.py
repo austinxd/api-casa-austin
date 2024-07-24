@@ -47,13 +47,11 @@ def get_stadistics_period(fecha_actual, last_day):
             total_days_in_month = (last_day - first_day).days + 1
             noches_libres = total_days_in_month - noches_ocupadas
 
-        # Calcular el dinero por cobrar y facturado
-        pagos_recibidos_propiedad_mes = reservations_in_month.aggregate(
-            pagos=Sum('advance_payment')
-        )['pagos'] or 0
-        valor_propiedad_mes = reservations_in_month.aggregate(
-            pagos=Sum('price_sol')
-        )['pagos'] or 0
+        # Calcular el valor total de las reservas y los pagos recibidos para la propiedad en el mes actual
+        valor_propiedad_mes = reservations_in_month.aggregate(pagos=Sum('price_sol'))['pagos'] or 0
+        pagos_recibidos_propiedad_mes = reservations_in_month.aggregate(pagos=Sum('advance_payment'))['pagos'] or 0
+
+        # Calcular el total facturado incluyendo el profit de Airbnb si existe
         query_profit_airbnb_property = ProfitPropertyAirBnb.objects.filter(
             property=p,
             month=fecha_actual.month,
@@ -61,18 +59,21 @@ def get_stadistics_period(fecha_actual, last_day):
         )
         profit_propiedad_mes_airbnb = float(query_profit_airbnb_property.first().profit_sol) if query_profit_airbnb_property else 0
 
+        dinero_facturado = valor_propiedad_mes + profit_propiedad_mes_airbnb
+        dinero_por_cobrar = dinero_facturado - pagos_recibidos_propiedad_mes
+
         days_without_reservations_per_property.append({
             'casa': p.name,
             'property__background_color': p.background_color,
             'dias_libres': noches_libres,
             'dias_ocupada': noches_ocupadas,
-            'dinero_por_cobrar': round(valor_propiedad_mes - pagos_recibidos_propiedad_mes, 2),
-            'dinero_facturado': round(valor_propiedad_mes + profit_propiedad_mes_airbnb, 2),
+            'dinero_por_cobrar': round(dinero_por_cobrar, 2),
+            'dinero_facturado': round(dinero_facturado, 2),
         })
 
         total_free_days += noches_libres
         total_ocuppied_days += noches_ocupadas
-        total_por_cobrar += valor_propiedad_mes - pagos_recibidos_propiedad_mes
-        total_facturado += valor_propiedad_mes + profit_propiedad_mes_airbnb
+        total_por_cobrar += dinero_por_cobrar
+        total_facturado += dinero_facturado
 
     return days_without_reservations_per_property, total_free_days, total_ocuppied_days, '%.2f' % total_por_cobrar, '%.2f' % total_facturado
