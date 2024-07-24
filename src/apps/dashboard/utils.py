@@ -35,10 +35,13 @@ def contar_noches_entre_fechas(inicio, fin, fecha_actual, last_day):
     return (fin - inicio).days
 
 def get_stadistics_period(fecha_actual, last_day):
-
+    today = datetime.now().date()
+    es_mes_actual = (fecha_actual.month == today.month and fecha_actual.year == today.year)
+    
     first_day = datetime(fecha_actual.year, fecha_actual.month, 1).date()
+    if es_mes_actual:
+        first_day = today
     last_day = datetime(fecha_actual.year, fecha_actual.month, last_day).date()
-    es_mes_actual = (fecha_actual.month == datetime.now().month and fecha_actual.year == datetime.now().year)
 
     days_without_reservations_per_property = []
     days_without_reservations_total = 0
