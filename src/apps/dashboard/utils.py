@@ -6,13 +6,7 @@ from django.db.models import Sum, Q
 def get_stadistics_period(fecha_actual, last_day):
     first_day = datetime(fecha_actual.year, fecha_actual.month, 1).date()
     last_day = datetime(fecha_actual.year, fecha_actual.month, last_day).date()
-    today = datetime.today().date()
-
-    # Determinar el rango de fechas para el cálculo de días libres totales
-    if fecha_actual.month == today.month and fecha_actual.year == today.year:
-        first_day_free_days = today
-    else:
-        first_day_free_days = first_day
+    fecha_actual = fecha_actual.date()
 
     days_without_reservations_per_property = []
     total_free_days = 0
@@ -31,21 +25,17 @@ def get_stadistics_period(fecha_actual, last_day):
         )
 
         # Calcular noches ocupadas para la propiedad
-        noches_ocupadas = sum(
-            (min(r.check_out_date, last_day) - max(r.check_in_date, first_day)).days 
-            for r in reservations_in_month
-        )
+        noches_ocupadas = sum((min(r.check_out_date, last_day) - max(r.check_in_date, first_day)).days for r in reservations_in_month)
 
-        # Calcular noches libres para la propiedad en el rango completo del mes
-        total_days_in_month = (last_day - first_day).days + 1
+        # Calcular noches libres para la propiedad
+        if fecha_actual.month == first_day.month and fecha_actual.year == first_day.year:
+            # Si estamos en el mes actual, considerar solo los días restantes del mes
+            total_days_in_month = (last_day - fecha_actual).days + 1
+        else:
+            # Si no estamos en el mes actual, considerar todos los días del mes
+            total_days_in_month = (last_day - first_day).days + 1
+        
         noches_libres = total_days_in_month - noches_ocupadas
-
-        # Calcular noches libres desde hoy hasta fin de mes para el mes actual
-        noches_ocupadas_hasta_fin_mes = sum(
-            (min(r.check_out_date, last_day) - max(r.check_in_date, first_day_free_days)).days 
-            for r in reservations_in_month
-        )
-        noches_libres_hasta_fin_mes = max((last_day - first_day_free_days).days + 1 - noches_ocupadas_hasta_fin_mes, 0)
 
         # Calcular el dinero por cobrar y facturado
         pagos_recibidos_propiedad_mes = reservations_in_month.aggregate(pagos=Sum('advance_payment'))['pagos'] or 0
@@ -66,11 +56,7 @@ def get_stadistics_period(fecha_actual, last_day):
             'dinero_facturado': round(valor_propiedad_mes + profit_propiedad_mes_airbnb),
         })
 
-        if fecha_actual.month == today.month and fecha_actual.year == today.year:
-            total_free_days += noches_libres_hasta_fin_mes
-        else:
-            total_free_days += noches_libres
-
+        total_free_days += noches_libres
         total_ocuppied_days += noches_ocupadas
         total_por_cobrar += valor_propiedad_mes - pagos_recibidos_propiedad_mes
         total_facturado += valor_propiedad_mes + profit_propiedad_mes_airbnb
