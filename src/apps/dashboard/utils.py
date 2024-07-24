@@ -37,7 +37,7 @@ def contar_noches_entre_fechas(inicio, fin, fecha_actual, last_day):
 def get_stadistics_period(fecha_actual, last_day):
     today = datetime.now().date()
     es_mes_actual = (fecha_actual.month == today.month and fecha_actual.year == today.year)
-    
+
     first_day = datetime(fecha_actual.year, fecha_actual.month, 1).date()
     if es_mes_actual:
         first_day = today
@@ -61,7 +61,7 @@ def get_stadistics_period(fecha_actual, last_day):
         )
 
         if es_mes_actual:
-            reservations_from_current_day = reservations_from_current_day.exclude(check_out_date__lt=fecha_actual)
+            reservations_from_current_day = reservations_from_current_day.exclude(check_out_date__lt=first_day)
 
         # Query para contar las reservas en todo el mes
         query_reservation_check_in_month = Reservation.objects.exclude(
@@ -77,10 +77,10 @@ def get_stadistics_period(fecha_actual, last_day):
 
         noches_reservadas_hoy_a_fin_mes = 0
         for r in reservations_from_current_day.exclude(deleted=True).order_by('check_in_date'):
-            noches_reservadas_hoy_a_fin_mes += contar_noches_entre_fechas(r.check_in_date, r.check_out_date, fecha_actual, last_day)
+            noches_reservadas_hoy_a_fin_mes += contar_noches_entre_fechas(r.check_in_date, r.check_out_date, first_day, last_day)
 
         # Calcula las noches restantes incluyendo la noche del día de hoy
-        noches_restantes_mes_days = noches_restantes_mes(fecha_actual.date(), last_day)
+        noches_restantes_mes_days = noches_restantes_mes(first_day, last_day)
         dias_libres_hoy_fin_mes = noches_restantes_mes_days - noches_reservadas_hoy_a_fin_mes
 
         pagos_recibidos_propiedad_mes = 0
