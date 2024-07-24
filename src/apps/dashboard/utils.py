@@ -39,13 +39,19 @@ def get_stadistics_period(fecha_actual, last_day):
 
     total_days_for_all_properties = 0
     for p in Property.objects.exclude(deleted=True):
+        if fecha_actual.month == datetime.now().month and fecha_actual.year == datetime.now().year:
+            # Si el mes actual es el mismo que el mes de hoy, usar fecha_actual en lugar de first_day
+            inicio_periodo = fecha_actual.date()
+        else:
+            inicio_periodo = first_day
+
         reservations_from_current_day = Reservation.objects.exclude(
             deleted=True
         ).filter(
             property=p
         ).filter(
-            Q(check_in_date__gte=first_day, check_in_date__lt=last_day + timedelta(days=1)) |
-            Q(check_out_date__gte=first_day, check_out_date__lt=last_day + timedelta(days=1))
+            Q(check_in_date__gte=inicio_periodo, check_in_date__lt=last_day + timedelta(days=1)) |
+            Q(check_out_date__gte=inicio_periodo, check_out_date__lt=last_day + timedelta(days=1))
         ).exclude(check_out_date__lt=fecha_actual)
 
         query_reservation_check_in_month = Reservation.objects.exclude(
