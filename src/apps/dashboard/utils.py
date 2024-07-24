@@ -1,3 +1,16 @@
+# En tu vista de Django
+from datetime import datetime
+from apps.dashboard.utils import get_stadistics_period, get_last_day_of_month
+
+class DashboardApiView(APIView):
+    def get(self, request, *args, **kwargs):
+        month = int(request.query_params.get('month'))
+        year = int(request.query_params.get('year'))
+        last_day = get_last_day_of_month(year, month)
+        result = get_stadistics_period(month, year, last_day)
+        return Response(result)
+
+# En tu archivo utils.py
 from datetime import datetime, timedelta
 from apps.property.models import Property, ProfitPropertyAirBnb
 from apps.reservation.models import Reservation
@@ -119,9 +132,3 @@ def get_stadistics_period(month, year, last_day):
         total_facturado += valor_propiedad_mes + profit_propiedad_mes_airbnb
 
     return days_without_reservations_per_property, days_without_reservations_total, total_days_for_all_properties, '%.2f' % total_por_cobrar, '%.2f' % total_facturado
-
-# Llamada a la función con los parámetros correctos
-month = 7
-year = 2024
-last_day = get_last_day_of_month(year, month)
-result = get_stadistics_period(month, year, last_day)
