@@ -16,7 +16,7 @@ def contar_noches_reservadas_del_mes(inicio, fin, first_day, last_day):
     if inicio < first_day:
         inicio = first_day
     if fin > last_day:
-        fin = last_day + 1
+        fin = last_day + timedelta(days=1)
     return (fin - inicio).days
 
 def contar_noches_entre_fechas(inicio, fin, fecha_actual, last_day):
@@ -31,7 +31,7 @@ def contar_noches_entre_fechas(inicio, fin, fecha_actual, last_day):
     if inicio < fecha_actual:
         inicio = fecha_actual
     if fin > last_day:
-        fin = last_day
+        fin = last_day + timedelta(days=1)
     return (fin - inicio).days
 
 def get_stadistics_period(fecha_actual, last_day):
@@ -52,8 +52,8 @@ def get_stadistics_period(fecha_actual, last_day):
         ).filter(
             property=p
         ).filter(
-            Q(check_in_date__gte=first_day, check_in_date__lt=last_day) |
-            Q(check_out_date__gte=first_day, check_out_date__lt=last_day)
+            Q(check_in_date__gte=first_day, check_in_date__lt=last_day + timedelta(days=1)) |
+            Q(check_out_date__gte=first_day, check_out_date__lt=last_day + timedelta(days=1))
         ).exclude(check_out_date__lt=fecha_actual)
 
         # Query para contar las reservas en todo el mes
