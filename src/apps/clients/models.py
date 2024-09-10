@@ -52,7 +52,7 @@ class Clients(BaseModel):
     tel_number = models.CharField(max_length=50, null=False, blank=False)
 
     manychat = models.PositiveIntegerField(null=True, blank=True)
-    id_manychat = models.PositiveIntegerField(null=True, blank=True)
+    id_manychat = models.CharField(max_length=255, null=True, blank=True)
     comentarios_clientes = models.TextField(blank=True, null=True, help_text="Comentarios sobre el cliente")
 
 
