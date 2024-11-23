@@ -461,33 +461,45 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
                 check_in_time = time(15, 0)  # 3 PM
                 check_out_time = time(11, 0)  # 11 AM
 
-                if self.request.query_params.get('year') and self.request.query_params.get('month'):
-                    try:
-                        month_param = int(self.request.query_params['month'])
-                        if not month_param in range(1, 13):
-                            raise ValidationError({"error": "Parámetro Mes debe ser un número entre el 1 y el 12"})
-                    except Exception:
-                        raise ValidationError({"error_month_param": "Parámetro Mes debe ser un número entre el 1 y el 12"})
+                # Modificación: Manejo del parámetro 'year' sin depender de 'month'
+                year_param = self.request.query_params.get('year')
+                month_param = self.request.query_params.get('month')
 
+                if year_param:
                     try:
-                        year_param = int(self.request.query_params['year'])
+                        year_param = int(year_param)
                         if year_param < 1:
-                            raise ValidationError({"error": "Parámetro Año debe ser un número entero positivo"})
-                    except Exception:
-                        raise ValidationError({"error_year_param": "Año debe ser un número entero positivo"})
+                            raise ValidationError({"error": "El parámetro 'year' debe ser un número entero positivo"})
+                    except ValueError:
+                        raise ValidationError({"error": "El parámetro 'year' debe ser un número válido"})
 
-                    last_day_month = calendar.monthrange(year_param, month_param)[1]
+                    if month_param:
+                        # Si 'month' también está presente
+                        try:
+                            month_param = int(month_param)
+                            if month_param not in range(1, 13):
+                                raise ValidationError({"error": "El parámetro 'month' debe ser un número entre 1 y 12"})
+                        except ValueError:
+                            raise ValidationError({"error": "El parámetro 'month' debe ser un número válido"})
 
-                    range_evaluate = (datetime(year_param, month_param, 1), datetime(year_param, month_param, last_day_month))
+                        # Filtrar por año y mes específico
+                        last_day_month = calendar.monthrange(year_param, month_param)[1]
+                        range_evaluate = (datetime(year_param, month_param, 1), datetime(year_param, month_param, last_day_month))
 
-                    if self.request.query_params.get('from_check_in') == 'true':
-                        queryset = queryset.filter(check_in_date__range=range_evaluate)
-                    else:
                         queryset = queryset.filter(
                             Q(check_in_date__range=range_evaluate) |
                             Q(check_out_date__range=range_evaluate)
                         )
+                    else:
+                        # Solo filtrar por año completo
+                        start_of_year = datetime(year_param, 1, 1)
+                        end_of_year = datetime(year_param, 12, 31)
+                        queryset = queryset.filter(
+                            Q(check_in_date__range=(start_of_year, end_of_year)) |
+                            Q(check_out_date__range=(start_of_year, end_of_year))
+                        )
 
+                # Otros filtros existentes
                 if from_param == 'today':
                     queryset = queryset.filter(check_in_date__gte=now)
                 elif from_param == 'in_progress':
