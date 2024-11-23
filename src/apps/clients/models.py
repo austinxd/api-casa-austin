@@ -32,6 +32,7 @@ class Clients(BaseModel):
     class GeneroChoice(models.TextChoices):
         M = "m", ("Masculino")
         F = "f", ("Femenino")
+        E = "e", ("Empresa")
 
     document_type = models.CharField(
         max_length=3,
@@ -48,7 +49,7 @@ class Clients(BaseModel):
     )
 
     email = models.EmailField(max_length=150, null=True, blank=True)
-    date = models.DateField()
+    date = models.DateField(null=True)
     tel_number = models.CharField(max_length=50, null=False, blank=False)
 
     manychat = models.PositiveIntegerField(null=True, blank=True)
