@@ -108,15 +108,30 @@ def notify_new_reservation(reservation):
     logger.debug(f"Enviando mensaje de Telegram al canal personal: {message_personal_channel} con imagen: {full_image_url}")
     send_telegram_message(message_personal_channel, settings.PERSONAL_CHAT_ID, full_image_url)
 
+def notify_modified_reservation(reservation):
+    client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
+    check_in_date = format_date_es(reservation.check_in_date)
+    check_out_date = format_date_es(reservation.check_out_date)
+    
+    message = (
+        f"******Modificación de reserva en {reservation.property.name}******\n"
+        f"Cliente: {client_name}\n"
+        f"Check-in : {check_in_date}\n"
+        f"Check-out : {check_out_date}\n"
+        f"Invitados : {reservation.guests}\n"
+        f"Precio actualizado: {reservation.price_usd:.2f} USD\n"
+    )
+
+    logger.debug(f"Enviando mensaje de modificación de Telegram: {message}")
+    send_telegram_message(message, settings.CHAT_ID)
+
+
 @receiver(post_save, sender=Reservation)
 def notify_reservation_changes(sender, instance, created, **kwargs):
-    chat_id = settings.TELEGRAM_ADMIN_CHAT_ID  # O puedes obtenerlo dinámicamente
-    
     if created:
-        message = f"Se ha creado una nueva reserva: {instance.id}"
+        logger.debug(f"Notificación de nueva reserva para: {instance}")
+        notify_new_reservation(instance)
     else:
-        message = f"Se ha modificado la reserva: {instance.id}"
-    
-    send_telegram_message(chat_id, message)
-
+        logger.debug(f"Notificación de modificación de reserva para: {instance}")
+        notify_modified_reservation(instance)
 
