@@ -15,7 +15,6 @@ MONTHS_ES = {
     9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
 }
 
-# Diccionario para traducir los días de la semana al español
 DAYS_ES = {
     0: "Lunes", 1: "Martes", 2: "Miércoles", 3: "Jueves",
     4: "Viernes", 5: "Sábado", 6: "Domingo"
@@ -37,11 +36,8 @@ def notify_new_reservation(reservation):
     client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
     temperature_pool_status = "Sí" if reservation.temperature_pool else "No"
 
-    # Formatear fechas
     check_in_date = format_date_es(reservation.check_in_date)
     check_out_date = format_date_es(reservation.check_out_date)
-    
-    # Obtener precios y adelanto
     price_usd = f"{reservation.price_usd:.2f} dólares"
     price_sol = f"{reservation.price_sol:.2f} soles"
     advance_payment = f"{reservation.advance_payment:.2f} {reservation.advance_payment_currency.upper()}"
@@ -68,51 +64,20 @@ def notify_new_reservation(reservation):
         f"Temperado : {temperature_pool_status}\n"
     )
 
-    # Inicializar full_image_urls
-    full_image_url = None
+    full_image_url = get_receipt_image_url(reservation)
 
-    # Verificar si hay un recibo asociado con una imagen
-    rental_receipt = RentalReceipt.objects.filter(reservation=reservation).first()
-    logger.debug(f"RentalReceipt encontrado: {rental_receipt}")
-    if rental_receipt and rental_receipt.file:
-        logger.debug(f"Archivo de recibo: {rental_receipt.file}")
-        if rental_receipt.file.name:
-            image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
-            full_image_url = f"http://api.casaaustin.pe{image_url}"
-            logger.debug(f"URL de la imagen completa: {full_image_url}")
-        else:
-            logger.debug("El campo file del RentalReceipt no tiene un nombre de archivo.")
-
-    # Enviar mensaje al primer canal
     logger.debug(f"Enviando mensaje de Telegram: {message} con imagen: {full_image_url}")
     send_telegram_message(message, settings.CHAT_ID, full_image_url)
 
-    # Verificar si la reserva es para el mismo día y enviar un mensaje al segundo canal
     if reservation.check_in_date == datetime.today().date():
         logger.debug("Reserva para el mismo día detectada, enviando al segundo canal.")
         send_telegram_message(message_today, settings.SECOND_CHAT_ID, full_image_url)
-    
-    # Enviar mensaje al usuario personal con el formato específico
-    birthday = format_date_es(reservation.client.date) if reservation.client and reservation.client.date else "No disponible"
-    upcoming_age = calculate_upcoming_age(reservation.client.date) if reservation.client and reservation.client.date else "No disponible"
-    message_personal_channel = (
-        f"******Reserva en {reservation.property.name}******\n"
-        f"Cliente: {client_name}\n"
-        f"Cumpleaños: {birthday} (Cumple {upcoming_age} años)\n"
-        f"Check-in : {check_in_date}\n"
-        f"Check-out : {check_out_date}\n"
-        f"Invitados : {reservation.guests}\n"
-        f"Temperado : {temperature_pool_status}\n"
-        f"Teléfono : https://wa.me/{reservation.tel_contact_number}"
-    )
-    logger.debug(f"Enviando mensaje de Telegram al canal personal: {message_personal_channel} con imagen: {full_image_url}")
-    send_telegram_message(message_personal_channel, settings.PERSONAL_CHAT_ID, full_image_url)
 
 def notify_modified_reservation(reservation):
     client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
     check_in_date = format_date_es(reservation.check_in_date)
     check_out_date = format_date_es(reservation.check_out_date)
-    
+
     message = (
         f"******Modificación de reserva en {reservation.property.name}******\n"
         f"Cliente: {client_name}\n"
@@ -122,16 +87,38 @@ def notify_modified_reservation(reservation):
         f"Precio actualizado: {reservation.price_usd:.2f} USD\n"
     )
 
-    logger.debug(f"Enviando mensaje de modificación de Telegram: {message}")
-    send_telegram_message(message, settings.CHAT_ID)
+    full_image_url = get_receipt_image_url(reservation)
 
+    logger.debug(f"Enviando mensaje de modificación de Telegram: {message} con imagen: {full_image_url}")
+    send_telegram_message(message, settings.CHAT_ID, full_image_url)
+
+    if reservation.check_in_date == datetime.today().date():
+        message_today = (
+            f"******Modificación PARA HOYYYY******\n"
+            f"Cliente: {client_name}\n"
+            f"Check-in : {check_in_date}\n"
+            f"Check-out : {check_out_date}\n"
+            f"Invitados : {reservation.guests}\n"
+        )
+        logger.debug("Reserva modificada para el mismo día detectada, enviando al segundo canal.")
+        send_telegram_message(message_today, settings.SECOND_CHAT_ID, full_image_url)
+
+def get_receipt_image_url(reservation):
+    rental_receipt = RentalReceipt.objects.filter(reservation=reservation).first()
+    if rental_receipt and rental_receipt.file and rental_receipt.file.name:
+        image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
+        return f"http://api.casaaustin.pe{image_url}"
+    return None
 
 @receiver(post_save, sender=Reservation)
 def notify_reservation_changes(sender, instance, created, **kwargs):
+    if getattr(instance, '_disable_signals', False):
+        logger.debug(f"Señal desactivada temporalmente para la reserva: {instance.id}")
+        return
+
     if created:
         logger.debug(f"Notificación de nueva reserva para: {instance}")
         notify_new_reservation(instance)
     else:
         logger.debug(f"Notificación de modificación de reserva para: {instance}")
         notify_modified_reservation(instance)
-
