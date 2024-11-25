@@ -1,7 +1,7 @@
 import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Reservation
+from .models import Reservation, RentalReceipt
 from ..core.telegram_notifier import send_telegram_message
 from django.conf import settings
 from datetime import datetime, date
@@ -15,6 +15,7 @@ MONTHS_ES = {
     9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
 }
 
+# Diccionario para traducir los días de la semana al español
 DAYS_ES = {
     0: "Lunes", 1: "Martes", 2: "Miércoles", 3: "Jueves",
     4: "Viernes", 5: "Sábado", 6: "Domingo"
@@ -26,98 +27,89 @@ def format_date_es(date):
     week_day = DAYS_ES[date.weekday()]
     return f"{week_day} {day} de {month}"
 
+def calculate_upcoming_age(born):
+    today = date.today()
+    this_year_birthday = date(today.year, born.month, born.day)
+    next_birthday = this_year_birthday if today <= this_year_birthday else date(today.year + 1, born.month, born.day)
+    return next_birthday.year - born.year
+
 def notify_new_reservation(reservation):
     client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
     temperature_pool_status = "Sí" if reservation.temperature_pool else "No"
 
+    # Formatear fechas
     check_in_date = format_date_es(reservation.check_in_date)
     check_out_date = format_date_es(reservation.check_out_date)
-    price_usd = f"{reservation.price_usd:.2f} USD"
+    
+    # Obtener precios y adelanto
+    price_usd = f"{reservation.price_usd:.2f} dólares"
     price_sol = f"{reservation.price_sol:.2f} soles"
     advance_payment = f"{reservation.advance_payment:.2f} {reservation.advance_payment_currency.upper()}"
 
-    # Mensaje general para el primer canal
     message = (
         f"******Reserva en {reservation.property.name}******\n"
         f"Cliente: {client_name}\n"
-        f"Check-in: {check_in_date}\n"
-        f"Check-out: {check_out_date}\n"
-        f"Invitados: {reservation.guests}\n"
-        f"Temperado: {temperature_pool_status}\n"
-        f"Precio (USD): {price_usd}\n"
-        f"Precio (Soles): {price_sol}\n"
-        f"Adelanto: {advance_payment}\n"
-        f"Teléfono: +{reservation.tel_contact_number}"
+        f"Check-in : {check_in_date}\n"
+        f"Check-out : {check_out_date}\n"
+        f"Invitados : {reservation.guests}\n"
+        f"Temperado : {temperature_pool_status}\n"
+        f"Precio (USD) : {price_usd}\n"
+        f"Precio (Soles) : {price_sol}\n"
+        f"Adelanto : {advance_payment}\n"
+        f"Teléfono : +{reservation.tel_contact_number}"
     )
 
-    logger.debug(f"Enviando notificación de nueva reserva: {message}")
-    send_telegram_message(message, settings.CHAT_ID)
+    message_today = (
+        f"******PARA HOYYYY******\n"
+        f"Cliente: {client_name}\n"
+        f"Check-in : {check_in_date}\n"
+        f"Check-out : {check_out_date}\n"
+        f"Invitados : {reservation.guests}\n"
+        f"Temperado : {temperature_pool_status}\n"
+    )
 
-    # Mensaje "PARA HOYYYY" para el canal secundario
+    # Inicializar full_image_urls
+    full_image_url = None
+
+    # Verificar si hay un recibo asociado con una imagen
+    rental_receipt = RentalReceipt.objects.filter(reservation=reservation).first()
+    logger.debug(f"RentalReceipt encontrado: {rental_receipt}")
+    if rental_receipt and rental_receipt.file:
+        logger.debug(f"Archivo de recibo: {rental_receipt.file}")
+        if rental_receipt.file.name:
+            image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
+            full_image_url = f"http://api.casaaustin.pe{image_url}"
+            logger.debug(f"URL de la imagen completa: {full_image_url}")
+        else:
+            logger.debug("El campo file del RentalReceipt no tiene un nombre de archivo.")
+
+    # Enviar mensaje al primer canal
+    logger.debug(f"Enviando mensaje de Telegram: {message} con imagen: {full_image_url}")
+    send_telegram_message(message, settings.CHAT_ID, full_image_url)
+
+    # Verificar si la reserva es para el mismo día y enviar un mensaje al segundo canal
     if reservation.check_in_date == datetime.today().date():
-        message_today = f"******PARA HOYYYY******\n{message}"
-        logger.debug("Reserva para el mismo día detectada. Enviando al canal secundario.")
-        send_telegram_message(message_today, settings.SECOND_CHAT_ID)
-
-    # Mensaje personalizado para el canal personal
+        logger.debug("Reserva para el mismo día detectada, enviando al segundo canal.")
+        send_telegram_message(message_today, settings.SECOND_CHAT_ID, full_image_url)
+    
+    # Enviar mensaje al usuario personal con el formato específico
     birthday = format_date_es(reservation.client.date) if reservation.client and reservation.client.date else "No disponible"
-    upcoming_age = (
-        f"{reservation.client.date.year - datetime.now().year}"
-        if reservation.client and reservation.client.date
-        else "No disponible"
-    )
-
-    message_personal = (
+    upcoming_age = calculate_upcoming_age(reservation.client.date) if reservation.client and reservation.client.date else "No disponible"
+    message_personal_channel = (
         f"******Reserva en {reservation.property.name}******\n"
         f"Cliente: {client_name}\n"
         f"Cumpleaños: {birthday} (Cumple {upcoming_age} años)\n"
-        f"Check-in: {check_in_date}\n"
-        f"Check-out: {check_out_date}\n"
-        f"Invitados: {reservation.guests}\n"
-        f"Temperado: {temperature_pool_status}\n"
-        f"Teléfono: +{reservation.tel_contact_number}"
+        f"Check-in : {check_in_date}\n"
+        f"Check-out : {check_out_date}\n"
+        f"Invitados : {reservation.guests}\n"
+        f"Temperado : {temperature_pool_status}\n"
+        f"Teléfono : https://wa.me/{reservation.tel_contact_number}"
     )
-    logger.debug(f"Enviando mensaje personal: {message_personal}")
-    send_telegram_message(message_personal, settings.PERSONAL_CHAT_ID)
-
-def notify_modified_reservation(reservation):
-    client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
-    check_in_date = format_date_es(reservation.check_in_date)
-    check_out_date = format_date_es(reservation.check_out_date)
-
-    price_usd = f"{reservation.price_usd:.2f} USD"
-    price_sol = f"{reservation.price_sol:.2f} soles"
-
-    # Mensaje general para el primer canal
-    message = (
-        f"******Modificación de reserva en {reservation.property.name}******\n"
-        f"Cliente: {client_name}\n"
-        f"Check-in: {check_in_date}\n"
-        f"Check-out: {check_out_date}\n"
-        f"Invitados: {reservation.guests}\n"
-        f"Precio actualizado (USD): {price_usd}\n"
-        f"Precio actualizado (Soles): {price_sol}\n"
-    )
-
-    logger.debug(f"Enviando notificación de modificación: {message}")
-    send_telegram_message(message, settings.CHAT_ID)
-
-    # Mensaje "PARA HOYYYY" para el canal secundario
-    if reservation.check_in_date == datetime.today().date():
-        message_today = f"******Modificación PARA HOYYYY******\n{message}"
-        logger.debug("Modificación para el mismo día detectada. Enviando al canal secundario.")
-        send_telegram_message(message_today, settings.SECOND_CHAT_ID)
+    logger.debug(f"Enviando mensaje de Telegram al canal personal: {message_personal_channel} con imagen: {full_image_url}")
+    send_telegram_message(message_personal_channel, settings.PERSONAL_CHAT_ID, full_image_url)
 
 @receiver(post_save, sender=Reservation)
-def notify_reservation_changes(sender, instance, created, **kwargs):
-    # Prevenir señales duplicadas
-    if getattr(instance, '_disable_signals', False):
-        logger.debug(f"Señal desactivada temporalmente para la reserva: {instance.id}")
-        return
-
+def notify_reservation_creation(sender, instance, created, **kwargs):
     if created:
         logger.debug(f"Notificación de nueva reserva para: {instance}")
         notify_new_reservation(instance)
-    else:
-        logger.debug(f"Notificación de modificación de reserva para: {instance}")
-        notify_modified_reservation(instance)
