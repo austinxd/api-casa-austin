@@ -1,5 +1,6 @@
 import os
 import django
+from apps.core.functions import confeccion_ics
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
@@ -24,3 +25,5 @@ def get_airbnb_reservations():
 
 if __name__ == "__main__":
     get_airbnb_reservations()
+    # Llamar a confeccion_ics para actualizar el calendario ICS después de ejecutar el script
+    confeccion_ics()
