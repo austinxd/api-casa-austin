@@ -15,6 +15,7 @@ MONTHS_ES = {
     9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
 }
 
+# Diccionario para traducir los días de la semana al español
 DAYS_ES = {
     0: "Lunes", 1: "Martes", 2: "Miércoles", 3: "Jueves",
     4: "Viernes", 5: "Sábado", 6: "Domingo"
@@ -32,7 +33,7 @@ def calculate_upcoming_age(born):
     next_birthday = this_year_birthday if today <= this_year_birthday else date(today.year + 1, born.month, born.day)
     return next_birthday.year - born.year
 
-def notify_modified_reservation(reservation):
+def notify_new_reservation(reservation):
     client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
     temperature_pool_status = "Sí" if reservation.temperature_pool else "No"
 
@@ -46,7 +47,7 @@ def notify_modified_reservation(reservation):
     advance_payment = f"{reservation.advance_payment:.2f} {reservation.advance_payment_currency.upper()}"
 
     message = (
-        f"******Modificación de reserva en {reservation.property.name}******\n"
+        f"******Reserva en {reservation.property.name}******\n"
         f"Cliente: {client_name}\n"
         f"Check-in : {check_in_date}\n"
         f"Check-out : {check_out_date}\n"
@@ -59,7 +60,7 @@ def notify_modified_reservation(reservation):
     )
 
     message_today = (
-        f"******Modificación PARA HOYYYY******\n"
+        f"******PARA HOYYYY******\n"
         f"Cliente: {client_name}\n"
         f"Check-in : {check_in_date}\n"
         f"Check-out : {check_out_date}\n"
@@ -88,14 +89,14 @@ def notify_modified_reservation(reservation):
 
     # Verificar si la reserva es para el mismo día y enviar un mensaje al segundo canal
     if reservation.check_in_date == datetime.today().date():
-        logger.debug("Modificación de reserva para el mismo día detectada, enviando al canal secundario.")
+        logger.debug("Reserva para el mismo día detectada, enviando al segundo canal.")
         send_telegram_message(message_today, settings.SECOND_CHAT_ID, full_image_url)
     
     # Enviar mensaje al usuario personal con el formato específico
     birthday = format_date_es(reservation.client.date) if reservation.client and reservation.client.date else "No disponible"
     upcoming_age = calculate_upcoming_age(reservation.client.date) if reservation.client and reservation.client.date else "No disponible"
     message_personal_channel = (
-        f"******Modificación de reserva en {reservation.property.name}******\n"
+        f"******Reserva en {reservation.property.name}******\n"
         f"Cliente: {client_name}\n"
         f"Cumpleaños: {birthday} (Cumple {upcoming_age} años)\n"
         f"Check-in : {check_in_date}\n"
@@ -108,8 +109,7 @@ def notify_modified_reservation(reservation):
     send_telegram_message(message_personal_channel, settings.PERSONAL_CHAT_ID, full_image_url)
 
 @receiver(post_save, sender=Reservation)
-def notify_reservation_changes(sender, instance, created, **kwargs):
-    # Solo enviamos notificaciones si es una modificación (created es False)
-    if not created:
-        logger.debug(f"Notificación de modificación de reserva para: {instance}")
-        notify_modified_reservation(instance)
+def notify_reservation_creation(sender, instance, created, **kwargs):
+    if created:
+        logger.debug(f"Notificación de nueva reserva para: {instance}")
+        notify_new_reservation(instance)
