@@ -1,5 +1,5 @@
 import logging
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from .models import Reservation, RentalReceipt
 from ..core.telegram_notifier import send_telegram_message
@@ -107,6 +107,16 @@ def notify_new_reservation(reservation):
     )
     logger.debug(f"Enviando mensaje de Telegram al canal personal: {message_personal_channel} con imagen: {full_image_url}")
     send_telegram_message(message_personal_channel, settings.PERSONAL_CHAT_ID, full_image_url)
+
+@receiver(pre_save, sender=Reservation)
+def notify_reservation_update(sender, instance, **kwargs):
+    if instance.pk:  # Esto asegura que la instancia ya existe (no es nueva)
+        original_reservation = Reservation.objects.get(pk=instance.pk)
+        # Comparar si hay cambios significativos que requieran notificación
+        if (original_reservation.status != instance.status or
+            original_reservation.check_in_date != instance.check_in_date):
+            message = f"La reserva de {instance.client.first_name} {instance.client.last_name} ha sido actualizada. Cambios en el estado: de {original_reservation.status} a {instance.status} y/o en la fecha de check-in: de {original_reservation.check_in_date} a {instance.check_in_date}."
+            send_telegram_message(message, settings.CHAT_ID)
 
 @receiver(post_save, sender=Reservation)
 def notify_reservation_creation(sender, instance, created, **kwargs):
