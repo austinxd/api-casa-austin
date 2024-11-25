@@ -1,10 +1,11 @@
 import os
 import django
+
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')  # Ajusta el nombre si es necesario
+django.setup()  # Inicializa Django y carga las aplicaciones
+
 from apps.core.functions import confeccion_ics
-
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
-django.setup()
-
 from apps.property.models import Property
 
 from apps.core.functions import update_air_bnb_api
