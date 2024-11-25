@@ -110,10 +110,13 @@ def notify_new_reservation(reservation):
 
 @receiver(post_save, sender=Reservation)
 def notify_reservation_changes(sender, instance, created, **kwargs):
+    chat_id = settings.TELEGRAM_ADMIN_CHAT_ID  # O puedes obtenerlo dinámicamente
+    
     if created:
         message = f"Se ha creado una nueva reserva: {instance.id}"
     else:
         message = f"Se ha modificado la reserva: {instance.id}"
     
-    send_telegram_message(message)
+    send_telegram_message(chat_id, message)
+
 
