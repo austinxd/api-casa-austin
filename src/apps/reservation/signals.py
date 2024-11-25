@@ -109,7 +109,11 @@ def notify_new_reservation(reservation):
     send_telegram_message(message_personal_channel, settings.PERSONAL_CHAT_ID, full_image_url)
 
 @receiver(post_save, sender=Reservation)
-def notify_reservation_creation(sender, instance, created, **kwargs):
+def notify_reservation_changes(sender, instance, created, **kwargs):
     if created:
-        logger.debug(f"Notificación de nueva reserva para: {instance}")
-        notify_new_reservation(instance)
+        message = f"Se ha creado una nueva reserva: {instance.id}"
+    else:
+        message = f"Se ha modificado la reserva: {instance.id}"
+    
+    send_telegram_message(message)
+
