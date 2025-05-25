@@ -123,7 +123,7 @@ def send_purchase_event_to_meta(phone, amount, currency="USD"):
                     "ph": [phone_hashed]
                 },
                 "custom_data": {
-                    "value": float(amount),  # 👈 convierte a float
+                    "value": float(amount),
                     "currency": currency
                 }
             }
@@ -135,9 +135,10 @@ def send_purchase_event_to_meta(phone, amount, currency="USD"):
         json=payload
     )
     if response.status_code == 200:
-        logger.debug("Evento de conversión enviado correctamente a Meta.")
+        logger.debug(f"Evento de conversión enviado correctamente a Meta. Respuesta: {response.text}")
     else:
-        logger.warning(f"Error al enviar evento a Meta: {response.text}")
+        logger.warning(f"Error al enviar evento a Meta. Código: {response.status_code} Respuesta: {response.text}")
+
 
 
 
