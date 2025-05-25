@@ -139,12 +139,11 @@ def notify_reservation_creation(sender, instance, created, **kwargs):
     if created:
         logger.debug(f"Notificación de nueva reserva para: {instance}")
         notify_new_reservation(instance)
-        if Reservation.objects.filter(client=instance.client).count() == 1:
-            send_purchase_event_to_meta(
-                phone=instance.client.tel_number,
-                email=instance.client.email,
-                first_name=instance.client.first_name,
-                last_name=instance.client.last_name,
-                amount=instance.price_usd,
-                currency="USD"
-            )
+        send_purchase_event_to_meta(
+            phone=instance.client.tel_number,
+            email=instance.client.email,
+            first_name=instance.client.first_name,
+            last_name=instance.client.last_name,
+            amount=instance.price_usd,
+            currency="USD"
+        )
