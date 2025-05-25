@@ -123,7 +123,7 @@ def send_purchase_event_to_meta(phone, amount, currency="USD"):
                     "ph": [phone_hashed]
                 },
                 "custom_data": {
-                    "value": amount,
+                    "value": float(amount),  # 👈 convierte a float
                     "currency": currency
                 }
             }
@@ -138,6 +138,7 @@ def send_purchase_event_to_meta(phone, amount, currency="USD"):
         logger.debug("Evento de conversión enviado correctamente a Meta.")
     else:
         logger.warning(f"Error al enviar evento a Meta: {response.text}")
+
 
 
 @receiver(post_save, sender=Reservation)
