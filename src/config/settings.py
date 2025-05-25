@@ -37,6 +37,8 @@ CORS_ALLOWED_ORIGINS = env.list(
     ]
 )
 
+META_PIXEL_ID = os.environ.get("META_PIXEL_ID")
+META_ACCESS_TOKEN = os.environ.get("META_ACCESS_TOKEN")
 # Application definition
 DJANGO_APPS = [
     "django.contrib.admin",
