@@ -10,14 +10,13 @@ import requests
 
 logger = logging.getLogger('apps')
 
-# Diccionario para traducir los meses al español
+# Diccionarios para fechas en español
 MONTHS_ES = {
     1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
     5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
     9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
 }
 
-# Diccionario para traducir los días de la semana al español
 DAYS_ES = {
     0: "Lunes", 1: "Martes", 2: "Miércoles", 3: "Jueves",
     4: "Viernes", 5: "Sábado", 6: "Domingo"
@@ -39,11 +38,8 @@ def notify_new_reservation(reservation):
     client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
     temperature_pool_status = "Sí" if reservation.temperature_pool else "No"
 
-    # Formatear fechas
     check_in_date = format_date_es(reservation.check_in_date)
     check_out_date = format_date_es(reservation.check_out_date)
-    
-    # Obtener precios y adelanto
     price_usd = f"{reservation.price_usd:.2f} dólares"
     price_sol = f"{reservation.price_sol:.2f} soles"
     advance_payment = f"{reservation.advance_payment:.2f} {reservation.advance_payment_currency.upper()}"
@@ -58,7 +54,7 @@ def notify_new_reservation(reservation):
         f"Precio (USD) : {price_usd}\n"
         f"Precio (Soles) : {price_sol}\n"
         f"Adelanto : {advance_payment}\n"
-        f"Teléfono : +{reservation.tel_number}"
+        f"Teléfono : +{reservation.client.tel_number}"
     )
 
     message_today = (
@@ -70,17 +66,12 @@ def notify_new_reservation(reservation):
         f"Temperado : {temperature_pool_status}\n"
     )
 
-    # Inicializar full_image_urls
     full_image_url = None
-
     rental_receipt = RentalReceipt.objects.filter(reservation=reservation).first()
-    logger.debug(f"RentalReceipt encontrado: {rental_receipt}")
     if rental_receipt and rental_receipt.file and rental_receipt.file.name:
         image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
         full_image_url = f"http://api.casaaustin.pe{image_url}"
-        logger.debug(f"URL de la imagen completa: {full_image_url}")
 
-    # Enviar mensajes a Telegram
     logger.debug(f"Enviando mensaje de Telegram: {message} con imagen: {full_image_url}")
     send_telegram_message(message, settings.CHAT_ID, full_image_url)
 
@@ -98,9 +89,8 @@ def notify_new_reservation(reservation):
         f"Check-out : {check_out_date}\n"
         f"Invitados : {reservation.guests}\n"
         f"Temperado : {temperature_pool_status}\n"
-        f"Teléfono : https://wa.me/{reservation.tel_number}"
+        f"Teléfono : https://wa.me/{reservation.client.tel_number}"
     )
-    logger.debug(f"Enviando mensaje de Telegram al canal personal: {message_personal_channel} con imagen: {full_image_url}")
     send_telegram_message(message_personal_channel, settings.PERSONAL_CHAT_ID, full_image_url)
 
 def hash_data(data):
@@ -108,7 +98,6 @@ def hash_data(data):
         return hashlib.sha256(data.strip().lower().encode()).hexdigest()
     return None
 
-# 🚀 Función para enviar el evento a Meta Ads
 def send_purchase_event_to_meta(phone, email, first_name, last_name, amount, currency="USD"):
     user_data = {
         "ph": [hash_data(phone)]
@@ -152,7 +141,7 @@ def notify_reservation_creation(sender, instance, created, **kwargs):
         notify_new_reservation(instance)
         if Reservation.objects.filter(client=instance.client).count() == 1:
             send_purchase_event_to_meta(
-                phone=instance.tel_number,
+                phone=instance.client.tel_number,
                 email=instance.client.email,
                 first_name=instance.client.first_name,
                 last_name=instance.client.last_name,
