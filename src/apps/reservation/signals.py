@@ -118,7 +118,7 @@ def send_purchase_event_to_meta(phone, amount, currency="USD"):
             {
                 "event_name": "Purchase",
                 "event_time": int(datetime.now().timestamp()),
-                "action_source": "website",
+                "action_source": "chat",
                 "user_data": {
                     "ph": [phone_hashed]
                 },
