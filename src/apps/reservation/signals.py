@@ -58,7 +58,7 @@ def notify_new_reservation(reservation):
         f"Precio (USD) : {price_usd}\n"
         f"Precio (Soles) : {price_sol}\n"
         f"Adelanto : {advance_payment}\n"
-        f"Teléfono : +{reservation.tel_contact_number}"
+        f"Teléfono : +{reservation.tel_number}"
     )
 
     message_today = (
@@ -73,28 +73,21 @@ def notify_new_reservation(reservation):
     # Inicializar full_image_urls
     full_image_url = None
 
-    # Verificar si hay un recibo asociado con una imagen
     rental_receipt = RentalReceipt.objects.filter(reservation=reservation).first()
     logger.debug(f"RentalReceipt encontrado: {rental_receipt}")
-    if rental_receipt and rental_receipt.file:
-        logger.debug(f"Archivo de recibo: {rental_receipt.file}")
-        if rental_receipt.file.name:
-            image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
-            full_image_url = f"http://api.casaaustin.pe{image_url}"
-            logger.debug(f"URL de la imagen completa: {full_image_url}")
-        else:
-            logger.debug("El campo file del RentalReceipt no tiene un nombre de archivo.")
+    if rental_receipt and rental_receipt.file and rental_receipt.file.name:
+        image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
+        full_image_url = f"http://api.casaaustin.pe{image_url}"
+        logger.debug(f"URL de la imagen completa: {full_image_url}")
 
-    # Enviar mensaje al primer canal
+    # Enviar mensajes a Telegram
     logger.debug(f"Enviando mensaje de Telegram: {message} con imagen: {full_image_url}")
     send_telegram_message(message, settings.CHAT_ID, full_image_url)
 
-    # Verificar si la reserva es para el mismo día y enviar un mensaje al segundo canal
     if reservation.check_in_date == datetime.today().date():
         logger.debug("Reserva para el mismo día detectada, enviando al segundo canal.")
         send_telegram_message(message_today, settings.SECOND_CHAT_ID, full_image_url)
-    
-    # Enviar mensaje al usuario personal con el formato específico
+
     birthday = format_date_es(reservation.client.date) if reservation.client and reservation.client.date else "No disponible"
     upcoming_age = calculate_upcoming_age(reservation.client.date) if reservation.client and reservation.client.date else "No disponible"
     message_personal_channel = (
@@ -105,23 +98,35 @@ def notify_new_reservation(reservation):
         f"Check-out : {check_out_date}\n"
         f"Invitados : {reservation.guests}\n"
         f"Temperado : {temperature_pool_status}\n"
-        f"Teléfono : https://wa.me/{reservation.tel_contact_number}"
+        f"Teléfono : https://wa.me/{reservation.tel_number}"
     )
     logger.debug(f"Enviando mensaje de Telegram al canal personal: {message_personal_channel} con imagen: {full_image_url}")
     send_telegram_message(message_personal_channel, settings.PERSONAL_CHAT_ID, full_image_url)
 
+def hash_data(data):
+    if data:
+        return hashlib.sha256(data.strip().lower().encode()).hexdigest()
+    return None
+
 # 🚀 Función para enviar el evento a Meta Ads
-def send_purchase_event_to_meta(phone, amount, currency="USD"):
-    phone_hashed = hashlib.sha256(phone.encode()).hexdigest()
+def send_purchase_event_to_meta(phone, email, first_name, last_name, amount, currency="USD"):
+    user_data = {
+        "ph": [hash_data(phone)]
+    }
+    if email:
+        user_data["em"] = [hash_data(email)]
+    if first_name:
+        user_data["fn"] = [hash_data(first_name)]
+    if last_name:
+        user_data["ln"] = [hash_data(last_name)]
+
     payload = {
         "data": [
             {
                 "event_name": "Purchase",
                 "event_time": int(datetime.now().timestamp()),
                 "action_source": "chat",
-                "user_data": {
-                    "ph": [phone_hashed]
-                },
+                "user_data": user_data,
                 "custom_data": {
                     "value": float(amount),
                     "currency": currency
@@ -129,6 +134,7 @@ def send_purchase_event_to_meta(phone, amount, currency="USD"):
             }
         ]
     }
+
     response = requests.post(
         f"https://graph.facebook.com/v18.0/{settings.META_PIXEL_ID}/events",
         params={"access_token": settings.META_ACCESS_TOKEN},
@@ -139,18 +145,17 @@ def send_purchase_event_to_meta(phone, amount, currency="USD"):
     else:
         logger.warning(f"Error al enviar evento a Meta. Código: {response.status_code} Respuesta: {response.text}")
 
-
-
-
 @receiver(post_save, sender=Reservation)
 def notify_reservation_creation(sender, instance, created, **kwargs):
     if created:
         logger.debug(f"Notificación de nueva reserva para: {instance}")
         notify_new_reservation(instance)
-        # Enviar conversión a Meta Ads solo si es la primera reserva del cliente
         if Reservation.objects.filter(client=instance.client).count() == 1:
             send_purchase_event_to_meta(
-                phone=instance.tel_contact_number,
+                phone=instance.tel_number,
+                email=instance.client.email,
+                first_name=instance.client.first_name,
+                last_name=instance.client.last_name,
                 amount=instance.price_usd,
                 currency="USD"
             )
