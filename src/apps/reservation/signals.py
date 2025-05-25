@@ -5,6 +5,8 @@ from .models import Reservation, RentalReceipt
 from ..core.telegram_notifier import send_telegram_message
 from django.conf import settings
 from datetime import datetime, date
+import hashlib
+import requests
 
 logger = logging.getLogger('apps')
 
@@ -108,8 +110,45 @@ def notify_new_reservation(reservation):
     logger.debug(f"Enviando mensaje de Telegram al canal personal: {message_personal_channel} con imagen: {full_image_url}")
     send_telegram_message(message_personal_channel, settings.PERSONAL_CHAT_ID, full_image_url)
 
+# 🚀 Función para enviar el evento a Meta Ads
+def send_purchase_event_to_meta(phone, amount, currency="USD"):
+    phone_hashed = hashlib.sha256(phone.encode()).hexdigest()
+    payload = {
+        "data": [
+            {
+                "event_name": "Purchase",
+                "event_time": int(datetime.now().timestamp()),
+                "action_source": "website",
+                "user_data": {
+                    "ph": [phone_hashed]
+                },
+                "custom_data": {
+                    "value": amount,
+                    "currency": currency
+                }
+            }
+        ]
+    }
+    response = requests.post(
+        f"https://graph.facebook.com/v18.0/{settings.META_PIXEL_ID}/events",
+        params={"access_token": settings.META_ACCESS_TOKEN},
+        json=payload
+    )
+    if response.status_code == 200:
+        logger.debug("Evento de conversión enviado correctamente a Meta.")
+    else:
+        logger.warning(f"Error al enviar evento a Meta: {response.text}")
+
+
 @receiver(post_save, sender=Reservation)
 def notify_reservation_creation(sender, instance, created, **kwargs):
     if created:
         logger.debug(f"Notificación de nueva reserva para: {instance}")
         notify_new_reservation(instance)
+        # Enviar conversión a Meta Ads solo si es la primera reserva del cliente
+        if Reservation.objects.filter(client=instance.client).count() == 1:
+            send_purchase_event_to_meta(
+                phone=instance.tel_contact_number,
+                amount=instance.price_usd,
+                currency="USD"
+            )
