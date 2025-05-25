@@ -51,6 +51,8 @@ class Clients(BaseModel):
     email = models.EmailField(max_length=150, null=True, blank=True)
     date = models.DateField(null=True)
     tel_number = models.CharField(max_length=50, null=False, blank=False)
+    enviado_meta = models.BooleanField(default=False, help_text="Indica si el cliente ha sido enviado a Meta Ads")
+
 
     manychat = models.PositiveIntegerField(null=True, blank=True)
     id_manychat = models.CharField(max_length=255, null=True, blank=True)
