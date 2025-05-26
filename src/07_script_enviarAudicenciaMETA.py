@@ -17,14 +17,14 @@ AUDIENCE_ID = '120225356885930355'  # Sustituye con tu ID de audiencia real
 API_URL = f'https://graph.facebook.com/v19.0/{AUDIENCE_ID}/users'
 
 def encriptar_sha256(texto):
+    """Convierte texto a SHA256, en minúsculas y sin espacios alrededor."""
     return hashlib.sha256(texto.strip().lower().encode('utf-8')).hexdigest()
 
-def enviar_audiencia(schema, data):
+def enviar_audiencia(schema_list, data_list):
+    """Envía los datos a la API de Audiencias Personalizadas de Meta."""
     payload = {
-        'payload': {
-            'schema': schema,
-            'data': data
-        }
+        'schema': schema_list,
+        'data': data_list
     }
 
     response = requests.post(
@@ -33,50 +33,48 @@ def enviar_audiencia(schema, data):
         json=payload
     )
 
-    print(f'Respuesta para {schema}: {response.status_code} {response.text}')
+    print(f'Respuesta para {schema_list}: {response.status_code} {response.text}')
     return response.status_code == 200
 
 def main():
-    # Solo usuarios con document_type dni o cex, con teléfono y que no hayan sido enviados aún
+    # Filtrar clientes con DNI o CEX, teléfono y que no hayan sido enviados aún
     clientes = Clients.objects.filter(
         document_type__in=['dni', 'cex'],
         tel_number__isnull=False,
         enviado_meta=False
     ).exclude(tel_number='').distinct()
 
-    telefonos_hash = []
-    emails_hash = []
-    clientes_enviados = []
+    data_list = []
 
+    # Armar lista de listas con datos hash
     for cliente in clientes:
+        row = []
+        if cliente.email:
+            row.append(encriptar_sha256(cliente.email))
         if cliente.tel_number:
             telefono = cliente.tel_number.strip()
-            # Normaliza el teléfono a formato internacional (+51)
             if not telefono.startswith('+'):
                 telefono = '+51' + telefono
-            telefonos_hash.append(encriptar_sha256(telefono))
+            row.append(encriptar_sha256(telefono))
+        if row:
+            data_list.append(row)
 
-        if cliente.email:
-            emails_hash.append(encriptar_sha256(cliente.email))
+    # Verificar qué esquemas se están enviando
+    schema_list = []
+    if any(cliente.email for cliente in clientes):
+        schema_list.append('EMAIL_SHA256')
+    if any(cliente.tel_number for cliente in clientes):
+        schema_list.append('PHONE_SHA256')
 
-        # Marcamos como enviados para actualizar después
-        clientes_enviados.append(cliente)
+    # Enviar datos a la audiencia
+    if data_list and schema_list:
+        exito = enviar_audiencia(schema_list, data_list)
 
-    exito_telefonos = False
-    exito_emails = False
-
-    if telefonos_hash:
-        exito_telefonos = enviar_audiencia('PHONE_SHA256', telefonos_hash)
-
-    if emails_hash:
-        exito_emails = enviar_audiencia('EMAIL_SHA256', emails_hash)
-
-    # Si se enviaron los datos exitosamente, marcamos en la base
-    if exito_telefonos or exito_emails:
-        for cliente in clientes_enviados:
-            cliente.enviado_meta = True
-            cliente.save(update_fields=['enviado_meta'])
-        print(f"Clientes marcados como enviados: {len(clientes_enviados)}")
+        if exito:
+            for cliente in clientes:
+                cliente.enviado_meta = True
+                cliente.save(update_fields=['enviado_meta'])
+            print(f"Clientes marcados como enviados: {len(clientes)}")
 
     print('Proceso completado para usuarios con DNI o CEX.')
 
