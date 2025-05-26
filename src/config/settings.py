@@ -39,6 +39,16 @@ CORS_ALLOWED_ORIGINS = env.list(
 
 META_PIXEL_ID = os.environ.get("META_PIXEL_ID")
 META_ACCESS_TOKEN = os.environ.get("META_ACCESS_TOKEN")
+
+
+# Token y ID para el Píxel de Meta
+META_PIXEL_ID = env("META_PIXEL_ID", default="No pixel ID")
+META_PIXEL_TOKEN = env("META_PIXEL_TOKEN", default="No pixel token")
+
+# Token y ID para la Audiencia personalizada en Meta
+META_AUDIENCE_ID = env("META_AUDIENCE_ID", default="No audience ID")
+META_AUDIENCE_TOKEN = env("META_AUDIENCE_TOKEN", default="No audience token")
+
 # Application definition
 DJANGO_APPS = [
     "django.contrib.admin",
@@ -51,7 +61,7 @@ DJANGO_APPS = [
 
 LOCAL_APPS = [
     'apps.accounts',
-    'apps.clients',
+    'apps.clients.apps.ClientsConfig',  # Aquí la forma correcta
     'apps.property',
     'apps.reservation',
     'apps.dashboard'
