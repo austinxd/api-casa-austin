@@ -50,26 +50,27 @@ def main():
 
     # Construir lista de listas con los datos encriptados
     for cliente in clientes:
-        row = []
+        # Inicializar los hashes como cadenas vacías
+        email_hash = ""
+        phone_hash = ""
+
         if cliente.email:
-            row.append(encriptar_sha256(cliente.email))
+            email_hash = encriptar_sha256(cliente.email)
+
         if cliente.tel_number:
             telefono = cliente.tel_number.strip()
             if not telefono.startswith('+'):
                 telefono = '+51' + telefono
-            row.append(encriptar_sha256(telefono))
-        if row:
-            data_list.append(row)
+            phone_hash = encriptar_sha256(telefono)
 
-    # Determinar los esquemas que se están enviando
-    schema_list = []
-    if any(cliente.email for cliente in clientes):
-        schema_list.append('EMAIL_SHA256')
-    if any(cliente.tel_number for cliente in clientes):
-        schema_list.append('PHONE_SHA256')
+        # Siempre agregar ambos campos, aunque estén vacíos
+        data_list.append([email_hash, phone_hash])
 
-    # Enviar los datos a la audiencia
-    if data_list and schema_list:
+    # Declarar el esquema que coincide con las columnas de cada fila
+    schema_list = ['EMAIL_SHA256', 'PHONE_SHA256']
+
+    # Enviar los datos a la audiencia si hay datos
+    if data_list:
         exito = enviar_audiencia(schema_list, data_list)
 
         if exito:
