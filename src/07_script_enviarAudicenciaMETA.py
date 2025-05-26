@@ -63,7 +63,8 @@ def main():
         if cliente.tel_number:
             telefono = cliente.tel_number.strip()
             if not telefono.startswith('+'):
-                telefono = '+51' + telefono
+                telefono = '+' + telefono  # Solo añadir '+' para no duplicar código país
+            print(f"Número que se enviará a Meta para cliente {cliente.id} (antes de hash): {telefono}")
             phone_hash = encriptar_sha256(telefono)
 
         # Siempre agregar ambos campos, aunque estén vacíos
