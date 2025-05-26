@@ -1,7 +1,7 @@
 import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Client
+from .models import Clients
 from django.conf import settings
 import requests
 import hashlib
@@ -46,7 +46,7 @@ def update_meta_audience(client):
     else:
         logger.warning(f"Error al actualizar audiencia de cliente {client.id}. Código: {response.status_code} Respuesta: {response.text}")
 
-@receiver(post_save, sender=Client)
+@receiver(post_save, sender=Clients)
 def update_audience_on_client_creation(sender, instance, created, **kwargs):
     if created:
         logger.debug(f"Nuevo cliente creado: {instance}")
