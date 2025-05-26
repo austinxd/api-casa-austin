@@ -4,6 +4,7 @@ import os
 import django
 import hashlib
 import requests
+import json
 
 # Configuración de Django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
@@ -29,13 +30,15 @@ def enviar_audiencia(schema_list, data_list):
         }
     }
 
+    print(f"Payload enviado a Meta:\n{json.dumps(payload, indent=2)}")
+
     response = requests.post(
         API_URL,
         params={'access_token': ACCESS_TOKEN},
         json=payload
     )
 
-    print(f'Respuesta para {schema_list}: {response.status_code} {response.text}')
+    print(f'Respuesta de Meta:\nCódigo: {response.status_code}\nContenido: {response.text}')
     return response.status_code == 200
 
 def main():
