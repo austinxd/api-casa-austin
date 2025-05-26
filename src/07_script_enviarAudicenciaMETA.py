@@ -12,7 +12,7 @@ django.setup()
 from apps.clients.models import Clients
 
 # Datos de Meta Ads
-ACCESS_TOKEN = 'EAATkbUyZBNVYBO1DuycdGet7yZBxdltJNC5CK1lmXSGSenguH0zuLmt0H0fxzaS8Y9KZAcCU5uqAZA52FGEzTqHZCFwwbclO59keYEIJAmBups2NYe6I0e5tmIExprZAi2WiO0Iyhtg2G5hJ1kBqHa6XR29obEZCKrUCjqsSAUioY1XYjkT0n6sHQI1oZCXHXjcnqwZDZD'
+ACCESS_TOKEN = 'EAATkbUyZBNVYBO9ZAROZBgquW32WaLgRJZC9YlTzfmWnF48ESwZAeR1IBdNiZBiNDNgj4hs6O5HIJlsWAfgMkpQ3GbmIApsUsrVfEQ22ZCE7idsVjfoRSLH0yS4KRirBI9NtWIalBzWq23jKNm52c1Iv3bJ5328clGZBtaz6hmK6svdw28ZANVYO6jKxCcbKQHRErlAZDZD'
 AUDIENCE_ID = '120225356885930355'  # Sustituye con tu ID de audiencia real
 API_URL = f'https://graph.facebook.com/v19.0/{AUDIENCE_ID}/users'
 
