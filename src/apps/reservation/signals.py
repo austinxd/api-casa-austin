@@ -124,10 +124,9 @@ def send_purchase_event_to_meta(phone, email, first_name, last_name, amount, cur
         ]
     }
 
-    payload["access_token"] = settings.META_ACCESS_TOKEN
-
     response = requests.post(
         f"https://graph.facebook.com/v18.0/{settings.META_PIXEL_ID}/events",
+        params={"access_token": settings.META_ACCESS_TOKEN},
         json=payload,
         headers={"Content-Type": "application/json"}
     )
