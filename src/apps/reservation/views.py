@@ -37,7 +37,7 @@ from django.utils.timezone import now
 from .signals import send_purchase_event_to_meta
 from django.views.decorators.csrf import csrf_exempt
 import json
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
 
 class ReservationsApiView(viewsets.ModelViewSet):
     serializer_class = ReservationSerializer
