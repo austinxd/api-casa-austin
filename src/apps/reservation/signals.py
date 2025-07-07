@@ -98,54 +98,50 @@ def hash_data(data):
         return hashlib.sha256(data.strip().lower().encode()).hexdigest()
     return None
 
-def send_purchase_event_to_meta(phone, email, first_name, last_name, amount, currency="USD"):
-    user_data = {
-        "ph": [hash_data(phone)]
-    }
+def send_purchase_event_to_meta(phone, email, first_name, last_name, amount, currency="USD", ip=None, user_agent=None, fbc=None, fbp=None):
+    user_data = {}
+
+    if phone:
+        user_data["ph"] = [hash_data(phone)]
     if email:
         user_data["em"] = [hash_data(email)]
     if first_name:
         user_data["fn"] = [hash_data(first_name)]
     if last_name:
         user_data["ln"] = [hash_data(last_name)]
+    if ip:
+        user_data["client_ip_address"] = ip
+    if user_agent:
+        user_data["client_user_agent"] = user_agent
+    if fbc:
+        user_data["fbc"] = fbc
+    if fbp:
+        user_data["fbp"] = fbp
 
     payload = {
         "data": [
             {
                 "event_name": "Purchase",
                 "event_time": int(datetime.now().timestamp()),
-                "action_source": "chat",
+                "action_source": "website",  # Mejor que "chat" si ya tienes la IP y user agent
                 "user_data": user_data,
                 "custom_data": {
                     "value": float(amount),
                     "currency": currency
                 }
             }
-        ]
+        ],
+        "access_token": settings.META_PIXEL_TOKEN
     }
-
-    payload["access_token"] = settings.META_PIXEL_TOKEN  # Agrega el token dentro del JSON
 
     response = requests.post(
         "https://graph.facebook.com/v18.0/7378335482264695/events",
         json=payload,
         headers={"Content-Type": "application/json"}
     )
+
     if response.status_code == 200:
         logger.debug(f"Evento de conversión enviado correctamente a Meta. Respuesta: {response.text}")
     else:
         logger.warning(f"Error al enviar evento a Meta. Código: {response.status_code} Respuesta: {response.text}")
 
-@receiver(post_save, sender=Reservation)
-def notify_reservation_creation(sender, instance, created, **kwargs):
-    if created:
-        logger.debug(f"Notificación de nueva reserva para: {instance}")
-        notify_new_reservation(instance)
-        send_purchase_event_to_meta(
-            phone=instance.client.tel_number,
-            email=instance.client.email,
-            first_name=instance.client.first_name,
-            last_name=instance.client.last_name,
-            amount=instance.price_usd,
-            currency="USD"
-        )

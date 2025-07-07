@@ -31,6 +31,10 @@ import subprocess
 from docxtpl import DocxTemplate
 from babel.dates import format_date
 import io
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
+from django.utils.timezone import now
+from .signals import send_purchase_event_to_meta
 
 class ReservationsApiView(viewsets.ModelViewSet):
     serializer_class = ReservationSerializer
@@ -688,3 +692,35 @@ def partial_update(self, request, *args, **kwargs):
             "Reserva eliminada"
         )
         return Response(status=204)
+
+
+def confirm_reservation(request, uuid):
+    reservation = get_object_or_404(Reservation, uuid_external=uuid)
+
+    # Guardar datos del navegador
+    reservation.ip_cliente = request.META.get("REMOTE_ADDR")
+    reservation.user_agent = request.META.get("HTTP_USER_AGENT")
+    reservation.referer = request.META.get("HTTP_REFERER")
+    reservation.fbclid = request.GET.get("fbclid")
+    reservation.utm_source = request.GET.get("utm_source")
+    reservation.utm_medium = request.GET.get("utm_medium")
+    reservation.utm_campaign = request.GET.get("utm_campaign")
+    fbc = request.GET.get("fbc")
+    fbp = request.GET.get("fbp")
+    reservation.save()
+
+    # Enviar evento a Meta
+    send_purchase_event_to_meta(
+        phone=reservation.client.tel_number,
+        email=reservation.client.email,
+        first_name=reservation.client.first_name,
+        last_name=reservation.client.last_name,
+        amount=reservation.price_usd,
+        currency="USD",
+        ip=reservation.ip_cliente,
+        user_agent=reservation.user_agent,
+        fbc=fbc,
+        fbp=fbp,
+    )
+
+    return HttpResponse("✅ ¡Reserva confirmada correctamente!")

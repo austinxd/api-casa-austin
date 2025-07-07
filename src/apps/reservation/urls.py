@@ -1,4 +1,4 @@
-from .views import ReservationsApiView, VistaCalendarioApiView, DeleteRecipeApiView, GetICSApiView, UpdateICSApiView, ProfitApiView
+from .views import ReservationsApiView, VistaCalendarioApiView, DeleteRecipeApiView, GetICSApiView, UpdateICSApiView, ProfitApiView, confirm_reservation
 
 
 from django.urls import include, path
@@ -16,4 +16,6 @@ urlpatterns = [
     path("get-ics/", GetICSApiView.as_view()),
     path("update-ics/", UpdateICSApiView.as_view()),
     path("profit-resume/", ProfitApiView.as_view()),
+    path("confirmar/<uuid>/", confirm_reservation, name="confirm_reservation"),
+
 ]
