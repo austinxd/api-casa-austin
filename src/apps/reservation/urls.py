@@ -16,6 +16,6 @@ urlpatterns = [
     path("get-ics/", GetICSApiView.as_view()),
     path("update-ics/", UpdateICSApiView.as_view()),
     path("profit-resume/", ProfitApiView.as_view()),
-    path("confirmar/<uuid>/", confirm_reservation, name="confirm_reservation"),
+    path('confirmar/<str:uuid>/', confirm_reservation, name='confirm_reservation'),
 
 ]
