@@ -35,6 +35,8 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from django.utils.timezone import now
 from .signals import send_purchase_event_to_meta
+from django.views.decorators.csrf import csrf_exempt
+
 
 class ReservationsApiView(viewsets.ModelViewSet):
     serializer_class = ReservationSerializer
@@ -693,7 +695,7 @@ def partial_update(self, request, *args, **kwargs):
         )
         return Response(status=204)
 
-
+@csrf_exempt
 def confirm_reservation(request, uuid):
     reservation = get_object_or_404(Reservation, uuid_external=uuid)
 
