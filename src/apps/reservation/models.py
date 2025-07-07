@@ -59,6 +59,13 @@ class Reservation(BaseModel):
     tel_contact_number = models.CharField(max_length=255, null=True, blank=True)
     full_payment = models.BooleanField(default=False)
     temperature_pool = models.BooleanField(default=False)
+    ip_cliente = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(null=True, blank=True)
+    referer = models.TextField(null=True, blank=True)
+    fbclid = models.CharField(max_length=255, null=True, blank=True)
+    utm_source = models.CharField(max_length=255, null=True, blank=True)
+    utm_medium = models.CharField(max_length=255, null=True, blank=True)
+    utm_campaign = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         if self.client:
