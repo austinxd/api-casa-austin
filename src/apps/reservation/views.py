@@ -39,7 +39,6 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 
 
-
 class ReservationsApiView(viewsets.ModelViewSet):
     serializer_class = ReservationSerializer
     queryset = Reservation.objects.exclude(deleted=True).order_by("check_in_date")
@@ -699,18 +698,34 @@ def partial_update(self, request, *args, **kwargs):
 
 @csrf_exempt
 def confirm_reservation(request, uuid):
-    uuid_sin_guiones = uuid.replace("-", "")
-    reserva = get_object_or_404(Reservation, uuid_external=uuid_sin_guiones)
-    # Guardar datos del navegador
-    reservation.ip_cliente = request.META.get("REMOTE_ADDR")
+    if request.method != "POST":
+        return HttpResponseBadRequest("Método no permitido")
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("JSON inválido")
+
+    # Buscar por ID primero, luego uuid_external (sin guiones)
+    try:
+        reservation = Reservation.objects.get(id=uuid)
+    except Reservation.DoesNotExist:
+        uuid_clean = uuid.replace("-", "")
+        reservation = get_object_or_404(Reservation, uuid_external=uuid_clean)
+
+    # Guardar datos desde JSON o desde headers si no vienen en JSON
+    reservation.ip_cliente = (
+        request.META.get("HTTP_X_FORWARDED_FOR") or request.META.get("REMOTE_ADDR")
+    )
     reservation.user_agent = request.META.get("HTTP_USER_AGENT")
     reservation.referer = request.META.get("HTTP_REFERER")
-    reservation.fbclid = request.GET.get("fbclid")
-    reservation.utm_source = request.GET.get("utm_source")
-    reservation.utm_medium = request.GET.get("utm_medium")
-    reservation.utm_campaign = request.GET.get("utm_campaign")
-    fbc = request.GET.get("fbc")
-    fbp = request.GET.get("fbp")
+    reservation.fbclid = data.get("fbclid")
+    reservation.utm_source = data.get("utm_source")
+    reservation.utm_medium = data.get("utm_medium")
+    reservation.utm_campaign = data.get("utm_campaign")
+    reservation.fbc = data.get("fbc")
+    reservation.fbp = data.get("fbp")
+
     reservation.save()
 
     # Enviar evento a Meta
@@ -723,8 +738,8 @@ def confirm_reservation(request, uuid):
         currency="USD",
         ip=reservation.ip_cliente,
         user_agent=reservation.user_agent,
-        fbc=fbc,
-        fbp=fbp,
+        fbc=reservation.fbc,
+        fbp=reservation.fbp,
     )
 
-    return HttpResponse("✅ ¡Reserva confirmada correctamente!")
+    return JsonResponse({"message": "✅ ¡Reserva confirmada correctamente!"})
