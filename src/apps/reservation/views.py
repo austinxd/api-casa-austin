@@ -701,34 +701,39 @@ def confirm_reservation(request, uuid):
     if request.method != "POST":
         return HttpResponseBadRequest("Método no permitido")
 
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return HttpResponseBadRequest("JSON inválido")
-
-    # Buscar por ID primero, luego uuid_external (sin guiones)
+    # Buscar reserva por ID o uuid_external (sin guiones)
     try:
         reservation = Reservation.objects.get(id=uuid)
     except Reservation.DoesNotExist:
         uuid_clean = uuid.replace("-", "")
         reservation = get_object_or_404(Reservation, uuid_external=uuid_clean)
 
-    # Guardar datos desde JSON o desde headers si no vienen en JSON
-    reservation.ip_cliente = (
-        request.META.get("HTTP_X_FORWARDED_FOR") or request.META.get("REMOTE_ADDR")
-    )
-    reservation.user_agent = request.META.get("HTTP_USER_AGENT")
-    reservation.referer = request.META.get("HTTP_REFERER")
-    reservation.fbclid = data.get("fbclid")
-    reservation.utm_source = data.get("utm_source")
-    reservation.utm_medium = data.get("utm_medium")
-    reservation.utm_campaign = data.get("utm_campaign")
-    reservation.fbc = data.get("fbc")
-    reservation.fbp = data.get("fbp")
+    # Intentar leer JSON, sino usar POST clásico
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        data = request.POST
 
+    # Obtener IP real del cliente (considerando proxy)
+    ip = request.META.get("HTTP_X_FORWARDED_FOR")
+    if ip:
+        ip = ip.split(",")[0]
+    else:
+        ip = request.META.get("REMOTE_ADDR")
+
+    # Guardar datos de navegación
+    reservation.ip_cliente = ip
+    reservation.user_agent = request.META.get("HTTP_USER_AGENT", "")
+    reservation.referer = request.META.get("HTTP_REFERER", "")
+    reservation.fbclid = data.get("fbclid", "")
+    reservation.utm_source = data.get("utm_source", "")
+    reservation.utm_medium = data.get("utm_medium", "")
+    reservation.utm_campaign = data.get("utm_campaign", "")
+    reservation.fbc = data.get("fbc", "")
+    reservation.fbp = data.get("fbp", "")
     reservation.save()
 
-    # Enviar evento a Meta
+    # Enviar a Meta
     send_purchase_event_to_meta(
         phone=reservation.client.tel_number,
         email=reservation.client.email,
