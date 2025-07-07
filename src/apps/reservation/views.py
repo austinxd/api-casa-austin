@@ -697,7 +697,12 @@ def partial_update(self, request, *args, **kwargs):
 
 @csrf_exempt
 def confirm_reservation(request, uuid):
-    reservation = get_object_or_404(Reservation, uuid_external=uuid)
+    try:
+        # Buscar por ID (UUID principal)
+        reservation = Reservation.objects.get(id=uuid)
+    except Reservation.DoesNotExist:
+        # Si no existe, intentar con uuid_external
+        reservation = get_object_or_404(Reservation, uuid_external=uuid)
 
     # Guardar datos del navegador
     reservation.ip_cliente = request.META.get("REMOTE_ADDR")
