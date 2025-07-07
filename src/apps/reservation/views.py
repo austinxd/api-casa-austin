@@ -699,12 +699,8 @@ def partial_update(self, request, *args, **kwargs):
 
 @csrf_exempt
 def confirm_reservation(request, uuid):
-    # Eliminar guiones del UUID recibido
     uuid_sin_guiones = uuid.replace("-", "")
-    
-    # Buscar por uuid_external sin guiones
-    reservation = get_object_or_404(Reservation, uuid_external=uuid_sin_guiones)
-
+    reserva = get_object_or_404(Reservation, uuid_external=uuid_sin_guiones)
     # Guardar datos del navegador
     reservation.ip_cliente = request.META.get("REMOTE_ADDR")
     reservation.user_agent = request.META.get("HTTP_USER_AGENT")
