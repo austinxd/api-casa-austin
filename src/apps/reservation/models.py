@@ -63,10 +63,11 @@ class Reservation(BaseModel):
     user_agent = models.TextField(null=True, blank=True)
     referer = models.TextField(null=True, blank=True)
     fbclid = models.CharField(max_length=255, null=True, blank=True)
-    fbp = models.CharField(max_length=255, null=True, blank=True)
     utm_source = models.CharField(max_length=255, null=True, blank=True)
     utm_medium = models.CharField(max_length=255, null=True, blank=True)
     utm_campaign = models.CharField(max_length=255, null=True, blank=True)
+    fbp = models.CharField(max_length=255, null=True, blank=True)
+    fbc = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         if self.client:
