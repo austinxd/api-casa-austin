@@ -98,9 +98,25 @@ def hash_data(data):
         return hashlib.sha256(data.strip().lower().encode()).hexdigest()
     return None
 
-def send_purchase_event_to_meta(phone, email, first_name, last_name, amount, currency="USD", ip=None, user_agent=None, fbc=None, fbp=None):
+def send_purchase_event_to_meta(
+    phone,
+    email,
+    first_name,
+    last_name,
+    amount,
+    currency="USD",
+    ip=None,
+    user_agent=None,
+    fbc=None,
+    fbp=None,
+    fbclid=None,
+    utm_source=None,
+    utm_medium=None,
+    utm_campaign=None
+):
     user_data = {}
 
+    # Identificadores hash
     if phone:
         user_data["ph"] = [hash_data(phone)]
     if email:
@@ -109,31 +125,45 @@ def send_purchase_event_to_meta(phone, email, first_name, last_name, amount, cur
         user_data["fn"] = [hash_data(first_name)]
     if last_name:
         user_data["ln"] = [hash_data(last_name)]
+
+    # Datos del navegador
     if ip:
         user_data["client_ip_address"] = ip
     if user_agent:
         user_data["client_user_agent"] = user_agent
+
+    # Meta click ID y cookies
     if fbc:
         user_data["fbc"] = fbc
     if fbp:
         user_data["fbp"] = fbp
+    if fbclid:
+        user_data["click_id"] = fbclid  # Usualmente no obligatorio si ya tienes fbc/fbp
 
+    # Armamos el payload
     payload = {
         "data": [
             {
                 "event_name": "Purchase",
                 "event_time": int(datetime.now().timestamp()),
-                "action_source": "website",  # Mejor que "chat" si ya tienes la IP y user agent
+                "action_source": "website",
                 "user_data": user_data,
                 "custom_data": {
                     "value": float(amount),
-                    "currency": currency
+                    "currency": currency,
+                    "utm_source": utm_source,
+                    "utm_medium": utm_medium,
+                    "utm_campaign": utm_campaign,
                 }
             }
         ],
         "access_token": settings.META_PIXEL_TOKEN
     }
 
+    # Logging completo para depuración
+    logger.debug("Payload enviado a Meta:\n%s", json.dumps(payload, indent=2))
+
+    # Enviar evento a Meta
     response = requests.post(
         "https://graph.facebook.com/v18.0/7378335482264695/events",
         json=payload,
@@ -144,4 +174,3 @@ def send_purchase_event_to_meta(phone, email, first_name, last_name, amount, cur
         logger.debug(f"Evento de conversión enviado correctamente a Meta. Respuesta: {response.text}")
     else:
         logger.warning(f"Error al enviar evento a Meta. Código: {response.status_code} Respuesta: {response.text}")
-

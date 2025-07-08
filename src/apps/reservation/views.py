@@ -745,6 +745,10 @@ def confirm_reservation(request, uuid):
         user_agent=reservation.user_agent,
         fbc=reservation.fbc,
         fbp=reservation.fbp,
+        fbclid=reservation.fbclid,
+        utm_source=reservation.utm_source,
+        utm_medium=reservation.utm_medium,
+        utm_campaign=reservation.utm_campaign
     )
 
     return JsonResponse({"message": "✅ ¡Reserva confirmada correctamente!"})
