@@ -113,7 +113,8 @@ def send_purchase_event_to_meta(
     fbclid=None,
     utm_source=None,
     utm_medium=None,
-    utm_campaign=None
+    utm_campaign=None,
+    birthday=None  # <-- Se añade aquí
 ):
     user_data = {}
 
@@ -126,6 +127,15 @@ def send_purchase_event_to_meta(
         user_data["fn"] = [hash_data(first_name)]
     if last_name:
         user_data["ln"] = [hash_data(last_name)]
+
+    # ✅ Fecha de nacimiento
+    if birthday:
+        try:
+            # Asegurar formato correcto MMDDYYYY
+            bday = datetime.strptime(birthday, "%Y-%m-%d").strftime("%m%d%Y")
+            user_data["db"] = [hash_data(bday)]
+        except Exception as e:
+            logger.warning(f"Error procesando fecha de nacimiento '{birthday}': {e}")
 
     # Datos del navegador
     if ip:

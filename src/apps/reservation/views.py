@@ -748,7 +748,9 @@ def confirm_reservation(request, uuid):
         fbclid=reservation.fbclid,
         utm_source=reservation.utm_source,
         utm_medium=reservation.utm_medium,
-        utm_campaign=reservation.utm_campaign
+        utm_campaign=reservation.utm_campaign,
+        birthday=str(reservation.client.date) if reservation.client.date else None  # <-- aquí
+
     )
 
     return JsonResponse({"message": "✅ ¡Reserva confirmada correctamente!"})
