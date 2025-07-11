@@ -132,7 +132,9 @@ def send_purchase_event_to_meta(
     if birthday:
         try:
             # Asegurar formato correcto MMDDYYYY
+            
             bday = datetime.strptime(birthday, "%Y-%m-%d").strftime("%m%d%Y")
+            logger.debug(f"Fecha de nacimiento sin hash: {birthday_formatted}")
             user_data["db"] = [hash_data(bday)]
         except Exception as e:
             logger.warning(f"Error procesando fecha de nacimiento '{birthday}': {e}")
