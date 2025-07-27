@@ -12,6 +12,9 @@ from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from django.middleware.csrf import get_token
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
 
 from apps.core.paginator import CustomPagination
 
@@ -465,4 +468,17 @@ class ClientReservationsView(APIView):
             "past_reservations": past_serializer.data,
             "future_reservations": future_serializer.data,
             "total_reservations": reservations.count()
+        }, status=status.HTTP_200_OK)
+
+
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class CSRFTokenView(APIView):
+    """Vista para obtener el token CSRF"""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        csrf_token = get_token(request)
+        return Response({
+            "csrfToken": csrf_token
         }, status=status.HTTP_200_OK)
