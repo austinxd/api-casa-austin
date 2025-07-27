@@ -166,6 +166,7 @@ class ClientsApiView(viewsets.ModelViewSet):
 class ClientDocumentVerifyView(APIView):
     """Vista para verificar si un documento existe sin enviar OTP"""
     permission_classes = [AllowAny]
+    authentication_classes = []  # No require authentication
     
     def post(self, request):
         document_type = request.data.get('document_type')
@@ -209,6 +210,7 @@ class ClientDocumentVerifyView(APIView):
 class ClientAuthRequestView(APIView):
     """Vista para solicitar OTP para registro de contraseña"""
     permission_classes = [AllowAny]
+    authentication_classes = []  # No require authentication
     serializer_class = ClientAuthRequestSerializer
 
     def post(self, request):
@@ -260,6 +262,7 @@ class ClientAuthRequestView(APIView):
 class ClientPasswordSetupView(APIView):
     """Vista para establecer contraseña con verificación OTP"""
     permission_classes = [AllowAny]
+    authentication_classes = []  # No require authentication
     serializer_class = ClientOTPSerializer
 
     def post(self, request):
@@ -310,6 +313,7 @@ class ClientPasswordSetupView(APIView):
 class ClientLoginView(APIView):
     """Vista para login de clientes"""
     permission_classes = [AllowAny]
+    authentication_classes = []  # No require authentication
     serializer_class = ClientLoginSerializer
 
     def post(self, request):
