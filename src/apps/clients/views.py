@@ -163,6 +163,49 @@ class ClientsApiView(viewsets.ModelViewSet):
     def search_clients(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
+class ClientDocumentVerifyView(APIView):
+    """Vista para verificar si un documento existe sin enviar OTP"""
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        document_type = request.data.get('document_type')
+        number_doc = request.data.get('number_doc')
+        
+        if not document_type or not number_doc:
+            return Response({
+                "error": "Documento y tipo de documento son requeridos"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            client = Clients.objects.get(
+                document_type=document_type,
+                number_doc=number_doc,
+                deleted=False
+            )
+            
+            # Verificar si ya tiene contraseña
+            if client.password:
+                return Response({
+                    "error": "Este cliente ya tiene una contraseña registrada. Use el login normal."
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            return Response({
+                "exists": True,
+                "client": {
+                    "first_name": client.first_name,
+                    "last_name": client.last_name,
+                    "document_number": client.number_doc,
+                    "email": client.email,
+                    "phone": client.tel_number
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Clients.DoesNotExist:
+            return Response({
+                "exists": False,
+                "error": "No se encontró un cliente con ese número de documento"
+            }, status=status.HTTP_404_NOT_FOUND)
+
 class ClientAuthRequestView(APIView):
     """Vista para solicitar OTP para registro de contraseña"""
     permission_classes = [AllowAny]
@@ -187,6 +230,11 @@ class ClientAuthRequestView(APIView):
                         "error": "Este cliente ya tiene una contraseña registrada. Use el login normal."
                     }, status=status.HTTP_400_BAD_REQUEST)
 
+                # Limpiar códigos OTP previos
+                client.otp_code = None
+                client.otp_expires_at = None
+                client.save()
+
                 # Enviar OTP por SMS usando Twilio Verify Service
                 from apps.core.functions import send_sms_otp
 
@@ -195,12 +243,11 @@ class ClientAuthRequestView(APIView):
                 if sms_result['success']:
                     return Response({
                         "message": "Código de verificación enviado por SMS",
-                        "phone_hint": f"***{client.tel_number[-4:]}" if client.tel_number else None,
-                        "otp_sent": True
+                        "phone_hint": f"***{client.tel_number[-4:]}" if client.tel_number else None
                     }, status=status.HTTP_200_OK)
                 else:
                     return Response({
-                        "error": f"Error al enviar SMS: {sms_result['message']}"
+                        "error": f"Error al enviar código de verificación: {sms_result['message']}"
                     }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             except Clients.DoesNotExist:
@@ -244,6 +291,9 @@ class ClientPasswordSetupView(APIView):
 
                 # Establecer contraseña
                 client.password = make_password(password)
+                client.is_active_client = True
+                client.otp_code = None
+                client.otp_expires_at = None
                 client.save()
 
                 return Response({
