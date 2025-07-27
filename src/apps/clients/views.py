@@ -187,11 +187,6 @@ class ClientAuthRequestView(APIView):
                         "error": "Este cliente ya tiene una contraseña registrada. Use el login normal."
                     }, status=status.HTTP_400_BAD_REQUEST)
 
-                # Limpiar códigos OTP previos
-                client.otp_code = None
-                client.otp_expires_at = None
-                client.save()
-
                 # Enviar OTP por SMS usando Twilio Verify Service
                 from apps.core.functions import send_sms_otp
 
@@ -200,11 +195,12 @@ class ClientAuthRequestView(APIView):
                 if sms_result['success']:
                     return Response({
                         "message": "Código de verificación enviado por SMS",
-                        "phone_hint": f"***{client.tel_number[-4:]}" if client.tel_number else None
+                        "phone_hint": f"***{client.tel_number[-4:]}" if client.tel_number else None,
+                        "otp_sent": True
                     }, status=status.HTTP_200_OK)
                 else:
                     return Response({
-                        "error": f"Error al enviar código de verificación: {sms_result['message']}"
+                        "error": f"Error al enviar SMS: {sms_result['message']}"
                     }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             except Clients.DoesNotExist:
@@ -248,9 +244,6 @@ class ClientPasswordSetupView(APIView):
 
                 # Establecer contraseña
                 client.password = make_password(password)
-                client.is_active_client = True
-                client.otp_code = None
-                client.otp_expires_at = None
                 client.save()
 
                 return Response({

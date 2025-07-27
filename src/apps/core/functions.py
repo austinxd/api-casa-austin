@@ -265,6 +265,57 @@ def send_sms_otp(phone_number, otp_code):
             'sid': None
         }
 
+
+def verify_sms_otp(phone_number, otp_code):
+    """
+    Verifica código OTP usando Twilio Verify Service
+
+    Args:
+        phone_number: Número de teléfono con código de país (ej: +51987654321)
+        otp_code: Código OTP de 6 dígitos ingresado por el usuario
+
+    Returns:
+        dict: {'success': bool, 'message': str, 'status': str}
+    """
+    try:
+        # Configuración de Twilio desde settings
+        account_sid = settings.TWILIO_ACCOUNT_SID
+        auth_token = settings.TWILIO_AUTH_TOKEN
+        verify_service_sid = settings.TWILIO_VERIFY_SERVICE_SID
+
+        client = Client(account_sid, auth_token)
+
+        # Formatear el número de teléfono
+        if not phone_number.startswith('+'):
+            phone_number = f'+{phone_number}'
+
+        # Verificar código usando Twilio Verify Service
+        verification_check = client.verify \
+            .v2 \
+            .services(verify_service_sid) \
+            .verification_checks \
+            .create(to=phone_number, code=otp_code)
+
+        if verification_check.status == 'approved':
+            return {
+                'success': True,
+                'message': 'Código verificado correctamente',
+                'status': verification_check.status
+            }
+        else:
+            return {
+                'success': False,
+                'message': 'Código inválido o expirado',
+                'status': verification_check.status
+            }
+
+    except Exception as e:
+        return {
+            'success': False,
+            'message': f'Error al verificar código: {str(e)}',
+            'status': 'error'
+        }
+
 def verify_sms_otp(phone_number, otp_code):
     """
     Verifica código OTP usando Twilio Verify Service
