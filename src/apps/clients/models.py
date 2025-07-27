@@ -57,13 +57,7 @@ class Clients(BaseModel):
     manychat = models.PositiveIntegerField(null=True, blank=True)
     id_manychat = models.CharField(max_length=255, null=True, blank=True)
     comentarios_clientes = models.TextField(blank=True, null=True, help_text="Comentarios sobre el cliente")
-    
-    # Campos de autenticación
-    password = models.CharField(max_length=128, null=True, blank=True, help_text="Contraseña para acceso del cliente")
-    is_active_client = models.BooleanField(default=False, help_text="Indica si el cliente tiene acceso activo al sistema")
-    last_login_client = models.DateTimeField(null=True, blank=True, help_text="Último acceso del cliente")
-    otp_code = models.CharField(max_length=6, null=True, blank=True, help_text="Código OTP temporal")
-    otp_expires_at = models.DateTimeField(null=True, blank=True, help_text="Fecha de expiración del código OTP")
+
 
     class Meta:
         unique_together = ('document_type', 'number_doc')

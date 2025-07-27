@@ -1,10 +1,7 @@
 
 from rest_framework import serializers
+
 from rest_framework.validators import UniqueTogetherValidator
-from django.contrib.auth.hashers import make_password, check_password
-import random
-import string
-from datetime import datetime, timedelta
 
 from .models import Clients, MensajeFidelidad, TokenApiClients
 
@@ -63,41 +60,3 @@ class ClientShortSerializer(serializers.ModelSerializer):
             "document_type",
             "number_doc"
         ]
-
-class ClientAuthRequestSerializer(serializers.Serializer):
-    document_type = serializers.ChoiceField(choices=Clients.DocumentTypeChoice.choices, default='dni')
-    number_doc = serializers.CharField(max_length=50)
-
-class ClientOTPSerializer(serializers.Serializer):
-    document_type = serializers.ChoiceField(choices=Clients.DocumentTypeChoice.choices, default='dni')
-    number_doc = serializers.CharField(max_length=50)
-    otp_code = serializers.CharField(max_length=6)
-    password = serializers.CharField(min_length=6, max_length=128)
-    confirm_password = serializers.CharField(min_length=6, max_length=128)
-
-    def validate(self, attrs):
-        if attrs['password'] != attrs['confirm_password']:
-            raise serializers.ValidationError("Las contraseñas no coinciden")
-        return attrs
-
-class ClientLoginSerializer(serializers.Serializer):
-    document_type = serializers.ChoiceField(choices=Clients.DocumentTypeChoice.choices, default='dni')
-    number_doc = serializers.CharField(max_length=50)
-    password = serializers.CharField(max_length=128)
-
-class ClientProfileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Clients
-        fields = [
-            "id",
-            "first_name", 
-            "last_name",
-            "email",
-            "tel_number",
-            "document_type",
-            "number_doc",
-            "date",
-            "is_active_client",
-            "last_login_client"
-        ]
-        read_only_fields = ["id", "document_type", "number_doc", "is_active_client", "last_login_client"]

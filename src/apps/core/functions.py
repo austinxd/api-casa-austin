@@ -13,8 +13,6 @@ from django.contrib.admin.models import LogEntry, CHANGE, ADDITION, DELETION
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.admin.models import LogEntry
 
-from twilio.rest import Client
-
 
 URL_BASE = settings.AIRBNB_API_URL_BASE+"="
 
@@ -42,7 +40,7 @@ def get_month_name(month_number):
         return 'octubre'
     elif month_number == 11:
         return 'noviembre'
-
+    
     return 'diciembre'
 
 def normalizar_fecha(date_unformated):
@@ -70,7 +68,7 @@ def contar_noches_reserva(fecha_inicio, fecha_fin, limit, count_all_month=True):
             - Fecha inicio a evaluar (Check in)
             - Fecha fin a evaluar (Check out)
             - Fecha limite a evaluar (último día del mes)
-
+        
         Return:
             - Noches entre reservas
     """
@@ -78,7 +76,7 @@ def contar_noches_reserva(fecha_inicio, fecha_fin, limit, count_all_month=True):
     dia_actual = datetime.now().date()
 
     eval_fecha_fin = fecha_fin if fecha_fin < limit else limit + timedelta(days=1)  # En caso que salga por el else me intersa saber el dia siguiente porque es la noche del ultimo dia del mes
-
+    
     eval_fecha_inicio = fecha_inicio
     # True cuenta todos los dias del mes
     if count_all_month:
@@ -161,21 +159,21 @@ def confeccion_ics():
     from apps.property.models import Property
 
     query_reservations = Reservation.objects.exclude(deleted=True)
-
+ 
     # print('Comenzando proceso para confeccionar ICS')
-
+    
 
     for prop in Property.objects.exclude(deleted=True):
         # print('Procesando propiedad ', prop.name)
         cal = Calendar()
         cal.add('VERSION', str(2.0))
         cal.add('PRODID', "-//hacksw/handcal//NONSGML v1.0//EN")
-
+        
         for res in query_reservations.filter(property=prop, check_out_date__gte=datetime.now()):
             # print('Procesando reserva ', res)
             # Creating icalendar/event
             event = Event()
-
+            
             event.add('uid', str(res.id))
             event.add('description', f"Reserva de Casa Austin - {res.id} ({res.origin})")
             event.add('dtstart',  datetime.combine(res.check_in_date, datetime.min.time()))
@@ -202,7 +200,7 @@ def generate_audit(model_instance, user, flag_req, text_str):
         - flag: Un string que indica la acción a registrar create, update, delete (ADDITION, CHANGE, DELETION)
         - text_str: Un string mensaje que da información al estilo Descripción de la acción realizada
     """
-
+    
     flag = ADDITION
 
     if flag_req == 'create':
@@ -221,140 +219,3 @@ def generate_audit(model_instance, user, flag_req, text_str):
         action_flag=flag,
         change_message=text_str,
     )
-
-def send_sms_otp(phone_number, otp_code):
-    """
-    Envía código OTP por SMS usando Twilio Verify Service
-
-    Args:
-        phone_number: Número de teléfono con código de país (ej: +51987654321)
-        otp_code: Código OTP de 6 dígitos (No se usa con Verify Service)
-
-    Returns:
-        dict: {'success': bool, 'message': str, 'sid': str}
-    """
-    try:
-        # Configuración de Twilio desde settings
-        account_sid = settings.TWILIO_ACCOUNT_SID
-        auth_token = settings.TWILIO_AUTH_TOKEN
-        verify_service_sid = settings.TWILIO_VERIFY_SERVICE_SID
-
-        client = Client(account_sid, auth_token)
-
-        # Formatear el número de teléfono
-        if not phone_number.startswith('+'):
-            phone_number = f'+{phone_number}'
-
-        # Crear verificación usando Twilio Verify Service
-        verification = client.verify \
-            .v2 \
-            .services(verify_service_sid) \
-            .verifications \
-            .create(to=phone_number, channel='sms')
-
-        return {
-            'success': True,
-            'message': 'Código de verificación enviado correctamente',
-            'sid': verification.sid
-        }
-
-    except Exception as e:
-        return {
-            'success': False,
-            'message': f'Error al enviar código de verificación: {str(e)}',
-            'sid': None
-        }
-
-
-def verify_sms_otp(phone_number, otp_code):
-    """
-    Verifica código OTP usando Twilio Verify Service
-
-    Args:
-        phone_number: Número de teléfono con código de país (ej: +51987654321)
-        otp_code: Código OTP de 6 dígitos ingresado por el usuario
-
-    Returns:
-        dict: {'success': bool, 'message': str, 'status': str}
-    """
-    try:
-        # Configuración de Twilio desde settings
-        account_sid = settings.TWILIO_ACCOUNT_SID
-        auth_token = settings.TWILIO_AUTH_TOKEN
-        verify_service_sid = settings.TWILIO_VERIFY_SERVICE_SID
-
-        client = Client(account_sid, auth_token)
-
-        # Formatear el número de teléfono
-        if not phone_number.startswith('+'):
-            phone_number = f'+{phone_number}'
-
-        # Verificar código usando Twilio Verify Service
-        verification_check = client.verify \
-            .v2 \
-            .services(verify_service_sid) \
-            .verification_checks \
-            .create(to=phone_number, code=otp_code)
-
-        if verification_check.status == 'approved':
-            return {
-                'success': True,
-                'message': 'Código verificado correctamente',
-                'status': verification_check.status
-            }
-        else:
-            return {
-                'success': False,
-                'message': 'Código inválido o expirado',
-                'status': verification_check.status
-            }
-
-    except Exception as e:
-        return {
-            'success': False,
-            'message': f'Error al verificar código: {str(e)}',
-            'status': 'error'
-        }
-
-def verify_sms_otp(phone_number, otp_code):
-    """
-    Verifica código OTP usando Twilio Verify Service
-
-    Args:
-        phone_number: Número de teléfono con código de país
-        otp_code: Código OTP de 6 dígitos ingresado por el usuario
-
-    Returns:
-        dict: {'success': bool, 'message': str, 'valid': bool}
-    """
-    try:
-        # Configuración de Twilio desde settings
-        account_sid = settings.TWILIO_ACCOUNT_SID
-        auth_token = settings.TWILIO_AUTH_TOKEN
-        verify_service_sid = settings.TWILIO_VERIFY_SERVICE_SID
-
-        client = Client(account_sid, auth_token)
-
-        # Formatear el número de teléfono
-        if not phone_number.startswith('+'):
-            phone_number = f'+{phone_number}'
-
-        # Verificar código usando Twilio Verify Service
-        verification_check = client.verify \
-            .v2 \
-            .services(verify_service_sid) \
-            .verification_checks \
-            .create(to=phone_number, code=otp_code)
-
-        return {
-            'success': True,
-            'message': 'Verificación completada',
-            'valid': verification_check.status == 'approved'
-        }
-
-    except Exception as e:
-        return {
-            'success': False,
-            'message': f'Error al verificar código: {str(e)}',
-            'valid': False
-        }
