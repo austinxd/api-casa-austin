@@ -33,10 +33,15 @@ CSRF_TRUSTED_ORIGINS = env.list(
 CORS_ALLOWED_ORIGINS = env.list(
     "DJANGO_CORS_ALLOWED_ORIGINS", 
     default=[
-        'http://localhost:3000'
-        'https://casaaustin.pe'
+        'http://localhost:3000',
+        'https://casaaustin.pe',
+        'https://www.casaaustin.pe'
     ]
 )
+
+# También agregar configuración adicional de CORS
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = False
 
 META_PIXEL_ID = os.environ.get("META_PIXEL_ID")
 META_ACCESS_TOKEN = os.environ.get("META_ACCESS_TOKEN")
@@ -71,7 +76,8 @@ LOCAL_APPS = [
 THIRD_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
-    'drf_spectacular'
+    'drf_spectacular',
+    'corsheaders'
 ]
 
 INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS + THIRD_APPS
@@ -186,7 +192,7 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['rest_framework.filters.SearchFilter',],
     'DEFAULT_PAGINATION_CLASS': 'apps.core.paginator.CustomPagination',
     'PAGE_SIZE': DEFAULT_PAGE_SIZE,
-    
+
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
@@ -244,6 +250,12 @@ TELEGRAM_BOT_TOKEN = env('TELEGRAM_BOT_TOKEN', default='No token')
 CHAT_ID = env('CHAT_ID', default='N° chat ID')
 SECOND_CHAT_ID = env('SECOND_CHAT_ID', default='N° second chat ID')
 PERSONAL_CHAT_ID = env('PERSONAL_CHAT_ID', default='N° personal chat ID')
+
+# Configuración de Twilio
+TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
+TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
+TWILIO_VERIFY_SERVICE_SID = os.environ.get('TWILIO_VERIFY_SERVICE_SID', 'VA3cc4386475075f986c54191dee610191')
 
 # Verificar que las variables de entorno se cargan correctamente
 import logging

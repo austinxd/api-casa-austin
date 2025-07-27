@@ -1,3 +1,4 @@
+# Updates the OTP request to use Twilio Verify Service.
 from datetime import datetime, timedelta
 import random
 import string
@@ -26,7 +27,7 @@ from apps.core.functions import generate_audit
 
 class MensajeFidelidadApiView(APIView):
     serializer_class = MensajeFidelidadSerializer
-    
+
     def get(self, request):
         content = self.serializer_class(
             MensajeFidelidad.objects.exclude(
@@ -37,7 +38,7 @@ class MensajeFidelidadApiView(APIView):
 
 class TokenApiClientApiView(APIView):
     serializer_class = TokenApiClienteSerializer
-    
+
     def get(self, request):
         content = self.serializer_class(TokenApiClients.objects.exclude(deleted=True).order_by("created").last()).data
         return Response(content, status=200)    
@@ -64,7 +65,7 @@ class ClientsApiView(viewsets.ModelViewSet):
             return None
 
         return self.pagination_class
-    
+
     @extend_schema(
         parameters=[
             OpenApiParameter(
@@ -108,7 +109,7 @@ class ClientsApiView(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        
+
 
         self.perform_update(serializer)
 
@@ -122,10 +123,10 @@ class ClientsApiView(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        
+
         instance.deleted = True
         instance.save()
-        
+
         generate_audit(
             instance,
             self.request.user,
@@ -172,39 +173,45 @@ class ClientAuthRequestView(APIView):
         if serializer.is_valid():
             document_type = serializer.validated_data['document_type']
             number_doc = serializer.validated_data['number_doc']
-            
+
             try:
                 client = Clients.objects.get(
                     document_type=document_type,
                     number_doc=number_doc,
                     deleted=False
                 )
-                
+
                 # Verificar si ya tiene contraseña
                 if client.password:
                     return Response({
                         "error": "Este cliente ya tiene una contraseña registrada. Use el login normal."
                     }, status=status.HTTP_400_BAD_REQUEST)
-                
-                # Generar código OTP
-                otp_code = ''.join(random.choices(string.digits, k=6))
-                client.otp_code = otp_code
-                client.otp_expires_at = datetime.now() + timedelta(minutes=10)
+
+                # Limpiar códigos OTP previos
+                client.otp_code = None
+                client.otp_expires_at = None
                 client.save()
-                
-                # TODO: Enviar OTP por WhatsApp
-                # Aquí integrarías con tu servicio de WhatsApp
-                
-                return Response({
-                    "message": "Código OTP enviado por WhatsApp",
-                    "phone_hint": f"***{client.tel_number[-4:]}" if client.tel_number else None
-                }, status=status.HTTP_200_OK)
-                
+
+                # Enviar OTP por SMS usando Twilio Verify Service
+                from apps.core.functions import send_sms_otp
+
+                sms_result = send_sms_otp(client.tel_number, None)
+
+                if sms_result['success']:
+                    return Response({
+                        "message": "Código de verificación enviado por SMS",
+                        "phone_hint": f"***{client.tel_number[-4:]}" if client.tel_number else None
+                    }, status=status.HTTP_200_OK)
+                else:
+                    return Response({
+                        "error": f"Error al enviar código de verificación: {sms_result['message']}"
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
             except Clients.DoesNotExist:
                 return Response({
                     "error": "No se encontró un cliente con ese número de documento"
                 }, status=status.HTTP_404_NOT_FOUND)
-        
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ClientPasswordSetupView(APIView):
@@ -219,42 +226,42 @@ class ClientPasswordSetupView(APIView):
             number_doc = serializer.validated_data['number_doc']
             otp_code = serializer.validated_data['otp_code']
             password = serializer.validated_data['password']
-            
+
             try:
                 client = Clients.objects.get(
                     document_type=document_type,
                     number_doc=number_doc,
                     deleted=False
                 )
-                
+
                 # Verificar OTP
                 if not client.otp_code or client.otp_code != otp_code:
                     return Response({
                         "error": "Código OTP inválido"
                     }, status=status.HTTP_400_BAD_REQUEST)
-                
+
                 # Verificar expiración
                 if client.otp_expires_at < datetime.now():
                     return Response({
                         "error": "Código OTP expirado"
                     }, status=status.HTTP_400_BAD_REQUEST)
-                
+
                 # Establecer contraseña
                 client.password = make_password(password)
                 client.is_active_client = True
                 client.otp_code = None
                 client.otp_expires_at = None
                 client.save()
-                
+
                 return Response({
                     "message": "Contraseña establecida correctamente. Ya puedes iniciar sesión."
                 }, status=status.HTTP_200_OK)
-                
+
             except Clients.DoesNotExist:
                 return Response({
                     "error": "Cliente no encontrado"
                 }, status=status.HTTP_404_NOT_FOUND)
-        
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ClientLoginView(APIView):
@@ -268,7 +275,7 @@ class ClientLoginView(APIView):
             document_type = serializer.validated_data['document_type']
             number_doc = serializer.validated_data['number_doc']
             password = serializer.validated_data['password']
-            
+
             try:
                 client = Clients.objects.get(
                     document_type=document_type,
@@ -276,17 +283,17 @@ class ClientLoginView(APIView):
                     deleted=False,
                     is_active_client=True
                 )
-                
+
                 if not client.password:
                     return Response({
                         "error": "Este cliente no tiene contraseña configurada"
                     }, status=status.HTTP_400_BAD_REQUEST)
-                
+
                 if check_password(password, client.password):
                     # Actualizar último login
                     client.last_login_client = datetime.now()
                     client.save()
-                    
+
                     # Generar token JWT
                     token_payload = {
                         'client_id': client.id,
@@ -294,9 +301,9 @@ class ClientLoginView(APIView):
                         'number_doc': client.number_doc,
                         'exp': datetime.utcnow() + timedelta(days=7)
                     }
-                    
+
                     token = jwt.encode(token_payload, settings.SECRET_KEY, algorithm='HS256')
-                    
+
                     return Response({
                         "message": "Login exitoso",
                         "token": token,
@@ -306,23 +313,23 @@ class ClientLoginView(APIView):
                     return Response({
                         "error": "Contraseña incorrecta"
                     }, status=status.HTTP_400_BAD_REQUEST)
-                
+
             except Clients.DoesNotExist:
                 return Response({
                     "error": "Cliente no encontrado o inactivo"
                 }, status=status.HTTP_404_NOT_FOUND)
-        
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ClientProfileView(APIView):
     """Vista para ver y actualizar perfil del cliente"""
-    
+
     def get_client_from_token(self, request):
         """Extrae el cliente del token JWT"""
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return None
-        
+
         token = auth_header[7:]
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
@@ -334,42 +341,42 @@ class ClientProfileView(APIView):
             return client
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, Clients.DoesNotExist):
             return None
-    
+
     def get(self, request):
         client = self.get_client_from_token(request)
         if not client:
             return Response({
                 "error": "Token inválido o expirado"
             }, status=status.HTTP_401_UNAUTHORIZED)
-        
+
         serializer = ClientProfileSerializer(client)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
     def patch(self, request):
         client = self.get_client_from_token(request)
         if not client:
             return Response({
                 "error": "Token inválido o expirado"
             }, status=status.HTTP_401_UNAUTHORIZED)
-        
+
         serializer = ClientProfileSerializer(client, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-        
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
 class ClientReservationsView(APIView):
     """Vista para que los clientes vean sus reservas"""
-    
+
     def get_client_from_token(self, request):
         """Extrae el cliente del token JWT"""
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return None
-        
+
         token = auth_header[7:]
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
@@ -381,32 +388,32 @@ class ClientReservationsView(APIView):
             return client
         except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, Clients.DoesNotExist):
             return None
-    
+
     def get(self, request):
         client = self.get_client_from_token(request)
         if not client:
             return Response({
                 "error": "Token inválido o expirado"
             }, status=status.HTTP_401_UNAUTHORIZED)
-        
+
         from apps.reservation.models import Reservation
         from apps.reservation.serializers import ReservationSerializer
-        
+
         # Obtener todas las reservas del cliente
         reservations = Reservation.objects.filter(
             client=client,
             deleted=False
         ).order_by('-check_in_date')
-        
+
         # Separar reservas pasadas y futuras
         today = datetime.now().date()
         past_reservations = reservations.filter(check_out_date__lt=today)
         future_reservations = reservations.filter(check_in_date__gte=today)
-        
+
         # Serializar las reservas
         past_serializer = ReservationSerializer(past_reservations, many=True)
         future_serializer = ReservationSerializer(future_reservations, many=True)
-        
+
         return Response({
             "past_reservations": past_serializer.data,
             "future_reservations": future_serializer.data,
