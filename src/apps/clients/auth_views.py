@@ -8,6 +8,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
 from .models import Clients
 from .serializers import (
@@ -21,6 +24,20 @@ from .twilio_service import TwilioOTPService
 import logging
 
 logger = logging.getLogger('apps')
+
+# Custom JWT Authentication for Clients
+class ClientJWTAuthentication(JWTAuthentication):
+    def get_user(self, validated_token):
+        """
+        Override to get client instead of user
+        """
+        try:
+            client_id = validated_token.get('client_id')
+            if client_id:
+                return Clients.objects.get(id=client_id, deleted=False)
+        except Clients.DoesNotExist:
+            pass
+        return None
 
 class ClientVerifyDocumentView(APIView):
     permission_classes = [AllowAny]
@@ -163,19 +180,20 @@ class ClientLoginView(APIView):
             client.last_login = timezone.now()
             client.save()
 
-            # Generar JWT token
-            payload = {
-                'client_id': str(client.id),  # Convert UUID to string
-                'document_type': client.document_type,
-                'number_doc': client.number_doc,
-                'exp': datetime.utcnow() + timedelta(days=30),
-                'iat': datetime.utcnow()
-            }
+            # Generar tokens using Simple JWT
+            refresh = RefreshToken()
+            refresh['client_id'] = str(client.id)
+            refresh['document_type'] = client.document_type
+            refresh['number_doc'] = client.number_doc
 
-            token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+            access_token = refresh.access_token
+            access_token['client_id'] = str(client.id)
+            access_token['document_type'] = client.document_type
+            access_token['number_doc'] = client.number_doc
 
             return Response({
-                'token': token,
+                'token': str(access_token),
+                'refresh': str(refresh),
                 'client': ClientProfileSerializer(client).data
             })
 
@@ -186,107 +204,46 @@ class ClientLoginView(APIView):
 
 
 class ClientProfileView(APIView):
+    authentication_classes = [ClientJWTAuthentication]
 
     def get(self, request):
         logger.info("ClientProfileView: Profile request received")
-        logger.info(f"Request headers: {dict(request.headers)}")
 
-        client = self.get_client_from_token(request)
-        if not client:
-            logger.error("ClientProfileView: Authentication failed")
-            return Response({'message': 'Token inválido'}, status=401)
-
-        logger.info(f"ClientProfileView: Returning profile for client {client.id}")
-        return Response(ClientProfileSerializer(client).data)
-
-    def get_client_from_token(self, request):
-        logger.info("=" * 50)
-        logger.info("STARTING TOKEN VALIDATION")
-        logger.info("=" * 50)
-
-        # Log all headers for debugging
-        logger.info("ALL REQUEST HEADERS:")
-        for header_name, header_value in request.headers.items():
-            if 'authorization' in header_name.lower():
-                logger.info(f"  {header_name}: {header_value[:50]}...")
-            else:
-                logger.info(f"  {header_name}: {header_value}")
-
-        auth_header = request.headers.get('Authorization')
-        logger.info(f"Authorization header: {auth_header}")
-
-        if not auth_header:
-            logger.error("NO Authorization header found")
-            return None
-
-        if not auth_header.startswith('Bearer '):
-            logger.error(f"Invalid Authorization format. Expected 'Bearer <token>', got: {auth_header[:30]}...")
-            return None
-
-        token = auth_header.split(' ')[1]
-        logger.info(f"Extracted token length: {len(token)}")
-        logger.info(f"Token first 30 chars: {token[:30]}...")
-        logger.info(f"Token last 30 chars: ...{token[-30:]}")
-
+        # Get client from JWT token
         try:
-            logger.info("Attempting to decode JWT token...")
-            logger.info(f"Using SECRET_KEY: {settings.SECRET_KEY[:10]}..." if settings.SECRET_KEY else "NO SECRET_KEY")
+            authenticator = ClientJWTAuthentication()
+            user, validated_token = authenticator.authenticate(request)
 
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            logger.info(f"JWT Token decoded successfully!")
-            logger.info(f"Full payload: {payload}")
+            if not user:
+                logger.error("ClientProfileView: Authentication failed")
+                return Response({'message': 'Token inválido'}, status=401)
 
-            client_id = payload.get('client_id')
-            logger.info(f"Client ID from token: {client_id} (type: {type(client_id)})")
+            logger.info(f"ClientProfileView: Returning profile for client {user.id}")
+            return Response(ClientProfileSerializer(user).data)
 
-            if not client_id:
-                logger.error("No client_id found in token payload")
-                return None
-
-            logger.info(f"Searching for client in database with ID: {client_id}")
-
-            # Try both string and UUID formats
-            try:
-                client = Clients.objects.get(id=client_id, deleted=False)
-                logger.info(f"Client found by direct ID match: {client.first_name} {client.last_name} (ID: {client.id})")
-                return client
-            except Clients.DoesNotExist:
-                logger.error(f"Client not found with ID: {client_id}")
-
-                # Let's see what clients exist
-                all_clients = Clients.objects.filter(deleted=False)[:10]
-                logger.info(f"Found {all_clients.count()} active clients in database:")
-                for c in all_clients:
-                    logger.info(f"  - ID: {c.id} (type: {type(c.id)}), Name: {c.first_name} {c.last_name}")
-
-                return None
-
-        except jwt.ExpiredSignatureError as e:
-            logger.error(f"JWT Token has expired: {str(e)}")
-            return None
-        except jwt.InvalidTokenError as e:
-            logger.error(f"Invalid JWT token: {str(e)}")
-            logger.error(f"Token that failed: {token}")
-            return None
+        except (InvalidToken, TokenError) as e:
+            logger.error(f"ClientProfileView: Token validation failed: {str(e)}")
+            return Response({'message': 'Token inválido'}, status=401)
         except Exception as e:
-            logger.error(f"Unexpected error during token validation: {str(e)}")
-            import traceback
-            logger.error(f"Full traceback: {traceback.format_exc()}")
-            return None
+            logger.error(f"ClientProfileView: Unexpected error: {str(e)}")
+            return Response({'message': 'Error interno del servidor'}, status=500)
 
 
 class ClientReservationsView(APIView):
+    authentication_classes = [ClientJWTAuthentication]
 
     def get(self, request):
         logger.info("ClientReservationsView: Request received")
-        logger.info(f"Authorization header: {request.headers.get('Authorization', 'No header')}")
 
-        client = self.get_client_from_token(request)
-        if not client:
-            logger.error("ClientReservationsView: Invalid token or client not found")
-            return Response({'message': 'Token inválido'}, status=401)
-
+        # Get client from JWT token
         try:
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
+
+            if not client:
+                logger.error("ClientReservationsView: Authentication failed")
+                return Response({'message': 'Token inválido'}, status=401)
+
             from apps.reservation.models import Reservation
             from apps.reservation.serializers import ReservationListSerializer
 
@@ -303,87 +260,15 @@ class ClientReservationsView(APIView):
                 'reservations': serializer.data
             })
 
+        except (InvalidToken, TokenError) as e:
+            logger.error(f"ClientReservationsView: Token validation failed: {str(e)}")
+            return Response({'message': 'Token inválido'}, status=401)
         except Exception as e:
-            logger.error(f"Error getting client reservations: {str(e)}")
+            logger.error(f"ClientReservationsView: Error getting reservations: {str(e)}")
             return Response({
                 'success': False,
                 'message': 'Error al obtener las reservaciones'
             }, status=500)
-
-    def get_client_from_token(self, request):
-        logger.info("=" * 50)
-        logger.info("STARTING TOKEN VALIDATION")
-        logger.info("=" * 50)
-
-        # Log all headers for debugging
-        logger.info("ALL REQUEST HEADERS:")
-        for header_name, header_value in request.headers.items():
-            if 'authorization' in header_name.lower():
-                logger.info(f"  {header_name}: {header_value[:50]}...")
-            else:
-                logger.info(f"  {header_name}: {header_value}")
-
-        auth_header = request.headers.get('Authorization')
-        logger.info(f"Authorization header: {auth_header}")
-
-        if not auth_header:
-            logger.error("NO Authorization header found")
-            return None
-
-        if not auth_header.startswith('Bearer '):
-            logger.error(f"Invalid Authorization format. Expected 'Bearer <token>', got: {auth_header[:30]}...")
-            return None
-
-        token = auth_header.split(' ')[1]
-        logger.info(f"Extracted token length: {len(token)}")
-        logger.info(f"Token first 30 chars: {token[:30]}...")
-        logger.info(f"Token last 30 chars: ...{token[-30:]}")
-
-        try:
-            logger.info("Attempting to decode JWT token...")
-            logger.info(f"Using SECRET_KEY: {settings.SECRET_KEY[:10]}..." if settings.SECRET_KEY else "NO SECRET_KEY")
-
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            logger.info(f"JWT Token decoded successfully!")
-            logger.info(f"Full payload: {payload}")
-
-            client_id = payload.get('client_id')
-            logger.info(f"Client ID from token: {client_id} (type: {type(client_id)})")
-
-            if not client_id:
-                logger.error("No client_id found in token payload")
-                return None
-
-            logger.info(f"Searching for client in database with ID: {client_id}")
-
-            # Try both string and UUID formats
-            try:
-                client = Clients.objects.get(id=client_id, deleted=False)
-                logger.info(f"Client found by direct ID match: {client.first_name} {client.last_name} (ID: {client.id})")
-                return client
-            except Clients.DoesNotExist:
-                logger.error(f"Client not found with ID: {client_id}")
-
-                # Let's see what clients exist
-                all_clients = Clients.objects.filter(deleted=False)[:10]
-                logger.info(f"Found {all_clients.count()} active clients in database:")
-                for c in all_clients:
-                    logger.info(f"  - ID: {c.id} (type: {type(c.id)}), Name: {c.first_name} {c.last_name}")
-
-                return None
-
-        except jwt.ExpiredSignatureError as e:
-            logger.error(f"JWT Token has expired: {str(e)}")
-            return None
-        except jwt.InvalidTokenError as e:
-            logger.error(f"Invalid JWT token: {str(e)}")
-            logger.error(f"Token that failed: {token}")
-            return None
-        except Exception as e:
-            logger.error(f"Unexpected error during token validation: {str(e)}")
-            import traceback
-            logger.error(f"Full traceback: {traceback.format_exc()}")
-            return None
 
 
 @api_view(['GET'])
