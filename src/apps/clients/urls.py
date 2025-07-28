@@ -1,3 +1,4 @@
+
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
@@ -8,15 +9,11 @@ router = DefaultRouter()
 router.register(r'clients', views.ClientsApiView, basename='clients')
 
 urlpatterns = [
-    path('clients/', include(router.urls)),
-
+    path('', include(router.urls)),
+    
     # Endpoints originales para compatibilidad
-    path('mensaje-fidelidad/', views.MensajeFidelidadApiView.as_view(), name='mensaje-fidelidad-original'),
-    path('get-api-token-clients/', views.TokenApiClientApiView.as_view(), name='token-rutificador-original'),
-
-    # Endpoints nuevos
-    path('clients/mensaje-fidelidad/', views.MensajeFidelidadApiView.as_view(), name='mensaje-fidelidad'),
-    path('clients/token-rutificador/', views.TokenApiClientApiView.as_view(), name='token-rutificador'),
+    path('mensaje-fidelidad/', views.MensajeFidelidadApiView.as_view(), name='mensaje-fidelidad'),
+    path('get-api-token-clients/', views.TokenApiClientApiView.as_view(), name='token-rutificador'),
 
     # Client Authentication URLs
     path('clients/verify-document/', auth_views.ClientVerifyDocumentView.as_view(), name='client-verify-document'),
