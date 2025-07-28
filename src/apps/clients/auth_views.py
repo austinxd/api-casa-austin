@@ -205,6 +205,7 @@ class ClientLoginView(APIView):
 
 class ClientProfileView(APIView):
     authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
 
     def get(self, request):
         logger.info("ClientProfileView: Profile request received")
@@ -231,6 +232,7 @@ class ClientProfileView(APIView):
 
 class ClientReservationsView(APIView):
     authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
 
     def get(self, request):
         logger.info("ClientReservationsView: Request received")
