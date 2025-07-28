@@ -13,7 +13,7 @@ class TwilioOTPService:
         # Configurar con variables de entorno
         self.account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
         self.auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
-        self.verify_sid = os.environ.get('TWILIO_VERIFY_SID')
+        self.verify_sid = os.environ.get('TWILIO_VERIFY_SERVICE_SID')
         
         if not all([self.account_sid, self.auth_token, self.verify_sid]):
             logger.warning("Twilio credentials not configured. OTP service disabled.")
