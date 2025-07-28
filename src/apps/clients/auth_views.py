@@ -188,10 +188,15 @@ class ClientLoginView(APIView):
 class ClientProfileView(APIView):
 
     def get(self, request):
+        logger.info("ClientProfileView: Profile request received")
+        logger.info(f"Request headers: {dict(request.headers)}")
+        
         client = self.get_client_from_token(request)
         if not client:
+            logger.error("ClientProfileView: Authentication failed")
             return Response({'message': 'Token inválido'}, status=401)
 
+        logger.info(f"ClientProfileView: Returning profile for client {client.id}")
         return Response(ClientProfileSerializer(client).data)
 
     def get_client_from_token(self, request):
