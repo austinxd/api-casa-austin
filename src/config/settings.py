@@ -29,14 +29,40 @@ CSRF_TRUSTED_ORIGINS = env.list(
     ]
 )
 
-# CORS
-CORS_ALLOWED_ORIGINS = env.list(
-    "DJANGO_CORS_ALLOWED_ORIGINS", 
-    default=[
-        'http://localhost:3000'
-        'https://casaaustin.pe'
-    ]
-)
+# CORS configuration
+CORS_ALLOWED_ORIGINS = [
+    "https://casaaustin.pe",
+    "https://www.casaaustin.pe",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# Permitir estos métodos
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# Para desarrollo, también permite todas las origins (opcional)
+# CORS_ALLOW_ALL_ORIGINS = True
 
 META_PIXEL_ID = os.environ.get("META_PIXEL_ID")
 META_ACCESS_TOKEN = os.environ.get("META_ACCESS_TOKEN")
@@ -186,7 +212,7 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['rest_framework.filters.SearchFilter',],
     'DEFAULT_PAGINATION_CLASS': 'apps.core.paginator.CustomPagination',
     'PAGE_SIZE': DEFAULT_PAGE_SIZE,
-    
+
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
@@ -261,3 +287,14 @@ logger.debug(f"SECOND_CHAT_ID: {SECOND_CHAT_ID}")
 logger.debug(f"PERSONAL_CHAT_ID: {PERSONAL_CHAT_ID}")
 logger.debug(f"TWILIO_ACCOUNT_SID: {TWILIO_ACCOUNT_SID}")
 logger.debug(f"TWILIO_VERIFY_SID: {TWILIO_VERIFY_SID}")
+
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'None'
+
+# Trusted origins para CSRF
+CSRF_TRUSTED_ORIGINS = [
+    "https://casaaustin.pe",
+    "https://www.casaaustin.pe",
+    "https://api.casaaustin.pe",
+]
