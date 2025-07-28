@@ -209,6 +209,52 @@ class ClientProfileView(APIView):
             return None
 
 
+class ClientReservationsView(APIView):
+
+    def get(self, request):
+        client = self.get_client_from_token(request)
+        if not client:
+            return Response({'message': 'Token inválido'}, status=401)
+
+        try:
+            from apps.reservation.models import Reservation
+            from apps.reservation.serializers import ReservationListSerializer
+            
+            # Filtrar reservaciones del cliente autenticado
+            reservations = Reservation.objects.filter(
+                client=client,
+                deleted=False
+            ).order_by('-check_in_date')
+            
+            serializer = ReservationListSerializer(reservations, many=True)
+            
+            return Response({
+                'success': True,
+                'reservations': serializer.data
+            })
+            
+        except Exception as e:
+            logger.error(f"Error getting client reservations: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error al obtener las reservaciones'
+            }, status=500)
+
+    def get_client_from_token(self, request):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return None
+
+        token = auth_header.split(' ')[1]
+
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            client = Clients.objects.get(id=payload['client_id'], deleted=False)
+            return client
+        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, Clients.DoesNotExist):
+            return None
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_csrf_token(request):

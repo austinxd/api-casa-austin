@@ -18,5 +18,6 @@ urlpatterns = [
     path('clients/client-auth/setup-password/', auth_views.ClientSetupPasswordView.as_view(), name='client-setup-password'),
     path('clients/client-auth/login/', auth_views.ClientLoginView.as_view(), name='client-login'),
     path('clients/client-auth/profile/', auth_views.ClientProfileView.as_view(), name='client-profile'),
+    path('clients/client-auth/reservations/', auth_views.ClientReservationsView.as_view(), name='client-auth-reservations'), # Added client reservations URL
     path('clients/csrf-token/', auth_views.get_csrf_token, name='csrf-token'),
 ]
