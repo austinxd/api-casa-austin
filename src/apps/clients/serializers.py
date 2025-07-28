@@ -1,6 +1,6 @@
 
 from rest_framework import serializers
-
+from django.contrib.auth.hashers import make_password, check_password
 from rest_framework.validators import UniqueTogetherValidator
 
 from .models import Clients, MensajeFidelidad, TokenApiClients
@@ -60,3 +60,44 @@ class ClientShortSerializer(serializers.ModelSerializer):
             "document_type",
             "number_doc"
         ]
+
+
+class ClientAuthVerifySerializer(serializers.Serializer):
+    document_type = serializers.CharField(max_length=3)
+    number_doc = serializers.CharField(max_length=50)
+
+
+class ClientAuthRequestOTPSerializer(serializers.Serializer):
+    document_type = serializers.CharField(max_length=3)
+    number_doc = serializers.CharField(max_length=50)
+
+
+class ClientAuthSetPasswordSerializer(serializers.Serializer):
+    document_type = serializers.CharField(max_length=3)
+    number_doc = serializers.CharField(max_length=50)
+    otp_code = serializers.CharField(max_length=6)
+    password = serializers.CharField(min_length=6, max_length=128)
+
+
+class ClientAuthLoginSerializer(serializers.Serializer):
+    document_type = serializers.CharField(max_length=3)
+    number_doc = serializers.CharField(max_length=50)
+    password = serializers.CharField(max_length=128)
+
+
+class ClientProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Clients
+        fields = [
+            "id",
+            "first_name",
+            "last_name",
+            "email",
+            "tel_number",
+            "document_type",
+            "number_doc",
+            "date",
+            "sex",
+            "last_login"
+        ]
+        read_only_fields = ["id", "document_type", "number_doc", "last_login"]

@@ -245,6 +245,12 @@ CHAT_ID = env('CHAT_ID', default='N° chat ID')
 SECOND_CHAT_ID = env('SECOND_CHAT_ID', default='N° second chat ID')
 PERSONAL_CHAT_ID = env('PERSONAL_CHAT_ID', default='N° personal chat ID')
 
+# Twilio settings for OTP
+TWILIO_ACCOUNT_SID = env('TWILIO_ACCOUNT_SID', default='No SID')
+TWILIO_AUTH_TOKEN = env('TWILIO_AUTH_TOKEN', default='No token')
+TWILIO_VERIFY_SID = env('TWILIO_VERIFY_SID', default='No verify SID')
+TWILIO_PHONE_NUMBER = env('TWILIO_PHONE_NUMBER', default='No phone')
+
 # Verificar que las variables de entorno se cargan correctamente
 import logging
 
@@ -253,3 +259,5 @@ logger.debug(f"TELEGRAM_BOT_TOKEN: {TELEGRAM_BOT_TOKEN}")
 logger.debug(f"CHAT_ID: {CHAT_ID}")
 logger.debug(f"SECOND_CHAT_ID: {SECOND_CHAT_ID}")
 logger.debug(f"PERSONAL_CHAT_ID: {PERSONAL_CHAT_ID}")
+logger.debug(f"TWILIO_ACCOUNT_SID: {TWILIO_ACCOUNT_SID}")
+logger.debug(f"TWILIO_VERIFY_SID: {TWILIO_VERIFY_SID}")
