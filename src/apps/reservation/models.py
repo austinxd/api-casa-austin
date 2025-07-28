@@ -69,6 +69,10 @@ class Reservation(BaseModel):
             return f"Reserva de {self.client.last_name}, {self.client.first_name} ({self.id}) - {self.origin} -"
         else:
             return f"Reserva desde API Airbnb (sin datos del cliente)"
+    
+    def delete(self, *args, **kwargs):
+        self.deleted = True
+        self.save()
 
     @property
     def calculate_points_earned(self):
@@ -76,10 +80,6 @@ class Reservation(BaseModel):
         if self.price_sol:
             return float(self.price_sol)
         return 0.0
-    
-    def delete(self, *args, **kwargs):
-        self.deleted = True
-        self.save()
 
 def recipt_directory_path(instance, filename):
     return f'rental_recipt/{instance.reservation.id}/{filename}'
