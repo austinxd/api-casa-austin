@@ -190,7 +190,7 @@ class ClientProfileView(APIView):
     def get(self, request):
         logger.info("ClientProfileView: Profile request received")
         logger.info(f"Request headers: {dict(request.headers)}")
-        
+
         client = self.get_client_from_token(request)
         if not client:
             logger.error("ClientProfileView: Authentication failed")
@@ -200,41 +200,78 @@ class ClientProfileView(APIView):
         return Response(ClientProfileSerializer(client).data)
 
     def get_client_from_token(self, request):
-        auth_header = request.headers.get('Authorization')
-        logger.info(f"Authorization header received: {auth_header[:50] if auth_header else 'None'}...")
+        logger.info("=" * 50)
+        logger.info("STARTING TOKEN VALIDATION")
+        logger.info("=" * 50)
 
-        if not auth_header or not auth_header.startswith('Bearer '):
-            logger.error("No Authorization header or invalid format")
+        # Log all headers for debugging
+        logger.info("ALL REQUEST HEADERS:")
+        for header_name, header_value in request.headers.items():
+            if 'authorization' in header_name.lower():
+                logger.info(f"  {header_name}: {header_value[:50]}...")
+            else:
+                logger.info(f"  {header_name}: {header_value}")
+
+        auth_header = request.headers.get('Authorization')
+        logger.info(f"Authorization header: {auth_header}")
+
+        if not auth_header:
+            logger.error("NO Authorization header found")
+            return None
+
+        if not auth_header.startswith('Bearer '):
+            logger.error(f"Invalid Authorization format. Expected 'Bearer <token>', got: {auth_header[:30]}...")
             return None
 
         token = auth_header.split(' ')[1]
-        logger.info(f"Extracted token: {token[:20]}...")
+        logger.info(f"Extracted token length: {len(token)}")
+        logger.info(f"Token first 30 chars: {token[:30]}...")
+        logger.info(f"Token last 30 chars: ...{token[-30:]}")
 
         try:
-            logger.info(f"Decoding token with SECRET_KEY")
+            logger.info("Attempting to decode JWT token...")
+            logger.info(f"Using SECRET_KEY: {settings.SECRET_KEY[:10]}..." if settings.SECRET_KEY else "NO SECRET_KEY")
+
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            logger.info(f"Token decoded successfully. Payload: {payload}")
+            logger.info(f"JWT Token decoded successfully!")
+            logger.info(f"Full payload: {payload}")
 
             client_id = payload.get('client_id')
-            logger.info(f"Looking for client with ID: {client_id}")
+            logger.info(f"Client ID from token: {client_id} (type: {type(client_id)})")
 
-            client = Clients.objects.get(id=client_id, deleted=False)
-            logger.info(f"Client found: {client.first_name} {client.last_name}")
-            return client
+            if not client_id:
+                logger.error("No client_id found in token payload")
+                return None
 
-        except jwt.ExpiredSignatureError:
-            logger.error("Token has expired")
+            logger.info(f"Searching for client in database with ID: {client_id}")
+
+            # Try both string and UUID formats
+            try:
+                client = Clients.objects.get(id=client_id, deleted=False)
+                logger.info(f"Client found by direct ID match: {client.first_name} {client.last_name} (ID: {client.id})")
+                return client
+            except Clients.DoesNotExist:
+                logger.error(f"Client not found with ID: {client_id}")
+
+                # Let's see what clients exist
+                all_clients = Clients.objects.filter(deleted=False)[:10]
+                logger.info(f"Found {all_clients.count()} active clients in database:")
+                for c in all_clients:
+                    logger.info(f"  - ID: {c.id} (type: {type(c.id)}), Name: {c.first_name} {c.last_name}")
+
+                return None
+
+        except jwt.ExpiredSignatureError as e:
+            logger.error(f"JWT Token has expired: {str(e)}")
             return None
         except jwt.InvalidTokenError as e:
-            logger.error(f"Invalid token: {str(e)}")
-            return None
-        except Clients.DoesNotExist:
-            logger.error(f"Client not found for id: {client_id}")
+            logger.error(f"Invalid JWT token: {str(e)}")
+            logger.error(f"Token that failed: {token}")
             return None
         except Exception as e:
-            logger.error(f"Unexpected error validating token: {str(e)}")
+            logger.error(f"Unexpected error during token validation: {str(e)}")
             import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
+            logger.error(f"Full traceback: {traceback.format_exc()}")
             return None
 
 
@@ -274,41 +311,78 @@ class ClientReservationsView(APIView):
             }, status=500)
 
     def get_client_from_token(self, request):
-        auth_header = request.headers.get('Authorization')
-        logger.info(f"Authorization header received: {auth_header[:50] if auth_header else 'None'}...")
+        logger.info("=" * 50)
+        logger.info("STARTING TOKEN VALIDATION")
+        logger.info("=" * 50)
 
-        if not auth_header or not auth_header.startswith('Bearer '):
-            logger.error("No Authorization header or invalid format")
+        # Log all headers for debugging
+        logger.info("ALL REQUEST HEADERS:")
+        for header_name, header_value in request.headers.items():
+            if 'authorization' in header_name.lower():
+                logger.info(f"  {header_name}: {header_value[:50]}...")
+            else:
+                logger.info(f"  {header_name}: {header_value}")
+
+        auth_header = request.headers.get('Authorization')
+        logger.info(f"Authorization header: {auth_header}")
+
+        if not auth_header:
+            logger.error("NO Authorization header found")
+            return None
+
+        if not auth_header.startswith('Bearer '):
+            logger.error(f"Invalid Authorization format. Expected 'Bearer <token>', got: {auth_header[:30]}...")
             return None
 
         token = auth_header.split(' ')[1]
-        logger.info(f"Extracted token: {token[:20]}...")
+        logger.info(f"Extracted token length: {len(token)}")
+        logger.info(f"Token first 30 chars: {token[:30]}...")
+        logger.info(f"Token last 30 chars: ...{token[-30:]}")
 
         try:
-            logger.info(f"Decoding token with SECRET_KEY")
+            logger.info("Attempting to decode JWT token...")
+            logger.info(f"Using SECRET_KEY: {settings.SECRET_KEY[:10]}..." if settings.SECRET_KEY else "NO SECRET_KEY")
+
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            logger.info(f"Token decoded successfully. Payload: {payload}")
+            logger.info(f"JWT Token decoded successfully!")
+            logger.info(f"Full payload: {payload}")
 
             client_id = payload.get('client_id')
-            logger.info(f"Looking for client with ID: {client_id}")
+            logger.info(f"Client ID from token: {client_id} (type: {type(client_id)})")
 
-            client = Clients.objects.get(id=client_id, deleted=False)
-            logger.info(f"Client found: {client.first_name} {client.last_name}")
-            return client
+            if not client_id:
+                logger.error("No client_id found in token payload")
+                return None
 
-        except jwt.ExpiredSignatureError:
-            logger.error("Token has expired")
+            logger.info(f"Searching for client in database with ID: {client_id}")
+
+            # Try both string and UUID formats
+            try:
+                client = Clients.objects.get(id=client_id, deleted=False)
+                logger.info(f"Client found by direct ID match: {client.first_name} {client.last_name} (ID: {client.id})")
+                return client
+            except Clients.DoesNotExist:
+                logger.error(f"Client not found with ID: {client_id}")
+
+                # Let's see what clients exist
+                all_clients = Clients.objects.filter(deleted=False)[:10]
+                logger.info(f"Found {all_clients.count()} active clients in database:")
+                for c in all_clients:
+                    logger.info(f"  - ID: {c.id} (type: {type(c.id)}), Name: {c.first_name} {c.last_name}")
+
+                return None
+
+        except jwt.ExpiredSignatureError as e:
+            logger.error(f"JWT Token has expired: {str(e)}")
             return None
         except jwt.InvalidTokenError as e:
-            logger.error(f"Invalid token: {str(e)}")
-            return None
-        except Clients.DoesNotExist:
-            logger.error(f"Client not found for id: {client_id}")
+            logger.error(f"Invalid JWT token: {str(e)}")
+            logger.error(f"Token that failed: {token}")
             return None
         except Exception as e:
-            logger.error(f"Unexpected error validating token: {str(e)}")
+            logger.error(f"Unexpected error during token validation: {str(e)}")
             import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
+            logger.error(f"Full traceback: {traceback.format_exc()}")
             return None
 
 
