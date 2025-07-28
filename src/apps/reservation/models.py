@@ -1,3 +1,4 @@
+
 import os
 from django.conf import settings
 from django.db import models
@@ -16,15 +17,6 @@ class Reservation(BaseModel):
     late_checkout = models.BooleanField(default=False)
     late_check_out_date = models.DateField(null=True, blank=True)
     comentarios_reservas = models.TextField(null=True, blank=True, help_text="Comentarios adicionales sobre la reserva.")
-
-    @property
-    def adelanto_normalizado(self):
-        res = float(self.advance_payment) if self.advance_payment else 0
-
-        if self.advance_payment_currency == 'usd' and self.advance_payment != 0:
-            res = (float(self.price_sol) / float(self.price_usd)) * float(self.advance_payment)
-
-        return round(res, 2)
 
     class AdvancePaymentTypeChoice(models.TextChoices):
         SOL = "sol", ("Soles")
@@ -69,17 +61,27 @@ class Reservation(BaseModel):
             return f"Reserva de {self.client.last_name}, {self.client.first_name} ({self.id}) - {self.origin} -"
         else:
             return f"Reserva desde API Airbnb (sin datos del cliente)"
-    
+
     def delete(self, *args, **kwargs):
         self.deleted = True
         self.save()
 
     @property
+    def adelanto_normalizado(self):
+        res = float(self.advance_payment) if self.advance_payment else 0
+
+        if self.advance_payment_currency == 'usd' and self.advance_payment != 0:
+            res = (float(self.price_sol) / float(self.price_usd)) * float(self.advance_payment)
+
+        return round(res, 2)
+
+    @property
     def calculate_points_earned(self):
-        """Calcula los puntos ganados por esta reserva (1 punto por cada sol gastado)"""
+        """Calcula los puntos ganados por esta reserva (5% del precio en soles)"""
         if self.price_sol:
-            return float(self.price_sol)
+            return float(self.price_sol) * 0.05
         return 0.0
+
 
 def recipt_directory_path(instance, filename):
     return f'rental_recipt/{instance.reservation.id}/{filename}'
