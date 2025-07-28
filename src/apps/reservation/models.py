@@ -13,11 +13,8 @@ from apps.property.models import Property
 from apps.core.functions import recipt_directory_path
 
 class Reservation(BaseModel):
-    ManychatFecha = models.IntegerField(default=0)
-    late_checkout = models.BooleanField(default=False)
-    late_check_out_date = models.DateField(null=True, blank=True)
-    comentarios_reservas = models.TextField(null=True, blank=True, help_text="Comentarios adicionales sobre la reserva.")
 
+    # Choice classes
     class AdvancePaymentTypeChoice(models.TextChoices):
         SOL = "sol", ("Soles")
         USD = "usd", ("Dólares")
@@ -27,6 +24,12 @@ class Reservation(BaseModel):
         AUS = "aus", ("Austin")
         MAN = "man", ("Mantenimiento")
 
+    # Model fields
+    ManychatFecha = models.IntegerField(default=0)
+    late_checkout = models.BooleanField(default=False)
+    late_check_out_date = models.DateField(null=True, blank=True)
+    comentarios_reservas = models.TextField(null=True, blank=True, help_text="Comentarios adicionales sobre la reserva.")
+    
     client = models.ForeignKey(Clients, on_delete=models.CASCADE, null=True, blank=True)
     property = models.ForeignKey(Property, on_delete=models.CASCADE, null=False, blank=False)
     seller = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
