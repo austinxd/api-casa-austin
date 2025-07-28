@@ -1,5 +1,5 @@
 import logging
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from .models import Clients
 from django.conf import settings
@@ -92,9 +92,9 @@ def manage_points_on_reservation_save(sender, instance, created, **kwargs):
             logger.info(f"Puntos otorgados: {points_to_earn} a cliente {instance.client.id} por reserva {instance.id}")
 
 
-@receiver(post_save, sender='reservation.Reservation')
+@receiver(pre_save, sender='reservation.Reservation')
 def manage_points_on_reservation_delete(sender, instance, **kwargs):
-    """Resta puntos cuando se elimina una reserva"""
+    """Resta puntos cuando se marca una reserva como eliminada"""
     from .models import ClientPoints
     import logging
     
@@ -103,29 +103,36 @@ def manage_points_on_reservation_delete(sender, instance, **kwargs):
     if not instance.client:
         return
     
-    # Si la reserva fue marcada como eliminada, descontar los puntos
-    if instance.deleted:
-        # Buscar si ya se otorgaron puntos por esta reserva
-        existing_points = ClientPoints.objects.filter(
-            client=instance.client,
-            reservation=instance,
-            transaction_type='earned'
-        ).first()
-        
-        if existing_points:
-            # Verificar que no ya se hayan descontado
-            already_deducted = ClientPoints.objects.filter(
-                client=instance.client,
-                reservation=instance,
-                transaction_type='deducted'
-            ).exists()
-            
-            if not already_deducted:
-                ClientPoints.objects.create(
+    # Solo procesar si la reserva está siendo marcada como eliminada
+    if instance.deleted and instance.pk:
+        try:
+            # Obtener el estado anterior de la reserva
+            old_instance = sender.objects.get(pk=instance.pk)
+            # Solo descontar puntos si antes no estaba eliminada
+            if not old_instance.deleted:
+                # Buscar si ya se otorgaron puntos por esta reserva
+                existing_points = ClientPoints.objects.filter(
                     client=instance.client,
                     reservation=instance,
-                    transaction_type='deducted',
-                    points=existing_points.points,
-                    description=f"Puntos descontados por eliminación de reserva en {instance.property.name}"
-                )
-                logger.info(f"Puntos descontados: {existing_points.points} a cliente {instance.client.id} por eliminación de reserva {instance.id}")
+                    transaction_type='earned'
+                ).first()
+                
+                if existing_points:
+                    # Verificar que no ya se hayan descontado
+                    already_deducted = ClientPoints.objects.filter(
+                        client=instance.client,
+                        reservation=instance,
+                        transaction_type='deducted'
+                    ).exists()
+                    
+                    if not already_deducted:
+                        ClientPoints.objects.create(
+                            client=instance.client,
+                            reservation=instance,
+                            transaction_type='deducted',
+                            points=existing_points.points,
+                            description=f"Puntos descontados por eliminación de reserva en {instance.property.name}"
+                        )
+                        logger.info(f"Puntos descontados: {existing_points.points} a cliente {instance.client.id} por eliminación de reserva {instance.id}")
+        except sender.DoesNotExist:
+            pass
