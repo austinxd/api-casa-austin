@@ -25,7 +25,6 @@ urlpatterns = [
     path('clients/client-auth/login/', auth_views.ClientLoginView.as_view(), name='client-login'),
     path('clients/client-auth/profile/', auth_views.ClientProfileView.as_view(), name='client-profile'),
     path('clients/client-auth/reservations/', auth_views.ClientReservationsView.as_view(), name='client-auth-reservations'),
-    path('clients/client-auth/points/', auth_views.ClientPointsView.as_view(), name='client-points'),
-    path('clients/client-auth/redeem-points/', auth_views.ClientRedeemPointsView.as_view(), name='client-redeem-points'),
+    
     path('clients/csrf-token/', auth_views.get_csrf_token, name='csrf-token'),
 ]
