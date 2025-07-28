@@ -40,9 +40,9 @@ CSRF_TRUSTED_ORIGINS = env.list(
 CORS_ALLOWED_ORIGINS = [
     "https://casaaustin.pe",
     "https://www.casaaustin.pe",
-    "https://reservas.casaaustin.pe",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://reservas.casaaustin.pe",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -287,34 +287,25 @@ LOGGING = {
             'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
             'style': '{',
         },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
     },
     'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
-        },
         'file': {
             'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': 'casaaustin_debug.log',
             'formatter': 'verbose',
         },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
     },
     'loggers': {
         'apps': {
-            'handlers': ['console', 'file'],
+            'handlers': ['file', 'console'],
             'level': 'DEBUG',
-            'propagate': True,
-        },
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
+            'propagate': False,  # Evitar propagación que puede causar duplicados
         },
     },
     'root': {

@@ -208,7 +208,9 @@ class ClientProfileView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        logger.info("ClientProfileView: Profile request received")
+        import uuid
+        request_id = str(uuid.uuid4())[:8]
+        logger.info(f"ClientProfileView: Profile request received [ID: {request_id}]")
 
         # Get client from JWT token
         try:
@@ -216,10 +218,10 @@ class ClientProfileView(APIView):
             user, validated_token = authenticator.authenticate(request)
 
             if not user:
-                logger.error("ClientProfileView: Authentication failed")
+                logger.error(f"ClientProfileView: Authentication failed [ID: {request_id}]")
                 return Response({'message': 'Token inválido'}, status=401)
 
-            logger.info(f"ClientProfileView: Returning profile for client {user.id}")
+            logger.info(f"ClientProfileView: Returning profile for client {user.id} [ID: {request_id}]")
             return Response(ClientProfileSerializer(user).data)
 
         except (InvalidToken, TokenError) as e:
@@ -235,7 +237,9 @@ class ClientReservationsView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        logger.info("ClientReservationsView: Request received")
+        import uuid
+        request_id = str(uuid.uuid4())[:8]
+        logger.info(f"ClientReservationsView: Request received [ID: {request_id}]")
 
         # Get client from JWT token
         try:
