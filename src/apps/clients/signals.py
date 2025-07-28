@@ -67,7 +67,7 @@ def update_audience_on_client_creation(sender, instance, created, **kwargs):
             update_meta_audience(instance)
 
 
-@receiver(post_save, sender='reservation.Reservation')tion)
+@receiver(post_save, sender='reservation.Reservation')
 def manage_points_on_reservation_save(sender, instance, created, **kwargs):
     """Maneja los puntos cuando se crea o actualiza una reserva"""
     from .models import ClientPoints
@@ -92,7 +92,7 @@ def manage_points_on_reservation_save(sender, instance, created, **kwargs):
             logger.info(f"Puntos otorgados: {points_to_earn} a cliente {instance.client.id} por reserva {instance.id}")
 
 
-@receiver(post_save, sender=Reservat@receiver(post_save, sender='reservation.Reservation')
+@receiver(post_save, sender='reservation.Reservation')
 def manage_points_on_reservation_delete(sender, instance, **kwargs):
     """Resta puntos cuando se elimina una reserva"""
     from .models import ClientPoints
