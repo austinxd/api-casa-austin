@@ -291,6 +291,57 @@ class ClientReservationsView(APIView):
             }, status=500)
 
 
+class ClientPointsView(APIView):
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        try:
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
+
+            if not client:
+                return Response({'message': 'Token inválido'}, status=401)
+
+            # Por ahora devolvemos datos mock, luego puedes implementar tu lógica real
+            return Response({
+                'total_points': 0.0,
+                'recent_transactions': []
+            })
+
+        except (InvalidToken, TokenError) as e:
+            return Response({'message': 'Token inválido'}, status=401)
+        except Exception as e:
+            return Response({'message': 'Error interno del servidor'}, status=500)
+
+
+class ClientRedeemPointsView(APIView):
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
+
+            if not client:
+                return Response({'message': 'Token inválido'}, status=401)
+
+            points_to_redeem = request.data.get('points_to_redeem', 0)
+            
+            # Por ahora devolvemos éxito, luego implementas tu lógica real
+            return Response({
+                'message': 'Puntos canjeados exitosamente',
+                'points_redeemed': points_to_redeem,
+                'new_balance': 0.0
+            })
+
+        except (InvalidToken, TokenError) as e:
+            return Response({'message': 'Token inválido'}, status=401)
+        except Exception as e:
+            return Response({'message': 'Error interno del servidor'}, status=500)
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_csrf_token(request):
