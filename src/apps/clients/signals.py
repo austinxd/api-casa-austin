@@ -65,3 +65,69 @@ def update_audience_on_client_creation(sender, instance, created, **kwargs):
             # Si no se especificaron campos, asumir que es una actualización relevante
             logger.debug(f"Cliente actualizado: {instance}")
             update_meta_audience(instance)
+
+
+from apps.reservation.models import Reservation
+
+@receiver(post_save, sender=Reservation)
+def manage_points_on_reservation_save(sender, instance, created, **kwargs):
+    """Maneja los puntos cuando se crea o actualiza una reserva"""
+    from .models import ClientPoints
+    import logging
+    
+    logger = logging.getLogger('apps')
+    
+    if not instance.client:
+        return
+    
+    # Solo otorgar puntos cuando se crea una nueva reserva
+    if created and not instance.deleted:
+        points_to_earn = instance.calculate_points_earned
+        if points_to_earn > 0:
+            ClientPoints.objects.create(
+                client=instance.client,
+                reservation=instance,
+                transaction_type='earned',
+                points=points_to_earn,
+                description=f"Puntos ganados por reserva en {instance.property.name}"
+            )
+            logger.info(f"Puntos otorgados: {points_to_earn} a cliente {instance.client.id} por reserva {instance.id}")
+
+
+@receiver(post_save, sender=Reservation)
+def manage_points_on_reservation_delete(sender, instance, **kwargs):
+    """Resta puntos cuando se elimina una reserva"""
+    from .models import ClientPoints
+    import logging
+    
+    logger = logging.getLogger('apps')
+    
+    if not instance.client:
+        return
+    
+    # Si la reserva fue marcada como eliminada, descontar los puntos
+    if instance.deleted:
+        # Buscar si ya se otorgaron puntos por esta reserva
+        existing_points = ClientPoints.objects.filter(
+            client=instance.client,
+            reservation=instance,
+            transaction_type='earned'
+        ).first()
+        
+        if existing_points:
+            # Verificar que no ya se hayan descontado
+            already_deducted = ClientPoints.objects.filter(
+                client=instance.client,
+                reservation=instance,
+                transaction_type='deducted'
+            ).exists()
+            
+            if not already_deducted:
+                ClientPoints.objects.create(
+                    client=instance.client,
+                    reservation=instance,
+                    transaction_type='deducted',
+                    points=existing_points.points,
+                    description=f"Puntos descontados por eliminación de reserva en {instance.property.name}"
+                )
+                logger.info(f"Puntos descontados: {existing_points.points} a cliente {instance.client.id} por eliminación de reserva {instance.id}")
