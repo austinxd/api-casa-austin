@@ -10,9 +10,6 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 CHAT_ID = os.getenv('CHAT_ID')
 SECOND_CHAT_ID = os.getenv('SECOND_CHAT_ID')
 
-logger.debug(f"TELEGRAM_BOT_TOKEN: {TELEGRAM_BOT_TOKEN}")
-logger.debug(f"CHAT_ID: {CHAT_ID}")
-logger.debug(f"SECOND_CHAT_ID: {SECOND_CHAT_ID}")
 
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
