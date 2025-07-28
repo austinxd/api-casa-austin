@@ -1,20 +1,15 @@
 import os
 from django.conf import settings
-
-
 from django.db import models
-
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
+from datetime import timedelta
 
 from apps.core.models import BaseModel
-
 from apps.accounts.models import CustomUser
 from apps.clients.models import Clients
 from apps.property.models import Property
-
 from apps.core.functions import recipt_directory_path
-from datetime import timedelta
 
 class Reservation(BaseModel):
     ManychatFecha = models.IntegerField(default=0)
