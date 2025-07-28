@@ -197,6 +197,63 @@ class ClientLoginView(APIView):
                 'client': ClientProfileSerializer(client).data
             })
 
+
+
+from .models import ClientPoints
+from .serializers import ClientPointsSummarySerializer, RedeemPointsSerializer
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def client_points_view(request):
+    """Vista para obtener los puntos del cliente"""
+    try:
+        client = request.user
+        serializer = ClientPointsSummarySerializer(client)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Exception as e:
+        logger.error(f"Error getting client points: {str(e)}")
+        return Response({
+            'error': 'Error al obtener los puntos'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def redeem_points_view(request):
+    """Vista para canjear puntos por dinero en reservas"""
+    try:
+        client = request.user
+        serializer = RedeemPointsSerializer(data=request.data, context={'client': client})
+        
+        if serializer.is_valid():
+            points_to_redeem = serializer.validated_data['points_to_redeem']
+            
+            # Crear transacción de canje
+            ClientPoints.objects.create(
+                client=client,
+                transaction_type='redeemed',
+                points=points_to_redeem,
+                description=f"Puntos canjeados por dinero en reserva"
+            )
+            
+            # Devolver el equivalente en soles (1 punto = 1 sol)
+            money_equivalent = float(points_to_redeem)
+            
+            return Response({
+                'message': 'Puntos canjeados exitosamente',
+                'points_redeemed': points_to_redeem,
+                'money_equivalent': money_equivalent,
+                'remaining_points': client.total_points()
+            }, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    except Exception as e:
+        logger.error(f"Error redeeming points: {str(e)}")
+        return Response({
+            'error': 'Error al canjear puntos'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         except Clients.DoesNotExist:
             return Response({
                 'message': 'Credenciales inválidas'

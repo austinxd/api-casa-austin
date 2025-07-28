@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from . import views
 from . import auth_views
+from .auth_views import ClientLoginView, ClientProfileView, client_points_view, redeem_points_view
 
 router = DefaultRouter()
 router.register(r'clients', views.ClientsApiView, basename='clients')
@@ -20,4 +21,6 @@ urlpatterns = [
     path('clients/client-auth/profile/', auth_views.ClientProfileView.as_view(), name='client-profile'),
     path('clients/client-auth/reservations/', auth_views.ClientReservationsView.as_view(), name='client-auth-reservations'), # Added client reservations URL
     path('clients/csrf-token/', auth_views.get_csrf_token, name='csrf-token'),
+    path('clients/client-auth/points/', client_points_view, name='client-points'),
+    path('clients/client-auth/redeem-points/', redeem_points_view, name='redeem-points'),
 ]

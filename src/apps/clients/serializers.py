@@ -101,3 +101,42 @@ class ClientProfileSerializer(serializers.ModelSerializer):
             "last_login"
         ]
         read_only_fields = ["id", "document_type", "number_doc", "last_login"]
+
+
+
+from .models import ClientPoints
+
+class ClientPointsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClientPoints
+        fields = ['id', 'transaction_type', 'points', 'description', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class ClientPointsSummarySerializer(serializers.ModelSerializer):
+    total_points = serializers.SerializerMethodField()
+    recent_transactions = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Clients
+        fields = ['total_points', 'recent_transactions']
+    
+    def get_total_points(self, obj):
+        return obj.total_points()
+    
+    def get_recent_transactions(self, obj):
+        recent = obj.point_transactions.all()[:5]
+        return ClientPointsSerializer(recent, many=True).data
+
+
+class RedeemPointsSerializer(serializers.Serializer):
+    points_to_redeem = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=0.01)
+    
+    def validate_points_to_redeem(self, value):
+        client = self.context['client']
+        available_points = client.total_points()
+        
+        if value > available_points:
+            raise serializers.ValidationError(f"No tienes suficientes puntos. Disponibles: {available_points}")
+        
+        return value

@@ -75,3 +75,45 @@ class Clients(BaseModel):
     def delete(self, *args, **kwargs):
         self.deleted = True
         self.save()
+
+
+
+class ClientPoints(BaseModel):
+    """Modelo para el sistema de puntos de clientes"""
+    
+    class PointTransactionType(models.TextChoices):
+        EARNED = "earned", ("Puntos Ganados")
+        REDEEMED = "redeemed", ("Puntos Canjeados")
+        REFUNDED = "refunded", ("Puntos Devueltos")
+        DEDUCTED = "deducted", ("Puntos Descontados")
+    
+    client = models.ForeignKey(Clients, on_delete=models.CASCADE, related_name='point_transactions')
+    reservation = models.ForeignKey('reservation.Reservation', on_delete=models.CASCADE, null=True, blank=True)
+    transaction_type = models.CharField(max_length=10, choices=PointTransactionType.choices)
+    points = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.TextField()
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.client} - {self.transaction_type} - {self.points} puntos"
+
+
+# Agregar al modelo Clients
+def total_points(self):
+    """Calcula el total de puntos disponibles del cliente"""
+    from django.db.models import Sum, Q
+    
+    earned = self.point_transactions.filter(
+        transaction_type__in=['earned', 'refunded']
+    ).aggregate(Sum('points'))['points__sum'] or 0
+    
+    used = self.point_transactions.filter(
+        transaction_type__in=['redeemed', 'deducted']
+    ).aggregate(Sum('points'))['points__sum'] or 0
+    
+    return earned - used
+
+# Método para agregar al modelo Clients
+Clients.add_to_class('total_points', total_points)

@@ -75,6 +75,13 @@ class Reservation(BaseModel):
         else:
             return f"Reserva desde API Airbnb (sin datos del cliente)"
 
+    @property
+    def points_earned(self):
+        """Calcula los puntos ganados por esta reserva (5% del precio en soles)"""
+        if self.price_sol:
+            return float(self.price_sol) * 0.05
+        return 0.0
+    
     def delete(self, *args, **kwargs):
         self.deleted = True
         self.save()
