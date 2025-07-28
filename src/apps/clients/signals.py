@@ -71,13 +71,10 @@ def update_audience_on_client_creation(sender, instance, created, **kwargs):
 def manage_points_on_reservation_save(sender, instance, created, **kwargs):
     """Maneja los puntos cuando se crea o actualiza una reserva"""
     from .models import ClientPoints
-    import logging
-    
-    logger = logging.getLogger('apps')
-    
+
     if not instance.client:
         return
-    
+
     # Solo otorgar puntos cuando se crea una nueva reserva
     if created and not instance.deleted:
         points_to_earn = instance.calculate_points_earned
@@ -96,13 +93,10 @@ def manage_points_on_reservation_save(sender, instance, created, **kwargs):
 def manage_points_on_reservation_delete(sender, instance, **kwargs):
     """Resta puntos cuando se marca una reserva como eliminada"""
     from .models import ClientPoints
-    import logging
-    
-    logger = logging.getLogger('apps')
-    
+
     if not instance.client:
         return
-    
+
     # Solo procesar si la reserva está siendo marcada como eliminada
     if instance.deleted and instance.pk:
         try:
@@ -116,7 +110,7 @@ def manage_points_on_reservation_delete(sender, instance, **kwargs):
                     reservation=instance,
                     transaction_type='earned'
                 ).first()
-                
+
                 if existing_points:
                     # Verificar que no ya se hayan descontado
                     already_deducted = ClientPoints.objects.filter(
@@ -124,7 +118,7 @@ def manage_points_on_reservation_delete(sender, instance, **kwargs):
                         reservation=instance,
                         transaction_type='deducted'
                     ).exists()
-                    
+
                     if not already_deducted:
                         ClientPoints.objects.create(
                             client=instance.client,
