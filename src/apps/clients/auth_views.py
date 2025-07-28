@@ -196,17 +196,27 @@ class ClientProfileView(APIView):
 
     def get_client_from_token(self, request):
         auth_header = request.headers.get('Authorization')
+        logger.info(f"Authorization header received: {auth_header[:50] if auth_header else 'None'}...")
+
         if not auth_header or not auth_header.startswith('Bearer '):
             logger.error("No Authorization header or invalid format")
             return None
 
         token = auth_header.split(' ')[1]
+        logger.info(f"Extracted token: {token[:20]}...")
 
         try:
+            logger.info(f"Decoding token with SECRET_KEY")
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            logger.info(f"Token decoded successfully for client_id: {payload.get('client_id')}")
-            client = Clients.objects.get(id=payload['client_id'], deleted=False)
+            logger.info(f"Token decoded successfully. Payload: {payload}")
+
+            client_id = payload.get('client_id')
+            logger.info(f"Looking for client with ID: {client_id}")
+
+            client = Clients.objects.get(id=client_id, deleted=False)
+            logger.info(f"Client found: {client.first_name} {client.last_name}")
             return client
+
         except jwt.ExpiredSignatureError:
             logger.error("Token has expired")
             return None
@@ -214,18 +224,24 @@ class ClientProfileView(APIView):
             logger.error(f"Invalid token: {str(e)}")
             return None
         except Clients.DoesNotExist:
-            logger.error(f"Client not found for id: {payload.get('client_id')}")
+            logger.error(f"Client not found for id: {client_id}")
             return None
         except Exception as e:
             logger.error(f"Unexpected error validating token: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return None
 
 
 class ClientReservationsView(APIView):
 
     def get(self, request):
+        logger.info("ClientReservationsView: Request received")
+        logger.info(f"Authorization header: {request.headers.get('Authorization', 'No header')}")
+
         client = self.get_client_from_token(request)
         if not client:
+            logger.error("ClientReservationsView: Invalid token or client not found")
             return Response({'message': 'Token inválido'}, status=401)
 
         try:
@@ -254,17 +270,27 @@ class ClientReservationsView(APIView):
 
     def get_client_from_token(self, request):
         auth_header = request.headers.get('Authorization')
+        logger.info(f"Authorization header received: {auth_header[:50] if auth_header else 'None'}...")
+
         if not auth_header or not auth_header.startswith('Bearer '):
             logger.error("No Authorization header or invalid format")
             return None
 
         token = auth_header.split(' ')[1]
+        logger.info(f"Extracted token: {token[:20]}...")
 
         try:
+            logger.info(f"Decoding token with SECRET_KEY")
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            logger.info(f"Token decoded successfully for client_id: {payload.get('client_id')}")
-            client = Clients.objects.get(id=payload['client_id'], deleted=False)
+            logger.info(f"Token decoded successfully. Payload: {payload}")
+
+            client_id = payload.get('client_id')
+            logger.info(f"Looking for client with ID: {client_id}")
+
+            client = Clients.objects.get(id=client_id, deleted=False)
+            logger.info(f"Client found: {client.first_name} {client.last_name}")
             return client
+
         except jwt.ExpiredSignatureError:
             logger.error("Token has expired")
             return None
@@ -272,10 +298,12 @@ class ClientReservationsView(APIView):
             logger.error(f"Invalid token: {str(e)}")
             return None
         except Clients.DoesNotExist:
-            logger.error(f"Client not found for id: {payload.get('client_id')}")
+            logger.error(f"Client not found for id: {client_id}")
             return None
         except Exception as e:
             logger.error(f"Unexpected error validating token: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return None
 
 
