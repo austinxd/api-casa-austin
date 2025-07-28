@@ -125,7 +125,7 @@ class ReservationListSerializer(ReservationSerializer):
     
     @extend_schema_field(serializers.FloatField())
     def get_resta_pagar(self, instance):
-        return '%.2f' % round(float(instance.price_sol) - instance.get_advance_payment_normalized, 2)
+        return '%.2f' % round(float(instance.price_sol) - instance.adelanto_normalizado, 2)
     
     @extend_schema_field(serializers.IntegerField())
     def get_number_nights(self, instance):

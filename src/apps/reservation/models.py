@@ -1,19 +1,36 @@
-
 import os
 from django.conf import settings
+
+
 from django.db import models
+
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
-from datetime import timedelta
 
 from apps.core.models import BaseModel
+
 from apps.accounts.models import CustomUser
 from apps.clients.models import Clients
 from apps.property.models import Property
+
 from apps.core.functions import recipt_directory_path
+from datetime import timedelta
 
 class Reservation(BaseModel):
-    # Choice classes
+    ManychatFecha = models.IntegerField(default=0)
+    late_checkout = models.BooleanField(default=False)
+    late_check_out_date = models.DateField(null=True, blank=True)
+    comentarios_reservas = models.TextField(null=True, blank=True, help_text="Comentarios adicionales sobre la reserva.")
+
+    @property
+    def adelanto_normalizado(self):
+        res = float(self.advance_payment) if self.advance_payment else 0
+
+        if self.advance_payment_currency == 'usd' and self.advance_payment != 0:
+            res = (float(self.price_sol) / float(self.price_usd)) * float(self.advance_payment)
+
+        return round(res, 2)
+
     class AdvancePaymentTypeChoice(models.TextChoices):
         SOL = "sol", ("Soles")
         USD = "usd", ("Dólares")
@@ -23,12 +40,6 @@ class Reservation(BaseModel):
         AUS = "aus", ("Austin")
         MAN = "man", ("Mantenimiento")
 
-    # Model fields
-    ManychatFecha = models.IntegerField(default=0)
-    late_checkout = models.BooleanField(default=False)
-    late_check_out_date = models.DateField(null=True, blank=True)
-    comentarios_reservas = models.TextField(null=True, blank=True, help_text="Comentarios adicionales sobre la reserva.")
-    
     client = models.ForeignKey(Clients, on_delete=models.CASCADE, null=True, blank=True)
     property = models.ForeignKey(Property, on_delete=models.CASCADE, null=False, blank=False)
     seller = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True)
@@ -67,23 +78,6 @@ class Reservation(BaseModel):
     def delete(self, *args, **kwargs):
         self.deleted = True
         self.save()
-
-    @property
-    def get_advance_payment_normalized(self):
-        res = float(self.advance_payment) if self.advance_payment else 0
-
-        if self.advance_payment_currency == 'usd' and self.advance_payment != 0:
-            res = (float(self.price_sol) / float(self.price_usd)) * float(self.advance_payment)
-
-        return round(res, 2)
-
-    @property
-    def calculate_points_earned(self):
-        """Calcula los puntos ganados por esta reserva (5% del precio en soles)"""
-        if self.price_sol:
-            return float(self.price_sol) * 0.05
-        return 0.0
-
 
 def recipt_directory_path(instance, filename):
     return f'rental_recipt/{instance.reservation.id}/{filename}'
