@@ -197,15 +197,27 @@ class ClientProfileView(APIView):
     def get_client_from_token(self, request):
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
+            logger.error("No Authorization header or invalid format")
             return None
 
         token = auth_header.split(' ')[1]
 
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            logger.info(f"Token decoded successfully for client_id: {payload.get('client_id')}")
             client = Clients.objects.get(id=payload['client_id'], deleted=False)
             return client
-        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, Clients.DoesNotExist):
+        except jwt.ExpiredSignatureError:
+            logger.error("Token has expired")
+            return None
+        except jwt.InvalidTokenError as e:
+            logger.error(f"Invalid token: {str(e)}")
+            return None
+        except Clients.DoesNotExist:
+            logger.error(f"Client not found for id: {payload.get('client_id')}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error validating token: {str(e)}")
             return None
 
 
@@ -219,20 +231,20 @@ class ClientReservationsView(APIView):
         try:
             from apps.reservation.models import Reservation
             from apps.reservation.serializers import ReservationListSerializer
-            
+
             # Filtrar reservaciones del cliente autenticado
             reservations = Reservation.objects.filter(
                 client=client,
                 deleted=False
             ).order_by('-check_in_date')
-            
+
             serializer = ReservationListSerializer(reservations, many=True)
-            
+
             return Response({
                 'success': True,
                 'reservations': serializer.data
             })
-            
+
         except Exception as e:
             logger.error(f"Error getting client reservations: {str(e)}")
             return Response({
@@ -243,15 +255,27 @@ class ClientReservationsView(APIView):
     def get_client_from_token(self, request):
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
+            logger.error("No Authorization header or invalid format")
             return None
 
         token = auth_header.split(' ')[1]
 
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            logger.info(f"Token decoded successfully for client_id: {payload.get('client_id')}")
             client = Clients.objects.get(id=payload['client_id'], deleted=False)
             return client
-        except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, Clients.DoesNotExist):
+        except jwt.ExpiredSignatureError:
+            logger.error("Token has expired")
+            return None
+        except jwt.InvalidTokenError as e:
+            logger.error(f"Invalid token: {str(e)}")
+            return None
+        except Clients.DoesNotExist:
+            logger.error(f"Client not found for id: {payload.get('client_id')}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error validating token: {str(e)}")
             return None
 
 
