@@ -17,6 +17,13 @@ env.read_env(env_file=env_file)
 SECRET_KEY_DEFAULT = "django-insecure-3**i%5(i9m$3&m)&js8m^(m96!+^*t8u#r#aiq_^z-%f38hy)u"
 SECRET_KEY = env("DJANGO_SECRET_KEY", default=SECRET_KEY_DEFAULT)
 
+# SECURITY WARNING: keep the secret key used in production secret!
+# Twilio Configuration
+TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
+TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER')
+TWILIO_VERIFY_SERVICE_SID = os.environ.get('TWILIO_VERIFY_SERVICE_SID')
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DJANGO_DEBUG', default=True)
 
@@ -246,22 +253,44 @@ AIRBNB_API_URL_BASE = env('AIRBNB_API_URL_BASE')
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
-            'class': 'logging.StreamHandler',
             'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': 'casaaustin_debug.log',
+            'formatter': 'verbose',
         },
     },
     'loggers': {
+        'apps': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
         'django': {
             'handlers': ['console'],
-            'level': 'WARNING',  # Reducir la verbosidad de Django
+            'level': 'INFO',
+            'propagate': False,
         },
-        'apps': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,  # Evitar que se propague a otros loggers
-        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
     },
 }
 
