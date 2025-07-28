@@ -69,7 +69,7 @@ class Reservation(BaseModel):
         self.save()
 
     @property
-    def advance_payment_normalized(self):
+    def get_advance_payment_normalized(self):
         res = float(self.advance_payment) if self.advance_payment else 0
 
         if self.advance_payment_currency == 'usd' and self.advance_payment != 0:
