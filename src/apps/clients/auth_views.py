@@ -176,9 +176,9 @@ class ClientLoginView(APIView):
                     'message': 'Credenciales inválidas'
                 }, status=401)
 
-            # Actualizar último login
+            # Actualizar último login sin disparar la audiencia de Meta
             client.last_login = timezone.now()
-            client.save()
+            client.save(update_fields=['last_login'])
 
             # Generar tokens using Simple JWT
             refresh = RefreshToken()

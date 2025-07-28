@@ -50,6 +50,18 @@ def update_meta_audience(client):
 def update_audience_on_client_creation(sender, instance, created, **kwargs):
     if created:
         logger.debug(f"Nuevo cliente creado: {instance}")
+        update_meta_audience(instance)
     else:
-        logger.debug(f"Cliente actualizado: {instance}")
-    update_meta_audience(instance)
+        # Solo actualizar audiencia si cambió información relevante (no solo last_login)
+        if kwargs.get('update_fields'):
+            # Si se especificaron campos específicos, verificar si son relevantes
+            relevant_fields = {'email', 'tel_number', 'first_name', 'last_name'}
+            updated_fields = set(kwargs['update_fields'])
+            
+            if relevant_fields.intersection(updated_fields):
+                logger.debug(f"Cliente actualizado con campos relevantes: {instance}")
+                update_meta_audience(instance)
+        else:
+            # Si no se especificaron campos, asumir que es una actualización relevante
+            logger.debug(f"Cliente actualizado: {instance}")
+            update_meta_audience(instance)
