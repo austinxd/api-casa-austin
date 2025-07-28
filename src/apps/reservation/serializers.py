@@ -109,6 +109,7 @@ class ReservationListSerializer(ReservationSerializer):
     property = serializers.SerializerMethodField()
     resta_pagar = serializers.SerializerMethodField()
     number_nights = serializers.SerializerMethodField()
+    is_upcoming = serializers.SerializerMethodField()
     
     @extend_schema_field(ClientShortSerializer)
     def get_client(self, instance):
@@ -132,6 +133,12 @@ class ReservationListSerializer(ReservationSerializer):
             delta = instance.check_out_date - instance.check_in_date
             return delta.days
         return 0
+    
+    @extend_schema_field(serializers.BooleanField())
+    def get_is_upcoming(self, instance):
+        from datetime import date
+        today = date.today()
+        return instance.check_out_date > today
 
 class ReservationRetrieveSerializer(ReservationListSerializer):
     recipts = serializers.SerializerMethodField()
