@@ -13,7 +13,6 @@ from apps.property.models import Property
 from apps.core.functions import recipt_directory_path
 
 class Reservation(BaseModel):
-
     # Choice classes
     class AdvancePaymentTypeChoice(models.TextChoices):
         SOL = "sol", ("Soles")
