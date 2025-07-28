@@ -108,6 +108,7 @@ class ReservationListSerializer(ReservationSerializer):
     seller = serializers.SerializerMethodField()
     property = serializers.SerializerMethodField()
     resta_pagar = serializers.SerializerMethodField()
+    number_nights = serializers.SerializerMethodField()
     
     @extend_schema_field(ClientShortSerializer)
     def get_client(self, instance):
@@ -124,6 +125,13 @@ class ReservationListSerializer(ReservationSerializer):
     @extend_schema_field(serializers.FloatField())
     def get_resta_pagar(self, instance):
         return '%.2f' % round(float(instance.price_sol) - instance.adelanto_normalizado, 2)
+    
+    @extend_schema_field(serializers.IntegerField())
+    def get_number_nights(self, instance):
+        if instance.check_in_date and instance.check_out_date:
+            delta = instance.check_out_date - instance.check_in_date
+            return delta.days
+        return 0
 
 class ReservationRetrieveSerializer(ReservationListSerializer):
     recipts = serializers.SerializerMethodField()
