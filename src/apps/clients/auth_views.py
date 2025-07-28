@@ -248,6 +248,7 @@ class ClientReservationsView(APIView):
 
             from apps.reservation.models import Reservation
             from apps.reservation.serializers import ReservationListSerializer
+            from datetime import date
 
             # Filtrar reservaciones del cliente autenticado
             reservations = Reservation.objects.filter(
@@ -255,11 +256,24 @@ class ClientReservationsView(APIView):
                 deleted=False
             ).order_by('-check_in_date')
 
-            serializer = ReservationListSerializer(reservations, many=True)
+            # Clasificar reservas en próximas y pasadas
+            today = date.today()
+            upcoming_reservations = []
+            past_reservations = []
+
+            for reservation in reservations:
+                if reservation.check_out_date > today:
+                    upcoming_reservations.append(reservation)
+                else:
+                    past_reservations.append(reservation)
+
+            # Serializar las reservas
+            upcoming_serializer = ReservationListSerializer(upcoming_reservations, many=True)
+            past_serializer = ReservationListSerializer(past_reservations, many=True)
 
             return Response({
-                'success': True,
-                'reservations': serializer.data
+                'upcoming_reservations': upcoming_serializer.data,
+                'past_reservations': past_serializer.data
             })
 
         except (InvalidToken, TokenError) as e:
