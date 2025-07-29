@@ -44,14 +44,22 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
     if existing_points:
         return  # Ya se asignaron puntos
     
-    # Calcular y asignar puntos (5% del precio en soles)
-    points_to_add = instance.client.calculate_points_from_reservation(instance.price_sol)
+    # Calcular precio efectivo pagado (descontando puntos canjeados)
+    effective_price = float(instance.price_sol)
+    
+    # Verificar si se canjearon puntos en esta reserva
+    points_redeemed = getattr(instance, 'points_to_redeem', 0) or 0
+    if points_redeemed > 0:
+        effective_price -= float(points_redeemed)
+    
+    # Calcular y asignar puntos (5% del precio efectivo pagado)
+    points_to_add = instance.client.calculate_points_from_reservation(effective_price)
     
     if points_to_add > 0:
         instance.client.add_points(
             points=points_to_add,
             reservation=instance,
-            description=f"Puntos ganados por reserva #{instance.id} - {instance.property.name}"
+            description=f"Puntos ganados por reserva #{instance.id} - {instance.property.name} (precio efectivo: S/{effective_price:.2f})"
         )
         
         print(f"Puntos asignados: {points_to_add} puntos para cliente {instance.client.first_name} {instance.client.last_name}")
