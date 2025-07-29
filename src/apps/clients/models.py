@@ -74,12 +74,18 @@ class Clients(BaseModel):
     
     def calculate_points_from_reservation(self, price_sol):
         """Calcula puntos basado en el precio en soles (5%)"""
-        return float(price_sol) * 0.05
+        from decimal import Decimal
+        return Decimal(str(float(price_sol) * 0.05))
     
     def add_points(self, points, reservation, description="Puntos ganados por reserva"):
         """Agrega puntos al cliente y actualiza la fecha de expiración"""
         from datetime import datetime, timedelta
         from django.utils import timezone
+        from decimal import Decimal
+        
+        # Asegurar que points sea Decimal
+        if not isinstance(points, Decimal):
+            points = Decimal(str(points))
         
         # Crear transacción
         ClientPoints.objects.create(
@@ -104,6 +110,12 @@ class Clients(BaseModel):
     
     def redeem_points(self, points, reservation, description="Puntos canjeados en reserva"):
         """Canjea puntos del cliente"""
+        from decimal import Decimal
+        
+        # Asegurar que points sea Decimal
+        if not isinstance(points, Decimal):
+            points = Decimal(str(points))
+            
         if self.points_balance >= points:
             # Crear transacción
             ClientPoints.objects.create(
