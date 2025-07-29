@@ -71,29 +71,7 @@ class Clients(BaseModel):
 
     class Meta:
         unique_together = ('document_type', 'number_doc')
-
-
-class ClientPoints(BaseModel):
-    """Modelo para el historial de transacciones de puntos"""
     
-    class TransactionType(models.TextChoices):
-        EARNED = "earned", ("Puntos Ganados")
-        REDEEMED = "redeemed", ("Puntos Canjeados")
-        EXPIRED = "expired", ("Puntos Expirados")
-    
-    client = models.ForeignKey(Clients, on_delete=models.CASCADE, related_name='points_transactions')
-    reservation = models.ForeignKey('reservation.Reservation', on_delete=models.CASCADE, null=True, blank=True)
-    transaction_type = models.CharField(max_length=8, choices=TransactionType.choices)
-    points = models.DecimalField(max_digits=10, decimal_places=2, help_text="Cantidad de puntos (puede ser negativo para canjes)")
-    description = models.TextField(help_text="Descripción de la transacción")
-    expires_at = models.DateTimeField(null=True, blank=True, help_text="Fecha de expiración de los puntos")
-    
-    class Meta:
-        ordering = ['-created']
-        verbose_name = "Transacción de Puntos"
-        verbose_name_plural = "Transacciones de Puntos"
-
-
     def calculate_points_from_reservation(self, price_sol):
         """Calcula puntos basado en el precio en soles (5%)"""
         return float(price_sol) * 0.05
@@ -176,6 +154,26 @@ class ClientPoints(BaseModel):
             return 0
         return float(self.points_balance)
 
+
+class ClientPoints(BaseModel):
+    """Modelo para el historial de transacciones de puntos"""
+    
+    class TransactionType(models.TextChoices):
+        EARNED = "earned", ("Puntos Ganados")
+        REDEEMED = "redeemed", ("Puntos Canjeados")
+        EXPIRED = "expired", ("Puntos Expirados")
+    
+    client = models.ForeignKey(Clients, on_delete=models.CASCADE, related_name='points_transactions')
+    reservation = models.ForeignKey('reservation.Reservation', on_delete=models.CASCADE, null=True, blank=True)
+    transaction_type = models.CharField(max_length=8, choices=TransactionType.choices)
+    points = models.DecimalField(max_digits=10, decimal_places=2, help_text="Cantidad de puntos (puede ser negativo para canjes)")
+    description = models.TextField(help_text="Descripción de la transacción")
+    expires_at = models.DateTimeField(null=True, blank=True, help_text="Fecha de expiración de los puntos")
+    
+    class Meta:
+        ordering = ['-created']
+        verbose_name = "Transacción de Puntos"
+        verbose_name_plural = "Transacciones de Puntos"
     
     def __str__(self):
         return f"{self.client.first_name} - {self.transaction_type} - {self.points} puntos"
