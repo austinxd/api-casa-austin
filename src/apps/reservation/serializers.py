@@ -96,10 +96,27 @@ class ReservationSerializer(serializers.ModelSerializer):
                 )
 
         if attrs.get('full_payment') == True:
+            # Obtener puntos ya canjeados (si estamos actualizando una reserva existente)
+            points_redeemed = 0
+            if self.instance:
+                points_redeemed = float(self.instance.points_redeemed or 0)
+            
             if attrs['advance_payment_currency'] == 'sol':
-                attrs['advance_payment'] = attrs.get('price_sol')
+                # Precio total menos puntos ya canjeados
+                attrs['advance_payment'] = float(attrs.get('price_sol', 0)) - points_redeemed
             else:
-                attrs['advance_payment'] = attrs.get('price_usd')
+                # Para USD, convertir puntos a dólares usando la tasa de cambio
+                price_sol = float(attrs.get('price_sol', 0))
+                price_usd = float(attrs.get('price_usd', 0))
+                
+                if price_usd > 0 and price_sol > 0:
+                    # Calcular tasa de cambio: soles por dólar
+                    exchange_rate = price_sol / price_usd
+                    # Convertir puntos (en soles) a dólares
+                    points_in_usd = points_redeemed / exchange_rate
+                    attrs['advance_payment'] = price_usd - points_in_usd
+                else:
+                    attrs['advance_payment'] = attrs.get('price_usd', 0)
 
         # Check if it's called from a view with patch verb
         patch_cond = False
@@ -125,6 +142,33 @@ class ReservationSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Esta propiedad esta reservada en este rango de fecha")
         
         return attrs
+
+    def create(self, validated_data):
+        # Extraer puntos a canjear antes de crear la reserva
+        points_to_redeem = validated_data.pop('points_to_redeem', 0)
+        
+        # Crear la reserva
+        reservation = super().create(validated_data)
+        
+        # Si hay puntos para canjear, procesarlos
+        if points_to_redeem and points_to_redeem > 0:
+            # Guardar los puntos canjeados en la reserva
+            reservation.points_redeemed = points_to_redeem
+            reservation.save()
+            
+            # Descontar los puntos del cliente
+            reservation.client.redeem_points(
+                points=points_to_redeem,
+                reservation=reservation,
+                description=f"Puntos canjeados en reserva #{reservation.id} - {reservation.property.name}"
+            )
+        
+        return reservation
+
+    def update(self, instance, validated_data):
+        # Los puntos ya canjeados no se pueden modificar en updates
+        validated_data.pop('points_to_redeem', None)
+        return super().update(instance, validated_data)
 
 class ReservationListSerializer(ReservationSerializer):
     client = serializers.SerializerMethodField()

@@ -68,6 +68,12 @@ class Reservation(BaseModel):
     utm_campaign = models.CharField(max_length=255, null=True, blank=True)
     fbp = models.CharField(max_length=255, null=True, blank=True)
     fbc = models.CharField(max_length=255, blank=True, null=True)
+    points_redeemed = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0, 
+        help_text="Puntos canjeados en esta reserva"
+    )
 
     def __str__(self):
         if self.client:
