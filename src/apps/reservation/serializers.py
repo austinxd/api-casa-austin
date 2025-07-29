@@ -1,5 +1,6 @@
 from django.db.models import Q
 from rest_framework import serializers
+from decimal import Decimal
 
 from drf_spectacular.utils import extend_schema_field
 
@@ -34,7 +35,7 @@ class ReservationSerializer(serializers.ModelSerializer):
         decimal_places=2, 
         required=False, 
         write_only=True,
-        min_value=0,
+        min_value=Decimal('0'),
         help_text="Puntos a canjear en esta reserva"
     )
     
