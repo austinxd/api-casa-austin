@@ -215,11 +215,13 @@ class ClientProfileView(APIView):
         # Get client from JWT token
         try:
             authenticator = ClientJWTAuthentication()
-            user, validated_token = authenticator.authenticate(request)
+            auth_result = authenticator.authenticate(request)
 
-            if not user:
+            if auth_result is None:
                 logger.error(f"ClientProfileView: Authentication failed [ID: {request_id}]")
                 return Response({'message': 'Token inválido'}, status=401)
+
+            user, validated_token = auth_result  # Unpack the result
 
             logger.info(f"ClientProfileView: Returning profile for client {user.id} [ID: {request_id}]")
             return Response(ClientProfileSerializer(user).data)
