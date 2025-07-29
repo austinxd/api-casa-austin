@@ -64,9 +64,122 @@ class Clients(BaseModel):
     otp_code = models.CharField(max_length=6, null=True, blank=True, help_text="Código OTP temporal")
     otp_expires_at = models.DateTimeField(null=True, blank=True, help_text="Fecha de expiración del OTP")
     last_login = models.DateTimeField(null=True, blank=True, help_text="Último login del cliente")
+    
+    # Sistema de puntos
+    points_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Balance actual de puntos")
+    points_expires_at = models.DateTimeField(null=True, blank=True, help_text="Fecha de expiración de los puntos actuales")
 
     class Meta:
         unique_together = ('document_type', 'number_doc')
+
+
+class ClientPoints(BaseModel):
+    """Modelo para el historial de transacciones de puntos"""
+    
+    class TransactionType(models.TextChoices):
+        EARNED = "earned", ("Puntos Ganados")
+        REDEEMED = "redeemed", ("Puntos Canjeados")
+        EXPIRED = "expired", ("Puntos Expirados")
+    
+    client = models.ForeignKey(Clients, on_delete=models.CASCADE, related_name='points_transactions')
+    reservation = models.ForeignKey('reservation.Reservation', on_delete=models.CASCADE, null=True, blank=True)
+    transaction_type = models.CharField(max_length=8, choices=TransactionType.choices)
+    points = models.DecimalField(max_digits=10, decimal_places=2, help_text="Cantidad de puntos (puede ser negativo para canjes)")
+    description = models.TextField(help_text="Descripción de la transacción")
+    expires_at = models.DateTimeField(null=True, blank=True, help_text="Fecha de expiración de los puntos")
+    
+    class Meta:
+        ordering = ['-created']
+        verbose_name = "Transacción de Puntos"
+        verbose_name_plural = "Transacciones de Puntos"
+
+
+    def calculate_points_from_reservation(self, price_sol):
+        """Calcula puntos basado en el precio en soles (5%)"""
+        return float(price_sol) * 0.05
+    
+    def add_points(self, points, reservation, description="Puntos ganados por reserva"):
+        """Agrega puntos al cliente y actualiza la fecha de expiración"""
+        from datetime import datetime, timedelta
+        from django.utils import timezone
+        
+        # Crear transacción
+        ClientPoints.objects.create(
+            client=self,
+            reservation=reservation,
+            transaction_type=ClientPoints.TransactionType.EARNED,
+            points=points,
+            description=description,
+            expires_at=timezone.now() + timedelta(days=365)  # 1 año desde ahora
+        )
+        
+        # Actualizar balance
+        self.points_balance += points
+        # Actualizar fecha de expiración (1 año desde el último check_out)
+        if reservation and reservation.check_out_date:
+            checkout_datetime = timezone.make_aware(
+                datetime.combine(reservation.check_out_date, datetime.min.time())
+            )
+            self.points_expires_at = checkout_datetime + timedelta(days=365)
+        
+        self.save()
+    
+    def redeem_points(self, points, reservation, description="Puntos canjeados en reserva"):
+        """Canjea puntos del cliente"""
+        if self.points_balance >= points:
+            # Crear transacción
+            ClientPoints.objects.create(
+                client=self,
+                reservation=reservation,
+                transaction_type=ClientPoints.TransactionType.REDEEMED,
+                points=-points,  # Negativo para indicar que se restaron
+                description=description
+            )
+            
+            # Actualizar balance
+            self.points_balance -= points
+            self.save()
+            return True
+        return False
+    
+    def expire_points(self):
+        """Expira los puntos del cliente"""
+        from django.utils import timezone
+        
+        if self.points_balance > 0:
+            # Crear transacción de expiración
+            ClientPoints.objects.create(
+                client=self,
+                transaction_type=ClientPoints.TransactionType.EXPIRED,
+                points=-self.points_balance,
+                description=f"Puntos expirados - {self.points_balance} puntos"
+            )
+            
+            # Resetear balance
+            self.points_balance = 0
+            self.points_expires_at = None
+            self.save()
+    
+    @property
+    def points_are_expired(self):
+        """Verifica si los puntos están expirados"""
+        from django.utils import timezone
+        
+        if self.points_expires_at and timezone.now() > self.points_expires_at:
+            return True
+        return False
+    
+    def get_available_points(self):
+        """Retorna los puntos disponibles (no expirados)"""
+        if self.points_are_expired:
+            self.expire_points()
+            return 0
+        return float(self.points_balance)
+
+    
+    def __str__(self):
+        return f"{self.client.first_name} - {self.transaction_type} - {self.points} puntos"
+
 
     def __str__(self):
         return f"{self.email} {self.first_name} {self.last_name} {self.document_type} {self.number_doc}"

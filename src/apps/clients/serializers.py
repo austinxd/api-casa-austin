@@ -3,7 +3,7 @@ from rest_framework import serializers
 from django.contrib.auth.hashers import make_password, check_password
 from rest_framework.validators import UniqueTogetherValidator
 
-from .models import Clients, MensajeFidelidad, TokenApiClients
+from .models import Clients, MensajeFidelidad, TokenApiClients, ClientPoints
 
 
 class MensajeFidelidadSerializer(serializers.ModelSerializer):
@@ -86,6 +86,9 @@ class ClientAuthLoginSerializer(serializers.Serializer):
 
 
 class ClientProfileSerializer(serializers.ModelSerializer):
+    available_points = serializers.SerializerMethodField()
+    points_are_expired = serializers.SerializerMethodField()
+    
     class Meta:
         model = Clients
         fields = [
@@ -98,6 +101,78 @@ class ClientProfileSerializer(serializers.ModelSerializer):
             "number_doc",
             "date",
             "sex",
-            "last_login"
+            "last_login",
+            "points_balance",
+            "points_expires_at",
+            "available_points",
+            "points_are_expired"
         ]
-        read_only_fields = ["id", "document_type", "number_doc", "last_login"]
+        read_only_fields = [
+            "id", "document_type", "number_doc", "last_login",
+            "points_balance", "points_expires_at", "available_points", "points_are_expired"
+        ]
+    
+    def get_available_points(self, obj):
+        return obj.get_available_points()
+    
+    def get_points_are_expired(self, obj):
+        return obj.points_are_expired
+
+
+
+
+class ClientPointsSerializer(serializers.ModelSerializer):
+    """Serializer para transacciones de puntos"""
+    reservation_id = serializers.IntegerField(source='reservation.id', read_only=True)
+    
+    class Meta:
+        model = ClientPoints
+        fields = [
+            'id', 'transaction_type', 'points', 'description', 
+            'expires_at', 'created', 'reservation_id'
+        ]
+        read_only_fields = ['id', 'created']
+
+
+class ClientPointsBalanceSerializer(serializers.ModelSerializer):
+    """Serializer para balance de puntos del cliente"""
+    available_points = serializers.SerializerMethodField()
+    points_are_expired = serializers.SerializerMethodField()
+    recent_transactions = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Clients
+        fields = [
+            'points_balance', 'points_expires_at', 'available_points', 
+            'points_are_expired', 'recent_transactions'
+        ]
+    
+    def get_available_points(self, obj):
+        return obj.get_available_points()
+    
+    def get_points_are_expired(self, obj):
+        return obj.points_are_expired
+    
+    def get_recent_transactions(self, obj):
+        recent_transactions = ClientPoints.objects.filter(
+            client=obj, deleted=False
+        ).order_by('-created')[:5]
+        return ClientPointsSerializer(recent_transactions, many=True).data
+
+
+class RedeemPointsSerializer(serializers.Serializer):
+    """Serializer para canjear puntos"""
+    points_to_redeem = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=0.01)
+    
+    def validate_points_to_redeem(self, value):
+        client = self.context.get('client')
+        if not client:
+            raise serializers.ValidationError("Cliente no encontrado")
+        
+        available_points = client.get_available_points()
+        if value > available_points:
+            raise serializers.ValidationError(
+                f"No tienes suficientes puntos. Disponibles: {available_points}"
+            )
+        
+        return value
