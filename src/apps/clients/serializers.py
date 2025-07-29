@@ -2,6 +2,7 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password, check_password
 from rest_framework.validators import UniqueTogetherValidator
+from decimal import Decimal
 
 from .models import Clients, MensajeFidelidad, TokenApiClients, ClientPoints
 
@@ -162,7 +163,7 @@ class ClientPointsBalanceSerializer(serializers.ModelSerializer):
 
 class RedeemPointsSerializer(serializers.Serializer):
     """Serializer para canjear puntos"""
-    points_to_redeem = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=0.01)
+    points_to_redeem = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0.01'))
     
     def validate_points_to_redeem(self, value):
         client = self.context.get('client')
