@@ -29,6 +29,15 @@ class ReciptSerializer(serializers.ModelSerializer):
 
 
 class ReservationSerializer(serializers.ModelSerializer):
+    points_to_redeem = serializers.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        required=False, 
+        write_only=True,
+        min_value=0,
+        help_text="Puntos a canjear en esta reserva"
+    )
+    
     class Meta:
         model = Reservation
         exclude = ["created", "updated", "deleted"]
@@ -71,6 +80,20 @@ class ReservationSerializer(serializers.ModelSerializer):
 
         property_field = attrs.get('property')
         reservation_id = self.instance.id if self.instance else None
+
+        # Validar canje de puntos si se especifica
+        points_to_redeem = attrs.get('points_to_redeem')
+        if points_to_redeem and points_to_redeem > 0:
+            client = attrs.get('client')
+            if not client:
+                raise serializers.ValidationError("Debe especificar un cliente para canjear puntos")
+            
+            # Verificar que el cliente tenga suficientes puntos
+            available_points = client.get_available_points()
+            if points_to_redeem > available_points:
+                raise serializers.ValidationError(
+                    f"El cliente no tiene suficientes puntos. Disponibles: {available_points}, solicitados: {points_to_redeem}"
+                )
 
         if attrs.get('full_payment') == True:
             if attrs['advance_payment_currency'] == 'sol':

@@ -108,6 +108,13 @@ class Clients(BaseModel):
         
         self.save()
     
+    def get_available_points(self):
+        """Retorna los puntos disponibles (no expirados)"""
+        from django.utils import timezone
+        if self.points_expires_at and self.points_expires_at < timezone.now():
+            return 0
+        return float(self.points_balance)
+    
     def redeem_points(self, points, reservation, description="Puntos canjeados en reserva"):
         """Canjea puntos del cliente"""
         from decimal import Decimal
