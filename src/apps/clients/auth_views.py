@@ -298,7 +298,12 @@ class ClientPointsView(APIView):
     def get(self, request):
         try:
             authenticator = ClientJWTAuthentication()
-            client, validated_token = authenticator.authenticate(request)
+            auth_result = authenticator.authenticate(request)
+
+            if auth_result is None:
+                return Response({'message': 'Token requerido'}, status=401)
+
+            client, validated_token = auth_result
 
             if not client:
                 return Response({'message': 'Token inválido'}, status=401)
@@ -322,13 +327,18 @@ class ClientRedeemPointsView(APIView):
     def post(self, request):
         try:
             authenticator = ClientJWTAuthentication()
-            client, validated_token = authenticator.authenticate(request)
+            auth_result = authenticator.authenticate(request)
+
+            if auth_result is None:
+                return Response({'message': 'Token requerido'}, status=401)
+
+            client, validated_token = auth_result
 
             if not client:
                 return Response({'message': 'Token inválido'}, status=401)
 
             points_to_redeem = request.data.get('points_to_redeem', 0)
-            
+
             # Por ahora devolvemos éxito, luego implementas tu lógica real
             return Response({
                 'message': 'Puntos canjeados exitosamente',
