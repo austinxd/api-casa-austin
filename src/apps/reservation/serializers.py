@@ -197,7 +197,13 @@ class ReservationListSerializer(ReservationSerializer):
     
     @extend_schema_field(serializers.FloatField())
     def get_resta_pagar(self, instance):
-        return '%.2f' % round(float(instance.price_sol) - instance.adelanto_normalizado, 2)
+        price_total = float(instance.price_sol)
+        adelanto_normalizado = instance.adelanto_normalizado  # Ya está en SOL
+        puntos_canjeados = float(instance.points_redeemed or 0)  # Siempre en SOL (1 punto = 1 sol)
+        
+        # Todos los valores están en SOL, se pueden restar directamente
+        resta = price_total - adelanto_normalizado - puntos_canjeados
+        return '%.2f' % round(resta, 2)
     
     @extend_schema_field(serializers.IntegerField())
     def get_number_nights(self, instance):
