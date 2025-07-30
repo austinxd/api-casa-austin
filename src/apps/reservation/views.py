@@ -218,7 +218,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
             user_seller = self.request.user
             if self.request.POST['origin'].lower() == 'air':
                 user_seller = CustomUser.objects.get(first_name='AirBnB')
-            
+
             instance = serializer.save(seller=user_seller)
             if instance.late_checkout:
                 original_check_out_date = instance.check_out_date
