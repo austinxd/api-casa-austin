@@ -165,13 +165,6 @@ class Clients(BaseModel):
         if self.points_expires_at and timezone.now() > self.points_expires_at:
             return True
         return False
-    
-    def get_available_points(self):
-        """Retorna los puntos disponibles (no expirados)"""
-        if self.points_are_expired:
-            self.expire_points()
-            return 0
-        return float(self.points_balance)
 
 
 class ClientPoints(BaseModel):
