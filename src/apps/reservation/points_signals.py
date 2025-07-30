@@ -49,7 +49,7 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
     
     # Verificar si se canjearon puntos en esta reserva
     points_redeemed = float(instance.points_redeemed or 0)
-    if points_redeemed > 0:d > 0:
+    if points_redeemed > 0:
         effective_price -= points_redeemed
     
     # Calcular y asignar puntos (5% del precio efectivo pagado)
