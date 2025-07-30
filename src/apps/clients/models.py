@@ -181,6 +181,7 @@ class ClientPoints(BaseModel):
         EARNED = "earned", ("Puntos Ganados")
         REDEEMED = "redeemed", ("Puntos Canjeados")
         EXPIRED = "expired", ("Puntos Expirados")
+        REFUNDED = "refunded", ("Puntos Devueltos")
     
     client = models.ForeignKey(Clients, on_delete=models.CASCADE, related_name='points_transactions')
     reservation = models.ForeignKey('reservation.Reservation', on_delete=models.CASCADE, null=True, blank=True)

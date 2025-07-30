@@ -82,6 +82,24 @@ class Reservation(BaseModel):
             return f"Reserva desde API Airbnb (sin datos del cliente)"
 
     def delete(self, *args, **kwargs):
+        # Si la reserva tenía puntos canjeados, devolverlos al cliente
+        if self.points_redeemed and self.points_redeemed > 0 and self.client:
+            from apps.clients.models import ClientPoints
+            from decimal import Decimal
+            
+            # Devolver puntos al cliente
+            self.client.points_balance += Decimal(str(self.points_redeemed))
+            self.client.save()
+            
+            # Crear transacción de devolución
+            ClientPoints.objects.create(
+                client=self.client,
+                reservation=self,
+                transaction_type=ClientPoints.TransactionType.REFUNDED,
+                points=Decimal(str(self.points_redeemed)),
+                description=f"Devolución de puntos por eliminación de reserva #{self.id} - {self.property.name if self.property else 'Propiedad'}"
+            )
+        
         self.deleted = True
         self.save()
 
