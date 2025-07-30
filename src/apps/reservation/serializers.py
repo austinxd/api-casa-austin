@@ -152,17 +152,21 @@ class ReservationSerializer(serializers.ModelSerializer):
         reservation = super().create(validated_data)
         
         # Si hay puntos para canjear, procesarlos
-        if points_to_redeem and points_to_redeem > 0:
-            # Guardar los puntos canjeados en la reserva
-            reservation.points_redeemed = points_to_redeem
-            reservation.save()
-            
+        if points_to_redeem and points_to_redeem > 0 and reservation.client:
             # Descontar los puntos del cliente
-            reservation.client.redeem_points(
+            success = reservation.client.redeem_points(
                 points=points_to_redeem,
                 reservation=reservation,
                 description=f"Puntos canjeados en reserva #{reservation.id} - {reservation.property.name}"
             )
+            
+            if success:
+                # Guardar los puntos canjeados en la reserva
+                reservation.points_redeemed = points_to_redeem
+                reservation.save()
+            else:
+                # Si no se pudieron canjear los puntos, lanzar error
+                raise serializers.ValidationError("Error al canjear puntos: saldo insuficiente")
         
         return reservation
 

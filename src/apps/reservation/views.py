@@ -218,9 +218,6 @@ class ReservationsApiView(viewsets.ModelViewSet):
             user_seller = self.request.user
             if self.request.POST['origin'].lower() == 'air':
                 user_seller = CustomUser.objects.get(first_name='AirBnB')
-
-            # Procesar canje de puntos antes de guardar
-            points_to_redeem = serializer.validated_data.pop('points_to_redeem', None)
             
             instance = serializer.save(seller=user_seller)
             if instance.late_checkout:
@@ -230,16 +227,6 @@ class ReservationsApiView(viewsets.ModelViewSet):
             else:
                 instance.late_check_out_date = None
             instance.save()
-
-            # Canjear puntos si se especificó
-            if points_to_redeem and points_to_redeem > 0 and instance.client:
-                success = instance.client.redeem_points(
-                    points=points_to_redeem,
-                    reservation=instance,
-                    description=f"Puntos canjeados en reserva #{instance.id} - {instance.property.name}"
-                )
-                if not success:
-                    raise serializers.ValidationError("Error al canjear puntos")
 
             for file in self.request.FILES.getlist('file'):
                 RentalReceipt.objects.create(
