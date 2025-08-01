@@ -87,6 +87,8 @@ SIMPLE_JWT = {
 META_PIXEL_ID = os.environ.get("META_PIXEL_ID")
 META_ACCESS_TOKEN = os.environ.get("META_ACCESS_TOKEN")
 
+# AirBnB API Configuration
+AIRBNB_API_URL_BASE = env("AIRBNB_API_URL_BASE", default="https://api.airbnb.com/v1/calendar")
 
 # Token y ID para el Píxel de Meta
 META_PIXEL_ID = env("META_PIXEL_ID", default="No pixel ID")
