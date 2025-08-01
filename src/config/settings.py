@@ -259,8 +259,6 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
-AIRBNB_API_URL_BASE = env('AIRBNB_API_URL_BASE', default='https://api.airbnb.com')
-
 # Logging configuration
 LOGGING = {
     'version': 1,
