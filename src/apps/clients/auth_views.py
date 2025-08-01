@@ -18,12 +18,60 @@ from .serializers import (
     ClientAuthRequestOTPSerializer, 
     ClientAuthSetPasswordSerializer,
     ClientAuthLoginSerializer,
-    ClientProfileSerializer
+    ClientProfileSerializer,
+    ClientsSerializer
 )
 from .twilio_service import TwilioOTPService
 import logging
 
 logger = logging.getLogger('apps')
+
+
+class ClientPublicRegisterView(APIView):
+    """
+    Endpoint público para registro de nuevos clientes
+    No requiere autenticación
+    """
+    permission_classes = [AllowAny]
+    serializer_class = ClientsSerializer
+    
+    def post(self, request):
+        try:
+            serializer = self.serializer_class(data=request.data)
+            
+            if serializer.is_valid():
+                # Crear el cliente
+                client = serializer.save()
+                
+                logger.info(f'Nuevo cliente registrado: {client.first_name} {client.last_name} - {client.number_doc}')
+                
+                return Response({
+                    'success': True,
+                    'message': 'Cliente registrado exitosamente',
+                    'client': {
+                        'id': str(client.id),
+                        'document_type': client.document_type,
+                        'number_doc': client.number_doc,
+                        'first_name': client.first_name,
+                        'last_name': client.last_name,
+                        'email': client.email,
+                        'tel_number': client.tel_number
+                    }
+                }, status=status.HTTP_201_CREATED)
+            else:
+                return Response({
+                    'success': False,
+                    'message': 'Error en los datos proporcionados',
+                    'errors': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            logger.error(f'Error en registro público de cliente: {str(e)}')
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 # Custom JWT Authentication for Clients
 class ClientJWTAuthentication(JWTAuthentication):

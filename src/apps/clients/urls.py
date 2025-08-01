@@ -14,6 +14,10 @@ urlpatterns = [
          auth_views.ClientVerifyDocumentView.as_view(),
          name='client-verify-document'),
     
+    path('clients/public-register/',
+         auth_views.ClientPublicRegisterView.as_view(),
+         name='client-public-register'),
+    
     path('', include(router.urls)),
 
     # Endpoints originales para compatibilidad
