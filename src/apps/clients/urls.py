@@ -16,7 +16,7 @@ urlpatterns = [
     path('get-api-token-clients/', views.TokenApiClientApiView.as_view(), name='token-rutificador'),
 
     # Client Authentication URLs (Refactored to match original structure)
-    path('clients/verify-document/', auth_views.ClientVerifyDocumentView.as_view(), name='client-verify-document'),
+    path('verify-document/', auth_views.ClientVerifyDocumentView.as_view(), name='client-verify-document'),
     path('clients/client-auth/request-otp/', auth_views.ClientRequestOTPView.as_view(), name='client-request-otp'),
     path('clients/client-auth/setup-password/', auth_views.ClientSetupPasswordView.as_view(), name='client-setup-password'),
     path('clients/client-auth/login/', auth_views.ClientLoginView.as_view(), name='client-login'),
