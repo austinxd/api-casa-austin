@@ -88,30 +88,7 @@ REST_FRAMEWORK = {
     )
 }
 
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',
-    'content-type',
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
-
-# Permitir estos métodos
-CORS_ALLOW_METHODS = [
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-]
-
-# Para desarrollo, también permite todas las origins (opcional)
-# CORS_ALLOW_ALL_ORIGINS = True
+# Configuraciones CORS ya definidas arriba
 
 META_PIXEL_ID = os.environ.get("META_PIXEL_ID")
 META_ACCESS_TOKEN = os.environ.get("META_ACCESS_TOKEN")
@@ -251,9 +228,7 @@ DEFAULT_PAGE_SIZE = 20
 # REST
 REST_FRAMEWORK = {
    'DEFAULT_PERMISSION_CLASSES': (
-    'rest_framework.permissions.IsAuthenticated',
-    'apps.core.permissions.CustomPermissions'
-    # 'rest_framework.permissions.AllowAny',
+    'rest_framework.permissions.AllowAny',
    ),
    'DEFAULT_AUTHENTICATION_CLASSES': (
        'rest_framework_simplejwt.authentication.JWTAuthentication',
