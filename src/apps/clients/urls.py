@@ -13,11 +13,14 @@ urlpatterns = [
     path('clients/verify-document/',
          auth_views.ClientVerifyDocumentView.as_view(),
          name='client-verify-document'),
-    
+
     path('clients/public-register/',
          auth_views.ClientPublicRegisterView.as_view(),
          name='client-public-register'),
-    
+    path('clients/complete-register/',
+         auth_views.ClientCompleteRegistrationView.as_view(),
+         name='complete-register'),
+
     path('', include(router.urls)),
 
     # Endpoints originales para compatibilidad
@@ -30,6 +33,9 @@ urlpatterns = [
     path('clients/client-auth/request-otp/',
          auth_views.ClientRequestOTPView.as_view(),
          name='client-request-otp'),
+    path('clients/client-auth/request-otp-registration/',
+         auth_views.ClientRequestOTPForRegistrationView.as_view(),
+         name='client-request-otp-registration'),
     path('clients/client-auth/setup-password/',
          auth_views.ClientSetupPasswordView.as_view(),
          name='client-setup-password'),

@@ -73,6 +73,103 @@ class ClientPublicRegisterView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class ClientCompleteRegistrationView(APIView):
+    """
+    Endpoint para registro completo de nuevos clientes con verificación OTP
+    Incluye creación del cliente y configuración de contraseña en un solo paso
+    """
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        try:
+            # Validar datos requeridos
+            required_fields = ['document_type', 'number_doc', 'first_name', 'last_name', 
+                             'email', 'tel_number', 'sex', 'birth_date', 'otp_code', 
+                             'password', 'confirm_password']
+            
+            for field in required_fields:
+                if not request.data.get(field):
+                    return Response({
+                        'message': f'El campo {field} es requerido'
+                    }, status=400)
+            
+            # Validar que las contraseñas coincidan
+            if request.data.get('password') != request.data.get('confirm_password'):
+                return Response({
+                    'message': 'Las contraseñas no coinciden'
+                }, status=400)
+            
+            # Verificar que el cliente no exista ya
+            existing_client = Clients.objects.filter(
+                document_type=request.data.get('document_type'),
+                number_doc=request.data.get('number_doc'),
+                deleted=False
+            ).first()
+            
+            if existing_client:
+                return Response({
+                    'message': 'Ya existe un cliente con este documento'
+                }, status=400)
+            
+            # Verificar OTP con Twilio
+            twilio_service = TwilioOTPService()
+            tel_number = request.data.get('tel_number')
+            otp_code = request.data.get('otp_code')
+            
+            if not twilio_service.verify_otp_code(tel_number, otp_code):
+                return Response({
+                    'message': 'Código OTP inválido o expirado'
+                }, status=400)
+            
+            # Crear el cliente con todos los datos
+            client_data = {
+                'document_type': request.data.get('document_type'),
+                'number_doc': request.data.get('number_doc'),
+                'first_name': request.data.get('first_name'),
+                'last_name': request.data.get('last_name'),
+                'email': request.data.get('email'),
+                'tel_number': tel_number,
+                'sex': request.data.get('sex'),
+                'birth_date': request.data.get('birth_date'),
+                'password': make_password(request.data.get('password')),
+                'is_password_set': True
+            }
+            
+            # Usar el serializer para validar y crear
+            serializer = ClientsSerializer(data=client_data)
+            
+            if serializer.is_valid():
+                client = serializer.save()
+                
+                logger.info(f'Cliente registrado completamente: {client.first_name} {client.last_name} - {client.number_doc}')
+                
+                return Response({
+                    'success': True,
+                    'message': 'Cuenta creada exitosamente',
+                    'client': {
+                        'id': str(client.id),
+                        'document_type': client.document_type,
+                        'number_doc': client.number_doc,
+                        'first_name': client.first_name,
+                        'last_name': client.last_name,
+                        'email': client.email
+                    }
+                }, status=status.HTTP_201_CREATED)
+            else:
+                return Response({
+                    'success': False,
+                    'message': 'Error en los datos proporcionados',
+                    'errors': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            logger.error(f'Error en registro completo de cliente: {str(e)}')
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 # Custom JWT Authentication for Clients
 class ClientJWTAuthentication(JWTAuthentication):
     def get_user(self, validated_token):
@@ -159,6 +256,40 @@ class ClientRequestOTPView(APIView):
             return Response({
                 'message': 'Cliente no encontrado'
             }, status=404)
+
+
+class ClientRequestOTPForRegistrationView(APIView):
+    """
+    Endpoint para solicitar OTP durante el registro de nuevos clientes
+    No requiere que el cliente exista previamente
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        tel_number = request.data.get('tel_number', '').strip()
+        
+        if not tel_number:
+            return Response({'message': 'Número de teléfono es requerido'}, status=400)
+
+        # Validar formato del número de teléfono
+        if not tel_number.startswith('+'):
+            return Response({'message': 'El número debe incluir el código de país (ej: +51999999999)'}, status=400)
+
+        # Usar Twilio Verify Service para enviar OTP
+        twilio_service = TwilioOTPService()
+
+        if twilio_service.send_otp_with_verify(tel_number):
+            # Enmascarar el número para mostrar en la respuesta
+            masked_number = f"***{tel_number[-4:]}" if len(tel_number) > 4 else tel_number
+            
+            return Response({
+                'message': 'Código de verificación enviado',
+                'phone_masked': masked_number
+            })
+        else:
+            return Response({
+                'message': 'Error al enviar código de verificación. Verifica que el número sea válido.'
+            }, status=500)
 
 
 class ClientSetupPasswordView(APIView):
