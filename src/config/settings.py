@@ -82,12 +82,6 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
-}
-
 # Configuraciones CORS ya definidas arriba
 
 META_PIXEL_ID = os.environ.get("META_PIXEL_ID")
@@ -265,7 +259,7 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
-AIRBNB_API_URL_BASE = env('AIRBNB_API_URL_BASE')
+AIRBNB_API_URL_BASE = env('AIRBNB_API_URL_BASE', default='https://api.airbnb.com')
 
 # Logging configuration
 LOGGING = {
