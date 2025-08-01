@@ -17,9 +17,9 @@ urlpatterns = [
 
     # Client Authentication URLs (Refactored to match original structure)
     path('verify-document/', auth_views.ClientVerifyDocumentView.as_view(), name='client-verify-document'),
-    path('client-auth/request-otp/', auth_views.ClientRequestOTPView.as_view(), name='client-request-otp'),
-    path('client-auth/setup-password/', auth_views.ClientSetupPasswordView.as_view(), name='client-setup-password'),
-    path('client-auth/login/', auth_views.ClientLoginView.as_view(), name='client-login'),
+    path('clients/client-auth/request-otp/', auth_views.ClientRequestOTPView.as_view(), name='client-request-otp'),
+    path('clients/client-auth/setup-password/', auth_views.ClientSetupPasswordView.as_view(), name='client-setup-password'),
+    path('clients/client-auth/login/', auth_views.ClientLoginView.as_view(), name='client-login'),
     path('clients/client-auth/profile/', auth_views.ClientProfileView.as_view(), name='client-profile'),
     path('clients/client-auth/reservations/', auth_views.ClientReservationsView.as_view(), name='client-auth-reservations'),
     path('clients/client-auth/points/', auth_views.ClientPointsView.as_view(), name='client-points'),
