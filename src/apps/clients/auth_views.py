@@ -42,6 +42,7 @@ class ClientJWTAuthentication(JWTAuthentication):
 class ClientVerifyDocumentView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []  # Deshabilitar autenticación completamente
+    http_method_names = ['post']  # Explicitly allow POST method
 
     def post(self, request):
         serializer = ClientAuthVerifySerializer(data=request.data)
