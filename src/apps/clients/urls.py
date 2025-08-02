@@ -74,5 +74,13 @@ urlpatterns = [
          views.ClientReservationsListView.as_view(),
          name='client-reservations-list'),
     
+    # Endpoints para sistema de referidos
+    path('clients/referral-config/',
+         views.ReferralConfigView.as_view(),
+         name='client-referral-config'),
+    path('clients/referral-stats/',
+         views.ReferralStatsView.as_view(),
+         name='client-referral-stats'),
+    
     path('clients/csrf-token/', auth_views.get_csrf_token, name='csrf-token'),
 ]

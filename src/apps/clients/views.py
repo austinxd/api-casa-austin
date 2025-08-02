@@ -1,4 +1,3 @@
-
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -20,7 +19,7 @@ class ClientCreateReservationView(APIView):
 
     def post(self, request):
         logger.info(f"ClientCreateReservationView: New reservation request from client")
-        
+
         # Autenticar cliente
         try:
             authenticator = ClientJWTAuthentication()
@@ -35,15 +34,15 @@ class ClientCreateReservationView(APIView):
                 data=request.data, 
                 context={'request': request}
             )
-            
+
             if serializer.is_valid():
                 reservation = serializer.save()
-                
+
                 # Retornar la reserva creada
                 response_serializer = ReservationListSerializer(reservation)
-                
+
                 logger.info(f"ClientCreateReservationView: Reservation created successfully - ID: {reservation.id}")
-                
+
                 return Response({
                     'success': True,
                     'message': 'Reserva creada exitosamente. Está pendiente de aprobación.',
@@ -124,10 +123,29 @@ class ClientReservationsListView(APIView):
 from datetime import datetime
 
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
-from rest_framework import filters, viewsets, status
+from rest_framework import filters, viewsets, status, permissions
 from rest_framework.views import APIView
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.generics import CreateAPIView, ListAPIView
+from django.contrib.auth.hashers import make_password, check_password
+from django.utils import timezone
+from datetime import datetime, timedelta
+from django.db.models import Q, Sum, Count
+from django.shortcuts import get_object_or_404
+
+from .models import Clients, MensajeFidelidad, TokenApiClients, ClientPoints, ReferralPointsConfig
+from .serializers import (
+    ClientsSerializer, MensajeFidelidadSerializer, TokenApiClienteSerializer,
+    ClientAuthVerifySerializer, ClientAuthRequestOTPSerializer, 
+    ClientAuthSetPasswordSerializer, ClientAuthLoginSerializer,
+    ClientProfileSerializer, ClientPointsSerializer, ClientPointsBalanceSerializer,
+    RedeemPointsSerializer
+)
+from .twilio_service import send_sms
+from apps.core.utils import ExportCsvMixin
+from apps.reservation.models import Reservation
+from apps.reservation.serializers import ClientReservationSerializer
 
 from apps.core.paginator import CustomPagination
 
@@ -139,7 +157,7 @@ from apps.core.functions import generate_audit
 
 class MensajeFidelidadApiView(APIView):
     serializer_class = MensajeFidelidadSerializer
-    
+
     def get(self, request):
         content = self.serializer_class(
             MensajeFidelidad.objects.exclude(
@@ -150,7 +168,7 @@ class MensajeFidelidadApiView(APIView):
 
 class TokenApiClientApiView(APIView):
     serializer_class = TokenApiClienteSerializer
-    
+
     def get(self, request):
         content = self.serializer_class(TokenApiClients.objects.exclude(deleted=True).order_by("created").last()).data
         return Response(content, status=200)    
@@ -177,7 +195,7 @@ class ClientsApiView(viewsets.ModelViewSet):
             return None
 
         return self.pagination_class
-    
+
     @extend_schema(
         parameters=[
             OpenApiParameter(
@@ -221,7 +239,7 @@ class ClientsApiView(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        
+
 
         self.perform_update(serializer)
 
@@ -235,10 +253,10 @@ class ClientsApiView(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        
+
         instance.deleted = True
         instance.save()
-        
+
         generate_audit(
             instance,
             self.request.user,
@@ -274,3 +292,97 @@ class ClientsApiView(viewsets.ModelViewSet):
     )
     def search_clients(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+
+class ReferralConfigView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """Obtener configuración actual del sistema de referidos"""
+        try:
+            config = ReferralPointsConfig.get_current_config()
+            if config:
+                return Response({
+                    'percentage': float(config.percentage),
+                    'is_active': config.is_active
+                })
+            else:
+                return Response({
+                    'percentage': 5.0,  # Valor por defecto
+                    'is_active': True
+                })
+        except Exception as e:
+            return Response({
+                'error': 'Error al obtener configuración de referidos',
+                'detail': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ReferralStatsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        """Obtener estadísticas de referidos del cliente"""
+        try:
+            # Obtener cliente desde el token
+            client = get_client_from_token(request)
+            if isinstance(client, Response):
+                return client
+
+            # Obtener clientes referidos
+            referrals = Clients.objects.filter(
+                referred_by=client,
+                deleted=False
+            ).annotate(
+                reservations_count=Count('reservation', filter=Q(reservation__deleted=False)),
+            )
+
+            # Calcular puntos ganados por referidos
+            referral_points = ClientPoints.objects.filter(
+                client=client,
+                transaction_type=ClientPoints.TransactionType.REFERRAL,
+                deleted=False
+            ).aggregate(
+                total_points=Sum('points')
+            )['total_points'] or 0
+
+            # Calcular total de reservas de referidos
+            referral_reservations = Reservation.objects.filter(
+                client__referred_by=client,
+                deleted=False
+            ).count()
+
+            # Preparar datos de referidos para la respuesta
+            referrals_data = []
+            for referral in referrals:
+                # Calcular puntos ganados específicamente por este referido
+                points_from_referral = ClientPoints.objects.filter(
+                    client=client,
+                    referred_client=referral,
+                    transaction_type=ClientPoints.TransactionType.REFERRAL,
+                    deleted=False
+                ).aggregate(
+                    total_points=Sum('points')
+                )['total_points'] or 0
+
+                referrals_data.append({
+                    'id': referral.id,
+                    'first_name': referral.first_name,
+                    'last_name': referral.last_name,
+                    'created_at': referral.created.isoformat() if hasattr(referral, 'created') else None,
+                    'reservations_count': referral.reservations_count,
+                    'points_earned': float(points_from_referral)
+                })
+
+            return Response({
+                'total_referrals': referrals.count(),
+                'referral_reservations': referral_reservations,
+                'referral_points': float(referral_points),
+                'referrals': referrals_data
+            })
+
+        except Exception as e:
+            return Response({
+                'error': 'Error al obtener estadísticas de referidos',
+                'detail': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
