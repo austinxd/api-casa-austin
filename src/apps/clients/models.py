@@ -96,6 +96,7 @@ class Clients(BaseModel):
     
     # Sistema de referidos
     referred_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, help_text="Cliente que refirió a este cliente")
+    referral_code = models.CharField(max_length=8, unique=True, null=True, blank=True, help_text="Código de referido único y corto")
 
     class Meta:
         unique_together = ('document_type', 'number_doc')
@@ -225,6 +226,54 @@ class Clients(BaseModel):
         if self.points_expires_at and timezone.now() > self.points_expires_at:
             return True
         return False
+    
+    def generate_referral_code(self):
+        """Genera un código de referido único de 6-8 caracteres"""
+        import random
+        import string
+        
+        if self.referral_code:
+            return self.referral_code
+            
+        # Generar código basado en el nombre y números aleatorios
+        first_part = self.first_name[:3].upper() if len(self.first_name) >= 3 else self.first_name.upper()
+        
+        # Asegurar que tengamos al menos 3 caracteres
+        while len(first_part) < 3:
+            first_part += 'A'
+            
+        # Agregar números aleatorios
+        numbers = ''.join(random.choices(string.digits, k=3))
+        
+        code = first_part + numbers
+        
+        # Verificar que sea único
+        counter = 1
+        original_code = code
+        while Clients.objects.filter(referral_code=code, deleted=False).exists():
+            code = original_code + str(counter)
+            counter += 1
+            if counter > 99:  # Evitar bucle infinito
+                code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+                break
+        
+        self.referral_code = code
+        self.save()
+        return code
+    
+    def get_referral_code(self):
+        """Obtiene el código de referido, generándolo si no existe"""
+        if not self.referral_code:
+            return self.generate_referral_code()
+        return self.referral_code
+    
+    @classmethod
+    def get_client_by_referral_code(cls, referral_code):
+        """Obtiene un cliente por su código de referido"""
+        try:
+            return cls.objects.get(referral_code=referral_code, deleted=False)
+        except cls.DoesNotExist:
+            return None
 
 
 class ClientPoints(BaseModel):

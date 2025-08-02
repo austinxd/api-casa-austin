@@ -89,6 +89,7 @@ class ClientProfileSerializer(serializers.ModelSerializer):
     available_points = serializers.SerializerMethodField()
     points_are_expired = serializers.SerializerMethodField()
     referred_by_info = serializers.SerializerMethodField()
+    referral_code = serializers.SerializerMethodField()
 
     class Meta:
         model = Clients
@@ -107,7 +108,8 @@ class ClientProfileSerializer(serializers.ModelSerializer):
             "points_expires_at",
             "available_points",
             "points_are_expired",
-            "referred_by_info"
+            "referred_by_info",
+            "referral_code"
         ]
         read_only_fields = [
             "id", "document_type", "number_doc", "last_login",
@@ -121,13 +123,18 @@ class ClientProfileSerializer(serializers.ModelSerializer):
         return obj.points_are_expired
 
     def get_referred_by_info(self, obj):
+        """Información del cliente que refirió a este cliente"""
         if obj.referred_by:
             return {
-                "id": obj.referred_by.id,
-                "first_name": obj.referred_by.first_name,
-                "last_name": obj.referred_by.last_name
+                'id': obj.referred_by.id,
+                'name': f"{obj.referred_by.first_name} {obj.referred_by.last_name or ''}".strip(),
+                'referral_code': obj.referred_by.get_referral_code()
             }
         return None
+
+    def get_referral_code(self, obj):
+        """Código de referido del cliente"""
+        return obj.get_referral_code()
 
 
 

@@ -1,3 +1,4 @@
+
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -233,6 +234,18 @@ class ClientsApiView(viewsets.ModelViewSet):
             "create",
             "Cliente creado"
         )
+
+        # Verificar si hay código de referido
+        referral_code = request.data.get('referral_code')
+        if referral_code:
+            referrer = Clients.get_client_by_referral_code(referral_code)
+            if referrer:
+                serializer.instance.referred_by = referrer
+                logger.info(f"Cliente {serializer.instance.first_name} referido por {referrer.first_name} (Código: {referral_code})")
+            else:
+                logger.warning(f"Referente con código {referral_code} no encontrado")
+                pass  # No fallar el registro si el referente no existe
+        serializer.instance.save()
 
 
     def partial_update(self, request, *args, **kwargs):
