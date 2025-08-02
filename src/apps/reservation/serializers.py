@@ -254,7 +254,8 @@ class ClientReservationSerializer(serializers.ModelSerializer):
         fields = [
             'property', 'check_in_date', 'check_out_date', 'guests', 
             'temperature_pool', 'points_to_redeem', 'tel_contact_number',
-            'price_usd', 'price_sol', 'advance_payment_currency', 'comentarios_reservas'
+            'price_usd', 'price_sol', 'advance_payment_currency', 'comentarios_reservas',
+            'seller'
         ]
         extra_kwargs = {
             'points_to_redeem': {'write_only': True, 'required': False},
@@ -262,7 +263,8 @@ class ClientReservationSerializer(serializers.ModelSerializer):
             'price_usd': {'required': False},
             'price_sol': {'required': False},
             'advance_payment_currency': {'required': False},
-            'comentarios_reservas': {'required': False}
+            'comentarios_reservas': {'required': False},
+            'seller': {'required': False}
         }
 
     points_to_redeem = serializers.DecimalField(
@@ -322,6 +324,21 @@ class ClientReservationSerializer(serializers.ModelSerializer):
         validated_data['client'] = client
         validated_data['origin'] = 'client'
         validated_data['status'] = 'pending'
+        
+        # Asignar seller específico si se envía desde el frontend, sino usar seller por defecto (ID 14)
+        if 'seller' in validated_data and validated_data['seller']:
+            # Verificar que el seller existe
+            try:
+                from apps.accounts.models import CustomUser
+                seller = CustomUser.objects.get(id=validated_data['seller'])
+                validated_data['seller'] = seller
+            except CustomUser.DoesNotExist:
+                # Si el seller no existe, usar el seller por defecto (ID 14)
+                validated_data['seller'] = CustomUser.objects.get(id=14)
+        else:
+            # Asignar seller por defecto (ID 14) para reservas de clientes
+            validated_data['seller'] = CustomUser.objects.get(id=14)
+        
         # Mantener los precios enviados desde el frontend si están presentes
         if 'price_usd' not in validated_data or not validated_data['price_usd']:
             validated_data['price_usd'] = 0
