@@ -69,6 +69,11 @@ class ReservationSerializer(serializers.ModelSerializer):
                 new_data['origin'] = 'air'
                 new_data['seller'] = CustomUser.objects.get(first_name='AirBnB').id
 
+        # Si la reserva viene del endpoint de cliente, marcarla como pendiente
+        if self.context.get('from_client_endpoint'):
+            new_data['origin'] = 'client'
+            new_data['status'] = 'pending'
+
         return super().to_internal_value(new_data)
 
     def validate(self, attrs):
@@ -182,6 +187,7 @@ class ReservationListSerializer(ReservationSerializer):
     resta_pagar = serializers.SerializerMethodField()
     number_nights = serializers.SerializerMethodField()
     is_upcoming = serializers.SerializerMethodField()
+    status_display = serializers.SerializerMethodField()
     
     @extend_schema_field(ClientShortSerializer)
     def get_client(self, instance):
@@ -192,6 +198,95 @@ class ReservationListSerializer(ReservationSerializer):
         return SellerSerializer(instance.seller).data
 
     @extend_schema_field(PropertySerializer)
+
+
+class ClientReservationSerializer(serializers.ModelSerializer):
+    """Serializer para reservas creadas por clientes autenticados"""
+    
+    class Meta:
+        model = Reservation
+        fields = [
+            'property', 'check_in_date', 'check_out_date', 'guests', 
+            'temperature_pool', 'points_to_redeem', 'tel_contact_number'
+        ]
+        extra_kwargs = {
+            'points_to_redeem': {'write_only': True, 'required': False},
+            'tel_contact_number': {'required': False}
+        }
+
+    points_to_redeem = serializers.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        required=False, 
+        write_only=True,
+        min_value=Decimal('0'),
+        help_text="Puntos a canjear en esta reserva"
+    )
+
+    def validate(self, attrs):
+        from django.db.models import Q
+        
+        # Validar fechas
+        if attrs.get('check_in_date') and attrs.get('check_out_date'):
+            if attrs.get('check_in_date') >= attrs.get('check_out_date'):
+                raise serializers.ValidationError("Fecha entrada debe ser anterior a fecha de salida")
+
+            # Verificar disponibilidad de la propiedad
+            property_field = attrs.get('property')
+            if Reservation.objects.exclude(deleted=True
+                ).filter(
+                    property=property_field,
+                    status__in=['approved', 'pending']  # Considerar tanto aprobadas como pendientes
+                ).filter(
+                    Q(check_in_date__lt=attrs.get('check_out_date')) & Q(check_out_date__gt=attrs.get('check_in_date'))
+                ).exists():
+                raise serializers.ValidationError("Esta propiedad no está disponible en este rango de fechas")
+
+        # Validar canje de puntos si se especifica
+        points_to_redeem = attrs.get('points_to_redeem')
+        if points_to_redeem and points_to_redeem > 0:
+            client = self.context.get('request').user if self.context.get('request') else None
+            if not client:
+                raise serializers.ValidationError("No se pudo identificar el cliente")
+            
+            # Verificar que el cliente tenga suficientes puntos
+            available_points = client.get_available_points()
+            if points_to_redeem > available_points:
+                raise serializers.ValidationError(
+                    f"No tienes suficientes puntos. Disponibles: {available_points}, solicitados: {points_to_redeem}"
+                )
+
+        return attrs
+
+    def create(self, validated_data):
+        from decimal import Decimal
+        
+        # Extraer puntos a canjear antes de crear la reserva
+        points_to_redeem = validated_data.pop('points_to_redeem', 0)
+        
+        # Obtener el cliente del contexto de la request
+        client = self.context['request'].user
+        
+        # Configurar los datos de la reserva
+        validated_data['client'] = client
+        validated_data['origin'] = 'client'
+        validated_data['status'] = 'pending'
+        validated_data['price_usd'] = 0  # Se definirán después por el admin
+        validated_data['price_sol'] = 0
+        validated_data['advance_payment'] = 0
+        validated_data['advance_payment_currency'] = 'sol'
+        validated_data['full_payment'] = False
+        
+        # Crear la reserva
+        reservation = super().create(validated_data)
+        
+        # Si hay puntos para canjear, procesarlos (se aplicarán cuando se apruebe)
+        if points_to_redeem and points_to_redeem > 0:
+            reservation.points_redeemed = points_to_redeem
+            reservation.save()
+        
+        return reservation
+
     def get_property(self, instance):
         return PropertySerializer(instance.property).data
     
@@ -217,6 +312,10 @@ class ReservationListSerializer(ReservationSerializer):
         from datetime import date
         today = date.today()
         return instance.check_out_date > today
+    
+    @extend_schema_field(serializers.CharField())
+    def get_status_display(self, instance):
+        return instance.get_status_display() if hasattr(instance, 'get_status_display') else 'Aprobada'
 
 class ReservationRetrieveSerializer(ReservationListSerializer):
     recipts = serializers.SerializerMethodField()

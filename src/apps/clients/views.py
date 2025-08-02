@@ -1,3 +1,126 @@
+
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+
+from apps.reservation.models import Reservation
+from apps.reservation.serializers import ClientReservationSerializer, ReservationListSerializer
+from .auth_views import ClientJWTAuthentication
+
+import logging
+logger = logging.getLogger(__name__)
+
+
+class ClientCreateReservationView(APIView):
+    """Vista para que los clientes autenticados puedan crear reservas pendientes"""
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        logger.info(f"ClientCreateReservationView: New reservation request from client")
+        
+        # Autenticar cliente
+        try:
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
+
+            if not client:
+                logger.error("ClientCreateReservationView: Authentication failed")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            # Crear serializer con contexto
+            serializer = ClientReservationSerializer(
+                data=request.data, 
+                context={'request': request}
+            )
+            
+            if serializer.is_valid():
+                reservation = serializer.save()
+                
+                # Retornar la reserva creada
+                response_serializer = ReservationListSerializer(reservation)
+                
+                logger.info(f"ClientCreateReservationView: Reservation created successfully - ID: {reservation.id}")
+                
+                return Response({
+                    'success': True,
+                    'message': 'Reserva creada exitosamente. Está pendiente de aprobación.',
+                    'reservation': response_serializer.data
+                }, status=201)
+            else:
+                logger.error(f"ClientCreateReservationView: Validation errors: {serializer.errors}")
+                return Response({
+                    'success': False,
+                    'message': 'Error en los datos enviados',
+                    'errors': serializer.errors
+                }, status=400)
+
+        except Exception as e:
+            logger.error(f"ClientCreateReservationView: Error creating reservation: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+
+class ClientReservationsListView(APIView):
+    """Vista para listar las reservas del cliente autenticado"""
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        logger.info(f"ClientReservationsListView: Request received")
+
+        try:
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
+
+            if not client:
+                logger.error("ClientReservationsListView: Authentication failed")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            from datetime import date
+
+            # Obtener todas las reservas del cliente
+            reservations = Reservation.objects.filter(
+                client=client,
+                deleted=False
+            ).order_by('-created')
+
+            # Clasificar reservas
+            today = date.today()
+            upcoming_reservations = []
+            past_reservations = []
+            pending_reservations = []
+
+            for reservation in reservations:
+                if reservation.status == 'pending':
+                    pending_reservations.append(reservation)
+                elif reservation.check_out_date > today:
+                    upcoming_reservations.append(reservation)
+                else:
+                    past_reservations.append(reservation)
+
+            # Serializar las reservas
+            upcoming_serializer = ReservationListSerializer(upcoming_reservations, many=True)
+            past_serializer = ReservationListSerializer(past_reservations, many=True)
+            pending_serializer = ReservationListSerializer(pending_reservations, many=True)
+
+            return Response({
+                'upcoming_reservations': upcoming_serializer.data,
+                'past_reservations': past_serializer.data,
+                'pending_reservations': pending_serializer.data
+            })
+
+        except Exception as e:
+            logger.error(f"ClientReservationsListView: Error getting reservations: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
 from datetime import datetime
 
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema

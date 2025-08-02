@@ -39,6 +39,13 @@ class Reservation(BaseModel):
         AIR = "air", ("Airbnb")
         AUS = "aus", ("Austin")
         MAN = "man", ("Mantenimiento")
+        CLIENT = "client", ("Cliente Web")
+
+    class ReservationStatusChoice(models.TextChoices):
+        PENDING = "pending", ("Pendiente")
+        APPROVED = "approved", ("Aprobada")
+        REJECTED = "rejected", ("Rechazada")
+        CANCELLED = "cancelled", ("Cancelada")
 
     client = models.ForeignKey(Clients, on_delete=models.CASCADE, null=True, blank=True)
     property = models.ForeignKey(Property, on_delete=models.CASCADE, null=False, blank=False)
@@ -54,7 +61,11 @@ class Reservation(BaseModel):
     )
     uuid_external = models.CharField(max_length=100, null=True, blank=True)
     origin = models.CharField(
-        max_length=3, choices=OriginReservationTypeChoice.choices, default=OriginReservationTypeChoice.AUS
+        max_length=6, choices=OriginReservationTypeChoice.choices, default=OriginReservationTypeChoice.AUS
+    )
+    status = models.CharField(
+        max_length=10, choices=ReservationStatusChoice.choices, default=ReservationStatusChoice.APPROVED,
+        help_text="Estado de la reserva"
     )
     tel_contact_number = models.CharField(max_length=255, null=True, blank=True)
     full_payment = models.BooleanField(default=False)

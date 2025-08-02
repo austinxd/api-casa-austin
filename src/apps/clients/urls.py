@@ -65,5 +65,14 @@ urlpatterns = [
     path('clients/points/redeem/',
          points_views.redeem_points,
          name='redeem-points'),
+    
+    # Endpoints para reservas de clientes
+    path('clients/reservations/create/',
+         views.ClientCreateReservationView.as_view(),
+         name='client-create-reservation'),
+    path('clients/reservations/list/',
+         views.ClientReservationsListView.as_view(),
+         name='client-reservations-list'),
+    
     path('clients/csrf-token/', auth_views.get_csrf_token, name='csrf-token'),
 ]

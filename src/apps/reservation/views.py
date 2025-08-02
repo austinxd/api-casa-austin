@@ -219,7 +219,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
             if self.request.POST['origin'].lower() == 'air':
                 user_seller = CustomUser.objects.get(first_name='AirBnB')
 
-            instance = serializer.save(seller=user_seller)
+            # Las reservas creadas por admin/vendedores están aprobadas por defecto
+            instance = serializer.save(seller=user_seller, status='approved')
             if instance.late_checkout:
                 original_check_out_date = instance.check_out_date
                 instance.late_check_out_date = original_check_out_date
@@ -609,7 +610,7 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
             if self.request.POST['origin'].lower() == 'air':
                 user_seller = CustomUser.objects.get(first_name='AirBnB')
 
-            instance = serializer.save(seller=user_seller)
+            instance = serializer.save(seller=user_seller, status='approved')
             if instance.late_checkout:
                 original_check_out_date = instance.check_out_date - timedelta(days=1)
                 instance.late_check_out_date = original_check_out_date
