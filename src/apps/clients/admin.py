@@ -1,6 +1,6 @@
 from django.contrib import admin
-from .models import Clients, MensajeFidelidad, TokenApiClients
 
+from .models import Clients, MensajeFidelidad, TokenApiClients, ReferralPointsConfig, ClientPoints
 from apps.core.utils import ExportCsvMixin, ExportJsonMixin
 
 
@@ -31,6 +31,19 @@ class MensajeFidelidadAdmin(admin.ModelAdmin):
     actions = ["export_as_csv", "export_as_json"]
 
 
-admin.site.register(Clients, ClientsAdmin)
-admin.site.register(MensajeFidelidad, MensajeFidelidadAdmin)
+@admin.register(ReferralPointsConfig)
+class ReferralPointsConfigAdmin(admin.ModelAdmin):
+    list_display = ('percentage', 'is_active', 'created', 'updated')
+    list_filter = ('is_active', 'created')
+    readonly_fields = ('created', 'updated')
+
+@admin.register(ClientPoints)
+class ClientPointsAdmin(admin.ModelAdmin):
+    list_display = ('client', 'transaction_type', 'points', 'reservation', 'referred_client', 'created')
+    list_filter = ('transaction_type', 'created')
+    search_fields = ('client__first_name', 'client__last_name', 'referred_client__first_name', 'referred_client__last_name')
+    readonly_fields = ('created', 'updated')
+
+admin.site.register(Clients)
+admin.site.register(MensajeFidelidad)
 admin.site.register(TokenApiClients)

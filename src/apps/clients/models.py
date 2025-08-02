@@ -11,6 +11,31 @@ class MensajeFidelidad(models.Model):
         help_text="Mensaje que se enviará a los clientes luego de saludarlos. Ej: Hola Augusto, --mensaje--"
     )
 
+class ReferralPointsConfig(models.Model):
+    """Configuración del porcentaje de puntos por referidos"""
+    percentage = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=10.00,
+        help_text="Porcentaje de puntos que recibe el cliente que refirió (ej: 10.00 = 10%)"
+    )
+    is_active = models.BooleanField(default=True, help_text="Activar/desactivar el sistema de referidos")
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Configuración de Puntos por Referidos"
+        verbose_name_plural = "Configuración de Puntos por Referidos"
+        ordering = ['-created']
+    
+    def __str__(self):
+        return f"Referidos: {self.percentage}% - {'Activo' if self.is_active else 'Inactivo'}"
+    
+    @classmethod
+    def get_current_config(cls):
+        """Obtiene la configuración actual activa"""
+        return cls.objects.filter(is_active=True).first()
+
 class TokenApiClients(BaseModel):
     token = models.CharField(max_length=250, null=False, blank=False)
 
@@ -68,6 +93,9 @@ class Clients(BaseModel):
     # Sistema de puntos
     points_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Balance actual de puntos")
     points_expires_at = models.DateTimeField(null=True, blank=True, help_text="Fecha de expiración de los puntos actuales")
+    
+    # Sistema de referidos
+    referred_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, help_text="Cliente que refirió a este cliente")
 
     class Meta:
         unique_together = ('document_type', 'number_doc')
@@ -139,6 +167,38 @@ class Clients(BaseModel):
             return True
         return False
     
+    def add_referral_points(self, points, reservation, referred_client, description="Puntos por referido"):
+        """Agrega puntos por referir a otro cliente"""
+        from datetime import datetime, timedelta
+        from django.utils import timezone
+        from decimal import Decimal
+        
+        # Asegurar que points sea Decimal
+        if not isinstance(points, Decimal):
+            points = Decimal(str(points))
+        
+        # Crear transacción de referido
+        ClientPoints.objects.create(
+            client=self,
+            reservation=reservation,
+            referred_client=referred_client,
+            transaction_type=ClientPoints.TransactionType.REFERRAL,
+            points=points,
+            description=description,
+            expires_at=timezone.now() + timedelta(days=365)  # 1 año desde ahora
+        )
+        
+        # Actualizar balance
+        self.points_balance += points
+        # Actualizar fecha de expiración si es necesario
+        if reservation and reservation.check_out_date:
+            checkout_datetime = timezone.make_aware(
+                datetime.combine(reservation.check_out_date, datetime.min.time())
+            )
+            self.points_expires_at = checkout_datetime + timedelta(days=365)
+        
+        self.save()
+    
     def expire_points(self):
         """Expira los puntos del cliente"""
         from django.utils import timezone
@@ -175,9 +235,11 @@ class ClientPoints(BaseModel):
         REDEEMED = "redeemed", ("Puntos Canjeados")
         EXPIRED = "expired", ("Puntos Expirados")
         REFUNDED = "refunded", ("Puntos Devueltos")
+        REFERRAL = "referral", ("Puntos por Referido")
     
     client = models.ForeignKey(Clients, on_delete=models.CASCADE, related_name='points_transactions')
     reservation = models.ForeignKey('reservation.Reservation', on_delete=models.CASCADE, null=True, blank=True)
+    referred_client = models.ForeignKey(Clients, on_delete=models.CASCADE, null=True, blank=True, related_name='referral_transactions', help_text="Cliente referido que generó estos puntos")
     transaction_type = models.CharField(max_length=8, choices=TransactionType.choices)
     points = models.DecimalField(max_digits=10, decimal_places=2, help_text="Cantidad de puntos (puede ser negativo para canjes)")
     description = models.TextField(help_text="Descripción de la transacción")
