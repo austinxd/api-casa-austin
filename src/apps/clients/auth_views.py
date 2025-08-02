@@ -294,7 +294,7 @@ class ClientRequestOTPForRegistrationView(APIView):
             })
         else:
             return Response({
-                'message': 'Error al enviar código de verificación. Verifica que el número sea válido'}, status=500)álido.'
+                'message': 'Error al enviar código de verificación. Verifica que el número sea válido'
             }, status=500)
 
 
