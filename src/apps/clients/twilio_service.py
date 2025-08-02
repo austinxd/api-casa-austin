@@ -1,98 +1,95 @@
 
 import os
-import random
-from datetime import datetime, timedelta
 from twilio.rest import Client
-from django.conf import settings
 import logging
 
-logger = logging.getLogger('apps')
+logger = logging.getLogger(__name__)
 
-class TwilioOTPService:
-    def __init__(self):
-        # Configurar con variables de entorno
-        self.account_sid = os.environ.get('TWILIO_ACCOUNT_SID')
-        self.auth_token = os.environ.get('TWILIO_AUTH_TOKEN')
-        self.verify_sid = os.environ.get('TWILIO_VERIFY_SERVICE_SID')
+# Configuración de Twilio desde variables de entorno
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN') 
+TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
+
+def send_sms(to_phone, message):
+    """
+    Envía un SMS usando Twilio
+    
+    Args:
+        to_phone (str): Número de teléfono destino (formato: +51999999999)
+        message (str): Mensaje a enviar
         
-        if not all([self.account_sid, self.auth_token, self.verify_sid]):
-            logger.warning("Twilio credentials not configured. OTP service disabled.")
-            self.client = None
+    Returns:
+        dict: Resultado del envío con 'success' y 'message'
+    """
+    try:
+        # Verificar que las credenciales estén configuradas
+        if not all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER]):
+            logger.warning("Credenciales de Twilio no configuradas completamente")
+            return {
+                'success': False,
+                'message': 'Credenciales de Twilio no configuradas'
+            }
+        
+        # Inicializar cliente de Twilio
+        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+        
+        # Enviar SMS
+        message_result = client.messages.create(
+            body=message,
+            from_=TWILIO_PHONE_NUMBER,
+            to=to_phone
+        )
+        
+        logger.info(f"SMS enviado exitosamente a {to_phone}. SID: {message_result.sid}")
+        
+        return {
+            'success': True,
+            'message': 'SMS enviado exitosamente',
+            'sid': message_result.sid
+        }
+        
+    except Exception as e:
+        logger.error(f"Error al enviar SMS a {to_phone}: {str(e)}")
+        return {
+            'success': False,
+            'message': f'Error al enviar SMS: {str(e)}'
+        }
+
+def send_otp_sms(phone_number, otp_code):
+    """
+    Envía un código OTP por SMS
+    
+    Args:
+        phone_number (str): Número de teléfono destino
+        otp_code (str): Código OTP de 6 dígitos
+        
+    Returns:
+        dict: Resultado del envío
+    """
+    message = f"Tu código de verificación Casa Austin es: {otp_code}. Este código expira en 10 minutos."
+    
+    return send_sms(phone_number, message)
+
+def format_phone_number(phone_number):
+    """
+    Formatea un número de teléfono para Twilio
+    
+    Args:
+        phone_number (str): Número de teléfono
+        
+    Returns:
+        str: Número formateado con código de país
+    """
+    # Remover espacios y caracteres especiales
+    phone_clean = ''.join(filter(str.isdigit, phone_number))
+    
+    # Si no tiene código de país, agregar +51 (Perú)
+    if not phone_number.startswith('+'):
+        if phone_clean.startswith('51'):
+            phone_clean = '+' + phone_clean
+        elif len(phone_clean) == 9:
+            phone_clean = '+51' + phone_clean
         else:
-            self.client = Client(self.account_sid, self.auth_token)
+            phone_clean = '+' + phone_clean
     
-    def generate_otp_code(self):
-        """Genera un código OTP de 6 dígitos"""
-        return str(random.randint(100000, 999999))
-    
-    def send_otp_via_sms(self, phone_number, otp_code):
-        """Envía OTP por SMS usando Twilio"""
-        if not self.client:
-            logger.error("Twilio client not configured")
-            return False
-            
-        try:
-            # Normalizar número de teléfono
-            if not phone_number.startswith('+'):
-                phone_number = f'+{phone_number}'
-            
-            message = self.client.messages.create(
-                body=f'Tu código de verificación para Casa Austin es: {otp_code}. Válido por 10 minutos.',
-                from_=os.environ.get('TWILIO_PHONE_NUMBER', '+1234567890'),
-                to=phone_number
-            )
-            
-            logger.info(f"OTP sent successfully to {phone_number}. SID: {message.sid}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error sending OTP to {phone_number}: {str(e)}")
-            return False
-    
-    def send_otp_with_verify(self, phone_number):
-        """Envía OTP usando Twilio Verify Service"""
-        if not self.client:
-            logger.error("Twilio client not configured")
-            return False
-            
-        try:
-            # Normalizar número de teléfono
-            if not phone_number.startswith('+'):
-                phone_number = f'+{phone_number}'
-                
-            verification = self.client.verify \
-                .v2 \
-                .services(self.verify_sid) \
-                .verifications \
-                .create(to=phone_number, channel='sms')
-            
-            logger.info(f"Verification sent to {phone_number}. Status: {verification.status}")
-            return verification.status == 'pending'
-            
-        except Exception as e:
-            logger.error(f"Error sending verification to {phone_number}: {str(e)}")
-            return False
-    
-    def verify_otp_code(self, phone_number, otp_code):
-        """Verifica el código OTP usando Twilio Verify"""
-        if not self.client:
-            logger.error("Twilio client not configured")
-            return False
-            
-        try:
-            # Normalizar número de teléfono
-            if not phone_number.startswith('+'):
-                phone_number = f'+{phone_number}'
-                
-            verification_check = self.client.verify \
-                .v2 \
-                .services(self.verify_sid) \
-                .verification_checks \
-                .create(to=phone_number, code=otp_code)
-            
-            logger.info(f"Verification check for {phone_number}. Status: {verification_check.status}")
-            return verification_check.status == 'approved'
-            
-        except Exception as e:
-            logger.error(f"Error verifying OTP for {phone_number}: {str(e)}")
-            return False
+    return phone_clean
