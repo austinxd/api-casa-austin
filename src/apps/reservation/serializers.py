@@ -197,7 +197,36 @@ class ReservationListSerializer(ReservationSerializer):
     def get_seller(self, instance):
         return SellerSerializer(instance.seller).data
 
-    @extend_schema_field(PropertySerializer)
+    @extend_schema_field(PropertySerializer) 
+    def get_property(self, instance):
+        return PropertySerializer(instance.property).data
+
+    @extend_schema_field(serializers.FloatField())
+    def get_resta_pagar(self, instance):
+        price_total = float(instance.price_sol)
+        adelanto_normalizado = instance.adelanto_normalizado  # Ya está en SOL
+        puntos_canjeados = float(instance.points_redeemed or 0)  # Siempre en SOL (1 punto = 1 sol)
+        
+        # Todos los valores están en SOL, se pueden restar directamente
+        resta = price_total - adelanto_normalizado - puntos_canjeados
+        return '%.2f' % round(resta, 2)
+    
+    @extend_schema_field(serializers.IntegerField())
+    def get_number_nights(self, instance):
+        if instance.check_in_date and instance.check_out_date:
+            delta = instance.check_out_date - instance.check_in_date
+            return delta.days
+        return 0
+    
+    @extend_schema_field(serializers.BooleanField())
+    def get_is_upcoming(self, instance):
+        from datetime import date
+        today = date.today()
+        return instance.check_out_date > today
+    
+    @extend_schema_field(serializers.CharField())
+    def get_status_display(self, instance):
+        return instance.get_status_display() if hasattr(instance, 'get_status_display') else 'Aprobada'
 
 
 class ClientReservationSerializer(serializers.ModelSerializer):
@@ -286,36 +315,6 @@ class ClientReservationSerializer(serializers.ModelSerializer):
             reservation.save()
         
         return reservation
-
-    def get_property(self, instance):
-        return PropertySerializer(instance.property).data
-    
-    @extend_schema_field(serializers.FloatField())
-    def get_resta_pagar(self, instance):
-        price_total = float(instance.price_sol)
-        adelanto_normalizado = instance.adelanto_normalizado  # Ya está en SOL
-        puntos_canjeados = float(instance.points_redeemed or 0)  # Siempre en SOL (1 punto = 1 sol)
-        
-        # Todos los valores están en SOL, se pueden restar directamente
-        resta = price_total - adelanto_normalizado - puntos_canjeados
-        return '%.2f' % round(resta, 2)
-    
-    @extend_schema_field(serializers.IntegerField())
-    def get_number_nights(self, instance):
-        if instance.check_in_date and instance.check_out_date:
-            delta = instance.check_out_date - instance.check_in_date
-            return delta.days
-        return 0
-    
-    @extend_schema_field(serializers.BooleanField())
-    def get_is_upcoming(self, instance):
-        from datetime import date
-        today = date.today()
-        return instance.check_out_date > today
-    
-    @extend_schema_field(serializers.CharField())
-    def get_status_display(self, instance):
-        return instance.get_status_display() if hasattr(instance, 'get_status_display') else 'Aprobada'
 
 class ReservationRetrieveSerializer(ReservationListSerializer):
     recipts = serializers.SerializerMethodField()
