@@ -236,11 +236,16 @@ class ClientReservationSerializer(serializers.ModelSerializer):
         model = Reservation
         fields = [
             'property', 'check_in_date', 'check_out_date', 'guests', 
-            'temperature_pool', 'points_to_redeem', 'tel_contact_number'
+            'temperature_pool', 'points_to_redeem', 'tel_contact_number',
+            'price_usd', 'price_sol', 'advance_payment_currency', 'comentarios_reservas'
         ]
         extra_kwargs = {
             'points_to_redeem': {'write_only': True, 'required': False},
-            'tel_contact_number': {'required': False}
+            'tel_contact_number': {'required': False},
+            'price_usd': {'required': False},
+            'price_sol': {'required': False},
+            'advance_payment_currency': {'required': False},
+            'comentarios_reservas': {'required': False}
         }
 
     points_to_redeem = serializers.DecimalField(
