@@ -357,18 +357,12 @@ class ReferralConfigView(APIView):
     def get(self, request):
         """Obtener configuración actual del sistema de referidos"""
         try:
-            # Usar el mismo mecanismo de autenticación que funciona en otros endpoints
+            # Usar exactamente la misma lógica que ClientReservationsView
             authenticator = ClientJWTAuthentication()
-            auth_result = authenticator.authenticate(request)
-            
-            if auth_result is None:
-                logger.error("ReferralConfigView: Authentication failed")
-                return Response({'message': 'Token requerido'}, status=401)
-                
-            client, validated_token = auth_result
-            
+            client, validated_token = authenticator.authenticate(request)
+
             if not client:
-                logger.error("ReferralConfigView: No client found")
+                logger.error("ReferralConfigView: Authentication failed")
                 return Response({'message': 'Token inválido'}, status=401)
 
             config = ReferralPointsConfig.get_current_config()
@@ -399,18 +393,12 @@ class ReferralStatsView(APIView):
     def get(self, request):
         """Obtener estadísticas de referidos del cliente"""
         try:
-            # Usar el mismo mecanismo de autenticación que funciona en otros endpoints
+            # Usar exactamente la misma lógica que ClientReservationsView
             authenticator = ClientJWTAuthentication()
-            auth_result = authenticator.authenticate(request)
-            
-            if auth_result is None:
-                logger.error("ReferralStatsView: Authentication failed")
-                return Response({'message': 'Token requerido'}, status=401)
-                
-            client, validated_token = auth_result
-            
+            client, validated_token = authenticator.authenticate(request)
+
             if not client:
-                logger.error("ReferralStatsView: No client found")
+                logger.error("ReferralStatsView: Authentication failed")
                 return Response({'message': 'Token inválido'}, status=401)
 
             # Obtener clientes referidos
