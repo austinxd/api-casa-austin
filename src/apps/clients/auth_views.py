@@ -177,7 +177,12 @@ class ClientJWTAuthentication(JWTAuthentication):
         Override to get client instead of user
         """
         try:
+            # Intentar primero con client_id (nuestro claim personalizado)
             client_id = validated_token.get('client_id')
+            if not client_id:
+                # Si no hay client_id, intentar con user_id (claim estándar)
+                client_id = validated_token.get('user_id')
+            
             if client_id:
                 return Clients.objects.get(id=client_id, deleted=False)
         except Clients.DoesNotExist:
@@ -364,11 +369,13 @@ class ClientLoginView(APIView):
             # Generar tokens using Simple JWT
             refresh = RefreshToken()
             refresh['client_id'] = str(client.id)
+            refresh['user_id'] = str(client.id)  # Agregar user_id estándar
             refresh['document_type'] = client.document_type
             refresh['number_doc'] = client.number_doc
 
             access_token = refresh.access_token
             access_token['client_id'] = str(client.id)
+            access_token['user_id'] = str(client.id)  # Agregar user_id estándar
             access_token['document_type'] = client.document_type
             access_token['number_doc'] = client.number_doc
 
