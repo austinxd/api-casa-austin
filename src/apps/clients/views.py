@@ -177,21 +177,30 @@ def get_client_from_token(request):
         # Verificar que existe el header Authorization
         auth_header = request.META.get('HTTP_AUTHORIZATION')
         if not auth_header:
-            logger.error("No Authorization header found")
+            logger.error("get_client_from_token: No Authorization header found")
+            return None
+            
+        if not auth_header.startswith('Bearer '):
+            logger.error(f"get_client_from_token: Invalid Authorization header format: {auth_header}")
             return None
             
         authenticator = ClientJWTAuthentication()
         auth_result = authenticator.authenticate(request)
         
         if auth_result is None:
-            logger.error("Authentication failed - no result")
+            logger.error("get_client_from_token: Authentication failed - no result from authenticator")
             return None
         
         client, validated_token = auth_result
-        logger.info(f"Client authenticated successfully: {client.id}")
-        return client
+        if client:
+            logger.info(f"get_client_from_token: Client authenticated successfully - ID: {client.id}")
+            return client
+        else:
+            logger.error("get_client_from_token: No client found in auth result")
+            return None
+            
     except Exception as e:
-        logger.error(f"Error authenticating client: {str(e)}")
+        logger.error(f"get_client_from_token: Error authenticating client: {str(e)}")
         return None
 
 from apps.core.functions import generate_audit
@@ -348,19 +357,11 @@ class ReferralConfigView(APIView):
     def get(self, request):
         """Obtener configuración actual del sistema de referidos"""
         try:
-            # Verificar autenticación del cliente
-            authenticator = ClientJWTAuthentication()
-            auth_result = authenticator.authenticate(request)
-            
-            if auth_result is None:
+            # Obtener cliente del token usando el mismo mecanismo que otros endpoints
+            client = get_client_from_token(request)
+            if not client:
                 logger.error("ReferralConfigView: Authentication failed")
                 return Response({'message': 'Token requerido'}, status=401)
-                
-            client, validated_token = auth_result
-            
-            if not client:
-                logger.error("ReferralConfigView: No client found")
-                return Response({'message': 'Token inválido'}, status=401)
 
             config = ReferralPointsConfig.get_current_config()
             if config:
@@ -390,19 +391,11 @@ class ReferralStatsView(APIView):
     def get(self, request):
         """Obtener estadísticas de referidos del cliente"""
         try:
-            # Obtener cliente desde el token
-            authenticator = ClientJWTAuthentication()
-            auth_result = authenticator.authenticate(request)
-            
-            if auth_result is None:
+            # Obtener cliente del token usando el mismo mecanismo que otros endpoints
+            client = get_client_from_token(request)
+            if not client:
                 logger.error("ReferralStatsView: Authentication failed")
                 return Response({'message': 'Token requerido'}, status=401)
-                
-            client, validated_token = auth_result
-            
-            if not client:
-                logger.error("ReferralStatsView: No client found")
-                return Response({'message': 'Token inválido'}, status=401)
 
             # Obtener clientes referidos
             referrals = Clients.objects.filter(
