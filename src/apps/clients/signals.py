@@ -55,6 +55,8 @@ def update_audience_on_client_creation(sender, instance, created, **kwargs):
         if not instance.referral_code:
             try:
                 referral_code = instance.generate_referral_code()
+                # Guardar el cliente con el nuevo código de referido
+                instance.save(update_fields=['referral_code'])
                 logger.debug(f"Código de referido generado para cliente {instance.id}: {referral_code}")
             except Exception as e:
                 logger.error(f"Error generando código de referido para cliente {instance.id}: {str(e)}")
