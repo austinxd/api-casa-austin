@@ -134,7 +134,7 @@ class ClientProfileSerializer(serializers.ModelSerializer):
 
     def get_referral_code(self, obj):
         """Código de referido del cliente"""
-        return obj.get_referral_code()
+        return obj.get_referral_code()de()
 
 
 
