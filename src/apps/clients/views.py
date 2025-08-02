@@ -175,18 +175,16 @@ def get_client_from_token(request):
     """Helper function to get client from JWT token"""
     try:
         authenticator = ClientJWTAuthentication()
-        client, validated_token = authenticator.authenticate(request)
+        auth_result = authenticator.authenticate(request)
         
-        if not client:
-            return Response({'message': 'Token inválido'}, status=401)
+        if auth_result is None:
+            return None
         
+        client, validated_token = auth_result
         return client
     except Exception as e:
         logger.error(f"Error authenticating client: {str(e)}")
-        return Response({'message': 'Error de autenticación'}, status=401)
-
-from .models import Clients, MensajeFidelidad, TokenApiClients
-from .serializers import ClientsSerializer, MensajeFidelidadSerializer, TokenApiClienteSerializer
+        return None
 
 from apps.core.functions import generate_audit
 
@@ -344,8 +342,8 @@ class ReferralConfigView(APIView):
         try:
             # Verificar autenticación del cliente
             client = get_client_from_token(request)
-            if isinstance(client, Response):
-                return client
+            if not client:
+                return Response({'message': 'Token requerido'}, status=401)
 
             config = ReferralPointsConfig.get_current_config()
             if config:
@@ -377,8 +375,8 @@ class ReferralStatsView(APIView):
         try:
             # Obtener cliente desde el token
             client = get_client_from_token(request)
-            if isinstance(client, Response):
-                return client
+            if not client:
+                return Response({'message': 'Token requerido'}, status=401)
 
             # Obtener clientes referidos
             referrals = Clients.objects.filter(
