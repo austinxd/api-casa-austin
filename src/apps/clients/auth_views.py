@@ -90,7 +90,7 @@ class ClientCompleteRegistrationView(APIView):
             # Validar datos requeridos
             required_fields = [
                 'document_type', 'number_doc', 'first_name', 'last_name',
-                'email', 'tel_number', 'sex', 'birth_date', 'otp_code',
+                'email', 'tel_number', 'sex', 'date', 'otp_code',
                 'password', 'confirm_password'
             ]
 
@@ -141,9 +141,9 @@ class ClientCompleteRegistrationView(APIView):
                 deleted_client.first_name = request.data.get('first_name')
                 deleted_client.last_name = request.data.get('last_name')
                 deleted_client.email = request.data.get('email')
-                deleted_client.tel_number = tel_number
+                deleted_client.tel_number = request.data.get('tel_number')
                 deleted_client.sex = request.data.get('sex')
-                deleted_client.birth_date = request.data.get('birth_date')
+                deleted_client.date = request.data.get('date')
                 deleted_client.password = make_password(
                     request.data.get('password'))
                 deleted_client.is_password_set = True
@@ -207,7 +207,7 @@ class ClientCompleteRegistrationView(APIView):
                 'email': request.data.get('email'),
                 'tel_number': tel_number,
                 'sex': request.data.get('sex'),
-                'birth_date': request.data.get('birth_date'),
+                'date': request.data.get('date'),
                 'password': make_password(request.data.get('password')),
                 'is_password_set': True
             }
