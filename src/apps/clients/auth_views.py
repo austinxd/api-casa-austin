@@ -276,11 +276,12 @@ class ClientRequestOTPForRegistrationView(APIView):
         if not tel_number:
             return Response({'message': 'Número de teléfono es requerido'}, status=400)
 
-        # Validar formato del número de teléfono
-        if not tel_number.startswith('+'):
-            return Response({'message': 'El número debe incluir el código de país (ej: +51999999999)'}, status=400)
+        # Validar que el número tenga al menos dígitos
+        clean_number = ''.join(filter(str.isdigit, tel_number))
+        if len(clean_number) < 9:
+            return Response({'message': 'El número de teléfono debe tener al menos 9 dígitos'}, status=400)
 
-        # Usar Twilio Verify Service para enviar OTP
+        # Usar Twilio Verify Service para enviar OTP (el formateo se hace internamente)
         twilio_service = TwilioOTPService()
 
         if twilio_service.send_otp_with_verify(tel_number):
@@ -293,7 +294,7 @@ class ClientRequestOTPForRegistrationView(APIView):
             })
         else:
             return Response({
-                'message': 'Error al enviar código de verificación. Verifica que el número sea válido.'
+                'message': 'Error al enviar código de verificación. Verifica que el número sea válido'}, status=500)álido.'
             }, status=500)
 
 

@@ -80,17 +80,23 @@ def format_phone_number(phone_number):
     Returns:
         str: Número formateado con código de país
     """
-    # Remover espacios y caracteres especiales
+    # Limpiar el número de espacios y caracteres especiales, mantener solo dígitos
     phone_clean = ''.join(filter(str.isdigit, phone_number))
     
-    # Si no tiene código de país, agregar +51 (Perú)
-    if not phone_number.startswith('+'):
-        if phone_clean.startswith('51'):
-            phone_clean = '+' + phone_clean
-        elif len(phone_clean) == 9:
-            phone_clean = '+51' + phone_clean
-        else:
-            phone_clean = '+' + phone_clean
+    # Si el número original ya tenía +, agregarlo de vuelta
+    if phone_number.startswith('+'):
+        return '+' + phone_clean
+    
+    # Si no tiene +, determinar el código de país
+    if phone_clean.startswith('51') and len(phone_clean) >= 11:
+        # Número peruano con código de país
+        return '+' + phone_clean
+    elif len(phone_clean) == 9:
+        # Número peruano sin código de país
+        return '+51' + phone_clean
+    else:
+        # Otros números internacionales, asumir que ya tienen código de país
+        return '+' + phone_clean
     
     return phone_clean
 
@@ -159,6 +165,7 @@ class TwilioOTPService:
         try:
             # Normalizar número de teléfono
             formatted_phone = format_phone_number(phone_number)
+            logger.info(f"Número original: {phone_number}, Número formateado: {formatted_phone}")
                 
             verification = self.client.verify \
                 .v2 \
