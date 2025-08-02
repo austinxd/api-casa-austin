@@ -327,15 +327,17 @@ class ClientReservationSerializer(serializers.ModelSerializer):
         
         # Asignar seller específico si se envía desde el frontend, sino usar seller por defecto (ID 14)
         if 'seller' in validated_data and validated_data['seller']:
-            # Verificar que el seller existe
             try:
                 from apps.accounts.models import CustomUser
                 seller_id = validated_data['seller']
-                # Verificar que el seller existe y asignarlo directamente
+                # Si seller_id es ya un objeto CustomUser, obtener su ID
+                if hasattr(seller_id, 'id'):
+                    seller_id = seller_id.id
+                # Verificar que el seller existe
                 seller_obj = CustomUser.objects.get(id=seller_id)
                 validated_data['seller'] = seller_obj
-            except CustomUser.DoesNotExist:
-                # Si el seller no existe, usar el seller por defecto (ID 14)
+            except (CustomUser.DoesNotExist, ValueError, TypeError):
+                # Si el seller no existe o hay error, usar el seller por defecto (ID 14)
                 validated_data['seller'] = CustomUser.objects.get(id=14)
         else:
             # Asignar seller por defecto (ID 14) para reservas de clientes
