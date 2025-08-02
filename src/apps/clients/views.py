@@ -357,11 +357,19 @@ class ReferralConfigView(APIView):
     def get(self, request):
         """Obtener configuración actual del sistema de referidos"""
         try:
-            # Obtener cliente del token usando el mismo mecanismo que otros endpoints
-            client = get_client_from_token(request)
-            if not client:
+            # Usar el mismo mecanismo de autenticación que funciona en otros endpoints
+            authenticator = ClientJWTAuthentication()
+            auth_result = authenticator.authenticate(request)
+            
+            if auth_result is None:
                 logger.error("ReferralConfigView: Authentication failed")
                 return Response({'message': 'Token requerido'}, status=401)
+                
+            client, validated_token = auth_result
+            
+            if not client:
+                logger.error("ReferralConfigView: No client found")
+                return Response({'message': 'Token inválido'}, status=401)
 
             config = ReferralPointsConfig.get_current_config()
             if config:
@@ -391,11 +399,19 @@ class ReferralStatsView(APIView):
     def get(self, request):
         """Obtener estadísticas de referidos del cliente"""
         try:
-            # Obtener cliente del token usando el mismo mecanismo que otros endpoints
-            client = get_client_from_token(request)
-            if not client:
+            # Usar el mismo mecanismo de autenticación que funciona en otros endpoints
+            authenticator = ClientJWTAuthentication()
+            auth_result = authenticator.authenticate(request)
+            
+            if auth_result is None:
                 logger.error("ReferralStatsView: Authentication failed")
                 return Response({'message': 'Token requerido'}, status=401)
+                
+            client, validated_token = auth_result
+            
+            if not client:
+                logger.error("ReferralStatsView: No client found")
+                return Response({'message': 'Token inválido'}, status=401)
 
             # Obtener clientes referidos
             referrals = Clients.objects.filter(
