@@ -174,13 +174,21 @@ from apps.core.paginator import CustomPagination
 def get_client_from_token(request):
     """Helper function to get client from JWT token"""
     try:
+        # Verificar que existe el header Authorization
+        auth_header = request.META.get('HTTP_AUTHORIZATION')
+        if not auth_header:
+            logger.error("No Authorization header found")
+            return None
+            
         authenticator = ClientJWTAuthentication()
         auth_result = authenticator.authenticate(request)
         
         if auth_result is None:
+            logger.error("Authentication failed - no result")
             return None
         
         client, validated_token = auth_result
+        logger.info(f"Client authenticated successfully: {client.id}")
         return client
     except Exception as e:
         logger.error(f"Error authenticating client: {str(e)}")
@@ -341,9 +349,18 @@ class ReferralConfigView(APIView):
         """Obtener configuración actual del sistema de referidos"""
         try:
             # Verificar autenticación del cliente
-            client = get_client_from_token(request)
-            if not client:
+            authenticator = ClientJWTAuthentication()
+            auth_result = authenticator.authenticate(request)
+            
+            if auth_result is None:
+                logger.error("ReferralConfigView: Authentication failed")
                 return Response({'message': 'Token requerido'}, status=401)
+                
+            client, validated_token = auth_result
+            
+            if not client:
+                logger.error("ReferralConfigView: No client found")
+                return Response({'message': 'Token inválido'}, status=401)
 
             config = ReferralPointsConfig.get_current_config()
             if config:
@@ -374,9 +391,18 @@ class ReferralStatsView(APIView):
         """Obtener estadísticas de referidos del cliente"""
         try:
             # Obtener cliente desde el token
-            client = get_client_from_token(request)
-            if not client:
+            authenticator = ClientJWTAuthentication()
+            auth_result = authenticator.authenticate(request)
+            
+            if auth_result is None:
+                logger.error("ReferralStatsView: Authentication failed")
                 return Response({'message': 'Token requerido'}, status=401)
+                
+            client, validated_token = auth_result
+            
+            if not client:
+                logger.error("ReferralStatsView: No client found")
+                return Response({'message': 'Token inválido'}, status=401)
 
             # Obtener clientes referidos
             referrals = Clients.objects.filter(
