@@ -331,18 +331,15 @@ class ClientReservationSerializer(serializers.ModelSerializer):
             try:
                 from apps.accounts.models import CustomUser
                 seller_id = validated_data['seller']
-                # Verificar que el seller existe
-                CustomUser.objects.get(id=seller_id)
-                # Mantener solo el ID
-                validated_data['seller_id'] = seller_id
-                validated_data.pop('seller', None)  # Remover seller y usar seller_id
+                # Verificar que el seller existe y asignarlo directamente
+                seller_obj = CustomUser.objects.get(id=seller_id)
+                validated_data['seller'] = seller_obj
             except CustomUser.DoesNotExist:
                 # Si el seller no existe, usar el seller por defecto (ID 14)
-                validated_data['seller_id'] = 14
-                validated_data.pop('seller', None)
+                validated_data['seller'] = CustomUser.objects.get(id=14)
         else:
             # Asignar seller por defecto (ID 14) para reservas de clientes
-            validated_data['seller_id'] = 14
+            validated_data['seller'] = CustomUser.objects.get(id=14)
         
         # Mantener los precios enviados desde el frontend si están presentes
         if 'price_usd' not in validated_data or not validated_data['price_usd']:
