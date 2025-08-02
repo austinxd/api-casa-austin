@@ -187,7 +187,7 @@ class ReservationSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         # Los puntos ya canjeados no se pueden modificar en updates
         validated_data.pop('points_to_redeem', None)
-        return super().update(instance, validated_data)ta)
+        return super().update(instance, validated_data)
 
 class ReservationListSerializer(ReservationSerializer):
     client = serializers.SerializerMethodField()
