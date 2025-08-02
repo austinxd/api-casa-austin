@@ -34,17 +34,17 @@ class ClientPublicRegisterView(APIView):
     """
     permission_classes = [AllowAny]
     serializer_class = ClientsSerializer
-    
+
     def post(self, request):
         try:
             serializer = self.serializer_class(data=request.data)
-            
+
             if serializer.is_valid():
                 # Crear el cliente
                 client = serializer.save()
-                
+
                 logger.info(f'Nuevo cliente registrado: {client.first_name} {client.last_name} - {client.number_doc}')
-                
+
                 return Response({
                     'success': True,
                     'message': 'Cliente registrado exitosamente',
@@ -64,7 +64,7 @@ class ClientPublicRegisterView(APIView):
                     'message': 'Error en los datos proporcionados',
                     'errors': serializer.errors
                 }, status=status.HTTP_400_BAD_REQUEST)
-                
+
         except Exception as e:
             logger.error(f'Error en registro público de cliente: {str(e)}')
             return Response({
@@ -79,26 +79,26 @@ class ClientCompleteRegistrationView(APIView):
     Incluye creación del cliente y configuración de contraseña en un solo paso
     """
     permission_classes = [AllowAny]
-    
+
     def post(self, request):
         try:
             # Validar datos requeridos
             required_fields = ['document_type', 'number_doc', 'first_name', 'last_name', 
                              'email', 'tel_number', 'sex', 'birth_date', 'otp_code', 
                              'password', 'confirm_password']
-            
+
             for field in required_fields:
                 if not request.data.get(field):
                     return Response({
                         'message': f'El campo {field} es requerido'
                     }, status=400)
-            
+
             # Validar que las contraseñas coincidan
             if request.data.get('password') != request.data.get('confirm_password'):
                 return Response({
                     'message': 'Las contraseñas no coinciden'
                 }, status=400)
-            
+
             # Verificar que el cliente no exista ya
             existing_client = Clients.objects.filter(
                 document_type=request.data.get('document_type'),
@@ -106,21 +106,86 @@ class ClientCompleteRegistrationView(APIView):
                 deleted=False
             ).first()
             
+            # Obtener el código de referido del request si existe
+            referral_code = request.data.get('referral_code')
+            referrer = None
+
+            if referral_code:
+                try:
+                    referrer = Clients.objects.get(referral_code=referral_code, deleted=False)
+                except Clients.DoesNotExist:
+                    return Response({
+                        'message': 'Código de referido inválido'
+                    }, status=400)
+
+            # Verificar si el cliente existe pero está eliminado
+            deleted_client = Clients.objects.filter(
+                document_type=request.data.get('document_type'),
+                number_doc=request.data.get('number_doc'),
+                deleted=True
+            ).first()
+
             if existing_client:
                 return Response({
                     'message': 'Ya existe un cliente con este documento'
                 }, status=400)
             
+            # Si existe un cliente eliminado, reactivarlo en lugar de crear uno nuevo
+            if deleted_client:
+                # Actualizar los datos del cliente eliminado
+                deleted_client.first_name = request.data.get('first_name')
+                deleted_client.last_name = request.data.get('last_name')
+                deleted_client.email = request.data.get('email')
+                deleted_client.tel_number = tel_number
+                deleted_client.sex = request.data.get('sex')
+                deleted_client.birth_date = request.data.get('birth_date')
+                deleted_client.password = make_password(request.data.get('password'))
+                deleted_client.is_password_set = True
+                deleted_client.deleted = False  # Reactivar el cliente
+
+                # Manejar referido en reactivación
+                if referrer:
+                    deleted_client.referred_by = referrer
+                    logger.info(f'Cliente reactivado con referido: {deleted_client.first_name} {deleted_client.last_name} - Referido por: {referrer.first_name}')
+
+                deleted_client.save()
+                
+                logger.info(f'Cliente reactivado: {deleted_client.first_name} {deleted_client.last_name} - {deleted_client.number_doc}')
+
+                response_data = {
+                    'success': True,
+                    'message': 'Cuenta reactivada exitosamente',
+                    'client': {
+                        'id': str(deleted_client.id),
+                        'document_type': deleted_client.document_type,
+                        'number_doc': deleted_client.number_doc,
+                        'first_name': deleted_client.first_name,
+                        'last_name': deleted_client.last_name,
+                        'email': deleted_client.email
+                    }
+                }
+
+                # Agregar información del referido si existe
+                if referrer:
+                    response_data['referrer'] = {
+                        'id': str(referrer.id),
+                        'name': f"{referrer.first_name} {referrer.last_name or ''}".strip(),
+                        'referral_code': referral_code
+                    }
+
+                return Response(response_data, status=status.HTTP_201_CREATED)
+            
+
             # Verificar OTP con Twilio
             twilio_service = TwilioOTPService()
             tel_number = request.data.get('tel_number')
             otp_code = request.data.get('otp_code')
-            
+
             if not twilio_service.verify_otp_code(tel_number, otp_code):
                 return Response({
                     'message': 'Código OTP inválido o expirado'
                 }, status=400)
-            
+
             # Crear el cliente con todos los datos
             client_data = {
                 'document_type': request.data.get('document_type'),
@@ -134,15 +199,21 @@ class ClientCompleteRegistrationView(APIView):
                 'password': make_password(request.data.get('password')),
                 'is_password_set': True
             }
-            
+
             # Usar el serializer para validar y crear
             serializer = ClientsSerializer(data=client_data)
-            
+
             if serializer.is_valid():
                 client = serializer.save()
-                
+
+                # Asignar el referido si existe
+                if referrer:
+                    client.referred_by = referrer
+                    client.save()
+                    logger.info(f'Cliente registrado con referido: {client.first_name} {client.last_name} - Referido por: {referrer.first_name}')
+
                 logger.info(f'Cliente registrado completamente: {client.first_name} {client.last_name} - {client.number_doc}')
-                
+
                 return Response({
                     'success': True,
                     'message': 'Cuenta creada exitosamente',
@@ -161,7 +232,7 @@ class ClientCompleteRegistrationView(APIView):
                     'message': 'Error en los datos proporcionados',
                     'errors': serializer.errors
                 }, status=status.HTTP_400_BAD_REQUEST)
-                
+
         except Exception as e:
             logger.error(f'Error en registro completo de cliente: {str(e)}')
             return Response({
@@ -182,7 +253,7 @@ class ClientJWTAuthentication(JWTAuthentication):
             if not client_id:
                 # Si no hay client_id, intentar con user_id (claim estándar)
                 client_id = validated_token.get('user_id')
-            
+
             if client_id:
                 return Clients.objects.get(id=client_id, deleted=False)
         except Clients.DoesNotExist:
@@ -272,7 +343,7 @@ class ClientRequestOTPForRegistrationView(APIView):
 
     def post(self, request):
         tel_number = request.data.get('tel_number', '').strip()
-        
+
         if not tel_number:
             return Response({'message': 'Número de teléfono es requerido'}, status=400)
 
@@ -287,7 +358,7 @@ class ClientRequestOTPForRegistrationView(APIView):
         if twilio_service.send_otp_with_verify(tel_number):
             # Enmascarar el número para mostrar en la respuesta
             masked_number = f"***{tel_number[-4:]}" if len(tel_number) > 4 else tel_number
-            
+
             return Response({
                 'message': 'Código de verificación enviado',
                 'phone_masked': masked_number
