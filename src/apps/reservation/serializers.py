@@ -103,20 +103,27 @@ class ReservationSerializer(serializers.ModelSerializer):
                     f"El cliente no tiene suficientes puntos. Disponibles: {available_points}, solicitados: {points_to_redeem}"
                 )
 
-        if attrs.get('full_payment') == True and not is_patch:
+        if attrs.get('full_payment') == True:
             # Obtener puntos ya canjeados (si estamos actualizando una reserva existente)
             points_redeemed = 0
             if self.instance:
                 points_redeemed = float(self.instance.points_redeemed or 0)
             
-            if attrs.get('advance_payment_currency', 'sol') == 'sol':
-                # Precio total menos puntos ya canjeados
-                attrs['advance_payment'] = float(attrs.get('price_sol', 0)) - points_redeemed
+            # En PATCH, usar los datos existentes si no se proporcionan nuevos valores
+            if is_patch and self.instance:
+                price_sol = float(attrs.get('price_sol', self.instance.price_sol or 0))
+                price_usd = float(attrs.get('price_usd', self.instance.price_usd or 0))
+                currency = attrs.get('advance_payment_currency', self.instance.advance_payment_currency or 'sol')
             else:
-                # Para USD, convertir puntos a dólares usando la tasa de cambio
                 price_sol = float(attrs.get('price_sol', 0))
                 price_usd = float(attrs.get('price_usd', 0))
-                
+                currency = attrs.get('advance_payment_currency', 'sol')
+            
+            if currency == 'sol':
+                # Precio total menos puntos ya canjeados
+                attrs['advance_payment'] = price_sol - points_redeemed
+            else:
+                # Para USD, convertir puntos a dólares usando la tasa de cambio
                 if price_usd > 0 and price_sol > 0:
                     # Calcular tasa de cambio: soles por dólar
                     exchange_rate = price_sol / price_usd
@@ -124,7 +131,7 @@ class ReservationSerializer(serializers.ModelSerializer):
                     points_in_usd = points_redeemed / exchange_rate
                     attrs['advance_payment'] = price_usd - points_in_usd
                 else:
-                    attrs['advance_payment'] = attrs.get('price_usd', 0)
+                    attrs['advance_payment'] = price_usd
 
         # Solo validar fechas y disponibilidad si NO es PATCH
         should_validate_dates = True
