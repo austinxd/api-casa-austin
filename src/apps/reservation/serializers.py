@@ -300,10 +300,15 @@ class ClientReservationSerializer(serializers.ModelSerializer):
         validated_data['client'] = client
         validated_data['origin'] = 'client'
         validated_data['status'] = 'pending'
-        validated_data['price_usd'] = 0  # Se definirán después por el admin
-        validated_data['price_sol'] = 0
-        validated_data['advance_payment'] = 0
-        validated_data['advance_payment_currency'] = 'sol'
+        # Mantener los precios enviados desde el frontend si están presentes
+        if 'price_usd' not in validated_data or not validated_data['price_usd']:
+            validated_data['price_usd'] = 0
+        if 'price_sol' not in validated_data or not validated_data['price_sol']:
+            validated_data['price_sol'] = 0
+        if 'advance_payment' not in validated_data:
+            validated_data['advance_payment'] = 0
+        if 'advance_payment_currency' not in validated_data:
+            validated_data['advance_payment_currency'] = 'sol'
         validated_data['full_payment'] = False
         
         # Crear la reserva
