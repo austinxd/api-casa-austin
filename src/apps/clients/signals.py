@@ -50,6 +50,15 @@ def update_meta_audience(client):
 def update_audience_on_client_creation(sender, instance, created, **kwargs):
     if created:
         logger.debug(f"Nuevo cliente creado: {instance}")
+        
+        # Generar código de referido si no existe
+        if not instance.referral_code:
+            try:
+                referral_code = instance.generate_referral_code()
+                logger.debug(f"Código de referido generado para cliente {instance.id}: {referral_code}")
+            except Exception as e:
+                logger.error(f"Error generando código de referido para cliente {instance.id}: {str(e)}")
+        
         update_meta_audience(instance)
     else:
         # Solo actualizar audiencia si cambió información relevante (no solo last_login)
