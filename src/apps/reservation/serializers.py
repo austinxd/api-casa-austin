@@ -87,9 +87,11 @@ class ReservationSerializer(serializers.ModelSerializer):
         property_field = attrs.get('property')
         reservation_id = self.instance.id if self.instance else None
 
-        # Validar canje de puntos si se especifica
+        # Validar canje de puntos si se especifica (solo en creación, no en PATCH)
         points_to_redeem = attrs.get('points_to_redeem')
-        if points_to_redeem and points_to_redeem > 0:
+        is_patch = request and request.method == 'PATCH'
+        
+        if points_to_redeem and points_to_redeem > 0 and not is_patch:
             client = attrs.get('client')
             if not client:
                 raise serializers.ValidationError("Debe especificar un cliente para canjear puntos")
@@ -101,13 +103,13 @@ class ReservationSerializer(serializers.ModelSerializer):
                     f"El cliente no tiene suficientes puntos. Disponibles: {available_points}, solicitados: {points_to_redeem}"
                 )
 
-        if attrs.get('full_payment') == True:
+        if attrs.get('full_payment') == True and not is_patch:
             # Obtener puntos ya canjeados (si estamos actualizando una reserva existente)
             points_redeemed = 0
             if self.instance:
                 points_redeemed = float(self.instance.points_redeemed or 0)
             
-            if attrs['advance_payment_currency'] == 'sol':
+            if attrs.get('advance_payment_currency', 'sol') == 'sol':
                 # Precio total menos puntos ya canjeados
                 attrs['advance_payment'] = float(attrs.get('price_sol', 0)) - points_redeemed
             else:
@@ -124,13 +126,12 @@ class ReservationSerializer(serializers.ModelSerializer):
                 else:
                     attrs['advance_payment'] = attrs.get('price_usd', 0)
 
-        # Check if it's called from a view with patch verb
-        patch_cond = False
-        if request:
-            if request.method != 'PATCH':
-                patch_cond = True
+        # Solo validar fechas y disponibilidad si NO es PATCH
+        should_validate_dates = True
+        if request and request.method == 'PATCH':
+            should_validate_dates = False
 
-        if patch_cond and attrs.get('check_in_date') and attrs.get('check_out_date'):
+        if should_validate_dates and attrs.get('check_in_date') and attrs.get('check_out_date'):
             # Check if checkin is after checkout
             if attrs.get('check_in_date') >= attrs.get('check_out_date'):
                 raise serializers.ValidationError("Fecha entrada debe ser anterior a fecha de salida")
