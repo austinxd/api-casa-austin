@@ -51,6 +51,11 @@ class ReservationSerializer(serializers.ModelSerializer):
             self.fields['seller'].read_only = True
 
     def to_internal_value(self, data):
+        # Solo procesar datos si es una operación de escritura (POST, PUT, PATCH)
+        request = self.context.get('request')
+        if not request or request.method in ['GET', 'HEAD', 'OPTIONS']:
+            return super().to_internal_value(data)
+            
         new_data = data.copy()
 
         query_client = Clients.objects.filter(id=data.get('client'))
