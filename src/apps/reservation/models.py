@@ -85,6 +85,20 @@ class Reservation(BaseModel):
         default=0, 
         help_text="Puntos canjeados en esta reserva"
     )
+    # Campos para voucher de pago
+    payment_voucher_deadline = models.DateTimeField(
+        null=True, 
+        blank=True,
+        help_text="Fecha límite para subir voucher de pago (1 hora después de crear reserva)"
+    )
+    payment_voucher_uploaded = models.BooleanField(
+        default=False,
+        help_text="Indica si el cliente ya subió el voucher de pago"
+    )
+    payment_confirmed = models.BooleanField(
+        default=False,
+        help_text="Indica si el cliente confirmó que realizó el pago"
+    )
 
     def __str__(self):
         if self.client:

@@ -610,7 +610,18 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
             if self.request.POST['origin'].lower() == 'air':
                 user_seller = CustomUser.objects.get(first_name='AirBnB')
 
-            instance = serializer.save(seller=user_seller, status='approved')
+            # Para reservas de cliente, establecer status pending y deadline
+            status = 'approved'
+            if self.request.POST.get('origin', '').lower() == 'client':
+                status = 'pending'
+            
+            instance = serializer.save(seller=user_seller, status=status)
+            
+            # Si es reserva de cliente, establecer deadline de 1 hora
+            if instance.origin == 'client':
+                from django.utils import timezone
+                instance.payment_voucher_deadline = timezone.now() + timedelta(hours=1)
+                instance.save()
             if instance.late_checkout:
                 original_check_out_date = instance.check_out_date - timedelta(days=1)
                 instance.late_check_out_date = original_check_out_date
