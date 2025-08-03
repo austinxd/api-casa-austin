@@ -76,9 +76,9 @@ class ClientVoucherUploadView(APIView):
                     file=voucher_file
                 )
 
-                # Marcar voucher como subido y cambiar estado directamente a approved
+                # Marcar voucher como subido y cambiar estado a pending (esperando aprobación del admin)
                 reservation.payment_voucher_uploaded = True
-                reservation.status = 'approved'  # Cambiar directamente a approved cuando se sube voucher
+                reservation.status = 'pending'  # Cambiar a pending cuando se sube voucher
                 reservation.payment_confirmed = bool(payment_confirmed)
                 reservation.save()
 
