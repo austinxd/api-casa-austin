@@ -615,13 +615,29 @@ class ClientPointsView(APIView):
             if not client:
                 return Response({'message': 'Token inválido'}, status=401)
 
-            # Por ahora devolvemos datos mock, luego puedes implementar tu lógica real
-            return Response({'total_points': 0.0, 'recent_transactions': []})
+            # Obtener puntos disponibles del cliente
+            available_points = client.get_available_points()
+            
+            # Obtener historial de transacciones recientes (últimas 10)
+            from .models import ClientPoints
+            recent_transactions = ClientPoints.objects.filter(
+                client=client, 
+                deleted=False
+            ).order_by('-created')[:10]
+            
+            # Serializar las transacciones
+            from .serializers import ClientPointsSerializer
+            transactions_data = ClientPointsSerializer(recent_transactions, many=True).data
+            
+            return Response({
+                'total_points': float(available_points), 
+                'recent_transactions': transactions_data
+            })
 
         except (InvalidToken, TokenError) as e:
             return Response({'message': 'Token inválido'}, status=401)
         except Exception as e:
-            return Response({'message': 'Error interno del servidor'},
+            return Response({'message': 'Error obteniendo puntos'}, status=500)terno del servidor'},
                             status=500)
 
 
