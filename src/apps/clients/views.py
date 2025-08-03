@@ -38,7 +38,17 @@ class ClientCreateReservationView(APIView):
                 data=request.data, context={'request': request})
 
             if serializer.is_valid():
-                reservation = serializer.save()
+                # Establecer deadline de 1 hora para subir voucher
+                payment_deadline = timezone.now() + timedelta(hours=1)
+
+                reservation = serializer.save(
+                    client=client,
+                    origin='client',
+                    status='pending',
+                    payment_voucher_deadline=payment_deadline,
+                    payment_voucher_uploaded=False,
+                    payment_confirmed=False
+                )
 
                 # Retornar la reserva creada
                 response_serializer = ReservationListSerializer(reservation)
@@ -179,18 +189,18 @@ def get_client_from_token(request):
         if not auth_header:
             logger.error("get_client_from_token: No Authorization header found")
             return None
-            
+
         if not auth_header.startswith('Bearer '):
             logger.error(f"get_client_from_token: Invalid Authorization header format: {auth_header}")
             return None
-            
+
         authenticator = ClientJWTAuthentication()
         auth_result = authenticator.authenticate(request)
-        
+
         if auth_result is None:
             logger.error("get_client_from_token: Authentication failed - no result from authenticator")
             return None
-        
+
         client, validated_token = auth_result
         if client:
             logger.info(f"get_client_from_token: Client authenticated successfully - ID: {client.id}")
@@ -198,7 +208,7 @@ def get_client_from_token(request):
         else:
             logger.error("get_client_from_token: No client found in auth result")
             return None
-            
+
     except Exception as e:
         logger.error(f"get_client_from_token: Error authenticating client: {str(e)}")
         return None
