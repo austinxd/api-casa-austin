@@ -260,7 +260,7 @@ class ClientReservationSerializer(serializers.ModelSerializer):
             'property', 'check_in_date', 'check_out_date', 'guests', 
             'temperature_pool', 'points_to_redeem', 'tel_contact_number',
             'price_usd', 'price_sol', 'advance_payment_currency', 'comentarios_reservas',
-            'seller'
+            'seller', 'origin'
         ]
         extra_kwargs = {
             'points_to_redeem': {'write_only': True, 'required': False},
@@ -269,7 +269,8 @@ class ClientReservationSerializer(serializers.ModelSerializer):
             'price_sol': {'required': False},
             'advance_payment_currency': {'required': False},
             'comentarios_reservas': {'required': False},
-            'seller': {'required': False}
+            'seller': {'required': False},
+            'origin': {'required': False}
         }
 
     points_to_redeem = serializers.DecimalField(
@@ -327,9 +328,14 @@ class ClientReservationSerializer(serializers.ModelSerializer):
         
         # Configurar los datos de la reserva
         validated_data['client'] = client
-        # Preservar origin 'aus' si se envía explícitamente, sino usar 'client'
-        if validated_data.get('origin') != 'aus':
+        
+        # Verificar origin en los datos originales del request
+        request_data = self.context['request'].data
+        if request_data.get('origin') == 'aus':
+            validated_data['origin'] = 'aus'
+        else:
             validated_data['origin'] = 'client'
+            
         validated_data['status'] = 'pending'
         
         # Asignar seller específico si se envía desde el frontend, sino usar seller por defecto (ID 14)
