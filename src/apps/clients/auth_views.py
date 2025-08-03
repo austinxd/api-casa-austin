@@ -637,8 +637,7 @@ class ClientPointsView(APIView):
         except (InvalidToken, TokenError) as e:
             return Response({'message': 'Token inválido'}, status=401)
         except Exception as e:
-            return Response({'message': 'Error obteniendo puntos'}, status=500)terno del servidor'},
-                            status=500)
+            return Response({'message': 'Error obteniendo puntos'}, status=500)
 
 
 class ClientRedeemPointsView(APIView):
