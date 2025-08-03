@@ -73,8 +73,8 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
             
             referral_config = ReferralPointsConfig.get_current_config()
             if referral_config and referral_config.is_active:
-                # Calcular puntos de referido basado en el porcentaje configurado
-                referral_points = (Decimal(str(points_to_add)) * referral_config.percentage) / Decimal('100')
+                # Calcular puntos de referido basado en el porcentaje del valor de la reserva
+                referral_points = (Decimal(str(effective_price)) * referral_config.percentage) / Decimal('100')
                 
                 if referral_points > 0:
                     # Asignar puntos al cliente que refirió
@@ -82,10 +82,10 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
                         points=referral_points,
                         reservation=instance,
                         referred_client=instance.client,
-                        description=f"Puntos por referido: {instance.client.first_name} {instance.client.last_name} - Reserva #{instance.id}"
+                        description=f"Puntos por referido: {instance.client.first_name} {instance.client.last_name} - Reserva #{instance.id} ({referral_config.percentage}% de S/{effective_price:.2f})"
                     )
                     
                     print(
                         f"Puntos de referido asignados: {referral_points} puntos para {instance.client.referred_by.first_name} {instance.client.referred_by.last_name} "
-                        f"(referido: {instance.client.first_name} {instance.client.last_name})"
+                        f"(referido: {instance.client.first_name} {instance.client.last_name}) - {referral_config.percentage}% de S/{effective_price:.2f}"
                     )
