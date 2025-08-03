@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 from . import views
 from . import auth_views
 from . import points_views  # Import the new views
+from .voucher_views import ClientVoucherUploadView, ClientReservationStatusView
 
 router = DefaultRouter()
 router.register(r'clients', views.ClientsApiView, basename='clients')
@@ -71,7 +72,7 @@ urlpatterns = [
     path('clients/points/redeem/',
          points_views.redeem_points,
          name='redeem-points'),
-    
+
     # Endpoints para reservas de clientes
     path('clients/reservations/create/',
          views.ClientCreateReservationView.as_view(),
@@ -79,6 +80,10 @@ urlpatterns = [
     path('clients/reservations/list/',
          views.ClientReservationsListView.as_view(),
          name='client-reservations-list'),
-    
+
+    # Voucher upload
+    path('clients/voucher/upload/<uuid:reservation_id>/', ClientVoucherUploadView.as_view(), name='client-voucher-upload'),
+    path('clients/voucher/status/<uuid:reservation_id>/', ClientReservationStatusView.as_view(), name='client-reservation-status'),
+
     path('clients/csrf-token/', auth_views.get_csrf_token, name='csrf-token'),
 ]
