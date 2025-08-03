@@ -327,7 +327,9 @@ class ClientReservationSerializer(serializers.ModelSerializer):
         
         # Configurar los datos de la reserva
         validated_data['client'] = client
-        validated_data['origin'] = 'client'
+        # Solo establecer origin como 'client' si no se especifica explícitamente
+        if 'origin' not in validated_data or not validated_data['origin']:
+            validated_data['origin'] = 'client'
         validated_data['status'] = 'pending'
         
         # Asignar seller específico si se envía desde el frontend, sino usar seller por defecto (ID 14)
