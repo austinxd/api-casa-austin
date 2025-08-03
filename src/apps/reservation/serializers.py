@@ -74,8 +74,8 @@ class ReservationSerializer(serializers.ModelSerializer):
                 new_data['origin'] = 'air'
                 new_data['seller'] = CustomUser.objects.get(first_name='AirBnB').id
 
-        # Si la reserva viene del endpoint de cliente, marcarla como pendiente
-        if self.context.get('from_client_endpoint'):
+        # Si la reserva viene del endpoint de cliente Y no tiene origin explícito, marcarla como cliente
+        if self.context.get('from_client_endpoint') and data.get('origin') != 'aus':
             new_data['origin'] = 'client'
             new_data['status'] = 'pending'
 
