@@ -1,4 +1,3 @@
-
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework.views import APIView
@@ -24,7 +23,7 @@ class ClientVoucherUploadView(APIView):
             # Autenticar cliente
             authenticator = ClientJWTAuthentication()
             client, validated_token = authenticator.authenticate(request)
-            
+
             if not client:
                 return Response({'message': 'Token inválido'}, status=401)
 
@@ -76,15 +75,19 @@ class ClientVoucherUploadView(APIView):
                     reservation=reservation,
                     file=voucher_file
                 )
-                
-                # Actualizar reserva
+
+                # Marcar voucher como subido y cambiar estado a pending
                 reservation.payment_voucher_uploaded = True
+                reservation.status = 'pending'  # Cambiar de incomplete a pending
+                reservation.save()
+
+                # Actualizar reserva
                 reservation.payment_confirmed = bool(payment_confirmed)
-                
+
                 # Si confirmó el pago, cambiar status a approved
                 if payment_confirmed:
                     reservation.status = 'approved'
-                    
+
                 reservation.save()
 
             return Response({
@@ -110,7 +113,7 @@ class ClientReservationStatusView(APIView):
             # Autenticar cliente
             authenticator = ClientJWTAuthentication()
             client, validated_token = authenticator.authenticate(request)
-            
+
             if not client:
                 return Response({'message': 'Token inválido'}, status=401)
 

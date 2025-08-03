@@ -44,7 +44,7 @@ class ClientCreateReservationView(APIView):
                 reservation = serializer.save(
                     client=client,
                     origin='client',
-                    status='pending',
+                    status='incomplete',
                     payment_voucher_deadline=payment_deadline,
                     payment_voucher_uploaded=False,
                     payment_confirmed=False
@@ -119,7 +119,7 @@ class ClientReservationsListView(APIView):
             pending_reservations = []
 
             for reservation in reservations:
-                if reservation.status == 'pending':
+                if reservation.status in ['incomplete', 'pending']:
                     pending_reservations.append(reservation)
                 elif reservation.check_out_date > today:
                     upcoming_reservations.append(reservation)

@@ -21,10 +21,10 @@ class Command(BaseCommand):
         now = timezone.now()
         dry_run = options['dry_run']
         
-        # Buscar reservas expiradas
+        # Buscar reservas expiradas (incompletas o pendientes sin voucher)
         expired_reservations = Reservation.objects.filter(
             origin='client',
-            status='pending',
+            status__in=['incomplete', 'pending'],
             payment_voucher_uploaded=False,
             payment_voucher_deadline__lt=now,
             deleted=False

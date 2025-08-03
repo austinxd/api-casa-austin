@@ -151,7 +151,8 @@ class ReservationSerializer(serializers.ModelSerializer):
             # Check if this property si reserved in this range of date
             if Reservation.objects.exclude(deleted=True
                 ).filter(
-                    property=property_field
+                    property=property_field,
+                    status__in=['approved', 'pending', 'incomplete']  # Considerar todos los estados activos
                 ).filter(
                     Q(check_in_date__lt=attrs.get('check_out_date')) & Q(check_out_date__gt=attrs.get('check_in_date'))
                 ).exclude(
@@ -295,7 +296,7 @@ class ClientReservationSerializer(serializers.ModelSerializer):
             if Reservation.objects.exclude(deleted=True
                 ).filter(
                     property=property_field,
-                    status__in=['approved', 'pending']  # Considerar tanto aprobadas como pendientes
+                    status__in=['approved', 'pending', 'incomplete']  # Considerar aprobadas, pendientes e incompletas
                 ).filter(
                     Q(check_in_date__lt=attrs.get('check_out_date')) & Q(check_out_date__gt=attrs.get('check_in_date'))
                 ).exists():
@@ -336,7 +337,7 @@ class ClientReservationSerializer(serializers.ModelSerializer):
         else:
             validated_data['origin'] = 'client'
             
-        validated_data['status'] = 'pending'
+        validated_data['status'] = 'incomplete'
         
         # Asignar seller específico si se envía desde el frontend, sino usar seller por defecto (ID 14)
         if 'seller' in validated_data and validated_data['seller']:
