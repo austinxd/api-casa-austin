@@ -58,6 +58,14 @@ class Property(BaseModel):
         self.save()
 
 
+def validate_image_size(value):
+    """Validate image file size (max 5MB)"""
+    from django.core.exceptions import ValidationError
+    
+    if value.size > 5 * 1024 * 1024:  # 5MB
+        raise ValidationError('El archivo es demasiado grande. Tamaño máximo permitido: 5MB')
+
+
 def property_photo_upload_path(instance, filename):
     """Generate upload path for property photos"""
     import os
@@ -79,7 +87,9 @@ class PropertyPhoto(BaseModel):
         upload_to=property_photo_upload_path, 
         blank=True, 
         null=True,
-        verbose_name="Archivo de imagen"
+        verbose_name="Archivo de imagen",
+        validators=[validate_image_size],
+        help_text="Tamaño máximo: 5MB. Formatos permitidos: JPG, PNG, GIF"
     )
     alt_text = models.CharField(max_length=200, blank=True, verbose_name="Texto alternativo")
     order = models.PositiveIntegerField(default=0, verbose_name="Orden", help_text="Orden de visualización (0 = primera)")
