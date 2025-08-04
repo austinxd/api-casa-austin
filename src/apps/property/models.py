@@ -59,11 +59,11 @@ class Property(BaseModel):
 
 
 def validate_image_size(value):
-    """Validate image file size (max 10MB)"""
+    """Validate image file size (max 20MB)"""
     from django.core.exceptions import ValidationError
     
-    if value.size > 10 * 1024 * 1024:  # 10MB
-        raise ValidationError('El archivo es demasiado grande. Tamaño máximo permitido: 10MB')
+    if value.size > 20 * 1024 * 1024:  # 20MB
+        raise ValidationError('El archivo es demasiado grande. Tamaño máximo permitido: 20MB')
 
 
 def property_photo_upload_path(instance, filename):
@@ -89,7 +89,7 @@ class PropertyPhoto(BaseModel):
         null=True,
         verbose_name="Archivo de imagen",
         validators=[validate_image_size],
-        help_text="Tamaño máximo: 10MB. Formatos permitidos: JPG, PNG, GIF"
+        help_text="Tamaño máximo: 20MB. Formatos permitidos: JPG, PNG, GIF"
     )
     alt_text = models.CharField(max_length=200, blank=True, verbose_name="Texto alternativo")
     order = models.PositiveIntegerField(default=0, verbose_name="Orden", help_text="Orden de visualización (0 = primera)")
