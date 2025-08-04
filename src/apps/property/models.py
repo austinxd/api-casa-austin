@@ -13,6 +13,16 @@ class Property(BaseModel):
     background_color = models.CharField(max_length=255, null=False, blank=False, default="#fff")
     on_temperature_pool_url = models.URLField(null=True, blank=True)
     off_temperature_pool_url = models.URLField(null=True, blank=True)
+    
+    # Nuevos campos
+    titulo = models.CharField(max_length=200, null=True, blank=True, verbose_name="Título")
+    descripcion = models.TextField(null=True, blank=True, verbose_name="Descripción")
+    dormitorios = models.PositiveIntegerField(null=True, blank=True, verbose_name="Número de dormitorios")
+    detalle_dormitorios = models.JSONField(default=dict, blank=True, verbose_name="Detalle de dormitorios", help_text="JSON con detalles de cada habitación")
+    hora_ingreso = models.TimeField(null=True, blank=True, verbose_name="Hora de ingreso")
+    hora_salida = models.TimeField(null=True, blank=True, verbose_name="Hora de salida")
+    precio_extra_persona = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Precio extra por persona")
+    caracteristicas = models.JSONField(default=list, blank=True, verbose_name="Características", help_text="Lista de características de la propiedad")
 
     def __str__(self):
         return self.name

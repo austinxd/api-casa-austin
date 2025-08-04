@@ -9,6 +9,18 @@ class PropertySerializer(serializers.ModelSerializer):
     class Meta:
         model = Property
         exclude = ["created", "updated", "deleted"]
+        
+    def validate_detalle_dormitorios(self, value):
+        """Validar que el detalle de dormitorios sea un diccionario válido"""
+        if value and not isinstance(value, dict):
+            raise serializers.ValidationError("El detalle de dormitorios debe ser un objeto JSON válido")
+        return value
+    
+    def validate_caracteristicas(self, value):
+        """Validar que las características sean una lista válida"""
+        if value and not isinstance(value, list):
+            raise serializers.ValidationError("Las características deben ser una lista válida")
+        return value
 
 class ProfitPropertyAirBnbSerializer(serializers.ModelSerializer):
     property = serializers.SerializerMethodField()
