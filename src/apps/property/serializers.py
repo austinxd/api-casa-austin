@@ -1,3 +1,4 @@
+
 from rest_framework import serializers
 
 from drf_spectacular.utils import extend_schema_field
@@ -10,7 +11,6 @@ class PropertyPhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = PropertyPhoto
         fields = ["id", "image_url", "alt_text", "order", "is_main"]
-
 
 
 class PropertyListSerializer(serializers.ModelSerializer):
@@ -41,18 +41,6 @@ class PropertyListSerializer(serializers.ModelSerializer):
         """Obtener la foto principal o la primera foto disponible"""
         main_photo = obj.photos.filter(is_main=True, deleted=False).first()
         if not main_photo:
-
-
-    def get_main_photo(self, obj):
-        """Obtener la foto principal o la primera foto disponible"""
-        main_photo = obj.photos.filter(is_main=True, deleted=False).first()
-        if not main_photo:
-            main_photo = obj.photos.filter(deleted=False).first()
-
-        if main_photo:
-            return PropertyPhotoSerializer(main_photo).data
-        return None
-
             main_photo = obj.photos.filter(deleted=False).first()
 
         if main_photo:
@@ -68,6 +56,16 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Property
         exclude = ["created", "updated", "deleted"]
+
+    def get_main_photo(self, obj):
+        """Obtener la foto principal o la primera foto disponible"""
+        main_photo = obj.photos.filter(is_main=True, deleted=False).first()
+        if not main_photo:
+            main_photo = obj.photos.filter(deleted=False).first()
+
+        if main_photo:
+            return PropertyPhotoSerializer(main_photo).data
+        return None
 
     def validate_detalle_dormitorios(self, value):
         """Validar que el detalle de dormitorios sea un diccionario válido"""
@@ -85,8 +83,10 @@ class PropertyDetailSerializer(serializers.ModelSerializer):
 # Mantener compatibilidad hacia atrás
 PropertySerializer = PropertyDetailSerializer
 
+
 class ProfitPropertyAirBnbSerializer(serializers.ModelSerializer):
     property = serializers.SerializerMethodField()
+    
     class Meta:
         model = ProfitPropertyAirBnb
         exclude = ["created", "updated", "deleted"]

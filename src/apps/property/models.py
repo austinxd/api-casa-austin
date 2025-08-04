@@ -1,8 +1,8 @@
+
 from django.db import models
 
 from apps.core.models import BaseModel
 from django.core.validators import MinValueValidator, MaxValueValidator
-
 
 
 class Property(BaseModel):
@@ -55,6 +55,7 @@ class Property(BaseModel):
 
     def delete(self, *args, **kwargs):
         self.deleted = True
+        self.save()
 
 
 class PropertyPhoto(BaseModel):
@@ -82,8 +83,6 @@ class PropertyPhoto(BaseModel):
         self.deleted = True
         self.save()
 
-
-        self.save()
 
 class ProfitPropertyAirBnb(BaseModel):
     property = models.ForeignKey(Property, on_delete=models.CASCADE, null=False, blank=False)

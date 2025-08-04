@@ -3,7 +3,6 @@ from django.contrib import admin
 from .models import Property, ProfitPropertyAirBnb, PropertyPhoto
 
 
-
 class PropertyPhotoInline(admin.TabularInline):
     model = PropertyPhoto
     extra = 1
@@ -16,8 +15,6 @@ class PropertyPhotoAdmin(admin.ModelAdmin):
     list_filter = ("is_main", "deleted", "property")
     search_fields = ("property__name", "alt_text")
     ordering = ["property", "order"]
-
-
 
 
 class PropertyAdmin(admin.ModelAdmin):
@@ -42,16 +39,6 @@ class PropertyAdmin(admin.ModelAdmin):
         }),
         ("Detalles de Alojamiento", {
             "fields": ("dormitorios", "banos", "detalle_dormitorios", "capacity_max", "caracteristicas")
-
-
-class PropertyPhotoAdmin(admin.ModelAdmin):
-    list_display = ('property', 'caption', 'is_main', 'order', 'created_at')
-    list_filter = ('is_main', 'created_at')
-    list_editable = ('is_main', 'order')
-    search_fields = ('property__name', 'caption')
-
-admin.site.register(PropertyPhoto, PropertyPhotoAdmin)
-
         }),
         ("Horarios y Precios", {
             "fields": ("hora_ingreso", "hora_salida", "precio_extra_persona", "precio_desde")
@@ -63,4 +50,5 @@ admin.site.register(PropertyPhoto, PropertyPhotoAdmin)
 
 
 admin.site.register(Property, PropertyAdmin)
+admin.site.register(PropertyPhoto, PropertyPhotoAdmin)
 admin.site.register(ProfitPropertyAirBnb)
