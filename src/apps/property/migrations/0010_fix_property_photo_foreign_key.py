@@ -8,7 +8,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('property', '0009_property_precio_desde'),
+        ('property', '0008_add_slug_field_safely'),
     ]
 
     operations = [
