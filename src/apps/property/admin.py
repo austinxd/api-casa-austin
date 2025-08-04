@@ -6,7 +6,7 @@ from .models import Property, ProfitPropertyAirBnb, PropertyPhoto
 class PropertyPhotoInline(admin.TabularInline):
     model = PropertyPhoto
     extra = 1
-    fields = ("image_url", "alt_text", "order", "is_main")
+    fields = ("image_file", "image_url", "alt_text", "order", "is_main")
     ordering = ["order"]
 
 
@@ -15,6 +15,7 @@ class PropertyPhotoAdmin(admin.ModelAdmin):
     list_filter = ("is_main", "deleted", "property")
     search_fields = ("property__name", "alt_text")
     ordering = ["property", "order"]
+    fields = ("property", "image_file", "image_url", "alt_text", "order", "is_main")
 
 
 class PropertyAdmin(admin.ModelAdmin):
