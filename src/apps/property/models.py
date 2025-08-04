@@ -58,9 +58,29 @@ class Property(BaseModel):
         self.save()
 
 
+def property_photo_upload_path(instance, filename):
+    """Generate upload path for property photos"""
+    import os
+    from django.utils.text import slugify
+    
+    # Get file extension
+    name, ext = os.path.splitext(filename)
+    
+    # Generate safe filename
+    safe_filename = f"{slugify(instance.property.name)}_{instance.order}_{slugify(name)}{ext}"
+    
+    return f"property_photos/{instance.property.id}/{safe_filename}"
+
+
 class PropertyPhoto(BaseModel):
     property = models.ForeignKey(Property, related_name='photos', on_delete=models.CASCADE)
-    image_url = models.URLField(verbose_name="URL de la imagen")
+    image_url = models.URLField(blank=True, null=True, verbose_name="URL de la imagen")
+    image_file = models.ImageField(
+        upload_to=property_photo_upload_path, 
+        blank=True, 
+        null=True,
+        verbose_name="Archivo de imagen"
+    )
     alt_text = models.CharField(max_length=200, blank=True, verbose_name="Texto alternativo")
     order = models.PositiveIntegerField(default=0, verbose_name="Orden", help_text="Orden de visualización (0 = primera)")
     is_main = models.BooleanField(default=False, verbose_name="Imagen principal")
@@ -72,6 +92,21 @@ class PropertyPhoto(BaseModel):
 
     def __str__(self):
         return f"Foto de {self.property.name} - {self.order}"
+
+    def get_image_url(self):
+        """Get the image URL - prioritize uploaded file over external URL"""
+        if self.image_file:
+            return self.image_file.url
+        return self.image_url or ""
+
+    def clean(self):
+        """Validate that either image_file or image_url is provided"""
+        from django.core.exceptions import ValidationError
+        
+        if not self.image_file and not self.image_url:
+            raise ValidationError("Debe proporcionar una imagen (archivo o URL)")
+        
+        super().clean()
 
     def save(self, *args, **kwargs):
         # Si esta foto se marca como principal, desmarcar las demás de la misma propiedad

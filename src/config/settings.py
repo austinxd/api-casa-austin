@@ -29,12 +29,8 @@ DEBUG = env.bool('DJANGO_DEBUG', default=True)
 
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=['*'])
 
-CSRF_TRUSTED_ORIGINS = env.list(
-    "DJANGO_CSRF_TRUSTED_ORIGINS", 
-    default=[
-        'http://localhost:8000'
-    ]
-)
+CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS",
+                                default=['http://localhost:8000'])
 
 # CORS configuration
 CORS_ALLOWED_ORIGINS = [
@@ -75,11 +71,11 @@ SIMPLE_JWT = {
     'VERIFYING_KEY': None,
     'AUDIENCE': None,
     'ISSUER': None,
-    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_TYPES': ('Bearer', ),
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
-    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken', ),
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
@@ -89,7 +85,8 @@ META_PIXEL_ID = os.environ.get("META_PIXEL_ID")
 META_ACCESS_TOKEN = os.environ.get("META_ACCESS_TOKEN")
 
 # AirBnB API Configuration
-AIRBNB_API_URL_BASE = env("AIRBNB_API_URL_BASE", default="https://api.airbnb.com/v1/calendar")
+AIRBNB_API_URL_BASE = env("AIRBNB_API_URL_BASE",
+                          default="https://api.airbnb.com/v1/calendar")
 
 # Token y ID para el Píxel de Meta
 META_PIXEL_ID = env("META_PIXEL_ID", default="No pixel ID")
@@ -101,12 +98,9 @@ META_AUDIENCE_TOKEN = env("META_AUDIENCE_TOKEN", default="No audience token")
 
 # Application definition
 DJANGO_APPS = [
-    "django.contrib.admin",
-    "django.contrib.auth",
-    "django.contrib.contenttypes",
-    "django.contrib.sessions",
-    "django.contrib.messages",
-    "django.contrib.staticfiles"
+    "django.contrib.admin", "django.contrib.auth",
+    "django.contrib.contenttypes", "django.contrib.sessions",
+    "django.contrib.messages", "django.contrib.staticfiles"
 ]
 
 LOCAL_APPS = [
@@ -118,9 +112,7 @@ LOCAL_APPS = [
 ]
 
 THIRD_APPS = [
-    'rest_framework',
-    'rest_framework_simplejwt',
-    'drf_spectacular',
+    'rest_framework', 'rest_framework_simplejwt', 'drf_spectacular',
     'corsheaders'
 ]
 
@@ -178,16 +170,20 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME":
+        "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "NAME":
+        "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+        "NAME":
+        "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+        "NAME":
+        "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -205,17 +201,14 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
-STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, 'static'),
-)
-
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-# Configuraciones del media
+# Media files configuration
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -228,25 +221,26 @@ DEFAULT_PAGE_SIZE = 20
 
 # REST
 REST_FRAMEWORK = {
-   'DEFAULT_PERMISSION_CLASSES': (
-    'rest_framework.permissions.AllowAny',
-   ),
-   'DEFAULT_AUTHENTICATION_CLASSES': (
-       'rest_framework_simplejwt.authentication.JWTAuthentication',
-   ),
-    'DEFAULT_FILTER_BACKENDS': ['rest_framework.filters.SearchFilter',],
-    'DEFAULT_PAGINATION_CLASS': 'apps.core.paginator.CustomPagination',
-    'PAGE_SIZE': DEFAULT_PAGE_SIZE,
-
+    'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.AllowAny', ),
+    'DEFAULT_AUTHENTICATION_CLASSES':
+    ('rest_framework_simplejwt.authentication.JWTAuthentication', ),
+    'DEFAULT_FILTER_BACKENDS': [
+        'rest_framework.filters.SearchFilter',
+    ],
+    'DEFAULT_PAGINATION_CLASS':
+    'apps.core.paginator.CustomPagination',
+    'PAGE_SIZE':
+    DEFAULT_PAGE_SIZE,
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ),
-
-    'NON_FIELD_ERRORS_KEY': 'detail',
-
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'EXCEPTION_HANDLER': 'apps.core.utils.custom_exception_handler',
+    'NON_FIELD_ERRORS_KEY':
+    'detail',
+    'DEFAULT_SCHEMA_CLASS':
+    'drf_spectacular.openapi.AutoSchema',
+    'EXCEPTION_HANDLER':
+    'apps.core.utils.custom_exception_handler',
 }
 
 SIMPLE_JWT = {
@@ -271,7 +265,8 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'format':
+            '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
             'style': '{',
         },
     },
@@ -292,7 +287,8 @@ LOGGING = {
         'apps': {
             'handlers': ['file', 'console'],
             'level': 'DEBUG',
-            'propagate': False,  # Evitar propagación que puede causar duplicados
+            'propagate':
+            False,  # Evitar propagación que puede causar duplicados
         },
     },
     'root': {

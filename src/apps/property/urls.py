@@ -1,4 +1,4 @@
-from .views import PropertyApiView, ProfitPropertyApiView, CheckAvaiblePorperty
+from .views import PropertyApiView, ProfitPropertyApiView, CheckAvaiblePorperty, PropertyPhotoViewSet
 
 
 from django.urls import include, path
@@ -8,6 +8,7 @@ router = DefaultRouter()
 
 router.register("property", PropertyApiView, basename="property")
 router.register("profit", ProfitPropertyApiView, basename="profit")
+router.register("photos", PropertyPhotoViewSet, basename="property-photos")
 
 urlpatterns = [
     path("", include(router.urls)),
