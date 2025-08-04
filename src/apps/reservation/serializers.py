@@ -56,7 +56,19 @@ class ReservationSerializer(serializers.ModelSerializer):
         if not request or request.method in ['GET', 'HEAD', 'OPTIONS']:
             return super().to_internal_value(data)
             
-        new_data = data.copy()
+        # Evitar deepcopy cuando hay archivos presentes para prevenir error de pickle
+        if hasattr(data, 'getlist') and any(hasattr(item, 'read') for items in data.values() for item in (items if isinstance(items, list) else [items])):
+            # Si hay archivos, crear un QueryDict mutable sin deepcopy
+            from django.http import QueryDict
+            new_data = QueryDict(mutable=True)
+            for key, value in data.items():
+                if isinstance(value, list):
+                    for v in value:
+                        new_data.appendlist(key, v)
+                else:
+                    new_data[key] = value
+        else:
+            new_data = data.copy()
 
         query_client = Clients.objects.filter(id=data.get('client'))
 
