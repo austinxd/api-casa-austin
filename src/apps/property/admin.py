@@ -9,17 +9,18 @@ class PropertyAdmin(admin.ModelAdmin):
         "titulo",
         "location",
         "dormitorios",
+        "banos",
         "precio_extra_persona",
         "deleted"
     )
-    list_filter = ("dormitorios", "deleted")
+    list_filter = ("dormitorios", "banos", "deleted")
     search_fields = ("name", "titulo", "location")
     fieldsets = (
         ("Información Básica", {
             "fields": ("name", "titulo", "descripcion", "location", "background_color")
         }),
         ("Detalles de Alojamiento", {
-            "fields": ("dormitorios", "detalle_dormitorios", "capacity_max", "caracteristicas")
+            "fields": ("dormitorios", "banos", "detalle_dormitorios", "capacity_max", "caracteristicas")
         }),
         ("Horarios y Precios", {
             "fields": ("hora_ingreso", "hora_salida", "precio_extra_persona")

@@ -18,6 +18,7 @@ class Property(BaseModel):
     titulo = models.CharField(max_length=200, null=True, blank=True, verbose_name="Título")
     descripcion = models.TextField(null=True, blank=True, verbose_name="Descripción")
     dormitorios = models.PositiveIntegerField(null=True, blank=True, verbose_name="Número de dormitorios")
+    banos = models.PositiveIntegerField(null=True, blank=True, verbose_name="Número de baños")
     detalle_dormitorios = models.JSONField(default=dict, blank=True, verbose_name="Detalle de dormitorios", help_text="JSON con detalles de cada habitación")
     hora_ingreso = models.TimeField(null=True, blank=True, verbose_name="Hora de ingreso")
     hora_salida = models.TimeField(null=True, blank=True, verbose_name="Hora de salida")
