@@ -21,7 +21,7 @@ class PropertyApiView(viewsets.ReadOnlyModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ["name"]
     pagination_class = CustomPagination
-    lookup_field = 'id'  # Puedes usar 'id' o crear un campo 'slug' si prefieres URLs más amigables
+    lookup_field = 'slug'  # Usar slug para URLs amigables
 
     def get_serializer_class(self):
         """Usar diferentes serializers según la acción"""

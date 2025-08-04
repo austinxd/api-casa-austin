@@ -7,6 +7,7 @@ class PropertyAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "titulo",
+        "slug",
         "location",
         "dormitorios",
         "banos",
@@ -15,10 +16,11 @@ class PropertyAdmin(admin.ModelAdmin):
         "deleted"
     )
     list_filter = ("dormitorios", "banos", "deleted")
-    search_fields = ("name", "titulo", "location")
+    search_fields = ("name", "titulo", "location", "slug")
+    prepopulated_fields = {"slug": ("name",)}
     fieldsets = (
         ("Información Básica", {
-            "fields": ("name", "titulo", "descripcion", "location", "background_color")
+            "fields": ("name", "titulo", "slug", "descripcion", "location", "background_color")
         }),
         ("Detalles de Alojamiento", {
             "fields": ("dormitorios", "banos", "detalle_dormitorios", "capacity_max", "caracteristicas")
