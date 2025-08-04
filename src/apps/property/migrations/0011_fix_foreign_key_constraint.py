@@ -1,8 +1,7 @@
 
-# Generated manually to fix database schema issues
+# Generated manually to fix foreign key constraint issues
 
-from django.db import migrations, models
-import decimal
+from django.db import migrations
 
 class Migration(migrations.Migration):
 
@@ -11,7 +10,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Deshabilitar verificaciones de foreign keys
+        # Deshabilitar verificaciones de foreign keys temporalmente
         migrations.RunSQL(
             """
             SET FOREIGN_KEY_CHECKS = 0;
@@ -19,7 +18,7 @@ class Migration(migrations.Migration):
             reverse_sql="SET FOREIGN_KEY_CHECKS = 1;"
         ),
         
-        # Verificar y eliminar restricciones de llaves foráneas si existen
+        # Verificar y eliminar restricción problemática si existe
         migrations.RunSQL(
             """
             SET @constraint_exists = (
@@ -27,12 +26,23 @@ class Migration(migrations.Migration):
                 FROM information_schema.TABLE_CONSTRAINTS 
                 WHERE CONSTRAINT_SCHEMA = DATABASE() 
                 AND TABLE_NAME = 'reservation_reservation' 
-                AND CONSTRAINT_NAME = 'reservation_reservat_property_id_0d94cf80_fk_property_'
+                AND CONSTRAINT_NAME LIKE '%property_id%'
+                AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+            );
+            
+            SET @constraint_name = (
+                SELECT CONSTRAINT_NAME
+                FROM information_schema.TABLE_CONSTRAINTS 
+                WHERE CONSTRAINT_SCHEMA = DATABASE() 
+                AND TABLE_NAME = 'reservation_reservation' 
+                AND CONSTRAINT_NAME LIKE '%property_id%'
+                AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+                LIMIT 1
             );
             
             SET @sql = IF(@constraint_exists > 0, 
-                'ALTER TABLE reservation_reservation DROP FOREIGN KEY reservation_reservat_property_id_0d94cf80_fk_property_;', 
-                'SELECT "Foreign key constraint does not exist";'
+                CONCAT('ALTER TABLE reservation_reservation DROP FOREIGN KEY ', @constraint_name, ';'), 
+                'SELECT "No foreign key constraint found";'
             );
             
             PREPARE stmt FROM @sql;
@@ -42,7 +52,7 @@ class Migration(migrations.Migration):
             reverse_sql="-- No reverse needed"
         ),
         
-        # Sincronizar collations de las tablas relacionadas
+        # Asegurar que ambas tablas usen utf8mb4_unicode_ci
         migrations.RunSQL(
             """
             ALTER TABLE property_property CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -54,38 +64,15 @@ class Migration(migrations.Migration):
             """
         ),
         
-        # Agregar el campo precio_desde si no existe
-        migrations.RunSQL(
-            """
-            SET @column_exists = (
-                SELECT COUNT(*)
-                FROM information_schema.COLUMNS 
-                WHERE TABLE_SCHEMA = DATABASE() 
-                AND TABLE_NAME = 'property_property' 
-                AND COLUMN_NAME = 'precio_desde'
-            );
-            
-            SET @sql = IF(@column_exists = 0, 
-                'ALTER TABLE property_property ADD COLUMN precio_desde DECIMAL(10,2) NULL;', 
-                'SELECT "Column precio_desde already exists";'
-            );
-            
-            PREPARE stmt FROM @sql;
-            EXECUTE stmt;
-            DEALLOCATE PREPARE stmt;
-            """,
-            reverse_sql="ALTER TABLE property_property DROP COLUMN IF EXISTS precio_desde;"
-        ),
-        
         # Recrear la restricción de llave foránea con collations compatibles
         migrations.RunSQL(
             """
             ALTER TABLE reservation_reservation 
-            ADD CONSTRAINT reservation_reservat_property_id_0d94cf80_fk_property_ 
+            ADD CONSTRAINT reservation_reservation_property_id_fk 
             FOREIGN KEY (property_id) REFERENCES property_property(id) 
             ON DELETE CASCADE ON UPDATE CASCADE;
             """,
-            reverse_sql="ALTER TABLE reservation_reservation DROP FOREIGN KEY IF EXISTS reservation_reservat_property_id_0d94cf80_fk_property_;"
+            reverse_sql="ALTER TABLE reservation_reservation DROP FOREIGN KEY IF EXISTS reservation_reservation_property_id_fk;"
         ),
         
         # Rehabilitar verificaciones de foreign keys
