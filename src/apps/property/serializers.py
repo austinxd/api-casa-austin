@@ -5,7 +5,27 @@ from drf_spectacular.utils import extend_schema_field
 from .models import Property, ProfitPropertyAirBnb
 
 
-class PropertySerializer(serializers.ModelSerializer):
+class PropertyListSerializer(serializers.ModelSerializer):
+    """Serializer ligero para listados - solo información básica"""
+    class Meta:
+        model = Property
+        fields = [
+            "id", 
+            "name", 
+            "location", 
+            "capacity_max", 
+            "dormitorios", 
+            "banos", 
+            "hora_ingreso", 
+            "hora_salida", 
+            "caracteristicas",
+            "background_color",
+            "precio_desde"
+        ]
+
+
+class PropertyDetailSerializer(serializers.ModelSerializer):
+    """Serializer completo para vista de detalle"""
     class Meta:
         model = Property
         exclude = ["created", "updated", "deleted"]
@@ -21,6 +41,10 @@ class PropertySerializer(serializers.ModelSerializer):
         if value and not isinstance(value, list):
             raise serializers.ValidationError("Las características deben ser una lista válida")
         return value
+
+
+# Mantener compatibilidad hacia atrás
+PropertySerializer = PropertyDetailSerializer
 
 class ProfitPropertyAirBnbSerializer(serializers.ModelSerializer):
     property = serializers.SerializerMethodField()

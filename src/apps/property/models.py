@@ -23,10 +23,19 @@ class Property(BaseModel):
     hora_ingreso = models.TimeField(null=True, blank=True, verbose_name="Hora de ingreso")
     hora_salida = models.TimeField(null=True, blank=True, verbose_name="Hora de salida")
     precio_extra_persona = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Precio extra por persona")
+    precio_desde = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Precio desde", help_text="Precio base de referencia para mostrar en listados")
     caracteristicas = models.JSONField(default=list, blank=True, verbose_name="Características", help_text="Lista de características de la propiedad")
 
     def __str__(self):
         return self.name
+
+    @property
+    def slug(self):
+        """Generar un slug basado en el nombre para URLs amigables"""
+        import re
+        slug = re.sub(r'[^\w\s-]', '', self.name.lower())
+        slug = re.sub(r'[-\s]+', '-', slug)
+        return slug.strip('-')
 
     def delete(self, *args, **kwargs):
         self.deleted = True

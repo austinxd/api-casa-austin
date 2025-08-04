@@ -12,15 +12,22 @@ from apps.core.functions import update_air_bnb_api
 from .models import Property, ProfitPropertyAirBnb
 from apps.reservation.models import Reservation
 
-from .serializers import PropertySerializer, ProfitPropertyAirBnbSerializer
+from .serializers import PropertyListSerializer, PropertyDetailSerializer, PropertySerializer, ProfitPropertyAirBnbSerializer
 
 
 class PropertyApiView(viewsets.ReadOnlyModelViewSet):
-    serializer_class = PropertySerializer
+    serializer_class = PropertyListSerializer
     queryset = Property.objects.exclude(deleted=True).order_by("name")
     filter_backends = [filters.SearchFilter]
     search_fields = ["name"]
     pagination_class = CustomPagination
+    lookup_field = 'id'  # Puedes usar 'id' o crear un campo 'slug' si prefieres URLs más amigables
+
+    def get_serializer_class(self):
+        """Usar diferentes serializers según la acción"""
+        if self.action == 'retrieve':
+            return PropertyDetailSerializer
+        return PropertyListSerializer
 
     def get_pagination_class(self):
         """Determinar si usar o no paginación

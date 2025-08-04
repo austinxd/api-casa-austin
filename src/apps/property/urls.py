@@ -11,5 +11,7 @@ router.register("profit", ProfitPropertyApiView, basename="profit")
 
 urlpatterns = [
     path("", include(router.urls)),
-    path("prop/check-avaible/", CheckAvaiblePorperty.as_view())
+    path("prop/check-avaible/", CheckAvaiblePorperty.as_view()),
+    # Opcional: Ruta personalizada para slug
+    # path("property/slug/<str:slug>/", PropertyDetailBySlugView.as_view(), name="property-by-slug"),
 ]
