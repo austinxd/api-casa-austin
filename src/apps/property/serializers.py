@@ -2,11 +2,24 @@ from rest_framework import serializers
 
 from drf_spectacular.utils import extend_schema_field
 
-from .models import Property, ProfitPropertyAirBnb
+from .models import Property, ProfitPropertyAirBnb, PropertyPhoto
+
+
+
+
+class PropertyPhotoSerializer(serializers.ModelSerializer):
+    """Serializer para las fotos de propiedades"""
+    class Meta:
+        model = PropertyPhoto
+        fields = ["id", "image_url", "alt_text", "order", "is_main"]
+
 
 
 class PropertyListSerializer(serializers.ModelSerializer):
     """Serializer ligero para listados - solo información básica"""
+    photos = PropertyPhotoSerializer(many=True, read_only=True)
+    main_photo = serializers.SerializerMethodField()
+    
     class Meta:
         model = Property
         fields = [
@@ -21,12 +34,39 @@ class PropertyListSerializer(serializers.ModelSerializer):
             "hora_salida", 
             "caracteristicas",
             "background_color",
-            "precio_desde"
+            "precio_desde",
+            "photos",
+            "main_photo"
         ]
+    
+    def get_main_photo(self, obj):
+        """Obtener la foto principal o la primera foto disponible"""
+        main_photo = obj.photos.filter(is_main=True, deleted=False).first()
+        if not main_photo:
+
+    
+    def get_main_photo(self, obj):
+        """Obtener la foto principal o la primera foto disponible"""
+        main_photo = obj.photos.filter(is_main=True, deleted=False).first()
+        if not main_photo:
+            main_photo = obj.photos.filter(deleted=False).first()
+        
+        if main_photo:
+            return PropertyPhotoSerializer(main_photo).data
+        return None
+
+            main_photo = obj.photos.filter(deleted=False).first()
+        
+        if main_photo:
+            return PropertyPhotoSerializer(main_photo).data
+        return None
 
 
 class PropertyDetailSerializer(serializers.ModelSerializer):
     """Serializer completo para vista de detalle"""
+    photos = PropertyPhotoSerializer(many=True, read_only=True)
+    main_photo = serializers.SerializerMethodField()
+    
     class Meta:
         model = Property
         exclude = ["created", "updated", "deleted"]

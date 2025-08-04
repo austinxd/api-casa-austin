@@ -55,6 +55,34 @@ class Property(BaseModel):
 
     def delete(self, *args, **kwargs):
         self.deleted = True
+
+
+class PropertyPhoto(BaseModel):
+    property = models.ForeignKey(Property, related_name='photos', on_delete=models.CASCADE)
+    image_url = models.URLField(verbose_name="URL de la imagen")
+    alt_text = models.CharField(max_length=200, blank=True, verbose_name="Texto alternativo")
+    order = models.PositiveIntegerField(default=0, verbose_name="Orden", help_text="Orden de visualización (0 = primera)")
+    is_main = models.BooleanField(default=False, verbose_name="Imagen principal")
+
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Foto de Propiedad"
+        verbose_name_plural = "Fotos de Propiedades"
+
+    def __str__(self):
+        return f"Foto de {self.property.name} - {self.order}"
+
+    def save(self, *args, **kwargs):
+        # Si esta foto se marca como principal, desmarcar las demás de la misma propiedad
+        if self.is_main:
+            PropertyPhoto.objects.filter(property=self.property, is_main=True).exclude(pk=self.pk).update(is_main=False)
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        self.deleted = True
+        self.save()
+
+
         self.save()
 
 class ProfitPropertyAirBnb(BaseModel):
