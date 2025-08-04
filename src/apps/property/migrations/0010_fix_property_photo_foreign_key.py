@@ -12,33 +12,26 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Primero eliminamos cualquier constraint existente de forma segura
+        # Verificar si la tabla ya existe antes de hacer cambios
         migrations.RunSQL(
             """
-            SELECT CONCAT('ALTER TABLE property_propertyphoto DROP FOREIGN KEY ', CONSTRAINT_NAME, ';') AS query
-            FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
-            WHERE TABLE_SCHEMA = DATABASE() 
-            AND TABLE_NAME = 'property_propertyphoto' 
-            AND COLUMN_NAME = 'property_id' 
-            AND CONSTRAINT_NAME != 'PRIMARY';
+            SET @table_exists = (
+                SELECT COUNT(*) 
+                FROM information_schema.TABLES 
+                WHERE TABLE_SCHEMA = DATABASE() 
+                AND TABLE_NAME = 'property_propertyphoto'
+            );
             """,
             reverse_sql="-- No reverse needed"
         ),
         
-        # Ejecutar el DROP si existe constraint
+        # Solo ejecutar si la tabla existe
         migrations.RunSQL(
             """
-            SET @sql = (
-                SELECT CONCAT('ALTER TABLE property_propertyphoto DROP FOREIGN KEY ', CONSTRAINT_NAME)
-                FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
-                WHERE TABLE_SCHEMA = DATABASE() 
-                AND TABLE_NAME = 'property_propertyphoto' 
-                AND COLUMN_NAME = 'property_id' 
-                AND CONSTRAINT_NAME != 'PRIMARY'
-                LIMIT 1
+            SET @sql = IF(@table_exists > 0,
+                'SELECT "Table exists, proceeding with FK fixes" as info',
+                'SELECT "Table does not exist, skipping FK fixes" as info'
             );
-            
-            SET @sql = IFNULL(@sql, 'SELECT "No foreign key to drop" as info');
             PREPARE stmt FROM @sql;
             EXECUTE stmt;
             DEALLOCATE PREPARE stmt;
@@ -46,22 +39,58 @@ class Migration(migrations.Migration):
             reverse_sql="-- No reverse needed"
         ),
         
-        # Cambiar el tipo de columna property_id para que coincida con Property.id
+        # Eliminar constraint existente solo si la tabla existe
         migrations.RunSQL(
-            "ALTER TABLE property_propertyphoto MODIFY COLUMN property_id CHAR(32) NOT NULL;",
-            reverse_sql="ALTER TABLE property_propertyphoto MODIFY COLUMN property_id INT NOT NULL;"
+            """
+            SET @sql = IF(@table_exists > 0,
+                CONCAT('ALTER TABLE property_propertyphoto DROP FOREIGN KEY ', 
+                    IFNULL((SELECT CONSTRAINT_NAME 
+                           FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+                           WHERE TABLE_SCHEMA = DATABASE() 
+                           AND TABLE_NAME = "property_propertyphoto" 
+                           AND COLUMN_NAME = "property_id" 
+                           AND CONSTRAINT_NAME != "PRIMARY"
+                           LIMIT 1), 'dummy_constraint')),
+                'SELECT "No table to modify" as info'
+            );
+            
+            -- Solo ejecutar si encontramos un constraint real
+            IF (@sql LIKE 'ALTER TABLE%' AND @sql NOT LIKE '%dummy_constraint%') THEN
+                PREPARE stmt FROM @sql;
+                EXECUTE stmt;
+                DEALLOCATE PREPARE stmt;
+            END IF;
+            """,
+            reverse_sql="-- No reverse needed"
         ),
         
-        # Agregar nuevo constraint de clave externa
+        # Modificar el tipo de columna solo si la tabla existe
         migrations.RunSQL(
-            "ALTER TABLE property_propertyphoto ADD CONSTRAINT property_propertyphoto_property_id_fk FOREIGN KEY (property_id) REFERENCES property_property (id) ON DELETE CASCADE;",
-            reverse_sql="ALTER TABLE property_propertyphoto DROP FOREIGN KEY property_propertyphoto_property_id_fk;"
+            """
+            IF @table_exists > 0 THEN
+                ALTER TABLE property_propertyphoto MODIFY COLUMN property_id CHAR(32) NOT NULL;
+            END IF;
+            """,
+            reverse_sql="""
+            IF @table_exists > 0 THEN
+                ALTER TABLE property_propertyphoto MODIFY COLUMN property_id INT NOT NULL;
+            END IF;
+            """
         ),
         
-        # Actualizar el modelo para usar el ForeignKey correcto
-        migrations.AlterField(
-            model_name='propertyphoto',
-            name='property',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='photos', to='property.property'),
+        # Agregar nuevo constraint solo si la tabla existe
+        migrations.RunSQL(
+            """
+            IF @table_exists > 0 THEN
+                ALTER TABLE property_propertyphoto 
+                ADD CONSTRAINT property_propertyphoto_property_id_fk 
+                FOREIGN KEY (property_id) REFERENCES property_property (id) ON DELETE CASCADE;
+            END IF;
+            """,
+            reverse_sql="""
+            IF @table_exists > 0 THEN
+                ALTER TABLE property_propertyphoto DROP FOREIGN KEY property_propertyphoto_property_id_fk;
+            END IF;
+            """
         ),
     ]
