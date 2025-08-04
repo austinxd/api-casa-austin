@@ -21,7 +21,6 @@ class PropertyPhotoSerializer(serializers.ModelSerializer):
 
 class PropertyListSerializer(serializers.ModelSerializer):
     """Serializer ligero para listados - solo información básica"""
-    photos = PropertyPhotoSerializer(many=True, read_only=True)
     main_photo = serializers.SerializerMethodField()
 
     class Meta:
@@ -39,7 +38,6 @@ class PropertyListSerializer(serializers.ModelSerializer):
             "caracteristicas",
             "background_color",
             "precio_desde",
-            "photos",
             "main_photo"
         ]
 
