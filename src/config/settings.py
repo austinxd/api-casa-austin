@@ -166,7 +166,10 @@ DATABASES = {
         'PASSWORD': env('MYSQL_PASSWORD', default='!Leonel123'),
         'HOST': env('MYSQL_HOST', default='172.18.0.2'),
         'PORT': env('MYSQL_PORT', default='3306'),
-        'OPTIONS': {'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"}
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+        }
     }
 }
 
