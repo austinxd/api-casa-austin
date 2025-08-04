@@ -11,6 +11,7 @@ class PropertyAdmin(admin.ModelAdmin):
         "dormitorios",
         "banos",
         "precio_extra_persona",
+        "precio_desde",
         "deleted"
     )
     list_filter = ("dormitorios", "banos", "deleted")
@@ -23,7 +24,7 @@ class PropertyAdmin(admin.ModelAdmin):
             "fields": ("dormitorios", "banos", "detalle_dormitorios", "capacity_max", "caracteristicas")
         }),
         ("Horarios y Precios", {
-            "fields": ("hora_ingreso", "hora_salida", "precio_extra_persona")
+            "fields": ("hora_ingreso", "hora_salida", "precio_extra_persona", "precio_desde")
         }),
         ("URLs", {
             "fields": ("airbnb_url", "on_temperature_pool_url", "off_temperature_pool_url")
