@@ -223,5 +223,18 @@ class PropertyPhotoViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             serializer.save(property=property_instance)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'])
+    def test_upload(self, request):
+        """Test endpoint to check upload limits"""
+        if 'test_file' in request.FILES:
+            file = request.FILES['test_file']
+            return Response({
+                "success": True,
+                "file_name": file.name,
+                "file_size": file.size,
+                "content_type": file.content_type,
+                "message": f"Archivo recibido correctamente: {file.size} bytes"
+            })
+        return Response({"error": "No se recibió ningún archivo"}, status=400)
