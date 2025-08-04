@@ -13,7 +13,7 @@ class Property(BaseModel):
     background_color = models.CharField(max_length=255, null=False, blank=False, default="#fff")
     on_temperature_pool_url = models.URLField(null=True, blank=True)
     off_temperature_pool_url = models.URLField(null=True, blank=True)
-    
+
     # Nuevos campos
     titulo = models.CharField(max_length=200, null=True, blank=True, verbose_name="Título")
     descripcion = models.TextField(null=True, blank=True, verbose_name="Descripción")
@@ -34,20 +34,20 @@ class Property(BaseModel):
         """Generar un slug basado en el nombre para URLs amigables"""
         import re
         from django.utils.text import slugify
-        
+
         base_slug = slugify(self.name)
         if not base_slug:
             base_slug = slugify(f"propiedad-{self.pk}")
-        
+
         # Verificar si el slug ya existe
         counter = 1
         slug = base_slug
         while Property.objects.filter(slug=slug).exclude(pk=self.pk).exists():
             slug = f"{base_slug}-{counter}"
             counter += 1
-        
+
         return slug
-    
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = self.generate_slug()
@@ -98,7 +98,7 @@ class ProfitPropertyAirBnb(BaseModel):
     )
     year = models.PositiveIntegerField(null=False, blank=False, default=1)
     profit_sol = models.DecimalField(max_digits=20, decimal_places=2, verbose_name='Ganancia (Soles)')
-    
+
     class Meta:
         unique_together = ('property', 'month', 'year')
 

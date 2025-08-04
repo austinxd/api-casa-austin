@@ -44,6 +44,12 @@ class PropertyAdmin(admin.ModelAdmin):
             "fields": ("dormitorios", "banos", "detalle_dormitorios", "capacity_max", "caracteristicas")
 
 
+class PropertyPhotoAdmin(admin.ModelAdmin):
+    list_display = ('property', 'caption', 'is_main', 'order', 'created_at')
+    list_filter = ('is_main', 'created_at')
+    list_editable = ('is_main', 'order')
+    search_fields = ('property__name', 'caption')
+
 admin.site.register(PropertyPhoto, PropertyPhotoAdmin)
 
         }),
