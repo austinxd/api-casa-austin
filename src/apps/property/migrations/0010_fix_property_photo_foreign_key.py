@@ -10,10 +10,18 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Paso 1: Eliminar cualquier restricción existente
+        # Paso 1: Eliminar cualquier restricción existente de manera segura
         migrations.RunSQL(
             """
-            ALTER TABLE property_propertyphoto DROP FOREIGN KEY IF EXISTS property_propertyphoto_property_id_fk;
+            SET @sql = IF((SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+                          WHERE TABLE_SCHEMA = DATABASE() 
+                          AND TABLE_NAME = 'property_propertyphoto' 
+                          AND CONSTRAINT_NAME = 'property_propertyphoto_property_id_fk') > 0,
+                         'ALTER TABLE property_propertyphoto DROP FOREIGN KEY property_propertyphoto_property_id_fk',
+                         'SELECT "No constraint to drop" as info');
+            PREPARE stmt FROM @sql;
+            EXECUTE stmt;
+            DEALLOCATE PREPARE stmt;
             """,
             reverse_sql="-- No reverse needed"
         ),
