@@ -441,6 +441,12 @@ class ClientRequestOTPForRegistrationView(APIView):
         
         if otp_service_provider == 'whatsapp':
             whatsapp_service = WhatsAppOTPService()
+            
+            # Verificar configuración antes de enviar
+            config_ok = whatsapp_service.test_whatsapp_config()
+            if not config_ok:
+                logger.error("Configuración de WhatsApp no válida")
+            
             otp_code = whatsapp_service.generate_otp_code()
             
             # Almacenar el código OTP temporalmente

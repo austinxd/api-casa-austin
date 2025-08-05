@@ -106,7 +106,18 @@ class WhatsAppOTPService:
                 }
             }
             
+            # Log detallado para debug
+            logger.info(f"WhatsApp API URL: {self.api_url}")
+            logger.info(f"WhatsApp Phone Number ID: {self.phone_number_id}")
+            logger.info(f"WhatsApp Template Name: {self.template_name}")
+            logger.info(f"Headers: {headers}")
+            logger.info(f"Payload: {payload}")
+            
             response = requests.post(self.api_url, json=payload, headers=headers)
+            
+            logger.info(f"WhatsApp API Response Status: {response.status_code}")
+            logger.info(f"WhatsApp API Response Headers: {response.headers}")
+            logger.info(f"WhatsApp API Response Body: {response.text}")
             
             if response.status_code == 200:
                 response_data = response.json()
@@ -120,6 +131,43 @@ class WhatsAppOTPService:
             logger.error(f"Error al enviar WhatsApp OTP a {phone_number}: {str(e)}")
             return False
     
+    def test_whatsapp_config(self):
+        """
+        Método de prueba para verificar la configuración de WhatsApp
+        """
+        logger.info("=== VERIFICACIÓN DE CONFIGURACIÓN WHATSAPP ===")
+        logger.info(f"Access Token presente: {'Sí' if self.access_token else 'No'}")
+        logger.info(f"Access Token (primeros 20 chars): {self.access_token[:20] if self.access_token else 'N/A'}...")
+        logger.info(f"Phone Number ID: {self.phone_number_id}")
+        logger.info(f"Template Name: {self.template_name}")
+        logger.info(f"API URL: {self.api_url}")
+        logger.info(f"Servicio habilitado: {self.enabled}")
+        logger.info("============================================")
+        
+        # Hacer una llamada de prueba a la API para verificar permisos
+        if self.enabled:
+            try:
+                headers = {
+                    'Authorization': f'Bearer {self.access_token}',
+                    'Content-Type': 'application/json'
+                }
+                
+                # URL para obtener información del número de teléfono
+                test_url = f"https://graph.facebook.com/v17.0/{self.phone_number_id}"
+                
+                logger.info(f"Probando acceso a: {test_url}")
+                response = requests.get(test_url, headers=headers)
+                
+                logger.info(f"Test API Response Status: {response.status_code}")
+                logger.info(f"Test API Response: {response.text}")
+                
+                return response.status_code == 200
+            except Exception as e:
+                logger.error(f"Error en test de configuración: {str(e)}")
+                return False
+        
+        return False
+
     def send_otp_text_message(self, phone_number, otp_code):
         """
         Envía OTP por WhatsApp usando mensaje de texto (sin template)
