@@ -61,7 +61,7 @@ class ClientCreateReservationView(APIView):
                     {
                         'success': True,
                         'message':
-                        'Reserva creada exitosamente. Está pendiente de aprobación.',
+                        'Reserva creada exitosamente. Está pendiente de<bos>a aprobación.',
                         'reservation': response_serializer.data
                     },
                     status=201)
@@ -291,7 +291,7 @@ class ClientsApiView(viewsets.ModelViewSet):
                        "Cliente creado")
 
         # Verificar si hay código de referido
-        referral_code = request.data.get('referral_code')
+        referral_code = self.request.data.get('referral_code')
         if referral_code:
             referrer = Clients.get_client_by_referral_code(referral_code)
             if referrer:
