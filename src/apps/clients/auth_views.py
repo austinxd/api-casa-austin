@@ -82,8 +82,8 @@ class ClientPublicRegisterView(APIView):
 
 class ClientPublicRegistrationView(APIView):
     """
-    Endpoint para registro público de nuevos clientes sin verificación OTP
-    Solo crea el cliente con datos básicos, sin contraseña
+    Endpoint para registro público de nuevos clientes
+    Puede crear el cliente con o sin contraseña dependiendo de los datos enviados
     """
     permission_classes = [AllowAny]
 
@@ -111,6 +111,21 @@ class ClientPublicRegistrationView(APIView):
                     {'message': 'Cliente ya existe con este documento'},
                     status=400)
 
+            # Validar contraseña si se proporciona
+            password = request.data.get('password')
+            confirm_password = request.data.get('confirm_password')
+            
+            if password and confirm_password:
+                if password != confirm_password:
+                    return Response(
+                        {'message': 'Las contraseñas no coinciden'},
+                        status=400)
+                
+                if len(password) < 8:
+                    return Response(
+                        {'message': 'La contraseña debe tener al menos 8 caracteres'},
+                        status=400)
+
             # Obtener el código de referido del request si existe
             referral_code = request.data.get('referral_code')
             referrer = None
@@ -130,8 +145,14 @@ class ClientPublicRegistrationView(APIView):
                 'sex': request.data.get('sex', 'm'),
                 'date': request.data.get('date'),
                 'referred_by': referrer,
-                'is_password_set': False
             }
+
+            # Configurar contraseña si se proporciona
+            if password:
+                client_data['password'] = make_password(password)
+                client_data['is_password_set'] = True
+            else:
+                client_data['is_password_set'] = False
 
             # Crear el cliente usando el serializer
             serializer = ClientsSerializer(data=client_data)
@@ -143,12 +164,18 @@ class ClientPublicRegistrationView(APIView):
                 if referrer:
                     logger.info(f"Cliente referido por: {referrer.first_name} (Código: {referral_code})")
 
-                return Response({
+                response_data = {
                     'success': True,
                     'message': 'Cliente registrado exitosamente',
                     'client_id': client.id,
-                    'requires_password_setup': True
-                }, status=201)
+                    'requires_password_setup': not bool(password)
+                }
+
+                if password:
+                    response_data['message'] = 'Cliente registrado exitosamente con contraseña'
+                    logger.info(f"Cliente {client.first_name} registrado con contraseña configurada")
+
+                return Response(response_data, status=201)
             else:
                 return Response({
                     'success': False,
