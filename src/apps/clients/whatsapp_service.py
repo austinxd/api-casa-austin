@@ -83,28 +83,43 @@ class WhatsAppOTPService:
                 'Content-Type': 'application/json'
             }
             
-            payload = {
-                "messaging_product": "whatsapp",
-                "to": formatted_phone,
-                "type": "template",
-                "template": {
-                    "name": self.template_name,
-                    "language": {
-                        "code": "es"  # Código de idioma español
-                    },
-                    "components": [
-                        {
-                            "type": "body",
-                            "parameters": [
-                                {
-                                    "type": "text",
-                                    "text": otp_code
-                                }
-                            ]
+            # Usar template hello_world para pruebas (viene predefinido)
+            if self.template_name == "hello_world" or not self.template_name:
+                payload = {
+                    "messaging_product": "whatsapp",
+                    "to": formatted_phone,
+                    "type": "template",
+                    "template": {
+                        "name": "hello_world",
+                        "language": {
+                            "code": "en_US"
                         }
-                    ]
+                    }
                 }
-            }
+            else:
+                # Template personalizado con parámetros OTP
+                payload = {
+                    "messaging_product": "whatsapp",
+                    "to": formatted_phone,
+                    "type": "template",
+                    "template": {
+                        "name": self.template_name,
+                        "language": {
+                            "code": "es"
+                        },
+                        "components": [
+                            {
+                                "type": "body",
+                                "parameters": [
+                                    {
+                                        "type": "text",
+                                        "text": otp_code
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
             
             # Log detallado para debug
             logger.info(f"WhatsApp API URL: {self.api_url}")
