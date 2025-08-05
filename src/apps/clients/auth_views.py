@@ -293,6 +293,19 @@ class ClientVerifyDocumentView(APIView):
         serializer = ClientAuthVerifySerializer(data=request.data)
         if not serializer.is_valid():
             return Response({'message': 'Datos inválidos'}, status=400)
+        
+        # Validar formato según tipo de documento
+        document_type = serializer.validated_data['document_type']
+        number_doc = serializer.validated_data['number_doc']
+        
+        if document_type == 'dni' and (len(number_doc) != 8 or not number_doc.isdigit()):
+            return Response({'message': 'El DNI debe tener exactamente 8 dígitos'}, status=400)
+        elif document_type == 'cex' and (len(number_doc) < 9 or len(number_doc) > 12):
+            return Response({'message': 'El Carnet de Extranjería debe tener entre 9 y 12 caracteres'}, status=400)
+        elif document_type == 'pas' and (len(number_doc) < 8 or len(number_doc) > 9):
+            return Response({'message': 'El Pasaporte debe tener entre 8 y 9 caracteres'}, status=400)
+        elif document_type == 'ruc' and (len(number_doc) != 11 or not number_doc.isdigit()):
+            return Response({'message': 'El RUC debe tener exactamente 11 dígitos'}, status=400)
 
         try:
             client = Clients.objects.get(
