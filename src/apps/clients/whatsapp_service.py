@@ -20,7 +20,7 @@ class WhatsAppOTPService:
         self.access_token = os.getenv('WHATSAPP_ACCESS_TOKEN')
         self.phone_number_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID')
         self.template_name = os.getenv('WHATSAPP_OTP_TEMPLATE_NAME')
-        self.api_url = f"https://graph.facebook.com/v17.0/{self.phone_number_id}/messages"
+        self.api_url = f"https://graph.facebook.com/v22.0/{self.phone_number_id}/messages"
         
         if not all([self.access_token, self.phone_number_id, self.template_name]):
             logger.warning("Credenciales de WhatsApp Business API no configuradas completamente. Servicio OTP deshabilitado.")
@@ -97,7 +97,7 @@ class WhatsAppOTPService:
                     }
                 }
             else:
-                # Template personalizado con parámetros OTP
+                # Template personalizado con parámetros OTP (formato completo con body y button)
                 payload = {
                     "messaging_product": "whatsapp",
                     "to": formatted_phone,
@@ -110,6 +110,17 @@ class WhatsAppOTPService:
                         "components": [
                             {
                                 "type": "body",
+                                "parameters": [
+                                    {
+                                        "type": "text",
+                                        "text": otp_code
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "button",
+                                "sub_type": "url",
+                                "index": "0",
                                 "parameters": [
                                     {
                                         "type": "text",
@@ -168,7 +179,7 @@ class WhatsAppOTPService:
                 }
                 
                 # URL para obtener información del número de teléfono
-                test_url = f"https://graph.facebook.com/v17.0/{self.phone_number_id}"
+                test_url = f"https://graph.facebook.com/v22.0/{self.phone_number_id}"
                 
                 logger.info(f"Probando acceso a: {test_url}")
                 response = requests.get(test_url, headers=headers)
