@@ -41,7 +41,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://reservas.casaaustin.pe",
     "https://6d9c1416-4d5a-43ff-b6d9-45dcb8a576cf-00-1qgg6m6ft27vv.riker.replit.dev:5000",
     "https://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.replit.dev",
-    "contratos.casaaustin.pe"
+    "https://contratos.casaaustin.pe"
 ]
 
 # Permitir headers adicionales para autenticación
@@ -346,5 +346,5 @@ CSRF_TRUSTED_ORIGINS = [
     "https://reservas.casaaustin.pe",
     "https://6d9c1416-4d5a-43ff-b6d9-45dcb8a576cf-00-1qgg6m6ft27vv.riker.replit.dev:5000",
     "https://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.replit.dev",
-    "contratos.casaaustin.pe"
+    "https://contratos.casaaustin.pe"
 ]
