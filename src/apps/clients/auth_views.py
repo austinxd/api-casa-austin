@@ -144,8 +144,11 @@ class ClientPublicRegistrationView(APIView):
                 'tel_number': request.data.get('tel_number'),
                 'sex': request.data.get('sex', 'm'),
                 'date': request.data.get('date'),
-                'referred_by': referrer,
             }
+
+            # Agregar referido si existe (usar el ID del referrer)
+            if referrer:
+                client_data['referred_by'] = referrer.id
 
             # Configurar contraseña si se proporciona
             if password:
