@@ -19,6 +19,8 @@ from .serializers import (ClientAuthVerifySerializer,
                           ClientAuthLoginSerializer, ClientProfileSerializer,
                           ClientsSerializer)
 from .twilio_service import TwilioOTPService
+from .whatsapp_service import WhatsAppOTPService
+import os
 import logging
 
 logger = logging.getLogger('apps')
@@ -189,14 +191,30 @@ class ClientCompleteRegistrationView(APIView):
 
                 return Response(response_data, status=status.HTTP_201_CREATED)
 
-            # Verificar OTP con Twilio
-            twilio_service = TwilioOTPService()
+            # Verificar OTP según el servicio configurado
+            otp_service_provider = os.getenv('OTP_SERVICE_PROVIDER', 'twilio').lower()
             tel_number = request.data.get('tel_number')
             otp_code = request.data.get('otp_code')
 
-            if not twilio_service.verify_otp_code(tel_number, otp_code):
-                return Response({'message': 'Código OTP inválido o expirado'},
-                                status=400)
+            if otp_service_provider == 'whatsapp':
+                # Verificar OTP almacenado en cache
+                from django.core.cache import cache
+                cache_key = f"whatsapp_otp_{tel_number}"
+                stored_otp = cache.get(cache_key)
+                
+                if not stored_otp or stored_otp != otp_code:
+                    return Response({'message': 'Código OTP inválido o expirado'},
+                                    status=400)
+                
+                # Limpiar el código del cache
+                cache.delete(cache_key)
+            else:
+                # Verificar OTP con Twilio
+                twilio_service = TwilioOTPService()
+
+                if not twilio_service.verify_otp_code(tel_number, otp_code):
+                    return Response({'message': 'Código OTP inválido o expirado'},
+                                    status=400)
 
             # Crear el cliente con todos los datos
             client_data = {
@@ -355,18 +373,40 @@ class ClientRequestOTPView(APIView):
                     },
                     status=400)
 
-            # Usar Twilio Verify Service
-            twilio_service = TwilioOTPService()
-
-            if twilio_service.send_otp_with_verify(client.tel_number):
-                return Response({
-                    'message': 'Código de verificación enviado',
-                    'phone_masked': f"***{client.tel_number[-4:]}"
-                })
+            # Verificar qué servicio usar
+            otp_service_provider = os.getenv('OTP_SERVICE_PROVIDER', 'twilio').lower()
+            
+            if otp_service_provider == 'whatsapp':
+                whatsapp_service = WhatsAppOTPService()
+                otp_code = whatsapp_service.generate_otp_code()
+                
+                # Almacenar el código OTP temporalmente
+                from django.core.cache import cache
+                cache_key = f"whatsapp_otp_{client.tel_number}"
+                cache.set(cache_key, otp_code, 600)  # 10 minutos
+                
+                if whatsapp_service.send_otp_template(client.tel_number, otp_code):
+                    return Response({
+                        'message': 'Código de verificación enviado por WhatsApp',
+                        'phone_masked': f"***{client.tel_number[-4:]}"
+                    })
+                else:
+                    return Response(
+                        {'message': 'Error al enviar código de verificación por WhatsApp'},
+                        status=500)
             else:
-                return Response(
-                    {'message': 'Error al enviar código de verificación'},
-                    status=500)
+                # Usar Twilio Verify Service
+                twilio_service = TwilioOTPService()
+
+                if twilio_service.send_otp_with_verify(client.tel_number):
+                    return Response({
+                        'message': 'Código de verificación enviado',
+                        'phone_masked': f"***{client.tel_number[-4:]}"
+                    })
+                else:
+                    return Response(
+                        {'message': 'Error al enviar código de verificación'},
+                        status=500)
 
         except Clients.DoesNotExist:
             return Response({'message': 'Cliente no encontrado'}, status=404)
@@ -396,25 +436,53 @@ class ClientRequestOTPForRegistrationView(APIView):
                 },
                 status=400)
 
-        # Usar Twilio Verify Service para enviar OTP (el formateo se hace internamente)
-        twilio_service = TwilioOTPService()
+        # Verificar qué servicio usar
+        otp_service_provider = os.getenv('OTP_SERVICE_PROVIDER', 'twilio').lower()
+        
+        if otp_service_provider == 'whatsapp':
+            whatsapp_service = WhatsAppOTPService()
+            otp_code = whatsapp_service.generate_otp_code()
+            
+            # Almacenar el código OTP temporalmente
+            from django.core.cache import cache
+            cache_key = f"whatsapp_otp_{tel_number}"
+            cache.set(cache_key, otp_code, 600)  # 10 minutos
+            
+            if whatsapp_service.send_otp_template(tel_number, otp_code):
+                # Enmascarar el número para mostrar en la respuesta
+                masked_number = f"***{tel_number[-4:]}" if len(tel_number) > 4 else tel_number
 
-        if twilio_service.send_otp_with_verify(tel_number):
-            # Enmascarar el número para mostrar en la respuesta
-            masked_number = f"***{tel_number[-4:]}" if len(
-                tel_number) > 4 else tel_number
-
-            return Response({
-                'message': 'Código de verificación enviado',
-                'phone_masked': masked_number
-            })
+                return Response({
+                    'message': 'Código de verificación enviado por WhatsApp',
+                    'phone_masked': masked_number
+                })
+            else:
+                return Response(
+                    {
+                        'message':
+                        'Error al enviar código de verificación por WhatsApp. Verifica que el número sea válido'
+                    },
+                    status=500)
         else:
-            return Response(
-                {
-                    'message':
-                    'Error al enviar código de verificación. Verifica que el número sea válido'
-                },
-                status=500)
+            # Usar Twilio Verify Service para enviar OTP (el formateo se hace internamente)
+            twilio_service = TwilioOTPService()
+
+            if twilio_service.send_otp_with_verify(tel_number):
+                # Enmascarar el número para mostrar en la respuesta
+                masked_number = f"***{tel_number[-4:]}" if len(
+                    tel_number) > 4 else tel_number
+
+                return Response({
+                    'message': 'Código de verificación enviado',
+                    'phone_masked': masked_number
+                })
+            else:
+                return Response(
+                    {
+                        'message':
+                        'Error al enviar código de verificación. Verifica que el número sea válido'
+                    },
+                    status=500)
 
 
 class ClientSetupPasswordView(APIView):
@@ -431,13 +499,29 @@ class ClientSetupPasswordView(APIView):
                 number_doc=serializer.validated_data['number_doc'],
                 deleted=False)
 
-            # Verificar OTP con Twilio
-            twilio_service = TwilioOTPService()
+            # Verificar OTP según el servicio configurado
+            otp_service_provider = os.getenv('OTP_SERVICE_PROVIDER', 'twilio').lower()
+            otp_code = serializer.validated_data['otp_code']
+            
+            if otp_service_provider == 'whatsapp':
+                # Verificar OTP almacenado en cache
+                from django.core.cache import cache
+                cache_key = f"whatsapp_otp_{client.tel_number}"
+                stored_otp = cache.get(cache_key)
+                
+                if not stored_otp or stored_otp != otp_code:
+                    return Response({'message': 'Código OTP inválido o expirado'},
+                                    status=400)
+                
+                # Limpiar el código del cache
+                cache.delete(cache_key)
+            else:
+                # Verificar OTP con Twilio
+                twilio_service = TwilioOTPService()
 
-            if not twilio_service.verify_otp_code(
-                    client.tel_number, serializer.validated_data['otp_code']):
-                return Response({'message': 'Código OTP inválido o expirado'},
-                                status=400)
+                if not twilio_service.verify_otp_code(client.tel_number, otp_code):
+                    return Response({'message': 'Código OTP inválido o expirado'},
+                                    status=400)
 
             # Configurar contraseña
             client.password = make_password(
