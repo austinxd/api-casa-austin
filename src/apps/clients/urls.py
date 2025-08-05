@@ -14,14 +14,12 @@ urlpatterns = [
     path('clients/verify-document/',
          auth_views.ClientVerifyDocumentView.as_view(),
          name='client-verify-document'),
-
     path('clients/public-register/',
-         auth_views.ClientPublicRegisterView.as_view(),
+         auth_views.ClientPublicRegistrationView.as_view(),
          name='client-public-register'),
     path('clients/complete-register/',
          auth_views.ClientCompleteRegistrationView.as_view(),
          name='complete-register'),
-
     path('', include(router.urls)),
 
     # Endpoints originales para compatibilidad
@@ -82,8 +80,11 @@ urlpatterns = [
          name='client-reservations-list'),
 
     # Voucher upload
-    path('clients/voucher/upload/<uuid:reservation_id>/', ClientVoucherUploadView.as_view(), name='client-voucher-upload'),
-    path('clients/voucher/status/<uuid:reservation_id>/', ClientReservationStatusView.as_view(), name='client-reservation-status'),
-
+    path('clients/voucher/upload/<uuid:reservation_id>/',
+         ClientVoucherUploadView.as_view(),
+         name='client-voucher-upload'),
+    path('clients/voucher/status/<uuid:reservation_id>/',
+         ClientReservationStatusView.as_view(),
+         name='client-reservation-status'),
     path('clients/csrf-token/', auth_views.get_csrf_token, name='csrf-token'),
 ]

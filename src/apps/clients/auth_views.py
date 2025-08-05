@@ -80,6 +80,90 @@ class ClientPublicRegisterView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class ClientPublicRegistrationView(APIView):
+    """
+    Endpoint para registro público de nuevos clientes sin verificación OTP
+    Solo crea el cliente con datos básicos, sin contraseña
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            # Validar datos requeridos básicos
+            required_fields = [
+                'document_type', 'number_doc', 'first_name', 'tel_number'
+            ]
+
+            for field in required_fields:
+                if not request.data.get(field):
+                    return Response(
+                        {'message': f'El campo {field} es requerido'},
+                        status=400)
+
+            # Verificar que el cliente no exista ya
+            existing_client = Clients.objects.filter(
+                document_type=request.data.get('document_type'),
+                number_doc=request.data.get('number_doc'),
+                deleted=False).first()
+
+            if existing_client:
+                return Response(
+                    {'message': 'Cliente ya existe con este documento'},
+                    status=400)
+
+            # Obtener el código de referido del request si existe
+            referral_code = request.data.get('referral_code')
+            referrer = None
+            if referral_code:
+                referrer = Clients.get_client_by_referral_code(referral_code)
+                if not referrer:
+                    logger.warning(f"Código de referido {referral_code} no encontrado")
+
+            # Crear el cliente
+            client_data = {
+                'document_type': request.data.get('document_type'),
+                'number_doc': request.data.get('number_doc'),
+                'first_name': request.data.get('first_name'),
+                'last_name': request.data.get('last_name', ''),
+                'email': request.data.get('email', ''),
+                'tel_number': request.data.get('tel_number'),
+                'sex': request.data.get('sex', 'm'),
+                'date': request.data.get('date'),
+                'referred_by': referrer,
+                'is_password_set': False
+            }
+
+            # Crear el cliente usando el serializer
+            serializer = ClientsSerializer(data=client_data)
+            if serializer.is_valid():
+                client = serializer.save()
+                
+                logger.info(f"Cliente creado exitosamente: {client.first_name} ({client.number_doc})")
+                
+                if referrer:
+                    logger.info(f"Cliente referido por: {referrer.first_name} (Código: {referral_code})")
+
+                return Response({
+                    'success': True,
+                    'message': 'Cliente registrado exitosamente',
+                    'client_id': client.id,
+                    'requires_password_setup': True
+                }, status=201)
+            else:
+                return Response({
+                    'success': False,
+                    'message': 'Error en los datos enviados',
+                    'errors': serializer.errors
+                }, status=400)
+
+        except Exception as e:
+            logger.error(f"Error en registro público: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+
 class ClientCompleteRegistrationView(APIView):
     """
     Endpoint para registro completo de nuevos clientes con verificación OTP
