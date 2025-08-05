@@ -97,7 +97,9 @@ class WhatsAppOTPService:
                     }
                 }
             else:
-                # Template personalizado con parámetros OTP (formato completo con body y button)
+                # Template personalizado configurado en Meta Business
+                # Meta ya tiene el mensaje predefinido, solo enviamos el código OTP
+                # El template 'otpcasaaustin' incluye tanto body como button con el código
                 payload = {
                     "messaging_product": "whatsapp",
                     "to": formatted_phone,
@@ -196,7 +198,8 @@ class WhatsAppOTPService:
 
     def send_otp_text_message(self, phone_number, otp_code):
         """
-        Envía OTP por WhatsApp usando mensaje de texto (sin template)
+        Método mantenido por compatibilidad pero redirige al template
+        Meta ya tiene el mensaje configurado, solo enviamos el código
         
         Args:
             phone_number (str): Número de teléfono destino
@@ -205,61 +208,24 @@ class WhatsAppOTPService:
         Returns:
             bool: True si se envió exitosamente, False en caso contrario
         """
-        if not self.enabled:
-            logger.error("Servicio WhatsApp no configurado correctamente")
-            return False
-        
-        try:
-            # Formatear número de teléfono
-            formatted_phone = self.format_phone_number(phone_number)
-            logger.info(f"Enviando OTP por WhatsApp (texto) a: {formatted_phone}")
-            
-            headers = {
-                'Authorization': f'Bearer {self.access_token}',
-                'Content-Type': 'application/json'
-            }
-            
-            message = f"Tu código de verificación Casa Austin es: *{otp_code}*\n\nEste código expira en 10 minutos.\n\n¡Gracias por elegirnos! 🏠"
-            
-            payload = {
-                "messaging_product": "whatsapp",
-                "to": formatted_phone,
-                "type": "text",
-                "text": {
-                    "body": message
-                }
-            }
-            
-            response = requests.post(self.api_url, json=payload, headers=headers)
-            
-            if response.status_code == 200:
-                response_data = response.json()
-                logger.info(f"WhatsApp OTP (texto) enviado exitosamente a {formatted_phone}. Response: {response_data}")
-                return True
-            else:
-                logger.error(f"Error al enviar WhatsApp OTP (texto) a {formatted_phone}. Status: {response.status_code}, Response: {response.text}")
-                return False
-                
-        except Exception as e:
-            logger.error(f"Error al enviar WhatsApp OTP (texto) a {phone_number}: {str(e)}")
-            return False
+        logger.info("Redirigiendo a template - Meta tiene el mensaje configurado")
+        return self.send_otp_template(phone_number, otp_code)
 
 
 def send_whatsapp_otp(phone_number, otp_code, use_template=True):
     """
     Función auxiliar para enviar OTP por WhatsApp
+    Meta tiene el mensaje configurado en el template, solo enviamos el código
     
     Args:
         phone_number (str): Número de teléfono destino
         otp_code (str): Código OTP
-        use_template (bool): Si usar template o mensaje de texto
+        use_template (bool): Siempre usa template (Meta tiene el mensaje)
         
     Returns:
         bool: True si se envió exitosamente
     """
     service = WhatsAppOTPService()
     
-    if use_template:
-        return service.send_otp_template(phone_number, otp_code)
-    else:
-        return service.send_otp_text_message(phone_number, otp_code)
+    # Siempre usar template ya que Meta tiene el mensaje configurado
+    return service.send_otp_template(phone_number, otp_code)
