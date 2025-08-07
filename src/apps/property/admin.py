@@ -8,6 +8,15 @@ class PropertyPhotoInline(admin.TabularInline):
     extra = 1
     fields = ("image_file", "image_url", "alt_text", "order", "is_main")
     ordering = ["order"]
+    
+    def get_queryset(self, request):
+        """Solo mostrar fotos no eliminadas en el inline"""
+        return PropertyPhoto.objects.filter(deleted=False)
+    
+    def delete_model(self, request, obj):
+        """Realizar soft delete en el inline"""
+        obj.deleted = True
+        obj.save()
 
 
 class PropertyPhotoAdmin(admin.ModelAdmin):
@@ -16,6 +25,27 @@ class PropertyPhotoAdmin(admin.ModelAdmin):
     search_fields = ("property__name", "alt_text")
     ordering = ["property", "order"]
     fields = ("property", "image_file", "image_url", "alt_text", "order", "is_main")
+    
+    def get_queryset(self, request):
+        """Mostrar todas las fotos incluyendo las eliminadas (soft delete)"""
+        return PropertyPhoto.objects.all()
+    
+    def delete_model(self, request, obj):
+        """Realizar soft delete en lugar de hard delete"""
+        obj.deleted = True
+        obj.save()
+    
+    def delete_queryset(self, request, queryset):
+        """Realizar soft delete en eliminación masiva"""
+        queryset.update(deleted=True)
+    
+    actions = ['restore_photos']
+    
+    def restore_photos(self, request, queryset):
+        """Acción para restaurar fotos eliminadas"""
+        count = queryset.update(deleted=False)
+        self.message_user(request, f'{count} fotos han sido restauradas.')
+    restore_photos.short_description = "Restaurar fotos seleccionadas"
 
 
 class PropertyAdmin(admin.ModelAdmin):
