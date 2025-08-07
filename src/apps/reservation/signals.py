@@ -91,10 +91,7 @@ def notify_new_reservation(reservation):
 
     logger.debug(f"Enviando mensaje de Telegram: {message} con imagen: {full_image_url}")
     
-    # Enviar notificación al canal principal para todas las reservas
-    send_telegram_message(message, settings.CHAT_ID, full_image_url)
-    
-    # Si es una reserva desde el panel del cliente, también enviar al canal de clientes
+    # Si es una reserva desde el panel del cliente, enviar solo al canal de clientes
     if reservation.origin == 'client':
         client_message = (
             f"💻 **RESERVA DESDE PANEL WEB** 💻\n"
@@ -108,6 +105,9 @@ def notify_new_reservation(reservation):
             f"📱 Teléfono: +{reservation.client.tel_number}"
         )
         send_telegram_message(client_message, settings.CLIENTS_CHAT_ID, full_image_url)
+    else:
+        # Para todas las demás reservas (airbnb, austin, mantenimiento), enviar al canal principal
+        send_telegram_message(message, settings.CHAT_ID, full_image_url)
 
     if reservation.check_in_date == datetime.today().date():
         logger.debug("Reserva para el mismo día detectada, enviando al segundo canal.")
