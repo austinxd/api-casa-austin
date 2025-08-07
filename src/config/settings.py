@@ -41,7 +41,6 @@ CORS_ALLOWED_ORIGINS = [
     "https://reservas.casaaustin.pe",
     "https://6d9c1416-4d5a-43ff-b6d9-45dcb8a576cf-00-1qgg6m6ft27vv.riker.replit.dev:5000",
     "https://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.replit.dev",
-    "https://contratos.casaaustin.pe"
 ]
 
 # Permitir headers adicionales para autenticación
@@ -316,6 +315,7 @@ TELEGRAM_BOT_TOKEN = env('TELEGRAM_BOT_TOKEN', default='No token')
 CHAT_ID = env('CHAT_ID', default='N° chat ID')
 SECOND_CHAT_ID = env('SECOND_CHAT_ID', default='N° second chat ID')
 PERSONAL_CHAT_ID = env('PERSONAL_CHAT_ID', default='N° personal chat ID')
+CLIENTS_CHAT_ID = env('CLIENTS_CHAT_ID', default='N° clients chat ID')
 
 # Twilio settings for OTP
 TWILIO_ACCOUNT_SID = env('TWILIO_ACCOUNT_SID', default='No SID')
@@ -331,6 +331,7 @@ logger.debug(f"TELEGRAM_BOT_TOKEN: {TELEGRAM_BOT_TOKEN}")
 logger.debug(f"CHAT_ID: {CHAT_ID}")
 logger.debug(f"SECOND_CHAT_ID: {SECOND_CHAT_ID}")
 logger.debug(f"PERSONAL_CHAT_ID: {PERSONAL_CHAT_ID}")
+logger.debug(f"CLIENTS_CHAT_ID: {CLIENTS_CHAT_ID}")
 logger.debug(f"TWILIO_ACCOUNT_SID: {TWILIO_ACCOUNT_SID}")
 logger.debug(f"TWILIO_VERIFY_SID: {TWILIO_VERIFY_SID}")
 
@@ -346,5 +347,4 @@ CSRF_TRUSTED_ORIGINS = [
     "https://reservas.casaaustin.pe",
     "https://6d9c1416-4d5a-43ff-b6d9-45dcb8a576cf-00-1qgg6m6ft27vv.riker.replit.dev:5000",
     "https://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.replit.dev",
-    "https://contratos.casaaustin.pe"
 ]

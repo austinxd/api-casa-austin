@@ -45,8 +45,24 @@ def notify_new_reservation(reservation):
     price_sol = f"{reservation.price_sol:.2f} soles"
     advance_payment = f"{reservation.advance_payment:.2f} {reservation.advance_payment_currency.upper()}"
 
+    # Determinar el origen de la reserva para personalizar el mensaje
+    origin_emoji = ""
+    origin_text = ""
+    if reservation.origin == 'client':
+        origin_emoji = "💻"
+        origin_text = "WEB CLIENTE"
+    elif reservation.origin == 'air':
+        origin_emoji = "🏠"
+        origin_text = "AIRBNB"
+    elif reservation.origin == 'aus':
+        origin_emoji = "📞"
+        origin_text = "AUSTIN"
+    elif reservation.origin == 'man':
+        origin_emoji = "🔧"
+        origin_text = "MANTENIMIENTO"
+
     message = (
-        f"******Reserva en {reservation.property.name}******\n"
+        f"{origin_emoji} **{origin_text}** - Reserva en {reservation.property.name}\n"
         f"Cliente: {client_name}\n"
         f"Check-in : {check_in_date}\n"
         f"Check-out : {check_out_date}\n"
@@ -74,7 +90,24 @@ def notify_new_reservation(reservation):
         full_image_url = f"http://api.casaaustin.pe{image_url}"
 
     logger.debug(f"Enviando mensaje de Telegram: {message} con imagen: {full_image_url}")
+    
+    # Enviar notificación al canal principal para todas las reservas
     send_telegram_message(message, settings.CHAT_ID, full_image_url)
+    
+    # Si es una reserva desde el panel del cliente, también enviar al canal de clientes
+    if reservation.origin == 'client':
+        client_message = (
+            f"💻 **RESERVA DESDE PANEL WEB** 💻\n"
+            f"Cliente: {client_name}\n"
+            f"Propiedad: {reservation.property.name}\n"
+            f"Check-in : {check_in_date}\n"
+            f"Check-out : {check_out_date}\n"
+            f"Invitados : {reservation.guests}\n"
+            f"Temperado : {temperature_pool_status}\n"
+            f"💰 Total: {price_sol} soles\n"
+            f"📱 Teléfono: +{reservation.client.tel_number}"
+        )
+        send_telegram_message(client_message, settings.CLIENTS_CHAT_ID, full_image_url)
 
     if reservation.check_in_date == datetime.today().date():
         logger.debug("Reserva para el mismo día detectada, enviando al segundo canal.")
