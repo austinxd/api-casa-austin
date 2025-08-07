@@ -132,6 +132,13 @@ def hash_data(data):
         return hashlib.sha256(data.strip().lower().encode()).hexdigest()
     return None
 
+@receiver(post_save, sender=Reservation)
+def reservation_post_save_handler(sender, instance, created, **kwargs):
+    """Maneja las notificaciones cuando se crea o actualiza una reserva"""
+    if created:
+        logger.debug(f"Nueva reserva creada: {instance.id} - Origen: {instance.origin}")
+        notify_new_reservation(instance)
+
 def send_purchase_event_to_meta(
     phone,
     email,

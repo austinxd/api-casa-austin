@@ -41,6 +41,7 @@ class ClientCreateReservationView(APIView):
                 # Establecer deadline de 1 hora para subir voucher
                 payment_deadline = timezone.now() + timedelta(hours=1)
 
+                # Crear la reserva y disparar las señales
                 reservation = serializer.save(
                     client=client,
                     origin='client',
@@ -49,6 +50,10 @@ class ClientCreateReservationView(APIView):
                     payment_voucher_uploaded=False,
                     payment_confirmed=False
                 )
+                
+                # Disparar manualmente la señal de notificación si es necesario
+                from ..reservation.signals import notify_new_reservation
+                notify_new_reservation(reservation)
 
                 # Retornar la reserva creada
                 response_serializer = ReservationListSerializer(reservation)
