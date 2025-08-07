@@ -50,10 +50,6 @@ class ClientCreateReservationView(APIView):
                     payment_voucher_uploaded=False,
                     payment_confirmed=False
                 )
-                
-                # Disparar manualmente la señal de notificación si es necesario
-                from ..reservation.signals import notify_new_reservation
-                notify_new_reservation(reservation)
 
                 # Retornar la reserva creada
                 response_serializer = ReservationListSerializer(reservation)

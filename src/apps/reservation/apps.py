@@ -7,7 +7,4 @@ class ReservationConfig(AppConfig):
     
     def ready(self):
         import apps.reservation.signals
-
-    def ready(self):
-        import apps.reservation.signals
         import apps.reservation.points_signals
