@@ -127,6 +127,36 @@ def notify_new_reservation(reservation):
     )
     send_telegram_message(message_personal_channel, settings.PERSONAL_CHAT_ID, full_image_url)
 
+def notify_voucher_uploaded(reservation):
+    """Notifica cuando un cliente sube su voucher de pago"""
+    client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
+    
+    check_in_date = format_date_es(reservation.check_in_date)
+    check_out_date = format_date_es(reservation.check_out_date)
+    price_sol = f"{reservation.price_sol:.2f} soles"
+    
+    voucher_message = (
+        f"📄 **VOUCHER RECIBIDO** 📄\n"
+        f"Cliente: {client_name}\n"
+        f"Propiedad: {reservation.property.name}\n"
+        f"Check-in: {check_in_date}\n"
+        f"Check-out: {check_out_date}\n"
+        f"💰 Total: {price_sol}\n"
+        f"📱 Teléfono: +{reservation.client.tel_number}\n"
+        f"⏰ Estado: Pendiente de validación\n"
+        f"🆔 Reserva ID: {reservation.id}"
+    )
+    
+    # Obtener la imagen del voucher de pago
+    voucher_image_url = None
+    rental_receipt = RentalReceipt.objects.filter(reservation=reservation).first()
+    if rental_receipt and rental_receipt.file and rental_receipt.file.name:
+        image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
+        voucher_image_url = f"http://api.casaaustin.pe{image_url}"
+    
+    logger.debug(f"Enviando notificación de voucher subido para reserva: {reservation.id} con imagen: {voucher_image_url}")
+    send_telegram_message(voucher_message, settings.CLIENTS_CHAT_ID, voucher_image_url)
+
 def hash_data(data):
     if data:
         return hashlib.sha256(data.strip().lower().encode()).hexdigest()
@@ -138,6 +168,11 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
     if created:
         logger.debug(f"Nueva reserva creada: {instance.id} - Origen: {instance.origin}")
         notify_new_reservation(instance)
+    else:
+        # Verificar si cambió a estado pending (voucher subido)
+        if instance.status == 'pending' and instance.origin == 'client':
+            logger.debug(f"Reserva {instance.id} cambió a estado pending - Voucher subido")
+            notify_voucher_uploaded(instance)
 
 def send_purchase_event_to_meta(
     phone,
