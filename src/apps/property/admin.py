@@ -14,9 +14,8 @@ class PropertyPhotoInline(admin.TabularInline):
         return PropertyPhoto.objects.filter(deleted=False)
     
     def delete_model(self, request, obj):
-        """Realizar soft delete en el inline"""
-        obj.deleted = True
-        obj.save()
+        """Realizar eliminación física en el inline"""
+        super().delete_model(request, obj)  # Eliminación física real
 
 
 class PropertyPhotoAdmin(admin.ModelAdmin):
@@ -31,21 +30,27 @@ class PropertyPhotoAdmin(admin.ModelAdmin):
         return PropertyPhoto.objects.all()
     
     def delete_model(self, request, obj):
-        """Realizar soft delete en lugar de hard delete"""
-        obj.deleted = True
-        obj.save()
+        """Realizar eliminación física"""
+        super().delete_model(request, obj)  # Eliminación física real
     
     def delete_queryset(self, request, queryset):
-        """Realizar soft delete en eliminación masiva"""
-        queryset.update(deleted=True)
+        """Realizar eliminación física en eliminación masiva"""
+        queryset.delete()  # Eliminación física real
     
-    actions = ['restore_photos']
+    actions = ['restore_photos', 'hard_delete_photos']
     
     def restore_photos(self, request, queryset):
         """Acción para restaurar fotos eliminadas"""
         count = queryset.update(deleted=False)
         self.message_user(request, f'{count} fotos han sido restauradas.')
     restore_photos.short_description = "Restaurar fotos seleccionadas"
+    
+    def hard_delete_photos(self, request, queryset):
+        """Acción para eliminar físicamente las fotos de la base de datos"""
+        count = queryset.count()
+        queryset.delete()  # Eliminación física real
+        self.message_user(request, f'{count} fotos han sido eliminadas permanentemente de la base de datos.')
+    hard_delete_photos.short_description = "ELIMINAR PERMANENTEMENTE fotos seleccionadas"
 
 
 class PropertyAdmin(admin.ModelAdmin):
