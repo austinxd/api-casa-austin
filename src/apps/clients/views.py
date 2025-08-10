@@ -473,6 +473,32 @@ class ReferralStatsView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class SearchTrackingTestView(APIView):
+    """Vista de prueba para debuggear tracking de búsquedas"""
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        """Endpoint de prueba para verificar datos recibidos"""
+        logger.info("SearchTrackingTestView: Test endpoint called")
+        
+        return Response({
+            'success': True,
+            'message': 'Datos recibidos correctamente',
+            'data': {
+                'request_method': request.method,
+                'content_type': request.content_type,
+                'request_data': request.data,
+                'request_post': dict(request.POST),
+                'request_body': request.body.decode('utf-8') if request.body else None,
+                'headers': {
+                    'authorization': request.META.get('HTTP_AUTHORIZATION', 'Not found'),
+                    'content_type': request.META.get('CONTENT_TYPE', 'Not found'),
+                }
+            }
+        }, status=200)
+
+
 class SearchTrackingView(APIView):
     """Vista para tracking de búsquedas de clientes"""
     authentication_classes = [ClientJWTAuthentication]
@@ -497,34 +523,53 @@ class SearchTrackingView(APIView):
                 defaults={'deleted': False}
             )
 
-            # Limpiar los datos del request para evitar conflictos con el client_id
-            clean_data = request.data.copy()
+            # Obtener los datos del request
+            if hasattr(request, 'data') and request.data:
+                clean_data = request.data.copy()
+            else:
+                logger.error(f"SearchTrackingView: No data found in request")
+                return Response({
+                    'success': False,
+                    'message': 'No se recibieron datos'
+                }, status=400)
+
+            # Debug completo de los datos recibidos
+            logger.info(f"SearchTrackingView: Request method: {request.method}")
+            logger.info(f"SearchTrackingView: Request content type: {request.content_type}")
+            logger.info(f"SearchTrackingView: Raw request.data: {request.data}")
+            logger.info(f"SearchTrackingView: Raw request.POST: {request.POST}")
+            logger.info(f"SearchTrackingView: Raw request.body: {request.body}")
+
             # Remover campos que puedan causar conflicto
             clean_data.pop('client_id', None)
             clean_data.pop('client', None)
 
-            logger.info(f"SearchTrackingView: Original request.data: {request.data}")
             logger.info(f"SearchTrackingView: Cleaned data: {clean_data}")
 
             # Validar que los campos requeridos estén presentes
             required_fields = ['check_in_date', 'check_out_date', 'guests']
-            missing_fields = [field for field in required_fields if not clean_data.get(field)]
             
-            logger.info(f"SearchTrackingView: Missing fields check: {missing_fields}")
-            
-            # Debug: verificar tipos de datos
+            # Verificar cada campo individualmente
             for field in required_fields:
-                if field in clean_data:
-                    logger.info(f"SearchTrackingView: Field '{field}' = {clean_data[field]} (type: {type(clean_data[field])})")
-                else:
-                    logger.warning(f"SearchTrackingView: Field '{field}' not found in clean_data")
+                value = clean_data.get(field)
+                logger.info(f"SearchTrackingView: Field '{field}' = '{value}' (type: {type(value)}, empty: {not value})")
+            
+            # Verificar campos faltantes o vacíos
+            missing_fields = []
+            for field in required_fields:
+                value = clean_data.get(field)
+                if value is None or value == '' or value == 'null' or value == 'undefined':
+                    missing_fields.append(field)
+            
+            logger.info(f"SearchTrackingView: Missing or empty fields: {missing_fields}")
             
             if missing_fields:
                 logger.error(f"SearchTrackingView: Missing required fields: {missing_fields}")
                 return Response({
                     'success': False,
-                    'message': 'Campos requeridos faltantes',
-                    'errors': {field: f'El campo {field} es requerido' for field in missing_fields}
+                    'message': 'Campos requeridos faltantes o vacíos',
+                    'errors': {field: f'El campo {field} es requerido y no puede estar vacío' for field in missing_fields},
+                    'received_data': clean_data
                 }, status=400)
 
             # Crear contexto para el serializer

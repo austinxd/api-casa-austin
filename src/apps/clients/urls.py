@@ -5,7 +5,11 @@ from . import views
 from . import auth_views
 from . import points_views  # Import the new views
 from .voucher_views import ClientVoucherUploadView, ClientReservationStatusView
-from .views import SearchTrackingView # Import SearchTrackingView
+from .views import (
+    MensajeFidelidadApiView, TokenApiClientApiView, ClientsApiView,
+    ReferralConfigView, ReferralStatsView, SearchTrackingView, SearchTrackingTestView,
+    ClientCreateReservationView, ClientReservationsListView
+)
 
 router = DefaultRouter()
 router.register(r'clients', views.ClientsApiView, basename='clients')
@@ -21,12 +25,13 @@ urlpatterns = [
     path('clients/complete-register/',
          auth_views.ClientCompleteRegistrationView.as_view(),
          name='complete-register'),
-    
+
     # Endpoint para tracking de búsquedas (Must be before router)
     path('clients/track-search/',
          SearchTrackingView.as_view(),
          name='client-track-search'),
-    
+    path('clients/track-search-test/', SearchTrackingTestView.as_view(), name='track-search-test'),
+
     path('', include(router.urls)),
 
     # Endpoints originales para compatibilidad
