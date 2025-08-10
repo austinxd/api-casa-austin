@@ -608,88 +608,137 @@ class SearchTrackingView(APIView):
                     'received_data': clean_data
                 }, status=400)
 
-            # Procesar datos de manera simplificada
+            # Procesar datos de manera simplificada y más robusta
             processed_data = {}
+            from datetime import datetime
 
-            # Procesar check_in_date
+            logger.info(f"SearchTrackingView: Starting data processing with clean_data: {clean_data}")
+
+            # Procesar check_in_date - OBLIGATORIO
             check_in_raw = clean_data.get('check_in_date')
-            if check_in_raw:
-                try:
-                    from datetime import datetime
-                    # Para JSON, los datos vienen como string en formato ISO
-                    if isinstance(check_in_raw, str):
-                        parsed_date = datetime.strptime(check_in_raw, '%Y-%m-%d').date()
-                        processed_data['check_in_date'] = parsed_date
-                        logger.info(f"SearchTrackingView: Parsed check_in_date: {parsed_date}")
-                    else:
-                        logger.error(f"SearchTrackingView: Invalid check_in_date type: {type(check_in_raw)}")
-                        return Response({
-                            'success': False,
-                            'message': 'Formato de fecha inválido',
-                            'errors': {'check_in_date': 'Debe ser una fecha en formato YYYY-MM-DD'}
-                        }, status=400)
-                except Exception as e:
-                    logger.error(f"SearchTrackingView: Error parsing check_in_date: {str(e)}")
+            logger.info(f"SearchTrackingView: Processing check_in_date: {repr(check_in_raw)} (type: {type(check_in_raw)})")
+            
+            if not check_in_raw or str(check_in_raw).lower() in ['null', 'undefined', 'none', '']:
+                logger.error(f"SearchTrackingView: check_in_date is missing or invalid: {repr(check_in_raw)}")
+                return Response({
+                    'success': False,
+                    'message': 'check_in_date es requerido',
+                    'errors': {'check_in_date': 'La fecha de check-in es requerida'}
+                }, status=400)
+            
+            try:
+                if isinstance(check_in_raw, str):
+                    parsed_date = datetime.strptime(check_in_raw, '%Y-%m-%d').date()
+                    processed_data['check_in_date'] = parsed_date
+                    logger.info(f"SearchTrackingView: Successfully parsed check_in_date: {parsed_date}")
+                else:
+                    logger.error(f"SearchTrackingView: check_in_date is not string: {type(check_in_raw)}")
                     return Response({
                         'success': False,
-                        'message': 'Error al procesar fecha de entrada',
-                        'errors': {'check_in_date': str(e)}
+                        'message': 'check_in_date debe ser string en formato YYYY-MM-DD',
+                        'errors': {'check_in_date': f'Tipo inválido: {type(check_in_raw)}'}
                     }, status=400)
+            except Exception as e:
+                logger.error(f"SearchTrackingView: Error parsing check_in_date: {str(e)}")
+                return Response({
+                    'success': False,
+                    'message': 'Error al procesar fecha de entrada',
+                    'errors': {'check_in_date': str(e)}
+                }, status=400)
 
-            # Procesar check_out_date
+            # Procesar check_out_date - OBLIGATORIO
             check_out_raw = clean_data.get('check_out_date')
-            if check_out_raw:
-                try:
-                    from datetime import datetime
-                    # Para JSON, los datos vienen como string en formato ISO
-                    if isinstance(check_out_raw, str):
-                        parsed_date = datetime.strptime(check_out_raw, '%Y-%m-%d').date()
-                        processed_data['check_out_date'] = parsed_date
-                        logger.info(f"SearchTrackingView: Parsed check_out_date: {parsed_date}")
-                    else:
-                        logger.error(f"SearchTrackingView: Invalid check_out_date type: {type(check_out_raw)}")
-                        return Response({
-                            'success': False,
-                            'message': 'Formato de fecha inválido',
-                            'errors': {'check_out_date': 'Debe ser una fecha en formato YYYY-MM-DD'}
-                        }, status=400)
-                except Exception as e:
-                    logger.error(f"SearchTrackingView: Error parsing check_out_date: {str(e)}")
+            logger.info(f"SearchTrackingView: Processing check_out_date: {repr(check_out_raw)} (type: {type(check_out_raw)})")
+            
+            if not check_out_raw or str(check_out_raw).lower() in ['null', 'undefined', 'none', '']:
+                logger.error(f"SearchTrackingView: check_out_date is missing or invalid: {repr(check_out_raw)}")
+                return Response({
+                    'success': False,
+                    'message': 'check_out_date es requerido',
+                    'errors': {'check_out_date': 'La fecha de check-out es requerida'}
+                }, status=400)
+                
+            try:
+                if isinstance(check_out_raw, str):
+                    parsed_date = datetime.strptime(check_out_raw, '%Y-%m-%d').date()
+                    processed_data['check_out_date'] = parsed_date
+                    logger.info(f"SearchTrackingView: Successfully parsed check_out_date: {parsed_date}")
+                else:
+                    logger.error(f"SearchTrackingView: check_out_date is not string: {type(check_out_raw)}")
                     return Response({
                         'success': False,
-                        'message': 'Error al procesar fecha de salida',
-                        'errors': {'check_out_date': str(e)}
+                        'message': 'check_out_date debe ser string en formato YYYY-MM-DD',
+                        'errors': {'check_out_date': f'Tipo inválido: {type(check_out_raw)}'}
                     }, status=400)
+            except Exception as e:
+                logger.error(f"SearchTrackingView: Error parsing check_out_date: {str(e)}")
+                return Response({
+                    'success': False,
+                    'message': 'Error al procesar fecha de salida',
+                    'errors': {'check_out_date': str(e)}
+                }, status=400)
 
-            # Procesar guests
+            # Procesar guests - OBLIGATORIO
             guests_raw = clean_data.get('guests')
-            if guests_raw is not None:
-                try:
-                    if isinstance(guests_raw, int):
-                        processed_data['guests'] = guests_raw
-                    elif isinstance(guests_raw, str):
-                        processed_data['guests'] = int(guests_raw)
-                    else:
-                        logger.error(f"SearchTrackingView: Invalid guests type: {type(guests_raw)}")
-                        return Response({
-                            'success': False,
-                            'message': 'Número de huéspedes inválido',
-                            'errors': {'guests': 'Debe ser un número entero'}
-                        }, status=400)
-                    logger.info(f"SearchTrackingView: Parsed guests: {processed_data['guests']}")
-                except Exception as e:
-                    logger.error(f"SearchTrackingView: Error parsing guests: {str(e)}")
+            logger.info(f"SearchTrackingView: Processing guests: {repr(guests_raw)} (type: {type(guests_raw)})")
+            
+            if guests_raw is None or str(guests_raw).lower() in ['null', 'undefined', 'none', '']:
+                logger.error(f"SearchTrackingView: guests is missing or invalid: {repr(guests_raw)}")
+                return Response({
+                    'success': False,
+                    'message': 'guests es requerido',
+                    'errors': {'guests': 'El número de huéspedes es requerido'}
+                }, status=400)
+                
+            try:
+                if isinstance(guests_raw, (int, float)):
+                    processed_data['guests'] = int(guests_raw)
+                elif isinstance(guests_raw, str):
+                    processed_data['guests'] = int(guests_raw)
+                else:
+                    logger.error(f"SearchTrackingView: guests type invalid: {type(guests_raw)}")
                     return Response({
                         'success': False,
-                        'message': 'Error al procesar número de huéspedes',
-                        'errors': {'guests': str(e)}
+                        'message': 'guests debe ser un número',
+                        'errors': {'guests': f'Tipo inválido: {type(guests_raw)}'}
                     }, status=400)
+                    
+                if processed_data['guests'] <= 0:
+                    logger.error(f"SearchTrackingView: guests value invalid: {processed_data['guests']}")
+                    return Response({
+                        'success': False,
+                        'message': 'guests debe ser mayor a 0',
+                        'errors': {'guests': f'Valor inválido: {processed_data["guests"]}'}
+                    }, status=400)
+                    
+                logger.info(f"SearchTrackingView: Successfully parsed guests: {processed_data['guests']}")
+            except (ValueError, TypeError) as e:
+                logger.error(f"SearchTrackingView: Error parsing guests: {str(e)}")
+                return Response({
+                    'success': False,
+                    'message': 'Error al procesar número de huéspedes',
+                    'errors': {'guests': str(e)}
+                }, status=400)
 
             # Procesar property (opcional)
-            if 'property' in clean_data:
-                processed_data['property'] = clean_data['property']
+            property_raw = clean_data.get('property')
+            if property_raw and str(property_raw).lower() not in ['null', 'undefined', 'none', '']:
+                processed_data['property'] = property_raw
+                logger.info(f"SearchTrackingView: Property included: {property_raw}")
+            else:
+                logger.info("SearchTrackingView: No property specified (optional field)")
 
             logger.info(f"SearchTrackingView: Final processed_data: {processed_data}")
+            
+            # Verificación final crítica
+            if not all(field in processed_data for field in ['check_in_date', 'check_out_date', 'guests']):
+                missing = [field for field in ['check_in_date', 'check_out_date', 'guests'] if field not in processed_data]
+                logger.error(f"SearchTrackingView: CRITICAL - Missing processed fields: {missing}")
+                return Response({
+                    'success': False,
+                    'message': 'Error interno: campos requeridos faltantes después del procesamiento',
+                    'errors': {field: 'Campo requerido faltante' for field in missing}
+                }, status=500)
 
             logger.info(f"SearchTrackingView: Final processed_data after conversions: {processed_data}")
 
