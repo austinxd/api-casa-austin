@@ -310,9 +310,9 @@ class ClientPoints(BaseModel):
 class SearchTracking(BaseModel):
     """Modelo para tracking de búsquedas de clientes"""
     client = models.OneToOneField(Clients, on_delete=models.CASCADE, related_name='search_tracking', help_text="Cliente que realiza la búsqueda")
-    check_in_date = models.DateField(help_text="Fecha de check-in buscada")
-    check_out_date = models.DateField(help_text="Fecha de check-out buscada")
-    guests = models.PositiveIntegerField(help_text="Número de huéspedes")
+    check_in_date = models.DateField(null=False, blank=False, help_text="Fecha de check-in buscada")
+    check_out_date = models.DateField(null=False, blank=False, help_text="Fecha de check-out buscada")
+    guests = models.PositiveIntegerField(null=False, blank=False, help_text="Número de huéspedes")
     property = models.ForeignKey('property.Property', on_delete=models.CASCADE, null=True, blank=True, help_text="Propiedad buscada")
     search_timestamp = models.DateTimeField(auto_now=True, help_text="Timestamp de la última búsqueda")
     

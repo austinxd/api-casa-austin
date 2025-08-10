@@ -503,6 +503,8 @@ class SearchTrackingView(APIView):
             clean_data.pop('client_id', None)
             clean_data.pop('client', None)
 
+            logger.info(f"SearchTrackingView: Received data: {clean_data}")
+
             # Validar que los campos requeridos estén presentes
             required_fields = ['check_in_date', 'check_out_date', 'guests']
             missing_fields = [field for field in required_fields if not clean_data.get(field)]
@@ -515,11 +517,10 @@ class SearchTrackingView(APIView):
                     'errors': {field: f'El campo {field} es requerido' for field in missing_fields}
                 }, status=400)
 
-            # Actualizar con los nuevos datos
+            # Actualizar con los nuevos datos - usar update=True y no partial
             serializer = SearchTrackingSerializer(
                 search_tracking, 
-                data=clean_data, 
-                partial=True
+                data=clean_data
             )
 
             if serializer.is_valid():
