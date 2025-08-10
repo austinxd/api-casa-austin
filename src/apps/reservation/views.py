@@ -118,6 +118,10 @@ class ReservationsApiView(viewsets.ModelViewSet):
                         (Q(check_out_date=today_date) & Q(check_out_date__gt=now)) |
                         (Q(check_out_date=tomorrow_date) & Q(check_out_date__gt=datetime.combine(tomorrow_date, check_out_time)))
                     )
+                
+                # Aquí es donde se debería agregar el filtro para 'pending' si fuera necesario para este endpoint
+                # elif from_param == 'pending':
+                #     queryset = queryset.filter(status='pending') # Asumiendo que hay un campo 'status' y 'pending' es un valor válido
 
                 if self.request.query_params.get('type'):
                     queryset = queryset.filter(origin=self.request.query_params.get('type'))
@@ -175,7 +179,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 OpenApiTypes.STR,
                 description="Obtiene todas las reservas desde la fecha de hoy en adelante. Se puede combinar con type (tipo de reserva), pero no con year o month",
                 required=False,
-                enum=["today", "in_progress"]
+                enum=["today", "in_progress", "pending"]
             ),
             OpenApiParameter(
                 "from_check_in",
@@ -507,6 +511,10 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
                             Q(check_out_date__range=(start_of_year, end_of_year))
                         )
 
+                # Aquí se debe agregar el filtro para 'pending'
+                if from_param == 'pending':
+                    queryset = queryset.filter(status='pending')
+
                 # Otros filtros existentes
                 if from_param == 'today':
                     queryset = queryset.filter(check_in_date__gte=now)
@@ -572,7 +580,7 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
                 OpenApiTypes.STR,
                 description="Obtiene todas las reservas desde la fecha de hoy en adelante. Se puede combinar con type (tipo de reserva), pero no con year o month",
                 required=False,
-                enum=["today", "in_progress"]
+                enum=["today", "in_progress", "pending"]
             ),
             OpenApiParameter(
                 "from_check_in",
@@ -614,9 +622,9 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
             status = 'approved'
             if self.request.POST.get('origin', '').lower() == 'client':
                 status = 'pending'
-            
+
             instance = serializer.save(seller=user_seller, status=status)
-            
+
             # Si es reserva de cliente, establecer deadline de 1 hora
             if instance.origin == 'client':
                 from django.utils import timezone
@@ -664,35 +672,36 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
 
         return super().perform_update(serializer)
 
-def partial_update(self, request, *args, **kwargs):
-    instance = self.get_object()
-    serializer = self.get_serializer(instance, data=request.data, partial=True)
-    serializer.is_valid(raise_exception=True)
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
 
-    with transaction.atomic():
-        instance = serializer.save()
-        if instance.late_checkout:
-            if instance.late_check_out_date is None:
-                original_check_out_date = instance.check_out_date - timedelta(days=1)
-                instance.late_check_out_date = original_check_out_date
-                instance.check_out_date = original_check_out_date + timedelta(days=1)
-            instance.save()
+        with transaction.atomic():
+            instance = serializer.save()
+            if instance.late_checkout:
+                if instance.late_check_out_date is None:
+                    original_check_out_date = instance.check_out_date - timedelta(days=1)
+                    instance.late_check_out_date = original_check_out_date
+                    instance.check_out_date = original_check_out_date + timedelta(days=1)
+                instance.save()
 
-        for file in request.FILES.getlist('file'):
-            RentalReceipt.objects.create(
-                reservation=instance,
-                file=file
-            )
+            for file in request.FILES.getlist('file'):
+                RentalReceipt.objects.create(
+                    reservation=instance,
+                    file=file
+                )
 
-    confeccion_ics()
+        confeccion_ics()
 
-    generate_audit(
-        serializer.instance,
-        self.request.user,
-        "update",
-        "Reserva actualizada"
-    )
-    return Response(serializer.data)
+        generate_audit(
+            serializer.instance,
+            self.request.user,
+            "update",
+            "Reserva actualizada"
+        )
+        return Response(serializer.data)
+
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
