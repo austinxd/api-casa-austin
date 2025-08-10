@@ -302,24 +302,7 @@ class ClientPoints(BaseModel):
     def __str__(self):
         return f"{self.client.first_name} - {self.transaction_type} - {self.points} puntos"
 
+
     def delete(self, *args, **kwargs):
         self.deleted = True
         self.save()
-
-
-class SearchTracking(BaseModel):
-    """Modelo para tracking de búsquedas de clientes"""
-    client = models.OneToOneField(Clients, on_delete=models.CASCADE, related_name='search_tracking', help_text="Cliente que realiza la búsqueda")
-    check_in_date = models.DateField(help_text="Fecha de check-in buscada")
-    check_out_date = models.DateField(help_text="Fecha de check-out buscada")
-    guests = models.PositiveIntegerField(help_text="Número de huéspedes")
-    property = models.ForeignKey('property.Property', on_delete=models.CASCADE, null=True, blank=True, help_text="Propiedad buscada")
-    search_timestamp = models.DateTimeField(auto_now=True, help_text="Timestamp de la última búsqueda")
-    
-    class Meta:
-        verbose_name = "Tracking de Búsqueda"
-        verbose_name_plural = "Tracking de Búsquedas"
-        ordering = ['-search_timestamp']
-    
-    def __str__(self):
-        return f"{self.client.first_name} - {self.check_in_date} a {self.check_out_date} - {self.guests} huéspedes"

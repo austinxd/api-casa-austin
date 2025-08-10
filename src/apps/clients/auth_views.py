@@ -398,26 +398,9 @@ class ClientCompleteRegistrationView(APIView):
 # Custom JWT Authentication for Clients
 class ClientJWTAuthentication(JWTAuthentication):
 
-    def authenticate(self, request):
+    def get_user(self, validated_token):
         """
-        Override authenticate method to handle client authentication
-        """
-        header = self.get_header(request)
-        if header is None:
-            return None
-
-        raw_token = self.get_raw_token(header)
-        if raw_token is None:
-            return None
-
-        validated_token = self.get_validated_token(raw_token)
-        client = self.get_client(validated_token)
-        
-        return (client, validated_token)
-
-    def get_client(self, validated_token):
-        """
-        Get client from validated token
+        Override to get client instead of user
         """
         try:
             # Intentar primero con client_id (nuestro claim personalizado)
@@ -431,12 +414,6 @@ class ClientJWTAuthentication(JWTAuthentication):
         except Clients.DoesNotExist:
             pass
         return None
-
-    def get_user(self, validated_token):
-        """
-        Override to get client instead of user (for compatibility)
-        """
-        return self.get_client(validated_token)
 
 
 class ClientVerifyDocumentView(APIView):

@@ -3,7 +3,7 @@ from django.contrib.auth.hashers import make_password, check_password
 from rest_framework.validators import UniqueTogetherValidator
 from decimal import Decimal
 
-from .models import Clients, MensajeFidelidad, TokenApiClients, ClientPoints, SearchTracking
+from .models import Clients, MensajeFidelidad, TokenApiClients, ClientPoints
 
 
 class MensajeFidelidadSerializer(serializers.ModelSerializer):
@@ -194,33 +194,3 @@ class RedeemPointsSerializer(serializers.Serializer):
             )
 
         return value
-
-
-class SearchTrackingSerializer(serializers.ModelSerializer):
-    """Serializer para tracking de búsquedas"""
-    property_name = serializers.CharField(source='property.name', read_only=True)
-    
-    class Meta:
-        model = SearchTracking
-        fields = [
-            'check_in_date', 'check_out_date', 'guests', 'property', 
-            'property_name', 'search_timestamp'
-        ]
-        read_only_fields = ['search_timestamp']
-
-    def validate(self, attrs):
-        check_in = attrs.get('check_in_date')
-        check_out = attrs.get('check_out_date')
-        
-        if check_in and check_out and check_in >= check_out:
-            raise serializers.ValidationError(
-                "La fecha de check-out debe ser posterior a la fecha de check-in"
-            )
-        
-        guests = attrs.get('guests')
-        if guests and guests <= 0:
-            raise serializers.ValidationError(
-                "El número de huéspedes debe ser mayor a 0"
-            )
-        
-        return attrs
