@@ -212,15 +212,26 @@ class SearchTrackingSerializer(serializers.ModelSerializer):
         check_in = attrs.get('check_in_date')
         check_out = attrs.get('check_out_date')
         
-        if check_in and check_out and check_in >= check_out:
+        # Validar que las fechas requeridas estén presentes
+        if not check_in:
+            raise serializers.ValidationError({
+                "check_in_date": "La fecha de check-in es requerida"
+            })
+        
+        if not check_out:
+            raise serializers.ValidationError({
+                "check_out_date": "La fecha de check-out es requerida"
+            })
+        
+        if check_in >= check_out:
             raise serializers.ValidationError(
                 "La fecha de check-out debe ser posterior a la fecha de check-in"
             )
         
         guests = attrs.get('guests')
-        if guests and guests <= 0:
-            raise serializers.ValidationError(
-                "El número de huéspedes debe ser mayor a 0"
-            )
+        if not guests or guests <= 0:
+            raise serializers.ValidationError({
+                "guests": "El número de huéspedes debe ser mayor a 0"
+            })
         
-        return attrs
+        return attrsn attrs

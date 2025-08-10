@@ -503,6 +503,18 @@ class SearchTrackingView(APIView):
             clean_data.pop('client_id', None)
             clean_data.pop('client', None)
 
+            # Validar que los campos requeridos estén presentes
+            required_fields = ['check_in_date', 'check_out_date', 'guests']
+            missing_fields = [field for field in required_fields if not clean_data.get(field)]
+            
+            if missing_fields:
+                logger.error(f"SearchTrackingView: Missing required fields: {missing_fields}")
+                return Response({
+                    'success': False,
+                    'message': 'Campos requeridos faltantes',
+                    'errors': {field: f'El campo {field} es requerido' for field in missing_fields}
+                }, status=400)
+
             # Actualizar con los nuevos datos
             serializer = SearchTrackingSerializer(
                 search_tracking, 
