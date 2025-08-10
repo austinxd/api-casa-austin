@@ -1,0 +1,10 @@
+*.conf
+*.pyc
+.env
+venv/
+media/
+postgresql-data/
+db_data/
+staticfiles/
+prueba.py
+bd-backups/
