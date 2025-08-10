@@ -5,6 +5,7 @@ from . import views
 from . import auth_views
 from . import points_views  # Import the new views
 from .voucher_views import ClientVoucherUploadView, ClientReservationStatusView
+from .views import SearchTrackingView # Import SearchTrackingView
 
 router = DefaultRouter()
 router.register(r'clients', views.ClientsApiView, basename='clients')
@@ -81,7 +82,7 @@ urlpatterns = [
 
     # Endpoint para tracking de búsquedas
     path('clients/track-search/',
-         views.SearchTrackingView.as_view(),
+         SearchTrackingView.as_view(), # Correctly mapped to SearchTrackingView
          name='client-track-search'),
 
     # Voucher upload
