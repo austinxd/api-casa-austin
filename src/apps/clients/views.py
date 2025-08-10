@@ -539,21 +539,35 @@ class SearchTrackingView(APIView):
             # Obtener los datos del request
             clean_data = {}
 
-            if hasattr(request, 'data') and request.data:
-                logger.info(f"SearchTrackingView: Using request.data - Type: {type(request.data)}")
-                if hasattr(request.data, 'dict'):
-                    clean_data = dict(request.data)
+            # Verificar si el content-type es JSON
+            if request.content_type == 'application/json':
+                # Para requests JSON, usar request.data directamente
+                if hasattr(request, 'data') and request.data:
+                    logger.info(f"SearchTrackingView: Using JSON request.data - Type: {type(request.data)}")
+                    logger.info(f"SearchTrackingView: JSON data content: {request.data}")
+                    
+                    # request.data es un QueryDict o dict para JSON
+                    if hasattr(request.data, 'dict'):
+                        clean_data = request.data.dict()
+                    else:
+                        clean_data = dict(request.data)
                 else:
-                    clean_data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
-            elif request.POST:
-                logger.info(f"SearchTrackingView: Using request.POST - Type: {type(request.POST)}")
-                clean_data = dict(request.POST)
+                    logger.error(f"SearchTrackingView: No JSON data found in request")
+                    return Response({
+                        'success': False,
+                        'message': 'No se recibieron datos JSON'
+                    }, status=400)
             else:
-                logger.error(f"SearchTrackingView: No data found in request")
-                return Response({
-                    'success': False,
-                    'message': 'No se recibieron datos'
-                }, status=400)
+                # Para form data tradicional
+                if request.POST:
+                    logger.info(f"SearchTrackingView: Using form data request.POST - Type: {type(request.POST)}")
+                    clean_data = dict(request.POST)
+                else:
+                    logger.error(f"SearchTrackingView: No form data found in request")
+                    return Response({
+                        'success': False,
+                        'message': 'No se recibieron datos'
+                    }, status=400)
 
             logger.info(f"SearchTrackingView: Raw clean_data after extraction: {clean_data}")
             logger.info(f"SearchTrackingView: clean_data type: {type(clean_data)}")
@@ -594,99 +608,84 @@ class SearchTrackingView(APIView):
                     'received_data': clean_data
                 }, status=400)
 
-            # Procesar y limpiar los datos recibidos
+            # Procesar datos de manera simplificada
             processed_data = {}
 
             # Procesar check_in_date
-            if 'check_in_date' in clean_data:
-                raw_value = clean_data['check_in_date']
-                logger.info(f"SearchTrackingView: Processing check_in_date - raw_value: '{raw_value}' (type: {type(raw_value)})")
-
-                if isinstance(raw_value, list) and raw_value:
-                    raw_value = raw_value[0]  # Si viene como lista, tomar el primer elemento
-                    logger.info(f"SearchTrackingView: check_in_date was list, took first element: '{raw_value}'")
-
-                if raw_value and str(raw_value).strip() not in ['', 'null', 'undefined', 'None']:
-                    try:
-                        from datetime import datetime
-                        date_str = str(raw_value).strip()
-
-                        # Formato ISO (YYYY-MM-DD)
-                        if '-' in date_str:
-                            parsed_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-                        elif '/' in date_str:
-                            # Formato DD/MM/YYYY
-                            parsed_date = datetime.strptime(date_str, '%d/%m/%Y').date()
-                        else:
-                            raise ValueError(f"Formato de fecha no reconocido: {date_str}")
-
+            check_in_raw = clean_data.get('check_in_date')
+            if check_in_raw:
+                try:
+                    from datetime import datetime
+                    # Para JSON, los datos vienen como string en formato ISO
+                    if isinstance(check_in_raw, str):
+                        parsed_date = datetime.strptime(check_in_raw, '%Y-%m-%d').date()
                         processed_data['check_in_date'] = parsed_date
-                        logger.info(f"SearchTrackingView: Successfully processed check_in_date: {parsed_date}")
-
-                    except Exception as e:
-                        logger.error(f"SearchTrackingView: Error processing check_in_date: {str(e)}")
+                        logger.info(f"SearchTrackingView: Parsed check_in_date: {parsed_date}")
+                    else:
+                        logger.error(f"SearchTrackingView: Invalid check_in_date type: {type(check_in_raw)}")
                         return Response({
                             'success': False,
-                            'message': f'Formato de fecha inválido para check_in_date',
-                            'errors': {'check_in_date': f'Formato de fecha inválido: {raw_value}'}
+                            'message': 'Formato de fecha inválido',
+                            'errors': {'check_in_date': 'Debe ser una fecha en formato YYYY-MM-DD'}
                         }, status=400)
+                except Exception as e:
+                    logger.error(f"SearchTrackingView: Error parsing check_in_date: {str(e)}")
+                    return Response({
+                        'success': False,
+                        'message': 'Error al procesar fecha de entrada',
+                        'errors': {'check_in_date': str(e)}
+                    }, status=400)
 
             # Procesar check_out_date
-            if 'check_out_date' in clean_data:
-                raw_value = clean_data['check_out_date']
-                logger.info(f"SearchTrackingView: Processing check_out_date - raw_value: '{raw_value}' (type: {type(raw_value)})")
-
-                if isinstance(raw_value, list) and raw_value:
-                    raw_value = raw_value[0]  # Si viene como lista, tomar el primer elemento
-                    logger.info(f"SearchTrackingView: check_out_date was list, took first element: '{raw_value}'")
-
-                if raw_value and str(raw_value).strip() not in ['', 'null', 'undefined', 'None']:
-                    try:
-                        from datetime import datetime
-                        date_str = str(raw_value).strip()
-
-                        # Formato ISO (YYYY-MM-DD)
-                        if '-' in date_str:
-                            parsed_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-                        elif '/' in date_str:
-                            # Formato DD/MM/YYYY
-                            parsed_date = datetime.strptime(date_str, '%d/%m/%Y').date()
-                        else:
-                            raise ValueError(f"Formato de fecha no reconocido: {date_str}")
-
+            check_out_raw = clean_data.get('check_out_date')
+            if check_out_raw:
+                try:
+                    from datetime import datetime
+                    # Para JSON, los datos vienen como string en formato ISO
+                    if isinstance(check_out_raw, str):
+                        parsed_date = datetime.strptime(check_out_raw, '%Y-%m-%d').date()
                         processed_data['check_out_date'] = parsed_date
-                        logger.info(f"SearchTrackingView: Successfully processed check_out_date: {parsed_date}")
-
-                    except Exception as e:
-                        logger.error(f"SearchTrackingView: Error processing check_out_date: {str(e)}")
+                        logger.info(f"SearchTrackingView: Parsed check_out_date: {parsed_date}")
+                    else:
+                        logger.error(f"SearchTrackingView: Invalid check_out_date type: {type(check_out_raw)}")
                         return Response({
                             'success': False,
-                            'message': f'Formato de fecha inválido para check_out_date',
-                            'errors': {'check_out_date': f'Formato de fecha inválido: {raw_value}'}
+                            'message': 'Formato de fecha inválido',
+                            'errors': {'check_out_date': 'Debe ser una fecha en formato YYYY-MM-DD'}
                         }, status=400)
+                except Exception as e:
+                    logger.error(f"SearchTrackingView: Error parsing check_out_date: {str(e)}")
+                    return Response({
+                        'success': False,
+                        'message': 'Error al procesar fecha de salida',
+                        'errors': {'check_out_date': str(e)}
+                    }, status=400)
 
             # Procesar guests
-            if 'guests' in clean_data:
-                raw_value = clean_data['guests']
-                logger.info(f"SearchTrackingView: Processing guests - raw_value: '{raw_value}' (type: {type(raw_value)})")
-
-                if isinstance(raw_value, list) and raw_value:
-                    raw_value = raw_value[0]  # Si viene como lista, tomar el primer elemento
-                    logger.info(f"SearchTrackingView: guests was list, took first element: '{raw_value}'")
-
-                if raw_value and str(raw_value).strip() not in ['', 'null', 'undefined', 'None']:
-                    try:
-                        processed_data['guests'] = int(str(raw_value).strip())
-                        logger.info(f"SearchTrackingView: Successfully processed guests: {processed_data['guests']}")
-                    except (ValueError, TypeError) as e:
-                        logger.error(f"SearchTrackingView: Error processing guests: {str(e)}")
+            guests_raw = clean_data.get('guests')
+            if guests_raw is not None:
+                try:
+                    if isinstance(guests_raw, int):
+                        processed_data['guests'] = guests_raw
+                    elif isinstance(guests_raw, str):
+                        processed_data['guests'] = int(guests_raw)
+                    else:
+                        logger.error(f"SearchTrackingView: Invalid guests type: {type(guests_raw)}")
                         return Response({
                             'success': False,
                             'message': 'Número de huéspedes inválido',
-                            'errors': {'guests': f'El número de huéspedes debe ser un número entero válido: {raw_value}'}
+                            'errors': {'guests': 'Debe ser un número entero'}
                         }, status=400)
+                    logger.info(f"SearchTrackingView: Parsed guests: {processed_data['guests']}")
+                except Exception as e:
+                    logger.error(f"SearchTrackingView: Error parsing guests: {str(e)}")
+                    return Response({
+                        'success': False,
+                        'message': 'Error al procesar número de huéspedes',
+                        'errors': {'guests': str(e)}
+                    }, status=400)
 
-            # Copiar property si existe
+            # Procesar property (opcional)
             if 'property' in clean_data:
                 processed_data['property'] = clean_data['property']
 
@@ -772,69 +771,24 @@ class SearchTrackingView(APIView):
                 logger.info(f"  search_tracking.check_out_date = {search_tracking.check_out_date}")
                 logger.info(f"  search_tracking.guests = {search_tracking.guests}")
 
-                # Usar actualización directa en la base de datos para evitar problemas con save()
+                # Guardar usando el serializer normalmente
                 try:
-                    # Log final verification before save
-                    logger.info(f"SearchTrackingView: FINAL CHECK before database update:")
-                    logger.info(f"  validated check_in_date = {validated_data['check_in_date']} (type: {type(validated_data['check_in_date'])})")
-                    logger.info(f"  validated check_out_date = {validated_data['check_out_date']} (type: {type(validated_data['check_out_date'])})")
-                    logger.info(f"  validated guests = {validated_data['guests']} (type: {type(validated_data['guests'])})")
+                    saved_instance = serializer.save()
+                    logger.info(f"SearchTrackingView: Successfully saved tracking data: {saved_instance}")
                     
-                    # Preparar los datos para la actualización
-                    update_data = {
-                        'check_in_date': validated_data['check_in_date'],
-                        'check_out_date': validated_data['check_out_date'],
-                        'guests': validated_data['guests'],
-                        'search_timestamp': timezone.now()
-                    }
-                    
-                    # Agregar property si existe
-                    if 'property' in validated_data and validated_data['property']:
-                        update_data['property_id'] = validated_data['property']
-                    
-                    logger.info(f"SearchTrackingView: About to update database with: {update_data}")
-                    
-                    # Usar actualización directa en la base de datos
-                    updated_count = SearchTracking.objects.filter(
-                        client=client,
-                        deleted=False
-                    ).update(**update_data)
-                    
-                    if updated_count > 0:
-                        logger.info(f"SearchTrackingView: Successfully updated {updated_count} record(s) using direct database update")
-                        
-                        # Refrescar la instancia para tener los datos actualizados
-                        search_tracking.refresh_from_db()
-                        
-                        # Verificar que los datos se guardaron correctamente
-                        logger.info(f"SearchTrackingView: Verification after database update:")
-                        logger.info(f"  DB check_in_date = {search_tracking.check_in_date}")
-                        logger.info(f"  DB check_out_date = {search_tracking.check_out_date}")
-                        logger.info(f"  DB guests = {search_tracking.guests}")
-                    else:
-                        logger.error(f"SearchTrackingView: No records were updated!")
-                        raise Exception("No records were updated in database")
+                    # Verificar que los datos se guardaron correctamente
+                    logger.info(f"SearchTrackingView: Verification after save:")
+                    logger.info(f"  DB check_in_date = {saved_instance.check_in_date}")
+                    logger.info(f"  DB check_out_date = {saved_instance.check_out_date}")
+                    logger.info(f"  DB guests = {saved_instance.guests}")
                     
                 except Exception as save_error:
-                    logger.error(f"SearchTrackingView: Error during direct database update: {str(save_error)}")
-                    # Fallback: intentar con el método save() tradicional
-                    try:
-                        # Establecer los valores directamente y usar save()
-                        search_tracking.check_in_date = validated_data['check_in_date']
-                        search_tracking.check_out_date = validated_data['check_out_date'] 
-                        search_tracking.guests = validated_data['guests']
-                        search_tracking.search_timestamp = timezone.now()
-                        
-                        if 'property' in validated_data and validated_data['property']:
-                            search_tracking.property_id = validated_data['property']
-                        
-                        # Usar save() con bypass de validación personalizada
-                        super(SearchTracking, search_tracking).save()
-                        logger.info(f"SearchTrackingView: Fallback save() succeeded")
-                        
-                    except Exception as fallback_error:
-                        logger.error(f"SearchTrackingView: Fallback save() also failed: {str(fallback_error)}")
-                        raise fallback_error
+                    logger.error(f"SearchTrackingView: Error saving: {str(save_error)}")
+                    return Response({
+                        'success': False,
+                        'message': 'Error al guardar búsqueda',
+                        'errors': str(save_error)
+                    }, status=500)
 
                 logger.info(
                     f"SearchTrackingView: Search tracked successfully for client {client.id} - "
