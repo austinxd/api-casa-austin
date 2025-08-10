@@ -21,6 +21,12 @@ urlpatterns = [
     path('clients/complete-register/',
          auth_views.ClientCompleteRegistrationView.as_view(),
          name='complete-register'),
+    
+    # Endpoint para tracking de búsquedas (Must be before router)
+    path('clients/track-search/',
+         SearchTrackingView.as_view(),
+         name='client-track-search'),
+    
     path('', include(router.urls)),
 
     # Endpoints originales para compatibilidad
@@ -79,11 +85,6 @@ urlpatterns = [
     path('clients/reservations/list/',
          views.ClientReservationsListView.as_view(),
          name='client-reservations-list'),
-
-    # Endpoint para tracking de búsquedas
-    path('clients/track-search/',
-         SearchTrackingView.as_view(), # Correctly mapped to SearchTrackingView
-         name='client-track-search'),
 
     # Voucher upload
     path('clients/voucher/upload/<uuid:reservation_id>/',
