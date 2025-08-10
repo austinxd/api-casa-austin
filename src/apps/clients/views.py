@@ -529,70 +529,98 @@ class SearchTrackingView(APIView):
             # Obtener o crear registro de tracking para este cliente
             search_tracking, created = SearchTracking.objects.get_or_create(
                 client=client,
-                defaults={'deleted': False}
+                defaults={
+                    'deleted': False,
+                    'check_in_date': None,
+                    'check_out_date': None,
+                    'guests': None,
+                    'property': None
+                }
             )
 
             logger.info(f"SearchTrackingView: SearchTracking instance: {search_tracking.id}, created: {created}")
 
-            # Usar request.data directamente SIN procesamiento adicional
+            # Extraer datos directamente y actualizar el modelo
             raw_data = request.data
-            logger.info(f"SearchTrackingView: === DATOS PARA SERIALIZER ===")
+            logger.info(f"SearchTrackingView: === ACTUALIZANDO DIRECTAMENTE ===")
             logger.info(f"SearchTrackingView: raw_data = {raw_data}")
-            logger.info(f"SearchTrackingView: type(raw_data) = {type(raw_data)}")
 
-            # Log de cada campo individual en raw_data
-            if hasattr(raw_data, 'items'):
-                for key, value in raw_data.items():
-                    logger.info(f"SearchTrackingView: raw_data['{key}'] = '{value}' (tipo: {type(value)})")
-            else:
-                logger.error(f"SearchTrackingView: raw_data no tiene método items(): {type(raw_data)}")
+            # Actualizar campos directamente en el modelo
+            try:
+                from datetime import datetime
+                from django.utils import timezone
+                
+                # Extraer y actualizar check_in_date
+                if 'check_in_date' in raw_data and raw_data['check_in_date']:
+                    check_in_str = raw_data['check_in_date']
+                    logger.info(f"SearchTrackingView: Procesando check_in_date: {check_in_str}")
+                    check_in_date = datetime.strptime(check_in_str, '%Y-%m-%d').date()
+                    search_tracking.check_in_date = check_in_date
+                    logger.info(f"SearchTrackingView: check_in_date actualizado a: {search_tracking.check_in_date}")
 
-            # Crear serializer directamente con request.data, SIN modificaciones
-            logger.info(f"SearchTrackingView: === CREANDO SERIALIZER ===")
-            
-            serializer = SearchTrackingSerializer(
-                search_tracking, 
-                data=raw_data,
-                partial=True
-            )
+                # Extraer y actualizar check_out_date
+                if 'check_out_date' in raw_data and raw_data['check_out_date']:
+                    check_out_str = raw_data['check_out_date']
+                    logger.info(f"SearchTrackingView: Procesando check_out_date: {check_out_str}")
+                    check_out_date = datetime.strptime(check_out_str, '%Y-%m-%d').date()
+                    search_tracking.check_out_date = check_out_date
+                    logger.info(f"SearchTrackingView: check_out_date actualizado a: {search_tracking.check_out_date}")
 
-            logger.info(f"SearchTrackingView: Serializer creado")
-            logger.info(f"SearchTrackingView: serializer.initial_data = {serializer.initial_data}")
+                # Extraer y actualizar guests
+                if 'guests' in raw_data and raw_data['guests'] is not None:
+                    guests = int(raw_data['guests'])
+                    search_tracking.guests = guests
+                    logger.info(f"SearchTrackingView: guests actualizado a: {search_tracking.guests}")
 
-            logger.info(f"SearchTrackingView: === VALIDANDO SERIALIZER ===")
-            
-            if serializer.is_valid():
-                logger.info(f"SearchTrackingView: Serializer VÁLIDO")
-                logger.info(f"SearchTrackingView: validated_data = {serializer.validated_data}")
+                # Extraer y actualizar property (opcional)
+                if 'property' in raw_data and raw_data['property']:
+                    from apps.property.models import Property
+                    try:
+                        property_obj = Property.objects.get(id=raw_data['property'])
+                        search_tracking.property = property_obj
+                        logger.info(f"SearchTrackingView: property actualizado a: {search_tracking.property}")
+                    except Property.DoesNotExist:
+                        logger.warning(f"SearchTrackingView: Property con ID {raw_data['property']} no encontrada")
 
-                # Intentar guardar
-                logger.info(f"SearchTrackingView: === GUARDANDO ===")
-                try:
-                    saved_instance = serializer.save()
-                    logger.info(f"SearchTrackingView: ÉXITO al guardar: {saved_instance}")
-                    
-                    return Response({
-                        'success': True,
-                        'message': 'Búsqueda registrada exitosamente',
-                        'data': serializer.data
-                    }, status=200)
-                    
-                except Exception as save_error:
-                    logger.error(f"SearchTrackingView: ERROR al guardar: {str(save_error)}")
-                    return Response({
-                        'success': False,
-                        'message': 'Error al guardar búsqueda',
-                        'errors': str(save_error)
-                    }, status=500)
+                # Actualizar timestamp
+                search_tracking.search_timestamp = timezone.now()
 
-            else:
-                logger.error(f"SearchTrackingView: Serializer INVÁLIDO")
-                logger.error(f"SearchTrackingView: serializer.errors = {serializer.errors}")
+                # Intentar guardar DIRECTAMENTE
+                logger.info(f"SearchTrackingView: === GUARDANDO DIRECTAMENTE ===")
+                logger.info(f"SearchTrackingView: Antes de guardar:")
+                logger.info(f"SearchTrackingView:   check_in_date = {search_tracking.check_in_date}")
+                logger.info(f"SearchTrackingView:   check_out_date = {search_tracking.check_out_date}")
+                logger.info(f"SearchTrackingView:   guests = {search_tracking.guests}")
+                logger.info(f"SearchTrackingView:   property = {search_tracking.property}")
+
+                search_tracking.save()
+                
+                logger.info(f"SearchTrackingView: ¡ÉXITO! Búsqueda guardada correctamente")
+
+                # Serializar respuesta
+                serializer = SearchTrackingSerializer(search_tracking)
+                
+                return Response({
+                    'success': True,
+                    'message': 'Búsqueda registrada exitosamente',
+                    'data': serializer.data
+                }, status=200)
+
+            except ValueError as ve:
+                logger.error(f"SearchTrackingView: Error de valor al procesar datos: {str(ve)}")
                 return Response({
                     'success': False,
-                    'message': 'Error en los datos enviados',
-                    'errors': serializer.errors
+                    'message': 'Error en formato de datos',
+                    'errors': str(ve)
                 }, status=400)
+            
+            except Exception as e:
+                logger.error(f"SearchTrackingView: Error al actualizar directamente: {str(e)}")
+                return Response({
+                    'success': False,
+                    'message': 'Error al guardar búsqueda',
+                    'errors': str(e)
+                }, status=500)
 
         except Exception as e:
             logger.error(f"SearchTrackingView: EXCEPCIÓN: {str(e)}")
