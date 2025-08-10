@@ -523,22 +523,26 @@ class SearchTrackingView(APIView):
                 defaults={'deleted': False}
             )
 
-            # Obtener los datos del request
-            if hasattr(request, 'data') and request.data:
-                clean_data = request.data.copy()
-            else:
-                logger.error(f"SearchTrackingView: No data found in request")
-                return Response({
-                    'success': False,
-                    'message': 'No se recibieron datos'
-                }, status=400)
-
             # Debug completo de los datos recibidos
             logger.info(f"SearchTrackingView: Request method: {request.method}")
             logger.info(f"SearchTrackingView: Request content type: {request.content_type}")
             logger.info(f"SearchTrackingView: Raw request.data: {request.data}")
             logger.info(f"SearchTrackingView: Raw request.POST: {request.POST}")
             logger.info(f"SearchTrackingView: Raw request.body: {request.body}")
+            
+            # Obtener los datos del request
+            if hasattr(request, 'data') and request.data:
+                clean_data = request.data.copy()
+                logger.info(f"SearchTrackingView: Using request.data - Type: {type(request.data)}")
+            elif request.POST:
+                clean_data = request.POST.copy()
+                logger.info(f"SearchTrackingView: Using request.POST - Type: {type(request.POST)}")
+            else:
+                logger.error(f"SearchTrackingView: No data found in request")
+                return Response({
+                    'success': False,
+                    'message': 'No se recibieron datos'
+                }, status=400)
 
             # Remover campos que puedan causar conflicto
             clean_data.pop('client_id', None)
@@ -571,6 +575,51 @@ class SearchTrackingView(APIView):
                     'errors': {field: f'El campo {field} es requerido y no puede estar vacío' for field in missing_fields},
                     'received_data': clean_data
                 }, status=400)
+
+            # Convertir fechas si vienen como string
+            from datetime import datetime
+            date_fields = ['check_in_date', 'check_out_date']
+            for field in date_fields:
+                if field in clean_data and isinstance(clean_data[field], str):
+                    try:
+                        # Intentar parsear diferentes formatos de fecha
+                        date_str = clean_data[field]
+                        logger.info(f"SearchTrackingView: Converting date field '{field}' from string: '{date_str}'")
+                        
+                        # Formato ISO (YYYY-MM-DD)
+                        if '-' in date_str:
+                            parsed_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                        elif '/' in date_str:
+                            # Formato DD/MM/YYYY
+                            parsed_date = datetime.strptime(date_str, '%d/%m/%Y').date()
+                        else:
+                            raise ValueError(f"Formato de fecha no reconocido: {date_str}")
+                        
+                        clean_data[field] = parsed_date
+                        logger.info(f"SearchTrackingView: Successfully converted '{field}' to date: {parsed_date}")
+                        
+                    except Exception as e:
+                        logger.error(f"SearchTrackingView: Error converting date field '{field}': {str(e)}")
+                        return Response({
+                            'success': False,
+                            'message': f'Formato de fecha inválido para {field}',
+                            'errors': {field: f'Formato de fecha inválido: {clean_data[field]}'}
+                        }, status=400)
+
+            # Convertir guests a entero si viene como string
+            if 'guests' in clean_data and isinstance(clean_data['guests'], str):
+                try:
+                    clean_data['guests'] = int(clean_data['guests'])
+                    logger.info(f"SearchTrackingView: Converted guests to integer: {clean_data['guests']}")
+                except ValueError:
+                    logger.error(f"SearchTrackingView: Invalid guests value: {clean_data['guests']}")
+                    return Response({
+                        'success': False,
+                        'message': 'Número de huéspedes inválido',
+                        'errors': {'guests': 'El número de huéspedes debe ser un número entero'}
+                    }, status=400)
+
+            logger.info(f"SearchTrackingView: Final clean_data after conversions: {clean_data}")
 
             # Crear contexto para el serializer
             context = {
