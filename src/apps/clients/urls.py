@@ -79,6 +79,11 @@ urlpatterns = [
          views.ClientReservationsListView.as_view(),
          name='client-reservations-list'),
 
+    # Endpoint para tracking de búsquedas
+    path('clients/track-search/',
+         views.SearchTrackingView.as_view(),
+         name='client-track-search'),
+
     # Voucher upload
     path('clients/voucher/upload/<uuid:reservation_id>/',
          ClientVoucherUploadView.as_view(),
