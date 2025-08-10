@@ -772,7 +772,7 @@ class SearchTrackingView(APIView):
                 logger.info(f"  search_tracking.check_out_date = {search_tracking.check_out_date}")
                 logger.info(f"  search_tracking.guests = {search_tracking.guests}")
 
-                # Guardar directamente la instancia con los datos ya establecidos
+                # Guardar directamente en la instancia sin usar el serializer
                 try:
                     # Log final verification before save
                     logger.info(f"SearchTrackingView: FINAL CHECK before save:")
@@ -780,24 +780,36 @@ class SearchTrackingView(APIView):
                     logger.info(f"  search_tracking.check_out_date = {search_tracking.check_out_date} (type: {type(search_tracking.check_out_date)})")
                     logger.info(f"  search_tracking.guests = {search_tracking.guests} (type: {type(search_tracking.guests)})")
                     
-                    # Use update_or_create to ensure the data is saved correctly
-                    SearchTracking.objects.filter(client=client).update(
-                        check_in_date=validated_data['check_in_date'],
-                        check_out_date=validated_data['check_out_date'],
-                        guests=validated_data['guests'],
-                        property_id=validated_data.get('property'),
-                        search_timestamp=timezone.now()
-                    )
+                    # Asegurar que los datos están en la instancia antes de guardar
+                    search_tracking.check_in_date = validated_data['check_in_date']
+                    search_tracking.check_out_date = validated_data['check_out_date'] 
+                    search_tracking.guests = validated_data['guests']
+                    search_tracking.search_timestamp = timezone.now()
                     
-                    # Refresh the instance
-                    search_tracking.refresh_from_db()
+                    # Manejar property si existe
+                    if 'property' in validated_data and validated_data['property']:
+                        search_tracking.property_id = validated_data['property']
                     
-                    logger.info(f"SearchTrackingView: Successfully updated using direct SQL update")
+                    # Log antes de save()
+                    logger.info(f"SearchTrackingView: About to call search_tracking.save() with:")
+                    logger.info(f"  search_tracking.check_in_date = {search_tracking.check_in_date}")
+                    logger.info(f"  search_tracking.check_out_date = {search_tracking.check_out_date}")  
+                    logger.info(f"  search_tracking.guests = {search_tracking.guests}")
+                    
+                    # Llamar directamente save() en la instancia
+                    search_tracking.save()
+                    
+                    logger.info(f"SearchTrackingView: Successfully saved using search_tracking.save()")
                     
                 except Exception as save_error:
-                    logger.error(f"SearchTrackingView: Error during direct save: {str(save_error)}")
+                    logger.error(f"SearchTrackingView: Error during direct instance save: {str(save_error)}")
                     # Fallback to serializer save
-                    serializer.save()
+                    try:
+                        serializer.save()
+                        logger.info(f"SearchTrackingView: Fallback serializer.save() succeeded")
+                    except Exception as fallback_error:
+                        logger.error(f"SearchTrackingView: Fallback serializer.save() also failed: {str(fallback_error)}")
+                        raise fallback_error
 
                 logger.info(
                     f"SearchTrackingView: Search tracked successfully for client {client.id} - "
