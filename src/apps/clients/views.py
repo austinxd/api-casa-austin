@@ -526,76 +526,89 @@ class SearchTrackingView(APIView):
             logger.info(f"SearchTrackingView: request.data = {request.data}")
             logger.info(f"SearchTrackingView: type(request.data) = {type(request.data)}")
 
-            # Obtener o crear registro de tracking para este cliente
-            search_tracking, created = SearchTracking.objects.get_or_create(
-                client=client,
-                defaults={
-                    'deleted': False,
-                    'check_in_date': None,
-                    'check_out_date': None,
-                    'guests': None,
-                    'property': None
-                }
-            )
-
-            logger.info(f"SearchTrackingView: SearchTracking instance: {search_tracking.id}, created: {created}")
-
-            # Extraer datos directamente y actualizar el modelo
+            # Extraer y procesar datos PRIMERO
             raw_data = request.data
-            logger.info(f"SearchTrackingView: === ACTUALIZANDO DIRECTAMENTE ===")
+            logger.info(f"SearchTrackingView: === PROCESANDO DATOS ===")
             logger.info(f"SearchTrackingView: raw_data = {raw_data}")
 
-            # Actualizar campos directamente en el modelo
+            # Procesar datos antes de crear/actualizar el modelo
             try:
                 from datetime import datetime
                 from django.utils import timezone
                 
-                # Extraer y actualizar check_in_date
+                # Procesar check_in_date
+                check_in_date = None
                 if 'check_in_date' in raw_data and raw_data['check_in_date']:
                     check_in_str = raw_data['check_in_date']
                     logger.info(f"SearchTrackingView: Procesando check_in_date: {check_in_str}")
                     check_in_date = datetime.strptime(check_in_str, '%Y-%m-%d').date()
-                    search_tracking.check_in_date = check_in_date
-                    logger.info(f"SearchTrackingView: check_in_date actualizado a: {search_tracking.check_in_date}")
+                    logger.info(f"SearchTrackingView: check_in_date procesado: {check_in_date}")
 
-                # Extraer y actualizar check_out_date
+                # Procesar check_out_date
+                check_out_date = None
                 if 'check_out_date' in raw_data and raw_data['check_out_date']:
                     check_out_str = raw_data['check_out_date']
                     logger.info(f"SearchTrackingView: Procesando check_out_date: {check_out_str}")
                     check_out_date = datetime.strptime(check_out_str, '%Y-%m-%d').date()
-                    search_tracking.check_out_date = check_out_date
-                    logger.info(f"SearchTrackingView: check_out_date actualizado a: {search_tracking.check_out_date}")
+                    logger.info(f"SearchTrackingView: check_out_date procesado: {check_out_date}")
 
-                # Extraer y actualizar guests
+                # Procesar guests
+                guests = None
                 if 'guests' in raw_data and raw_data['guests'] is not None:
                     guests = int(raw_data['guests'])
-                    search_tracking.guests = guests
-                    logger.info(f"SearchTrackingView: guests actualizado a: {search_tracking.guests}")
+                    logger.info(f"SearchTrackingView: guests procesado: {guests}")
 
-                # Extraer y actualizar property (opcional)
+                # Procesar property (opcional)
+                property_obj = None
                 if 'property' in raw_data and raw_data['property']:
                     from apps.property.models import Property
                     try:
                         property_obj = Property.objects.get(id=raw_data['property'])
-                        search_tracking.property = property_obj
-                        logger.info(f"SearchTrackingView: property actualizado a: {search_tracking.property}")
+                        logger.info(f"SearchTrackingView: property procesado: {property_obj}")
                     except Property.DoesNotExist:
                         logger.warning(f"SearchTrackingView: Property con ID {raw_data['property']} no encontrada")
 
-                # Actualizar timestamp
-                search_tracking.search_timestamp = timezone.now()
+                # Ahora intentar obtener o crear el registro con los datos ya procesados
+                logger.info(f"SearchTrackingView: === CREANDO/ACTUALIZANDO CON DATOS PROCESADOS ===")
+                logger.info(f"SearchTrackingView: check_in_date = {check_in_date}")
+                logger.info(f"SearchTrackingView: check_out_date = {check_out_date}")
+                logger.info(f"SearchTrackingView: guests = {guests}")
 
-                # Intentar guardar DIRECTAMENTE
-                logger.info(f"SearchTrackingView: === GUARDANDO DIRECTAMENTE ===")
-                logger.info(f"SearchTrackingView: Antes de guardar:")
-                logger.info(f"SearchTrackingView:   check_in_date = {search_tracking.check_in_date}")
-                logger.info(f"SearchTrackingView:   check_out_date = {search_tracking.check_out_date}")
-                logger.info(f"SearchTrackingView:   guests = {search_tracking.guests}")
-                logger.info(f"SearchTrackingView:   property = {search_tracking.property}")
+                # Verificar que tenemos los datos requeridos
+                if not check_in_date:
+                    raise ValueError("check_in_date es requerido")
+                if not check_out_date:
+                    raise ValueError("check_out_date es requerido") 
+                if guests is None:
+                    raise ValueError("guests es requerido")
 
-                search_tracking.save()
+                # Intentar actualizar si existe, o crear nuevo
+                try:
+                    search_tracking = SearchTracking.objects.get(client=client, deleted=False)
+                    logger.info(f"SearchTrackingView: Actualizando registro existente: {search_tracking.id}")
+                    # Actualizar con nuevos datos
+                    search_tracking.check_in_date = check_in_date
+                    search_tracking.check_out_date = check_out_date
+                    search_tracking.guests = guests
+                    search_tracking.property = property_obj
+                    search_tracking.search_timestamp = timezone.now()
+                    search_tracking.save()
+                    created = False
+                except SearchTracking.DoesNotExist:
+                    logger.info(f"SearchTrackingView: Creando nuevo registro")
+                    # Crear nuevo registro
+                    search_tracking = SearchTracking.objects.create(
+                        client=client,
+                        check_in_date=check_in_date,
+                        check_out_date=check_out_date,
+                        guests=guests,
+                        property=property_obj,
+                        search_timestamp=timezone.now(),
+                        deleted=False
+                    )
+                    created = True
                 
-                logger.info(f"SearchTrackingView: ¡ÉXITO! Búsqueda guardada correctamente")
+                logger.info(f"SearchTrackingView: ¡ÉXITO! Búsqueda guardada correctamente (created: {created})")
 
                 # Serializar respuesta
                 serializer = SearchTrackingSerializer(search_tracking)
