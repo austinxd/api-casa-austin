@@ -503,11 +503,21 @@ class SearchTrackingView(APIView):
             clean_data.pop('client_id', None)
             clean_data.pop('client', None)
 
-            logger.info(f"SearchTrackingView: Received data: {clean_data}")
+            logger.info(f"SearchTrackingView: Original request.data: {request.data}")
+            logger.info(f"SearchTrackingView: Cleaned data: {clean_data}")
 
             # Validar que los campos requeridos estén presentes
             required_fields = ['check_in_date', 'check_out_date', 'guests']
             missing_fields = [field for field in required_fields if not clean_data.get(field)]
+            
+            logger.info(f"SearchTrackingView: Missing fields check: {missing_fields}")
+            
+            # Debug: verificar tipos de datos
+            for field in required_fields:
+                if field in clean_data:
+                    logger.info(f"SearchTrackingView: Field '{field}' = {clean_data[field]} (type: {type(clean_data[field])})")
+                else:
+                    logger.warning(f"SearchTrackingView: Field '{field}' not found in clean_data")
             
             if missing_fields:
                 logger.error(f"SearchTrackingView: Missing required fields: {missing_fields}")
@@ -517,11 +527,21 @@ class SearchTrackingView(APIView):
                     'errors': {field: f'El campo {field} es requerido' for field in missing_fields}
                 }, status=400)
 
-            # Actualizar con los nuevos datos - usar update=True y no partial
+            # Crear contexto para el serializer
+            context = {
+                'request': request,
+                'client': client
+            }
+            
+            # Actualizar con los nuevos datos
             serializer = SearchTrackingSerializer(
                 search_tracking, 
-                data=clean_data
+                data=clean_data,
+                context=context,
+                partial=True
             )
+            
+            logger.info(f"SearchTrackingView: Serializer created with data: {clean_data}")
 
             if serializer.is_valid():
                 serializer.save()
@@ -561,10 +581,16 @@ class SearchTrackingView(APIView):
         try:
             # Autenticar cliente
             authenticator = ClientJWTAuthentication()
-            client, validated_token = authenticator.authenticate(request)
-
+            auth_result = authenticator.authenticate(request)
+            
+            if auth_result is None:
+                logger.error("SearchTrackingView: Authentication failed - no result")
+                return Response({'message': 'Token inválido'}, status=401)
+            
+            client, validated_token = auth_result
+            
             if not client:
-                logger.error("SearchTrackingView: Authentication failed")
+                logger.error("SearchTrackingView: Authentication failed - no client")
                 return Response({'message': 'Token inválido'}, status=401)
 
             # Obtener registro de tracking
