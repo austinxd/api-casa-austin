@@ -182,7 +182,7 @@ from apps.reservation.serializers import ClientReservationSerializer
 from apps.core.paginator import CustomPagination
 
 # Importar el autenticador JWT personalizado
-from apps.clients.twilio_service import CustomJWTAuthentication
+from .auth_views import ClientJWTAuthentication
 
 
 def get_client_from_token(request):
@@ -577,13 +577,14 @@ class SearchTrackingView(APIView):
 
 # Nueva vista para TrackSearchView
 class TrackSearchView(APIView):
-    authentication_classes = [CustomJWTAuthentication]
-    permission_classes = [IsAuthenticatedClient]
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         try:
-            # Obtener el cliente del token JWT
-            client = request.user
+            # Autenticar cliente
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
 
             if not client:
                 logger.error("TrackSearchView: Authentication failed")
@@ -615,8 +616,9 @@ class TrackSearchView(APIView):
 
     def get(self, request):
         try:
-            # Obtener el cliente del token JWT
-            client = request.user
+            # Autenticar cliente
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
 
             if not client:
                 logger.error("TrackSearchView: Authentication failed")
