@@ -234,4 +234,4 @@ class SearchTrackingSerializer(serializers.ModelSerializer):
                 "guests": "El número de huéspedes debe ser mayor a 0"
             })
         
-        return attrsn attrs
+        return attrs
