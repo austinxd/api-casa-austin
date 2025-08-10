@@ -181,6 +181,9 @@ from apps.reservation.serializers import ClientReservationSerializer
 
 from apps.core.paginator import CustomPagination
 
+# Importar el autenticador JWT personalizado
+from apps.clients.twilio_service import CustomJWTAuthentication
+
 
 def get_client_from_token(request):
     """Helper function to get client from JWT token"""
@@ -481,7 +484,7 @@ class SearchTrackingView(APIView):
     def post(self, request):
         """Registrar o actualizar búsqueda del cliente"""
         logger.info("SearchTrackingView: Tracking search request")
-        
+
         try:
             # Autenticar cliente
             authenticator = ClientJWTAuthentication()
@@ -506,7 +509,7 @@ class SearchTrackingView(APIView):
 
             if serializer.is_valid():
                 serializer.save()
-                
+
                 logger.info(
                     f"SearchTrackingView: Search tracked successfully for client {client.id} - "
                     f"Check-in: {serializer.validated_data.get('check_in_date')}, "
@@ -519,7 +522,7 @@ class SearchTrackingView(APIView):
                     'message': 'Búsqueda registrada exitosamente',
                     'data': serializer.data
                 }, status=200)
-            
+
             else:
                 logger.error(f"SearchTrackingView: Validation errors: {serializer.errors}")
                 return Response({
@@ -538,7 +541,7 @@ class SearchTrackingView(APIView):
     def get(self, request):
         """Obtener última búsqueda del cliente"""
         logger.info("SearchTrackingView: Get last search request")
-        
+
         try:
             # Autenticar cliente
             authenticator = ClientJWTAuthentication()
@@ -552,12 +555,12 @@ class SearchTrackingView(APIView):
             try:
                 search_tracking = SearchTracking.objects.get(client=client, deleted=False)
                 serializer = SearchTrackingSerializer(search_tracking)
-                
+
                 return Response({
                     'success': True,
                     'data': serializer.data
                 }, status=200)
-                
+
             except SearchTracking.DoesNotExist:
                 return Response({
                     'success': True,
@@ -567,6 +570,74 @@ class SearchTrackingView(APIView):
 
         except Exception as e:
             logger.error(f"SearchTrackingView: Error getting search: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+# Nueva vista para TrackSearchView
+class TrackSearchView(APIView):
+    authentication_classes = [CustomJWTAuthentication]
+    permission_classes = [IsAuthenticatedClient]
+
+    def post(self, request):
+        try:
+            # Obtener el cliente del token JWT
+            client = request.user
+
+            if not client:
+                logger.error("TrackSearchView: Authentication failed")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            # Serializar y guardar los datos de la búsqueda
+            serializer = SearchTrackingSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save(client=client)
+                logger.info(f"TrackSearchView: Search tracked successfully for client {client.id}")
+                return Response({
+                    'success': True,
+                    'message': 'Búsqueda registrada exitosamente',
+                    'data': serializer.data
+                }, status=200)
+            else:
+                logger.error(f"TrackSearchView: Validation errors: {serializer.errors}")
+                return Response({
+                    'success': False,
+                    'message': 'Error en los datos enviados',
+                    'errors': serializer.errors
+                }, status=400)
+        except Exception as e:
+            logger.error(f"TrackSearchView: Error tracking search: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+    def get(self, request):
+        try:
+            # Obtener el cliente del token JWT
+            client = request.user
+
+            if not client:
+                logger.error("TrackSearchView: Authentication failed")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            # Obtener registro de tracking para el cliente actual
+            try:
+                search_tracking = SearchTracking.objects.get(client=client, deleted=False)
+                serializer = SearchTrackingSerializer(search_tracking)
+                return Response({
+                    'success': True,
+                    'data': serializer.data
+                }, status=200)
+            except SearchTracking.DoesNotExist:
+                return Response({
+                    'success': True,
+                    'message': 'No hay búsquedas registradas',
+                    'data': None
+                }, status=200)
+        except Exception as e:
+            logger.error(f"TrackSearchView: Error getting search: {str(e)}")
             return Response({
                 'success': False,
                 'message': 'Error interno del servidor'
