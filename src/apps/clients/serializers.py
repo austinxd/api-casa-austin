@@ -197,7 +197,7 @@ class RedeemPointsSerializer(serializers.Serializer):
 
 
 class SearchTrackingSerializer(serializers.ModelSerializer):
-    """Serializer para tracking de búsquedas"""
+    """Serializer para tracking de búsquedas - Versión simplificada para debug"""
     property_name = serializers.CharField(source='property.name', read_only=True)
     
     class Meta:
@@ -210,68 +210,15 @@ class SearchTrackingSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         import logging
-        from datetime import date
         logger = logging.getLogger(__name__)
         
-        logger.info(f"SearchTrackingSerializer.validate: Received attrs: {attrs}")
+        logger.info(f"SearchTrackingSerializer.validate: ENTRADA - attrs recibidos: {attrs}")
+        logger.info(f"SearchTrackingSerializer.validate: ENTRADA - tipo de attrs: {type(attrs)}")
         
-        # Validación básica - verificar que attrs no esté vacío
-        if not attrs:
-            logger.error("SearchTrackingSerializer.validate: attrs is empty!")
-            raise serializers.ValidationError("No se recibieron datos para validar")
+        # Log cada campo individual
+        for key, value in attrs.items():
+            logger.info(f"SearchTrackingSerializer.validate: CAMPO '{key}' = '{value}' (tipo: {type(value)})")
         
-        # Extraer campos
-        check_in = attrs.get('check_in_date')
-        check_out = attrs.get('check_out_date')
-        guests = attrs.get('guests')
-        
-        logger.info(f"SearchTrackingSerializer.validate: check_in={check_in}, check_out={check_out}, guests={guests}")
-        
-        # Validaciones críticas simplificadas
-        if not check_in:
-            logger.error(f"SearchTrackingSerializer.validate: check_in_date missing: {repr(check_in)}")
-            raise serializers.ValidationError({
-                "check_in_date": "La fecha de check-in es requerida"
-            })
-        
-        if not check_out:
-            logger.error(f"SearchTrackingSerializer.validate: check_out_date missing: {repr(check_out)}")
-            raise serializers.ValidationError({
-                "check_out_date": "La fecha de check-out es requerida"
-            })
-        
-        if guests is None:
-            logger.error(f"SearchTrackingSerializer.validate: guests missing: {repr(guests)}")
-            raise serializers.ValidationError({
-                "guests": "El número de huéspedes es requerido"
-            })
-        
-        # Validar tipos de fecha
-        if not isinstance(check_in, date):
-            logger.error(f"SearchTrackingSerializer.validate: check_in_date wrong type: {type(check_in)}")
-            raise serializers.ValidationError({
-                "check_in_date": "La fecha de check-in debe ser una fecha válida"
-            })
-            
-        if not isinstance(check_out, date):
-            logger.error(f"SearchTrackingSerializer.validate: check_out_date wrong type: {type(check_out)}")
-            raise serializers.ValidationError({
-                "check_out_date": "La fecha de check-out debe ser una fecha válida"
-            })
-        
-        # Validar rango de fechas
-        if check_in >= check_out:
-            logger.error(f"SearchTrackingSerializer.validate: Invalid date range: {check_in} >= {check_out}")
-            raise serializers.ValidationError(
-                "La fecha de check-out debe ser posterior a la fecha de check-in"
-            )
-        
-        # Validar guests
-        if not isinstance(guests, int) or guests <= 0:
-            logger.error(f"SearchTrackingSerializer.validate: Invalid guests: {guests} (type: {type(guests)})")
-            raise serializers.ValidationError({
-                "guests": "El número de huéspedes debe ser un número entero mayor a 0"
-            })
-        
-        logger.info("SearchTrackingSerializer.validate: Validation successful")
+        # NO hacer validaciones complejas por ahora, solo log y retornar
+        logger.info(f"SearchTrackingSerializer.validate: SALIDA - retornando attrs: {attrs}")
         return attrs

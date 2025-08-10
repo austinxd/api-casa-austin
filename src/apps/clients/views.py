@@ -500,13 +500,13 @@ class SearchTrackingTestView(APIView):
 
 
 class SearchTrackingView(APIView):
-    """Vista para tracking de búsquedas de clientes"""
+    """Vista para tracking de búsquedas de clientes - Versión simplificada para debug"""
     authentication_classes = [ClientJWTAuthentication]
     permission_classes = [AllowAny]
 
     def post(self, request):
         """Registrar o actualizar búsqueda del cliente"""
-        logger.info("SearchTrackingView: Tracking search request")
+        logger.info("SearchTrackingView: === INICIO DEBUG ===")
 
         try:
             # Autenticar cliente
@@ -517,343 +517,79 @@ class SearchTrackingView(APIView):
                 logger.error("SearchTrackingView: Authentication failed")
                 return Response({'message': 'Token inválido'}, status=401)
 
+            logger.info(f"SearchTrackingView: Cliente autenticado: {client.id}")
+
+            # Log COMPLETO de lo que recibe Django
+            logger.info(f"SearchTrackingView: === DATOS RECIBIDOS ===")
+            logger.info(f"SearchTrackingView: request.method = {request.method}")
+            logger.info(f"SearchTrackingView: request.content_type = {request.content_type}")
+            logger.info(f"SearchTrackingView: request.data = {request.data}")
+            logger.info(f"SearchTrackingView: type(request.data) = {type(request.data)}")
+            logger.info(f"SearchTrackingView: request.POST = {request.POST}")
+            logger.info(f"SearchTrackingView: request.body = {request.body.decode('utf-8') if request.body else 'Empty'}")
+
             # Obtener o crear registro de tracking para este cliente
             search_tracking, created = SearchTracking.objects.get_or_create(
                 client=client,
                 defaults={'deleted': False}
             )
 
-            # Debug completo de los datos recibidos
-            logger.info(f"SearchTrackingView: Request method: {request.method}")
-            logger.info(f"SearchTrackingView: Request content type: {request.content_type}")
-            logger.info(f"SearchTrackingView: Raw request.data: {request.data}")
-            logger.info(f"SearchTrackingView: Raw request.POST: {request.POST}")
-            logger.info(f"SearchTrackingView: Raw request.body: {request.body.decode('utf-8') if request.body else 'Empty'}")
+            logger.info(f"SearchTrackingView: SearchTracking instance: {search_tracking.id}, created: {created}")
 
-            # Debug de headers
-            logger.info(f"SearchTrackingView: Request headers:")
-            for key, value in request.META.items():
-                if key.startswith('HTTP_') or key in ['CONTENT_TYPE', 'CONTENT_LENGTH']:
-                    logger.info(f"  {key}: {value}")
+            # Usar request.data directamente SIN procesamiento adicional
+            raw_data = request.data
+            logger.info(f"SearchTrackingView: === DATOS PARA SERIALIZER ===")
+            logger.info(f"SearchTrackingView: raw_data = {raw_data}")
+            logger.info(f"SearchTrackingView: type(raw_data) = {type(raw_data)}")
 
-            # Obtener los datos del request
-            clean_data = {}
-
-            # Verificar si el content-type es JSON
-            if request.content_type == 'application/json':
-                # Para requests JSON, usar request.data directamente
-                if hasattr(request, 'data') and request.data:
-                    logger.info(f"SearchTrackingView: Using JSON request.data - Type: {type(request.data)}")
-                    logger.info(f"SearchTrackingView: JSON data content: {request.data}")
-                    
-                    # request.data es un QueryDict o dict para JSON
-                    if hasattr(request.data, 'dict'):
-                        clean_data = request.data.dict()
-                    else:
-                        clean_data = dict(request.data)
-                else:
-                    logger.error(f"SearchTrackingView: No JSON data found in request")
-                    return Response({
-                        'success': False,
-                        'message': 'No se recibieron datos JSON'
-                    }, status=400)
+            # Log de cada campo individual en raw_data
+            if hasattr(raw_data, 'items'):
+                for key, value in raw_data.items():
+                    logger.info(f"SearchTrackingView: raw_data['{key}'] = '{value}' (tipo: {type(value)})")
             else:
-                # Para form data tradicional
-                if request.POST:
-                    logger.info(f"SearchTrackingView: Using form data request.POST - Type: {type(request.POST)}")
-                    clean_data = dict(request.POST)
-                else:
-                    logger.error(f"SearchTrackingView: No form data found in request")
-                    return Response({
-                        'success': False,
-                        'message': 'No se recibieron datos'
-                    }, status=400)
+                logger.error(f"SearchTrackingView: raw_data no tiene método items(): {type(raw_data)}")
 
-            logger.info(f"SearchTrackingView: Raw clean_data after extraction: {clean_data}")
-            logger.info(f"SearchTrackingView: clean_data type: {type(clean_data)}")
-
-            # Debug individual de cada campo recibido
-            for key, value in clean_data.items():
-                logger.info(f"SearchTrackingView: RAW Field '{key}' = '{value}' (type: {type(value)}, str: '{str(value)}', repr: {repr(value)})")
-
-            # Remover campos que puedan causar conflicto
-            clean_data.pop('client_id', None)
-            clean_data.pop('client', None)
-
-            logger.info(f"SearchTrackingView: After removing client fields: {clean_data}")
-
-            # Validar que los campos requeridos estén presentes
-            required_fields = ['check_in_date', 'check_out_date', 'guests']
-
-            # Verificar cada campo individualmente
-            for field in required_fields:
-                value = clean_data.get(field)
-                logger.info(f"SearchTrackingView: Field '{field}' = '{value}' (type: {type(value)}, empty: {not value})")
-
-            # Verificar campos faltantes o vacíos
-            missing_fields = []
-            for field in required_fields:
-                value = clean_data.get(field)
-                if value is None or value == '' or value == 'null' or value == 'undefined':
-                    missing_fields.append(field)
-
-            logger.info(f"SearchTrackingView: Missing or empty fields: {missing_fields}")
-
-            if missing_fields:
-                logger.error(f"SearchTrackingView: Missing required fields: {missing_fields}")
-                return Response({
-                    'success': False,
-                    'message': 'Campos requeridos faltantes o vacíos',
-                    'errors': {field: f'El campo {field} es requerido y no puede estar vacío' for field in missing_fields},
-                    'received_data': clean_data
-                }, status=400)
-
-            # Procesar datos de manera simplificada y más robusta
-            processed_data = {}
-            from datetime import datetime
-
-            logger.info(f"SearchTrackingView: Starting data processing with clean_data: {clean_data}")
-
-            # Procesar check_in_date - OBLIGATORIO
-            check_in_raw = clean_data.get('check_in_date')
-            logger.info(f"SearchTrackingView: Processing check_in_date: {repr(check_in_raw)} (type: {type(check_in_raw)})")
+            # Crear serializer directamente con request.data, SIN modificaciones
+            logger.info(f"SearchTrackingView: === CREANDO SERIALIZER ===")
             
-            if not check_in_raw or str(check_in_raw).lower() in ['null', 'undefined', 'none', '']:
-                logger.error(f"SearchTrackingView: check_in_date is missing or invalid: {repr(check_in_raw)}")
-                return Response({
-                    'success': False,
-                    'message': 'check_in_date es requerido',
-                    'errors': {'check_in_date': 'La fecha de check-in es requerida'}
-                }, status=400)
-            
-            try:
-                if isinstance(check_in_raw, str):
-                    parsed_date = datetime.strptime(check_in_raw, '%Y-%m-%d').date()
-                    processed_data['check_in_date'] = parsed_date
-                    logger.info(f"SearchTrackingView: Successfully parsed check_in_date: {parsed_date}")
-                else:
-                    logger.error(f"SearchTrackingView: check_in_date is not string: {type(check_in_raw)}")
-                    return Response({
-                        'success': False,
-                        'message': 'check_in_date debe ser string en formato YYYY-MM-DD',
-                        'errors': {'check_in_date': f'Tipo inválido: {type(check_in_raw)}'}
-                    }, status=400)
-            except Exception as e:
-                logger.error(f"SearchTrackingView: Error parsing check_in_date: {str(e)}")
-                return Response({
-                    'success': False,
-                    'message': 'Error al procesar fecha de entrada',
-                    'errors': {'check_in_date': str(e)}
-                }, status=400)
-
-            # Procesar check_out_date - OBLIGATORIO
-            check_out_raw = clean_data.get('check_out_date')
-            logger.info(f"SearchTrackingView: Processing check_out_date: {repr(check_out_raw)} (type: {type(check_out_raw)})")
-            
-            if not check_out_raw or str(check_out_raw).lower() in ['null', 'undefined', 'none', '']:
-                logger.error(f"SearchTrackingView: check_out_date is missing or invalid: {repr(check_out_raw)}")
-                return Response({
-                    'success': False,
-                    'message': 'check_out_date es requerido',
-                    'errors': {'check_out_date': 'La fecha de check-out es requerida'}
-                }, status=400)
-                
-            try:
-                if isinstance(check_out_raw, str):
-                    parsed_date = datetime.strptime(check_out_raw, '%Y-%m-%d').date()
-                    processed_data['check_out_date'] = parsed_date
-                    logger.info(f"SearchTrackingView: Successfully parsed check_out_date: {parsed_date}")
-                else:
-                    logger.error(f"SearchTrackingView: check_out_date is not string: {type(check_out_raw)}")
-                    return Response({
-                        'success': False,
-                        'message': 'check_out_date debe ser string en formato YYYY-MM-DD',
-                        'errors': {'check_out_date': f'Tipo inválido: {type(check_out_raw)}'}
-                    }, status=400)
-            except Exception as e:
-                logger.error(f"SearchTrackingView: Error parsing check_out_date: {str(e)}")
-                return Response({
-                    'success': False,
-                    'message': 'Error al procesar fecha de salida',
-                    'errors': {'check_out_date': str(e)}
-                }, status=400)
-
-            # Procesar guests - OBLIGATORIO
-            guests_raw = clean_data.get('guests')
-            logger.info(f"SearchTrackingView: Processing guests: {repr(guests_raw)} (type: {type(guests_raw)})")
-            
-            if guests_raw is None or str(guests_raw).lower() in ['null', 'undefined', 'none', '']:
-                logger.error(f"SearchTrackingView: guests is missing or invalid: {repr(guests_raw)}")
-                return Response({
-                    'success': False,
-                    'message': 'guests es requerido',
-                    'errors': {'guests': 'El número de huéspedes es requerido'}
-                }, status=400)
-                
-            try:
-                if isinstance(guests_raw, (int, float)):
-                    processed_data['guests'] = int(guests_raw)
-                elif isinstance(guests_raw, str):
-                    processed_data['guests'] = int(guests_raw)
-                else:
-                    logger.error(f"SearchTrackingView: guests type invalid: {type(guests_raw)}")
-                    return Response({
-                        'success': False,
-                        'message': 'guests debe ser un número',
-                        'errors': {'guests': f'Tipo inválido: {type(guests_raw)}'}
-                    }, status=400)
-                    
-                if processed_data['guests'] <= 0:
-                    logger.error(f"SearchTrackingView: guests value invalid: {processed_data['guests']}")
-                    return Response({
-                        'success': False,
-                        'message': 'guests debe ser mayor a 0',
-                        'errors': {'guests': f'Valor inválido: {processed_data["guests"]}'}
-                    }, status=400)
-                    
-                logger.info(f"SearchTrackingView: Successfully parsed guests: {processed_data['guests']}")
-            except (ValueError, TypeError) as e:
-                logger.error(f"SearchTrackingView: Error parsing guests: {str(e)}")
-                return Response({
-                    'success': False,
-                    'message': 'Error al procesar número de huéspedes',
-                    'errors': {'guests': str(e)}
-                }, status=400)
-
-            # Procesar property (opcional)
-            property_raw = clean_data.get('property')
-            if property_raw and str(property_raw).lower() not in ['null', 'undefined', 'none', '']:
-                processed_data['property'] = property_raw
-                logger.info(f"SearchTrackingView: Property included: {property_raw}")
-            else:
-                logger.info("SearchTrackingView: No property specified (optional field)")
-
-            logger.info(f"SearchTrackingView: Final processed_data: {processed_data}")
-            
-            # Verificación final crítica
-            if not all(field in processed_data for field in ['check_in_date', 'check_out_date', 'guests']):
-                missing = [field for field in ['check_in_date', 'check_out_date', 'guests'] if field not in processed_data]
-                logger.error(f"SearchTrackingView: CRITICAL - Missing processed fields: {missing}")
-                return Response({
-                    'success': False,
-                    'message': 'Error interno: campos requeridos faltantes después del procesamiento',
-                    'errors': {field: 'Campo requerido faltante' for field in missing}
-                }, status=500)
-
-            logger.info(f"SearchTrackingView: Final processed_data after conversions: {processed_data}")
-
-            # Validar datos antes de pasarlos al serializer
-            for field in ['check_in_date', 'check_out_date', 'guests']:
-                value = processed_data.get(field)
-                logger.info(f"SearchTrackingView: PRE-SERIALIZER field '{field}' = '{value}' (type: {type(value)}, repr: {repr(value)}, bool: {bool(value)})")
-
-                if value is None:
-                    logger.error(f"SearchTrackingView: CRITICAL - Field '{field}' is None!")
-                    return Response({
-                        'success': False,
-                        'message': f'Campo {field} no puede ser None',
-                        'field_value': repr(value),
-                        'field_type': str(type(value)),
-                        'processed_data': processed_data
-                    }, status=500)
-
-            # Crear contexto para el serializer
-            context = {
-                'request': request,
-                'client': client
-            }
-
-            logger.info(f"SearchTrackingView: About to create serializer with processed_data: {processed_data}")
-            logger.info(f"SearchTrackingView: search_tracking instance ID: {search_tracking.id if search_tracking else 'None'}")
-
-            # Verificar que processed_data tenga los datos correctos antes del serializer
-            for field in ['check_in_date', 'check_out_date', 'guests']:
-                value = processed_data.get(field)
-                if value is None:
-                    logger.error(f"SearchTrackingView: CRITICAL ERROR - Field '{field}' is None before serializer!")
-                    return Response({
-                        'success': False,
-                        'message': f'Error interno: campo {field} perdido durante procesamiento',
-                        'field_value': repr(value),
-                        'processed_data': processed_data
-                    }, status=500)
-                logger.info(f"SearchTrackingView: PRE-SERIALIZER VERIFIED field '{field}' = '{value}' (type: {type(value)})")
-
-            # Actualizar con los nuevos datos usando processed_data directamente
             serializer = SearchTrackingSerializer(
                 search_tracking, 
-                data=processed_data,
-                context=context,
+                data=raw_data,
                 partial=True
             )
 
-            logger.info(f"SearchTrackingView: Serializer created successfully")
-            logger.info(f"SearchTrackingView: Serializer initial_data: {serializer.initial_data}")
-            logger.info(f"SearchTrackingView: About to call is_valid() on serializer")
+            logger.info(f"SearchTrackingView: Serializer creado")
+            logger.info(f"SearchTrackingView: serializer.initial_data = {serializer.initial_data}")
 
+            logger.info(f"SearchTrackingView: === VALIDANDO SERIALIZER ===")
+            
             if serializer.is_valid():
-                logger.info(f"SearchTrackingView: Serializer is VALID, validated_data: {serializer.validated_data}")
+                logger.info(f"SearchTrackingView: Serializer VÁLIDO")
+                logger.info(f"SearchTrackingView: validated_data = {serializer.validated_data}")
 
-                # Verificar que validated_data tenga los valores correctos antes de save
-                validated_data = serializer.validated_data
-                for field in ['check_in_date', 'check_out_date', 'guests']:
-                    value = validated_data.get(field)
-                    logger.info(f"SearchTrackingView: VALIDATED field '{field}' = '{value}' (type: {type(value)})")
-                    if value is None:
-                        logger.error(f"SearchTrackingView: CRITICAL - Validated field '{field}' is None!")
-                        return Response({
-                            'success': False,
-                            'message': f'Error de validación: campo {field} perdido en validated_data',
-                            'validated_data': validated_data
-                        }, status=500)
-
-                # Forzar actualización directa en el modelo antes de save()
-                search_tracking.check_in_date = validated_data['check_in_date']
-                search_tracking.check_out_date = validated_data['check_out_date']
-                search_tracking.guests = validated_data['guests']
-
-                if validated_data.get('property'):
-                    search_tracking.property_id = validated_data['property']
-
-                logger.info(f"SearchTrackingView: About to call serializer.save() with manually set fields:")
-                logger.info(f"  search_tracking.check_in_date = {search_tracking.check_in_date}")
-                logger.info(f"  search_tracking.check_out_date = {search_tracking.check_out_date}")
-                logger.info(f"  search_tracking.guests = {search_tracking.guests}")
-
-                # Guardar usando el serializer normalmente
+                # Intentar guardar
+                logger.info(f"SearchTrackingView: === GUARDANDO ===")
                 try:
                     saved_instance = serializer.save()
-                    logger.info(f"SearchTrackingView: Successfully saved tracking data: {saved_instance}")
+                    logger.info(f"SearchTrackingView: ÉXITO al guardar: {saved_instance}")
                     
-                    # Verificar que los datos se guardaron correctamente
-                    logger.info(f"SearchTrackingView: Verification after save:")
-                    logger.info(f"  DB check_in_date = {saved_instance.check_in_date}")
-                    logger.info(f"  DB check_out_date = {saved_instance.check_out_date}")
-                    logger.info(f"  DB guests = {saved_instance.guests}")
+                    return Response({
+                        'success': True,
+                        'message': 'Búsqueda registrada exitosamente',
+                        'data': serializer.data
+                    }, status=200)
                     
                 except Exception as save_error:
-                    logger.error(f"SearchTrackingView: Error saving: {str(save_error)}")
+                    logger.error(f"SearchTrackingView: ERROR al guardar: {str(save_error)}")
                     return Response({
                         'success': False,
                         'message': 'Error al guardar búsqueda',
                         'errors': str(save_error)
                     }, status=500)
 
-                logger.info(
-                    f"SearchTrackingView: Search tracked successfully for client {client.id} - "
-                    f"Check-in: {serializer.validated_data.get('check_in_date')}, "
-                    f"Check-out: {serializer.validated_data.get('check_out_date')}, "
-                    f"Guests: {serializer.validated_data.get('guests')}"
-                )
-
-                return Response({
-                    'success': True,
-                    'message': 'Búsqueda registrada exitosamente',
-                    'data': serializer.data
-                }, status=200)
-
             else:
-                logger.error(f"SearchTrackingView: Validation errors: {serializer.errors}")
+                logger.error(f"SearchTrackingView: Serializer INVÁLIDO")
+                logger.error(f"SearchTrackingView: serializer.errors = {serializer.errors}")
                 return Response({
                     'success': False,
                     'message': 'Error en los datos enviados',
@@ -861,7 +597,9 @@ class SearchTrackingView(APIView):
                 }, status=400)
 
         except Exception as e:
-            logger.error(f"SearchTrackingView: Error tracking search: {str(e)}")
+            logger.error(f"SearchTrackingView: EXCEPCIÓN: {str(e)}")
+            import traceback
+            logger.error(f"SearchTrackingView: TRACEBACK: {traceback.format_exc()}")
             return Response({
                 'success': False,
                 'message': 'Error interno del servidor'
