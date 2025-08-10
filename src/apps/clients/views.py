@@ -718,6 +718,19 @@ class SearchTrackingView(APIView):
             logger.info(f"SearchTrackingView: About to create serializer with processed_data: {processed_data}")
             logger.info(f"SearchTrackingView: search_tracking instance ID: {search_tracking.id if search_tracking else 'None'}")
             
+            # Verificar que processed_data tenga los datos correctos antes del serializer
+            for field in ['check_in_date', 'check_out_date', 'guests']:
+                value = processed_data.get(field)
+                if value is None:
+                    logger.error(f"SearchTrackingView: CRITICAL ERROR - Field '{field}' is None before serializer!")
+                    return Response({
+                        'success': False,
+                        'message': f'Error interno: campo {field} perdido durante procesamiento',
+                        'field_value': repr(value),
+                        'processed_data': processed_data
+                    }, status=500)
+                logger.info(f"SearchTrackingView: PRE-SERIALIZER VERIFIED field '{field}' = '{value}' (type: {type(value)})")
+            
             # Actualizar con los nuevos datos usando processed_data directamente
             serializer = SearchTrackingSerializer(
                 search_tracking, 
@@ -727,9 +740,11 @@ class SearchTrackingView(APIView):
             )
             
             logger.info(f"SearchTrackingView: Serializer created successfully")
+            logger.info(f"SearchTrackingView: Serializer initial_data: {serializer.initial_data}")
             logger.info(f"SearchTrackingView: About to call is_valid() on serializer")
 
             if serializer.is_valid():
+                logger.info(f"SearchTrackingView: Serializer is VALID, validated_data: {serializer.validated_data}")
                 serializer.save()
                 
                 logger.info(

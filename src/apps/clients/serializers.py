@@ -220,6 +220,11 @@ class SearchTrackingSerializer(serializers.ModelSerializer):
         for key, value in attrs.items():
             logger.info(f"SearchTrackingSerializer.validate: Field '{key}' = '{value}' (type: {type(value)}, repr: {repr(value)})")
         
+        # CRITICAL: Verificar si los datos están llegando correctamente
+        if not attrs:
+            logger.error("SearchTrackingSerializer.validate: CRITICAL - attrs is empty!")
+            raise serializers.ValidationError("No se recibieron datos para validar")
+        
         check_in = attrs.get('check_in_date')
         check_out = attrs.get('check_out_date')
         guests = attrs.get('guests')
