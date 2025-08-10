@@ -528,15 +528,26 @@ class SearchTrackingView(APIView):
             logger.info(f"SearchTrackingView: Request content type: {request.content_type}")
             logger.info(f"SearchTrackingView: Raw request.data: {request.data}")
             logger.info(f"SearchTrackingView: Raw request.POST: {request.POST}")
-            logger.info(f"SearchTrackingView: Raw request.body: {request.body}")
+            logger.info(f"SearchTrackingView: Raw request.body: {request.body.decode('utf-8') if request.body else 'Empty'}")
+            
+            # Debug de headers
+            logger.info(f"SearchTrackingView: Request headers:")
+            for key, value in request.META.items():
+                if key.startswith('HTTP_') or key in ['CONTENT_TYPE', 'CONTENT_LENGTH']:
+                    logger.info(f"  {key}: {value}")
             
             # Obtener los datos del request
+            clean_data = {}
+            
             if hasattr(request, 'data') and request.data:
-                clean_data = request.data.copy()
                 logger.info(f"SearchTrackingView: Using request.data - Type: {type(request.data)}")
+                if hasattr(request.data, 'dict'):
+                    clean_data = dict(request.data)
+                else:
+                    clean_data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
             elif request.POST:
-                clean_data = request.POST.copy()
                 logger.info(f"SearchTrackingView: Using request.POST - Type: {type(request.POST)}")
+                clean_data = dict(request.POST)
             else:
                 logger.error(f"SearchTrackingView: No data found in request")
                 return Response({
@@ -544,11 +555,18 @@ class SearchTrackingView(APIView):
                     'message': 'No se recibieron datos'
                 }, status=400)
 
+            logger.info(f"SearchTrackingView: Raw clean_data after extraction: {clean_data}")
+            logger.info(f"SearchTrackingView: clean_data type: {type(clean_data)}")
+            
+            # Debug individual de cada campo recibido
+            for key, value in clean_data.items():
+                logger.info(f"SearchTrackingView: RAW Field '{key}' = '{value}' (type: {type(value)}, str: '{str(value)}', repr: {repr(value)})")
+
             # Remover campos que puedan causar conflicto
             clean_data.pop('client_id', None)
             clean_data.pop('client', None)
 
-            logger.info(f"SearchTrackingView: Cleaned data: {clean_data}")
+            logger.info(f"SearchTrackingView: After removing client fields: {clean_data}")
 
             # Validar que los campos requeridos estén presentes
             required_fields = ['check_in_date', 'check_out_date', 'guests']
@@ -576,15 +594,22 @@ class SearchTrackingView(APIView):
                     'received_data': clean_data
                 }, status=400)
 
-            # Convertir fechas si vienen como string
-            from datetime import datetime
-            date_fields = ['check_in_date', 'check_out_date']
-            for field in date_fields:
-                if field in clean_data and isinstance(clean_data[field], str):
+            # Procesar y limpiar los datos recibidos
+            processed_data = {}
+            
+            # Procesar check_in_date
+            if 'check_in_date' in clean_data:
+                raw_value = clean_data['check_in_date']
+                logger.info(f"SearchTrackingView: Processing check_in_date - raw_value: '{raw_value}' (type: {type(raw_value)})")
+                
+                if isinstance(raw_value, list) and raw_value:
+                    raw_value = raw_value[0]  # Si viene como lista, tomar el primer elemento
+                    logger.info(f"SearchTrackingView: check_in_date was list, took first element: '{raw_value}'")
+                
+                if raw_value and str(raw_value).strip() not in ['', 'null', 'undefined', 'None']:
                     try:
-                        # Intentar parsear diferentes formatos de fecha
-                        date_str = clean_data[field]
-                        logger.info(f"SearchTrackingView: Converting date field '{field}' from string: '{date_str}'")
+                        from datetime import datetime
+                        date_str = str(raw_value).strip()
                         
                         # Formato ISO (YYYY-MM-DD)
                         if '-' in date_str:
@@ -595,29 +620,80 @@ class SearchTrackingView(APIView):
                         else:
                             raise ValueError(f"Formato de fecha no reconocido: {date_str}")
                         
-                        clean_data[field] = parsed_date
-                        logger.info(f"SearchTrackingView: Successfully converted '{field}' to date: {parsed_date}")
+                        processed_data['check_in_date'] = parsed_date
+                        logger.info(f"SearchTrackingView: Successfully processed check_in_date: {parsed_date}")
                         
                     except Exception as e:
-                        logger.error(f"SearchTrackingView: Error converting date field '{field}': {str(e)}")
+                        logger.error(f"SearchTrackingView: Error processing check_in_date: {str(e)}")
                         return Response({
                             'success': False,
-                            'message': f'Formato de fecha inválido para {field}',
-                            'errors': {field: f'Formato de fecha inválido: {clean_data[field]}'}
+                            'message': f'Formato de fecha inválido para check_in_date',
+                            'errors': {'check_in_date': f'Formato de fecha inválido: {raw_value}'}
                         }, status=400)
-
-            # Convertir guests a entero si viene como string
-            if 'guests' in clean_data and isinstance(clean_data['guests'], str):
-                try:
-                    clean_data['guests'] = int(clean_data['guests'])
-                    logger.info(f"SearchTrackingView: Converted guests to integer: {clean_data['guests']}")
-                except ValueError:
-                    logger.error(f"SearchTrackingView: Invalid guests value: {clean_data['guests']}")
-                    return Response({
-                        'success': False,
-                        'message': 'Número de huéspedes inválido',
-                        'errors': {'guests': 'El número de huéspedes debe ser un número entero'}
-                    }, status=400)
+            
+            # Procesar check_out_date
+            if 'check_out_date' in clean_data:
+                raw_value = clean_data['check_out_date']
+                logger.info(f"SearchTrackingView: Processing check_out_date - raw_value: '{raw_value}' (type: {type(raw_value)})")
+                
+                if isinstance(raw_value, list) and raw_value:
+                    raw_value = raw_value[0]  # Si viene como lista, tomar el primer elemento
+                    logger.info(f"SearchTrackingView: check_out_date was list, took first element: '{raw_value}'")
+                
+                if raw_value and str(raw_value).strip() not in ['', 'null', 'undefined', 'None']:
+                    try:
+                        from datetime import datetime
+                        date_str = str(raw_value).strip()
+                        
+                        # Formato ISO (YYYY-MM-DD)
+                        if '-' in date_str:
+                            parsed_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                        elif '/' in date_str:
+                            # Formato DD/MM/YYYY
+                            parsed_date = datetime.strptime(date_str, '%d/%m/%Y').date()
+                        else:
+                            raise ValueError(f"Formato de fecha no reconocido: {date_str}")
+                        
+                        processed_data['check_out_date'] = parsed_date
+                        logger.info(f"SearchTrackingView: Successfully processed check_out_date: {parsed_date}")
+                        
+                    except Exception as e:
+                        logger.error(f"SearchTrackingView: Error processing check_out_date: {str(e)}")
+                        return Response({
+                            'success': False,
+                            'message': f'Formato de fecha inválido para check_out_date',
+                            'errors': {'check_out_date': f'Formato de fecha inválido: {raw_value}'}
+                        }, status=400)
+            
+            # Procesar guests
+            if 'guests' in clean_data:
+                raw_value = clean_data['guests']
+                logger.info(f"SearchTrackingView: Processing guests - raw_value: '{raw_value}' (type: {type(raw_value)})")
+                
+                if isinstance(raw_value, list) and raw_value:
+                    raw_value = raw_value[0]  # Si viene como lista, tomar el primer elemento
+                    logger.info(f"SearchTrackingView: guests was list, took first element: '{raw_value}'")
+                
+                if raw_value and str(raw_value).strip() not in ['', 'null', 'undefined', 'None']:
+                    try:
+                        processed_data['guests'] = int(str(raw_value).strip())
+                        logger.info(f"SearchTrackingView: Successfully processed guests: {processed_data['guests']}")
+                    except (ValueError, TypeError) as e:
+                        logger.error(f"SearchTrackingView: Error processing guests: {str(e)}")
+                        return Response({
+                            'success': False,
+                            'message': 'Número de huéspedes inválido',
+                            'errors': {'guests': f'El número de huéspedes debe ser un número entero válido: {raw_value}'}
+                        }, status=400)
+            
+            # Copiar property si existe
+            if 'property' in clean_data:
+                processed_data['property'] = clean_data['property']
+            
+            logger.info(f"SearchTrackingView: Final processed_data: {processed_data}")
+            
+            # Usar processed_data en lugar de clean_data
+            clean_data = processed_data
 
             logger.info(f"SearchTrackingView: Final clean_data after conversions: {clean_data}")
             

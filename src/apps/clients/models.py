@@ -329,13 +329,21 @@ class SearchTracking(BaseModel):
         import logging
         logger = logging.getLogger(__name__)
         
-        logger.info(f"SearchTracking.save: Saving with check_in_date={self.check_in_date}, check_out_date={self.check_out_date}, guests={self.guests}")
+        logger.info(f"SearchTracking.save: About to save with:")
+        logger.info(f"  check_in_date={self.check_in_date} (type: {type(self.check_in_date)}, repr: {repr(self.check_in_date)})")
+        logger.info(f"  check_out_date={self.check_out_date} (type: {type(self.check_out_date)}, repr: {repr(self.check_out_date)})")
+        logger.info(f"  guests={self.guests} (type: {type(self.guests)}, repr: {repr(self.guests)})")
         
-        if not self.check_in_date:
+        if self.check_in_date is None:
+            logger.error("SearchTracking.save: check_in_date is None!")
             raise ValueError("check_in_date cannot be null")
-        if not self.check_out_date:
+        if self.check_out_date is None:
+            logger.error("SearchTracking.save: check_out_date is None!")
             raise ValueError("check_out_date cannot be null")
-        if not self.guests:
+        if self.guests is None:
+            logger.error("SearchTracking.save: guests is None!")
             raise ValueError("guests cannot be null")
             
+        logger.info("SearchTracking.save: All validations passed, calling super().save()")
         super().save(*args, **kwargs)
+        logger.info("SearchTracking.save: Successfully saved!")
