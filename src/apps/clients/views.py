@@ -620,12 +620,29 @@ class SearchTrackingView(APIView):
                     }, status=400)
 
             logger.info(f"SearchTrackingView: Final clean_data after conversions: {clean_data}")
+            
+            # Validar datos antes de pasarlos al serializer
+            for field in ['check_in_date', 'check_out_date', 'guests']:
+                value = clean_data.get(field)
+                logger.info(f"SearchTrackingView: PRE-SERIALIZER field '{field}' = '{value}' (type: {type(value)}, repr: {repr(value)}, bool: {bool(value)})")
+                
+                if value is None:
+                    logger.error(f"SearchTrackingView: CRITICAL - Field '{field}' is None!")
+                    return Response({
+                        'success': False,
+                        'message': f'Campo {field} no puede ser None',
+                        'field_value': repr(value),
+                        'field_type': str(type(value))
+                    }, status=400)
 
             # Crear contexto para el serializer
             context = {
                 'request': request,
                 'client': client
             }
+            
+            logger.info(f"SearchTrackingView: About to create serializer with clean_data: {clean_data}")
+            logger.info(f"SearchTrackingView: search_tracking instance ID: {search_tracking.id if search_tracking else 'None'}")
             
             # Actualizar con los nuevos datos
             serializer = SearchTrackingSerializer(
@@ -635,7 +652,8 @@ class SearchTrackingView(APIView):
                 partial=True
             )
             
-            logger.info(f"SearchTrackingView: Serializer created with data: {clean_data}")
+            logger.info(f"SearchTrackingView: Serializer created successfully")
+            logger.info(f"SearchTrackingView: About to call is_valid() on serializer")
 
             if serializer.is_valid():
                 serializer.save()

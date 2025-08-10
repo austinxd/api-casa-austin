@@ -310,9 +310,9 @@ class ClientPoints(BaseModel):
 class SearchTracking(BaseModel):
     """Modelo para tracking de búsquedas de clientes"""
     client = models.OneToOneField(Clients, on_delete=models.CASCADE, related_name='search_tracking', help_text="Cliente que realiza la búsqueda")
-    check_in_date = models.DateField(null=False, blank=False, help_text="Fecha de check-in buscada")
-    check_out_date = models.DateField(null=False, blank=False, help_text="Fecha de check-out buscada")
-    guests = models.PositiveIntegerField(null=False, blank=False, help_text="Número de huéspedes")
+    check_in_date = models.DateField(help_text="Fecha de check-in buscada")
+    check_out_date = models.DateField(help_text="Fecha de check-out buscada")
+    guests = models.PositiveIntegerField(help_text="Número de huéspedes")
     property = models.ForeignKey('property.Property', on_delete=models.CASCADE, null=True, blank=True, help_text="Propiedad buscada")
     search_timestamp = models.DateTimeField(auto_now=True, help_text="Timestamp de la última búsqueda")
     
@@ -323,3 +323,19 @@ class SearchTracking(BaseModel):
     
     def __str__(self):
         return f"{self.client.first_name} - {self.check_in_date} a {self.check_out_date} - {self.guests} huéspedes"
+    
+    def save(self, *args, **kwargs):
+        """Override save to ensure required fields are not null"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"SearchTracking.save: Saving with check_in_date={self.check_in_date}, check_out_date={self.check_out_date}, guests={self.guests}")
+        
+        if not self.check_in_date:
+            raise ValueError("check_in_date cannot be null")
+        if not self.check_out_date:
+            raise ValueError("check_out_date cannot be null")
+        if not self.guests:
+            raise ValueError("guests cannot be null")
+            
+        super().save(*args, **kwargs)

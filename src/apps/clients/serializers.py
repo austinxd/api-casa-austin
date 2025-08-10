@@ -212,25 +212,48 @@ class SearchTrackingSerializer(serializers.ModelSerializer):
         import logging
         logger = logging.getLogger(__name__)
         
-        logger.info(f"SearchTrackingSerializer.validate: Received attrs: {attrs}")
+        logger.info(f"SearchTrackingSerializer.validate: RAW attrs received: {attrs}")
+        logger.info(f"SearchTrackingSerializer.validate: attrs type: {type(attrs)}")
+        logger.info(f"SearchTrackingSerializer.validate: attrs keys: {list(attrs.keys()) if attrs else 'No keys'}")
+        
+        # Log each field individually
+        for key, value in attrs.items():
+            logger.info(f"SearchTrackingSerializer.validate: Field '{key}' = '{value}' (type: {type(value)}, repr: {repr(value)})")
         
         check_in = attrs.get('check_in_date')
         check_out = attrs.get('check_out_date')
+        guests = attrs.get('guests')
         
-        logger.info(f"SearchTrackingSerializer.validate: check_in = {check_in} (type: {type(check_in)})")
-        logger.info(f"SearchTrackingSerializer.validate: check_out = {check_out} (type: {type(check_out)})")
+        logger.info(f"SearchTrackingSerializer.validate: Extracted values:")
+        logger.info(f"  - check_in = {check_in} (type: {type(check_in)}, repr: {repr(check_in)})")
+        logger.info(f"  - check_out = {check_out} (type: {type(check_out)}, repr: {repr(check_out)})")
+        logger.info(f"  - guests = {guests} (type: {type(guests)}, repr: {repr(guests)})")
         
         # Validar que las fechas requeridas estén presentes
-        if not check_in:
-            logger.error("SearchTrackingSerializer.validate: check_in_date is missing or empty")
+        if check_in is None or check_in == '' or str(check_in).lower() in ['null', 'undefined', 'none']:
+            logger.error(f"SearchTrackingSerializer.validate: check_in_date is invalid: {repr(check_in)}")
             raise serializers.ValidationError({
-                "check_in_date": "La fecha de check-in es requerida"
+                "check_in_date": "La fecha de check-in es requerida y no puede estar vacía"
             })
         
-        if not check_out:
-            logger.error("SearchTrackingSerializer.validate: check_out_date is missing or empty")
+        if check_out is None or check_out == '' or str(check_out).lower() in ['null', 'undefined', 'none']:
+            logger.error(f"SearchTrackingSerializer.validate: check_out_date is invalid: {repr(check_out)}")
             raise serializers.ValidationError({
-                "check_out_date": "La fecha de check-out es requerida"
+                "check_out_date": "La fecha de check-out es requerida y no puede estar vacía"
+            })
+        
+        # Validar tipo de fecha
+        from datetime import date
+        if not isinstance(check_in, date):
+            logger.error(f"SearchTrackingSerializer.validate: check_in_date is not a date object: {type(check_in)}")
+            raise serializers.ValidationError({
+                "check_in_date": "La fecha de check-in debe ser una fecha válida"
+            })
+            
+        if not isinstance(check_out, date):
+            logger.error(f"SearchTrackingSerializer.validate: check_out_date is not a date object: {type(check_out)}")
+            raise serializers.ValidationError({
+                "check_out_date": "La fecha de check-out debe ser una fecha válida"
             })
         
         if check_in >= check_out:
@@ -239,14 +262,18 @@ class SearchTrackingSerializer(serializers.ModelSerializer):
                 "La fecha de check-out debe ser posterior a la fecha de check-in"
             )
         
-        guests = attrs.get('guests')
-        logger.info(f"SearchTrackingSerializer.validate: guests = {guests} (type: {type(guests)})")
-        
-        if not guests or guests <= 0:
-            logger.error(f"SearchTrackingSerializer.validate: Invalid guests value: {guests}")
+        if guests is None or guests == '' or str(guests).lower() in ['null', 'undefined', 'none']:
+            logger.error(f"SearchTrackingSerializer.validate: guests is invalid: {repr(guests)}")
             raise serializers.ValidationError({
-                "guests": "El número de huéspedes debe ser mayor a 0"
+                "guests": "El número de huéspedes es requerido"
             })
         
-        logger.info("SearchTrackingSerializer.validate: All validations passed")
+        # Validar tipo de guests
+        if not isinstance(guests, int) or guests <= 0:
+            logger.error(f"SearchTrackingSerializer.validate: Invalid guests value: {guests} (type: {type(guests)})")
+            raise serializers.ValidationError({
+                "guests": "El número de huéspedes debe ser un número entero mayor a 0"
+            })
+        
+        logger.info("SearchTrackingSerializer.validate: All validations passed successfully")
         return attrs
