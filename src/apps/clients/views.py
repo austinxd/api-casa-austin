@@ -519,14 +519,12 @@ class SearchTrackingView(APIView):
 
             logger.info(f"SearchTrackingView: Cliente autenticado: {client.id}")
 
-            # Log COMPLETO de lo que recibe Django
+            # Log de lo que recibe Django
             logger.info(f"SearchTrackingView: === DATOS RECIBIDOS ===")
             logger.info(f"SearchTrackingView: request.method = {request.method}")
             logger.info(f"SearchTrackingView: request.content_type = {request.content_type}")
             logger.info(f"SearchTrackingView: request.data = {request.data}")
             logger.info(f"SearchTrackingView: type(request.data) = {type(request.data)}")
-            logger.info(f"SearchTrackingView: request.POST = {request.POST}")
-            logger.info(f"SearchTrackingView: request.body = {request.body.decode('utf-8') if request.body else 'Empty'}")
 
             # Obtener o crear registro de tracking para este cliente
             search_tracking, created = SearchTracking.objects.get_or_create(
