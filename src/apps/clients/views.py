@@ -692,14 +692,11 @@ class SearchTrackingView(APIView):
             
             logger.info(f"SearchTrackingView: Final processed_data: {processed_data}")
             
-            # Usar processed_data en lugar de clean_data
-            clean_data = processed_data
-
-            logger.info(f"SearchTrackingView: Final clean_data after conversions: {clean_data}")
+            logger.info(f"SearchTrackingView: Final processed_data after conversions: {processed_data}")
             
             # Validar datos antes de pasarlos al serializer
             for field in ['check_in_date', 'check_out_date', 'guests']:
-                value = clean_data.get(field)
+                value = processed_data.get(field)
                 logger.info(f"SearchTrackingView: PRE-SERIALIZER field '{field}' = '{value}' (type: {type(value)}, repr: {repr(value)}, bool: {bool(value)})")
                 
                 if value is None:
@@ -708,7 +705,8 @@ class SearchTrackingView(APIView):
                         'success': False,
                         'message': f'Campo {field} no puede ser None',
                         'field_value': repr(value),
-                        'field_type': str(type(value))
+                        'field_type': str(type(value)),
+                        'processed_data': processed_data
                     }, status=400)
 
             # Crear contexto para el serializer
@@ -717,13 +715,13 @@ class SearchTrackingView(APIView):
                 'client': client
             }
             
-            logger.info(f"SearchTrackingView: About to create serializer with clean_data: {clean_data}")
+            logger.info(f"SearchTrackingView: About to create serializer with processed_data: {processed_data}")
             logger.info(f"SearchTrackingView: search_tracking instance ID: {search_tracking.id if search_tracking else 'None'}")
             
-            # Actualizar con los nuevos datos
+            # Actualizar con los nuevos datos usando processed_data directamente
             serializer = SearchTrackingSerializer(
                 search_tracking, 
-                data=clean_data,
+                data=processed_data,
                 context=context,
                 partial=True
             )
