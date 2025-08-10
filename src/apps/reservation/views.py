@@ -119,9 +119,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
                         (Q(check_out_date=tomorrow_date) & Q(check_out_date__gt=datetime.combine(tomorrow_date, check_out_time)))
                     )
                 
-                # Aquí es donde se debería agregar el filtro para 'pending' si fuera necesario para este endpoint
-                # elif from_param == 'pending':
-                #     queryset = queryset.filter(status='pending') # Asumiendo que hay un campo 'status' y 'pending' es un valor válido
+                elif from_param == 'pending':
+                    queryset = queryset.filter(status='pending')
 
                 if self.request.query_params.get('type'):
                     queryset = queryset.filter(origin=self.request.query_params.get('type'))
