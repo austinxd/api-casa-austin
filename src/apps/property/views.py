@@ -478,6 +478,13 @@ class CalculatePricingAPIView(APIView):
                     'error_message': 'Formato de fecha inválido. Use YYYY-MM-DD'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
+            # Validar que la fecha de entrada no sea en el pasado
+            if check_in_date < datetime.now().date():
+                return Response({
+                    'error': 8,
+                    'error_message': 'La fecha de entrada no puede ser en el pasado'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             # Validar número de huéspedes (asignar 1 por defecto si no se envía)
             if not guests_str:
                 guests = 1
@@ -553,13 +560,13 @@ class CalculatePricingAPIView(APIView):
 
         except ValidationError as e:
             return Response({
-                'error': 8,
+                'error': 9,
                 'error_message': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
             return Response({
-                'error': 9,
+                'error': 10,
                 'error_message': 'Error interno del servidor',
                 'detail': str(e) if settings.DEBUG else None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
