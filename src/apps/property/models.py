@@ -22,7 +22,14 @@ class Property(BaseModel):
     detalle_dormitorios = models.JSONField(default=dict, blank=True, verbose_name="Detalle de dormitorios", help_text="JSON con detalles de cada habitación")
     hora_ingreso = models.TimeField(null=True, blank=True, verbose_name="Hora de ingreso")
     hora_salida = models.TimeField(null=True, blank=True, verbose_name="Hora de salida")
-    precio_extra_persona = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Precio extra por persona")
+    precio_extra_persona = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True, 
+        verbose_name="Precio extra por persona adicional (después de la 1ra persona)",
+        help_text="Precio que se cobra por cada persona adicional después de la primera, por noche"
+    )
     precio_desde = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Precio desde", help_text="Precio base de referencia para mostrar en listados")
     caracteristicas = models.JSONField(default=list, blank=True, verbose_name="Características", help_text="Lista de características de la propiedad")
     slug = models.SlugField(max_length=200, unique=True, blank=True, verbose_name="Slug", help_text="URL amigable generada automáticamente")

@@ -7,6 +7,7 @@ from .models import Property
 from .pricing_models import (
     ExchangeRate,
     SeasonPricing,
+    SpecialDatePricing,
     DiscountCode,
     AdditionalService,
     CancellationPolicy,
@@ -75,15 +76,16 @@ class PricingCalculationService:
         # Verificar disponibilidad
         available, availability_message = self._check_availability(property, check_in_date, check_out_date)
 
-        # Obtener precio base (considerar temporadas)
-        base_price_usd = self._get_seasonal_price(property, check_in_date, check_out_date)
+        # Obtener precios noche por noche
+        nightly_prices, base_total_usd = self._get_nightly_prices(property, check_in_date, check_out_date)
 
         # Calcular precio por personas extra
         extra_guests = max(0, guests - 1)  # Después de la primera persona
         extra_person_price_usd = property.precio_extra_persona or Decimal('0.00')
+        extra_person_total_usd = extra_person_price_usd * extra_guests * nights
 
         # Calcular subtotal
-        subtotal_usd = (base_price_usd * nights) + (extra_person_price_usd * extra_guests * nights)
+        subtotal_usd = base_total_usd + extra_person_total_usd
 
         # Aplicar descuentos
         discount_applied = self._apply_discounts(
@@ -151,25 +153,65 @@ class PricingCalculationService:
 
         return True, "Propiedad disponible"
 
-    def _get_seasonal_price(self, property, check_in_date, check_out_date):
-        """Obtiene precio considerando temporadas"""
-        base_price = property.precio_desde or Decimal('100.00')
-
-        # Buscar precios de temporada que apliquen
+    def _get_nightly_prices(self, property, check_in_date, check_out_date):
+        """Obtiene precios noche por noche considerando temporadas, tipo de día y fechas especiales"""
+        from datetime import timedelta
+        
+        current_date = check_in_date
+        nightly_prices = []
+        total_price = Decimal('0.00')
+        
+        while current_date < check_out_date:
+            night_price = self._get_price_for_specific_date(property, current_date)
+            nightly_prices.append({
+                'date': current_date,
+                'price': night_price,
+                'type': self._get_date_type(current_date)
+            })
+            total_price += night_price
+            current_date += timedelta(days=1)
+        
+        return nightly_prices, total_price
+    
+    def _get_price_for_specific_date(self, property, date):
+        """Obtiene el precio para una fecha específica"""
+        # 1. Verificar si hay precio especial para esta fecha
+        special_pricing = SpecialDatePricing.objects.filter(
+            property=property,
+            date=date,
+            is_active=True
+        ).first()
+        
+        if special_pricing:
+            return special_pricing.price_usd
+        
+        # 2. Buscar precio de temporada
         seasonal_pricing = SeasonPricing.objects.filter(
             property=property,
             is_active=True,
-            start_date__lte=check_in_date,
-            end_date__gte=check_in_date
+            start_date__lte=date,
+            end_date__gte=date
         ).first()
-
+        
         if seasonal_pricing:
-            if seasonal_pricing.price_usd:
-                base_price = seasonal_pricing.price_usd
-            else:
-                base_price = base_price * seasonal_pricing.multiplier
-
-        return base_price
+            return seasonal_pricing.get_price_for_date(date)
+        
+        # 3. Precio por defecto si no hay configuración
+        return property.precio_desde or Decimal('100.00')
+    
+    def _get_date_type(self, date):
+        """Determina el tipo de fecha"""
+        # Verificar si es fecha especial
+        if SpecialDatePricing.objects.filter(date=date, is_active=True).exists():
+            special = SpecialDatePricing.objects.filter(date=date, is_active=True).first()
+            return f"Fecha Especial: {special.name}"
+        
+        # Verificar tipo de día
+        weekday = date.weekday()
+        if weekday >= 4:  # Viernes, Sábado, Domingo
+            return "Fin de semana"
+        else:
+            return "Día de semana"
 
     def _apply_discounts(self, subtotal_usd, property, client, discount_code, nights, guests):
         """Aplica descuentos automáticos o códigos de descuento"""

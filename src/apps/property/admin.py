@@ -1,6 +1,15 @@
 from django.contrib import admin
 
 from .models import Property, ProfitPropertyAirBnb, PropertyPhoto
+from .pricing_models import (
+    ExchangeRate,
+    SeasonPricing,
+    SpecialDatePricing,
+    DiscountCode,
+    AdditionalService,
+    CancellationPolicy,
+    AutomaticDiscount
+)
 
 
 class PropertyPhotoInline(admin.TabularInline):
@@ -8,11 +17,11 @@ class PropertyPhotoInline(admin.TabularInline):
     extra = 1
     fields = ("image_file", "image_url", "alt_text", "order", "is_main")
     ordering = ["order"]
-    
+
     def get_queryset(self, request):
         """Solo mostrar fotos no eliminadas en el inline"""
         return PropertyPhoto.objects.filter(deleted=False)
-    
+
     def delete_model(self, request, obj):
         """Realizar eliminación física en el inline"""
         super().delete_model(request, obj)  # Eliminación física real
@@ -24,27 +33,27 @@ class PropertyPhotoAdmin(admin.ModelAdmin):
     search_fields = ("property__name", "alt_text")
     ordering = ["property", "order"]
     fields = ("property", "image_file", "image_url", "alt_text", "order", "is_main")
-    
+
     def get_queryset(self, request):
         """Mostrar todas las fotos incluyendo las eliminadas (soft delete)"""
         return PropertyPhoto.objects.all()
-    
+
     def delete_model(self, request, obj):
         """Realizar eliminación física"""
         super().delete_model(request, obj)  # Eliminación física real
-    
+
     def delete_queryset(self, request, queryset):
         """Realizar eliminación física en eliminación masiva"""
         queryset.delete()  # Eliminación física real
-    
+
     actions = ['restore_photos', 'hard_delete_photos']
-    
+
     def restore_photos(self, request, queryset):
         """Acción para restaurar fotos eliminadas"""
         count = queryset.update(deleted=False)
         self.message_user(request, f'{count} fotos han sido restauradas.')
     restore_photos.short_description = "Restaurar fotos seleccionadas"
-    
+
     def hard_delete_photos(self, request, queryset):
         """Acción para eliminar físicamente las fotos de la base de datos"""
         count = queryset.count()
@@ -85,21 +94,11 @@ class PropertyAdmin(admin.ModelAdmin):
     )
 
 
-from .pricing_models import (
-    ExchangeRate, 
-    SeasonPricing, 
-    DiscountCode, 
-    AdditionalService, 
-    CancellationPolicy,
-    AutomaticDiscount
-)
-
-
 class ExchangeRateAdmin(admin.ModelAdmin):
     list_display = ('usd_to_sol', 'is_active', 'created', 'updated')
     list_filter = ('is_active',)
     actions = ['make_active']
-    
+
     def make_active(self, request, queryset):
         # Desactivar todos primero
         ExchangeRate.objects.update(is_active=False)
@@ -109,11 +108,33 @@ class ExchangeRateAdmin(admin.ModelAdmin):
     make_active.short_description = "Activar tipos de cambio seleccionados"
 
 
+@admin.register(SeasonPricing)
 class SeasonPricingAdmin(admin.ModelAdmin):
-    list_display = ('property', 'season_type', 'start_date', 'end_date', 'price_usd', 'multiplier', 'is_active')
+    list_display = ('property', 'season_type', 'start_date', 'end_date', 'weekday_price_usd', 'weekend_price_usd', 'is_active')
     list_filter = ('season_type', 'is_active', 'property')
     search_fields = ('property__name',)
     date_hierarchy = 'start_date'
+    fieldsets = (
+        ('Información General', {
+            'fields': ('property', 'season_type', 'start_date', 'end_date', 'is_active')
+        }),
+        ('Precios por Tipo de Día', {
+            'fields': ('weekday_price_usd', 'weekend_price_usd'),
+            'description': 'Lun-Jue = Día de semana, Vie-Dom = Fin de semana'
+        }),
+    )
+
+@admin.register(SpecialDatePricing)
+class SpecialDatePricingAdmin(admin.ModelAdmin):
+    list_display = ('property', 'name', 'date', 'price_usd', 'is_active')
+    list_filter = ('is_active', 'property', 'date')
+    search_fields = ('property__name', 'name')
+    date_hierarchy = 'date'
+    fieldsets = (
+        ('Información de la Fecha Especial', {
+            'fields': ('property', 'date', 'name', 'price_usd', 'is_active')
+        }),
+    )
 
 
 class DiscountCodeAdmin(admin.ModelAdmin):
@@ -137,7 +158,7 @@ class CancellationPolicyAdmin(admin.ModelAdmin):
     search_fields = ('name', 'description')
     filter_horizontal = ('properties',)
     actions = ['make_default']
-    
+
     def make_default(self, request, queryset):
         # Desactivar todos los defaults primero
         CancellationPolicy.objects.update(is_default=False)
@@ -165,8 +186,8 @@ admin.site.register(ProfitPropertyAirBnb)
 
 # Registrar modelos de precios en el admin
 admin.site.register(ExchangeRate, ExchangeRateAdmin)
-admin.site.register(SeasonPricing, SeasonPricingAdmin)
+# Previously, SeasonPricing was registered directly, now it uses the @admin.register decorator.
 admin.site.register(DiscountCode, DiscountCodeAdmin)
-admin.site.register(AdditionalService, AdditionalServiceAdmin)  
+admin.site.register(AdditionalService, AdditionalServiceAdmin)
 admin.site.register(CancellationPolicy, CancellationPolicyAdmin)
 admin.site.register(AutomaticDiscount, AutomaticDiscountAdmin)
