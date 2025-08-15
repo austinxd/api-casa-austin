@@ -91,11 +91,11 @@ class PricingCalculationService:
 
         # Aplicar descuentos
         discount_applied = self._apply_discounts(
-            property, subtotal_usd, Decimal(0), nights, guests, discount_code, client, check_in_date
+            property, subtotal_usd, subtotal_usd * self.exchange_rate, nights, guests, discount_code, client, check_in_date
         )
 
-        final_price_usd = subtotal_usd - discount_applied['discount_amount_usd']
-        final_price_sol = (subtotal_usd * self.exchange_rate) - discount_applied['discount_amount_sol']
+        final_price_usd = subtotal_usd - Decimal(str(discount_applied['discount_amount_usd']))
+        final_price_sol = (subtotal_usd * self.exchange_rate) - Decimal(str(discount_applied['discount_amount_sol']))
 
         # Calcular precio total que incluye todo (base + extras + aplicar descuentos)
         total_price_usd = final_price_usd
@@ -122,6 +122,12 @@ class PricingCalculationService:
         recommendations = self._get_property_recommendations(
             property, guests, nights, subtotal_usd, available
         )
+
+        # Actualizar discount_applied para convertir a float para JSON
+        discount_applied.update({
+            'discount_amount_usd': round(float(discount_applied['discount_amount_usd']), 2),
+            'discount_amount_sol': round(float(discount_applied['discount_amount_sol']), 2)
+        })
 
         return {
             'property_id': property.id,
@@ -261,8 +267,8 @@ class PricingCalculationService:
                         'type': 'discount_code',
                         'description': f"Código: {code.code} - {code.description}",
                         'discount_percentage': float(code.discount_value) if code.discount_type == 'percentage' else 0,
-                        'discount_amount_usd': round(float(discount_amount_usd), 2),
-                        'discount_amount_sol': round(float(discount_amount_usd * self.exchange_rate), 2),
+                        'discount_amount_usd': discount_amount_usd,
+                        'discount_amount_sol': discount_amount_usd * self.exchange_rate,
                         'code_used': code.code
                     })
                     return discount_info
@@ -311,8 +317,8 @@ class PricingCalculationService:
                         'type': 'automatic',
                         'description': message,
                         'discount_percentage': round(float(auto_discount.discount_percentage), 2),
-                        'discount_amount_usd': round(float(discount_amount_usd), 2),
-                        'discount_amount_sol': round(float(discount_amount_usd * self.exchange_rate), 2),
+                        'discount_amount_usd': discount_amount_usd,
+                        'discount_amount_sol': discount_amount_usd * self.exchange_rate,
                         'code_used': None
                     })
                     break  # Aplicar solo el primer descuento automático que califique
