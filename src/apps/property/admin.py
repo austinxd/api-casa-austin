@@ -46,36 +46,35 @@ class SpecialDatePricingInline(admin.TabularInline):
 # Inline especial para fechas especiales en PropertyPricing
 class SpecialDatePricingForPropertyPricingInline(admin.TabularInline):
     model = SpecialDatePricing
-    extra = 5
+    extra = 3
     fields = ('month', 'day', 'description', 'price_usd', 'is_active')
     ordering = ['month', 'day']
     verbose_name = "Fecha Especial"
     verbose_name_plural = "🎉 Agregar Fechas Especiales (Navidad, Año Nuevo, etc.)"
+    fk_name = None  # No hay FK directa, manejamos manualmente
     
     def get_queryset(self, request):
-        """Mostrar fechas especiales de la propiedad relacionada"""
-        return SpecialDatePricing.objects.filter(deleted=False)
-    
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        """Auto-establecer la propiedad basada en el PropertyPricing"""
-        if db_field.name == "property":
-            # Obtener el PropertyPricing del URL
-            pricing_id = request.resolver_match.kwargs.get('object_id')
-            if pricing_id:
-                try:
-                    from .pricing_models import PropertyPricing
-                    pricing = PropertyPricing.objects.get(pk=pricing_id)
-                    kwargs["initial"] = pricing.property.pk
-                    kwargs["disabled"] = True
-                except PropertyPricing.DoesNotExist:
-                    pass
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+        """Mostrar fechas especiales de la propiedad del PropertyPricing"""
+        qs = super().get_queryset(request)
+        return qs.filter(deleted=False)
     
     def get_formset(self, request, obj=None, **kwargs):
-        """Personalizar el formset para auto-establecer la propiedad"""
-        formset = super().get_formset(request, obj, **kwargs)
+        """Personalizar el formset para manejar la relación a través de Property"""
+        from django import forms
+        from django.forms.models import BaseInlineFormSet
         
-        class CustomFormSet(formset):
+        class SpecialDateFormSet(BaseInlineFormSet):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                if obj:  # obj es el PropertyPricing
+                    # Filtrar queryset para mostrar solo fechas de esta propiedad
+                    self.queryset = SpecialDatePricing.objects.filter(
+                        property=obj.property,
+                        deleted=False
+                    )
+                else:
+                    self.queryset = SpecialDatePricing.objects.none()
+            
             def save_new(self, form, commit=True):
                 """Auto-establecer la propiedad al guardar nuevas fechas especiales"""
                 instance = form.save(commit=False)
@@ -84,8 +83,27 @@ class SpecialDatePricingForPropertyPricingInline(admin.TabularInline):
                 if commit:
                     instance.save()
                 return instance
+            
+            def save_existing(self, form, instance, commit=True):
+                """Asegurar que la propiedad se mantenga correcta al editar"""
+                if obj and instance.property != obj.property:
+                    instance.property = obj.property
+                return super().save_existing(form, instance, commit)
         
-        return CustomFormSet
+        kwargs['formset'] = SpecialDateFormSet
+        return super().get_formset(request, obj, **kwargs)
+    
+    def has_add_permission(self, request, obj):
+        """Solo permitir agregar si ya existe el PropertyPricing"""
+        return obj is not None
+    
+    def has_change_permission(self, request, obj=None):
+        """Permitir cambios"""
+        return True
+    
+    def has_delete_permission(self, request, obj=None):
+        """Permitir eliminación"""
+        return True
 
 
 class PropertyPhotoAdmin(admin.ModelAdmin):
