@@ -64,6 +64,7 @@ class PricingCalculationService:
 
         # Información general (solo incluir client_info si se proporciona client_id)
         general_info = {
+            'totalCasasDisponibles': chatbot_messages['estado_disponibilidad'],
             'check_in_date': check_in_date,
             'check_out_date': check_out_date,
             'guests': guests,
@@ -72,7 +73,6 @@ class PricingCalculationService:
             'properties': results,
             'general_recommendations': self._get_general_recommendations(results, guests, nights),
             # Mensajes para chatbot
-            'estado_disponibilidad': chatbot_messages['estado_disponibilidad'],
             'message1': chatbot_messages['message1'],
             'message2': chatbot_messages['message2']
         }
