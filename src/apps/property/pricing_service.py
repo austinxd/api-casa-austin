@@ -178,33 +178,29 @@ class PricingCalculationService:
         # 1. Verificar si hay precio especial para esta fecha
         special_pricing = SpecialDatePricing.objects.filter(
             property=property,
-            date=date,
+            month=date.month,
+            day=date.day,
             is_active=True
         ).first()
         
         if special_pricing:
             return special_pricing.price_usd
         
-        # 2. Buscar precio de temporada
-        seasonal_pricing = SeasonPricing.objects.filter(
-            property=property,
-            is_active=True,
-            start_date__lte=date,
-            end_date__gte=date
-        ).first()
-        
-        if seasonal_pricing:
-            return seasonal_pricing.get_price_for_date(date)
-        
-        # 3. Precio por defecto si no hay configuración
-        return property.precio_desde or Decimal('100.00')
+        # 2. Buscar precio según PropertyPricing y temporadas globales
+        try:
+            property_pricing = property.pricing
+            return property_pricing.get_base_price_for_date(date)
+        except:
+            # 3. Precio por defecto si no hay configuración de precios
+            return property.precio_desde or Decimal('100.00')
     
     def _get_date_type(self, date):
         """Determina el tipo de fecha"""
         # Verificar si es fecha especial
-        if SpecialDatePricing.objects.filter(date=date, is_active=True).exists():
-            special = SpecialDatePricing.objects.filter(date=date, is_active=True).first()
-            return f"Fecha Especial: {special.name}"
+        if SpecialDatePricing.objects.filter(month=date.month, day=date.day, is_active=True).exists():
+            special = SpecialDatePricing.objects.filter(month=date.month, day=date.day, is_active=True).first()
+            return f"Fecha Especial: {special.description}"</special_pricing.first()
+            return f"Fecha Especial: {special.description}"
         
         # Verificar tipo de día
         weekday = date.weekday()
