@@ -28,6 +28,18 @@ class PropertyPhotoInline(admin.TabularInline):
         super().delete_model(request, obj)  # Eliminación física real
 
 
+# Inline para fechas especiales dentro de cada propiedad
+class SpecialDatePricingInline(admin.TabularInline):
+    model = SpecialDatePricing
+    extra = 1
+    fields = ('month', 'day', 'description', 'price_usd', 'is_active')
+    ordering = ['month', 'day']
+
+    def get_queryset(self, request):
+        """Solo mostrar fechas especiales activas"""
+        return SpecialDatePricing.objects.filter(deleted=False)
+
+
 class PropertyPhotoAdmin(admin.ModelAdmin):
     list_display = ("property", "alt_text", "order", "is_main", "deleted")
     list_filter = ("is_main", "deleted", "property")
@@ -152,17 +164,6 @@ class SeasonPricingAdmin(admin.ModelAdmin):
         """Muestra el rango de fechas en formato legible"""
         return obj.get_date_range_display()
     get_date_range_display.short_description = 'Período'
-
-# Inline para fechas especiales dentro de cada propiedad
-class SpecialDatePricingInline(admin.TabularInline):
-    model = SpecialDatePricing
-    extra = 1
-    fields = ('month', 'day', 'description', 'price_usd', 'is_active')
-    ordering = ['month', 'day']
-
-    def get_queryset(self, request):
-        """Solo mostrar fechas especiales activas"""
-        return SpecialDatePricing.objects.filter(deleted=False)
 
 @admin.register(SpecialDatePricing)
 class SpecialDatePricingAdmin(admin.ModelAdmin):
