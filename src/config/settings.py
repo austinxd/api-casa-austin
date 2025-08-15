@@ -28,6 +28,10 @@ DEBUG = env.bool('DJANGO_DEBUG', default=True)
 
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=['*'])
 
+# Allow Replit hosts
+import re
+ALLOWED_HOSTS.append(re.compile(r'.*\.replit\.dev'))
+
 CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS",
                                 default=['http://localhost:8000'])
 
