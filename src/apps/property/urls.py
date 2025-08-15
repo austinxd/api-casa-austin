@@ -13,6 +13,6 @@ router.register("photos", PropertyPhotoApiView, basename="property-photos")
 urlpatterns = [
     path("", include(router.urls)),
     path("prop/check-avaible/", CheckAvailabilityApiView.as_view()),
-    path('properties/<int:property_id>/photos/', PropertyPhotoApiView.as_view(), name='property-photos'),
+    path('properties/<int:property_id>/photos/', PropertyPhotoApiView.as_view({'get': 'list', 'post': 'create'}), name='property-photos'),
     path('properties/calculate-pricing/', CalculatePricingAPIView.as_view(), name='calculate-pricing'),
 ]

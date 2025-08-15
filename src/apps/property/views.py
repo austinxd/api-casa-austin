@@ -1,6 +1,5 @@
 from django.db.models import Q
 from django.conf import settings
-from django.urls import path
 
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, viewsets, status
@@ -543,63 +542,3 @@ class CalculatePricingAPIView(APIView):
                 'detail': str(e) if settings.DEBUG else None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# Define las URLs para las vistas
-urlpatterns = [
-    # ... otras urls ...
-    path('properties/calculate-pricing/', CalculatePricingAPIView.as_view(), name='calculate_pricing'),
-]
-
-# Add models to admin.py
-# from django.contrib import admin
-# from .models import ExchangeRate, DiscountCode, SeasonPricing, AdditionalService, CancellationPolicy
-#
-# admin.site.register(ExchangeRate)
-# admin.site.register(DiscountCode)
-# admin.site.register(SeasonPricing)
-# admin.site.register(AdditionalService)
-# admin.site.register(CancellationPolicy)
-
-# Add serializers for the new models and the pricing calculation response
-# Example:
-# from rest_framework import serializers
-#
-# class ExchangeRateSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = ExchangeRate
-#         fields = '__all__'
-#
-# class DiscountCodeSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = DiscountCode
-#         fields = '__all__'
-#
-# class SeasonPricingSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = SeasonPricing
-#         fields = '__all__'
-#
-# class AdditionalServiceSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = AdditionalService
-#         fields = '__all__'
-#
-# class CancellationPolicySerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = CancellationPolicy
-#         fields = '__all__'
-#
-# class PricingCalculationSerializer(serializers.Serializer):
-#     property_id = serializers.IntegerField()
-#     property_name = serializers.CharField()
-#     check_in_date = serializers.DateField()
-#     check_out_date = serializers.DateField()
-#     guests = serializers.IntegerField()
-#     base_price_usd = serializers.DecimalField(max_digits=10, decimal_places=2)
-#     discount_percentage = serializers.DecimalField(max_digits=5, decimal_places=2)
-#     discount_amount_usd = serializers.DecimalField(max_digits=10, decimal_places=2)
-#     final_price_usd = serializers.DecimalField(max_digits=10, decimal_places=2)
-#     final_price_sol = serializers.DecimalField(max_digits=10, decimal_places=2)
-#     client_benefits = serializers.DictField()
-#     additional_services = serializers.ListField(child=serializers.DictField())
-#     cancellation_policy = serializers.DictField(allow_null=True)
-#     recommendations = serializers.CharField()
