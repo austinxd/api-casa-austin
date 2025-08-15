@@ -1,0 +1,150 @@
+
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+&rsaquo; <a href="{% url 'admin:app_list' app_label='property' %}">Property</a>
+&rsaquo; <a href="{% url 'admin:property_specialdatepricing_changelist' %}">Precios Fechas Especiales Recurrentes</a>
+&rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<div class="module aligned">
+    <h2>Opción 1: Formato de Texto</h2>
+    <p class="help">Ingresa las fechas especiales directamente en el formato especificado</p>
+    
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div>
+                <label for="{{ form.property.id_for_label }}">{{ form.property.label }}:</label>
+                {{ form.property }}
+                {% if form.property.help_text %}
+                    <p class="help">{{ form.property.help_text }}</p>
+                {% endif %}
+                {% if form.property.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.property.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div>
+                <label for="{{ form.bulk_data.id_for_label }}">{{ form.bulk_data.label }}:</label>
+                {{ form.bulk_data }}
+                {% if form.bulk_data.help_text %}
+                    <p class="help">{{ form.bulk_data.help_text }}</p>
+                {% endif %}
+                {% if form.bulk_data.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.bulk_data.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div>
+                {{ form.overwrite_existing }} 
+                <label for="{{ form.overwrite_existing.id_for_label }}">{{ form.overwrite_existing.label }}</label>
+                {% if form.overwrite_existing.help_text %}
+                    <p class="help">{{ form.overwrite_existing.help_text }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="submit-row">
+            <input type="submit" name="bulk_submit" value="Procesar Fechas Especiales" class="default">
+        </div>
+    </form>
+</div>
+
+<hr>
+
+<div class="module aligned">
+    <h2>Opción 2: Cargar desde CSV</h2>
+    <p class="help">Sube un archivo CSV con las fechas especiales</p>
+    
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div class="form-row">
+            <div>
+                <label for="{{ csv_form.property.id_for_label }}">{{ csv_form.property.label }}:</label>
+                {{ csv_form.property }}
+                {% if csv_form.property.help_text %}
+                    <p class="help">{{ csv_form.property.help_text }}</p>
+                {% endif %}
+                {% if csv_form.property.errors %}
+                    <ul class="errorlist">
+                        {% for error in csv_form.property.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div>
+                <label for="{{ csv_form.csv_file.id_for_label }}">{{ csv_form.csv_file.label }}:</label>
+                {{ csv_form.csv_file }}
+                {% if csv_form.csv_file.help_text %}
+                    <p class="help">{{ csv_form.csv_file.help_text }}</p>
+                {% endif %}
+                {% if csv_form.csv_file.errors %}
+                    <ul class="errorlist">
+                        {% for error in csv_form.csv_file.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div>
+                {{ csv_form.overwrite_existing }} 
+                <label for="{{ csv_form.overwrite_existing.id_for_label }}">{{ csv_form.overwrite_existing.label }}</label>
+                {% if csv_form.overwrite_existing.help_text %}
+                    <p class="help">{{ csv_form.overwrite_existing.help_text }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="submit-row">
+            <input type="submit" name="csv_submit" value="Procesar CSV" class="default">
+        </div>
+    </form>
+</div>
+
+<div class="module">
+    <h2>Ejemplo de formato CSV</h2>
+    <pre>
+25,12,Navidad,150.00
+31,12,Año Nuevo,200.00
+1,1,Año Nuevo,180.00
+14,2,San Valentín,120.00
+8,3,Día de la Mujer,110.00
+1,5,Día del Trabajador,130.00
+28,7,Fiestas Patrias,160.00
+29,7,Fiestas Patrias,160.00
+30,10,Día de la Canción Criolla,120.00
+    </pre>
+</div>
+
+{% endblock %}

@@ -3,6 +3,7 @@ from .views import (PropertyApiView, ProfitPropertyApiView, CheckAvaiblePorperty
 
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
+from .bulk_views import BulkSpecialDateView
 
 router = DefaultRouter()
 
@@ -15,4 +16,5 @@ urlpatterns = [
     path("prop/check-avaible/", CheckAvailabilityApiView.as_view()),
     path('properties/<int:property_id>/photos/', PropertyPhotoApiView.as_view({'get': 'list', 'post': 'create'}), name='property-photos'),
     path('properties/calculate-pricing/', CalculatePricingAPIView.as_view(), name='calculate-pricing'),
+    path('admin/bulk-special-dates/', BulkSpecialDateView.as_view(), name='bulk-special-dates'),
 ]

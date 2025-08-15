@@ -1,0 +1,31 @@
+
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static %}
+
+{% block object-tools-items %}
+    {{ block.super }}
+    <li>
+        <a href="/property/admin/bulk-special-dates/" class="addlink">
+            Agregar Fechas Masivamente
+        </a>
+    </li>
+{% endblock %}
+
+{% block content %}
+    {{ block.super }}
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Agregar estilo al botón de carga masiva
+        const bulkBtn = document.querySelector('a[href="/property/admin/bulk-special-dates/"]');
+        if (bulkBtn) {
+            bulkBtn.style.backgroundColor = '#417690';
+            bulkBtn.style.color = 'white';
+            bulkBtn.style.padding = '10px 15px';
+            bulkBtn.style.textDecoration = 'none';
+            bulkBtn.style.borderRadius = '4px';
+            bulkBtn.style.margin = '0 5px';
+        }
+    });
+    </script>
+{% endblock %}

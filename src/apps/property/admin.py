@@ -179,6 +179,31 @@ class SpecialDatePricingAdmin(admin.ModelAdmin):
         """Muestra la fecha en formato legible"""
         return obj.get_date_display()
     get_date_display.short_description = 'Fecha'
+    
+    def changelist_view(self, request, extra_context=None):
+        """Agregar contexto adicional a la vista de lista"""
+        extra_context = extra_context or {}
+        extra_context['bulk_special_dates_url'] = '/property/admin/bulk-special-dates/'
+        return super().changelist_view(request, extra_context)
+    
+    class Media:
+        css = {
+            'all': ('admin/css/changelists.css',)
+        }
+        js = ()
+    
+    def get_urls(self):
+        from django.urls import path
+        urls = super().get_urls()
+        custom_urls = [
+            path('bulk-add/', self.admin_site.admin_view(self.bulk_add_view), name='bulk-add-special-dates'),
+        ]
+        return custom_urls + urls
+    
+    def bulk_add_view(self, request):
+        """Redireccionar a la vista de carga masiva"""
+        from django.shortcuts import redirect
+        return redirect('/property/admin/bulk-special-dates/')
 
 
 class DiscountCodeAdmin(admin.ModelAdmin):
