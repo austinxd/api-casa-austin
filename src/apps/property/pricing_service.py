@@ -91,7 +91,7 @@ class PricingCalculationService:
 
         # Aplicar descuentos
         discount_applied = self._apply_discounts(
-            property, subtotal_usd, Decimal(0), nights, guests, discount_code # Corregido para pasar property y subtotal_usd, subtotal_sol, nights, guests, discount_code
+            property, subtotal_usd, Decimal(0), nights, guests, discount_code, client
         )
 
         final_price_usd = subtotal_usd - discount_applied['discount_amount_usd']
@@ -236,7 +236,7 @@ class PricingCalculationService:
         else:
             return "Día de semana"
 
-    def _apply_discounts(self, property, subtotal_usd, subtotal_sol, nights, guests, discount_code):
+    def _apply_discounts(self, property, subtotal_usd, subtotal_sol, nights, guests, discount_code, client):
         """Aplica descuentos automáticos o códigos de descuento"""
         discount_info = {
             'type': 'none',
