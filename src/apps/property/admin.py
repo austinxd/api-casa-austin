@@ -43,6 +43,51 @@ class SpecialDatePricingInline(admin.TabularInline):
         return SpecialDatePricing.objects.filter(deleted=False)
 
 
+# Inline especial para fechas especiales en PropertyPricing
+class SpecialDatePricingForPropertyPricingInline(admin.TabularInline):
+    model = SpecialDatePricing
+    extra = 5
+    fields = ('month', 'day', 'description', 'price_usd', 'is_active')
+    ordering = ['month', 'day']
+    verbose_name = "Fecha Especial"
+    verbose_name_plural = "🎉 Agregar Fechas Especiales (Navidad, Año Nuevo, etc.)"
+    
+    def get_queryset(self, request):
+        """Mostrar fechas especiales de la propiedad relacionada"""
+        return SpecialDatePricing.objects.filter(deleted=False)
+    
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """Auto-establecer la propiedad basada en el PropertyPricing"""
+        if db_field.name == "property":
+            # Obtener el PropertyPricing del URL
+            pricing_id = request.resolver_match.kwargs.get('object_id')
+            if pricing_id:
+                try:
+                    from .pricing_models import PropertyPricing
+                    pricing = PropertyPricing.objects.get(pk=pricing_id)
+                    kwargs["initial"] = pricing.property.pk
+                    kwargs["disabled"] = True
+                except PropertyPricing.DoesNotExist:
+                    pass
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+    
+    def get_formset(self, request, obj=None, **kwargs):
+        """Personalizar el formset para auto-establecer la propiedad"""
+        formset = super().get_formset(request, obj, **kwargs)
+        
+        class CustomFormSet(formset):
+            def save_new(self, form, commit=True):
+                """Auto-establecer la propiedad al guardar nuevas fechas especiales"""
+                instance = form.save(commit=False)
+                if obj:  # obj es el PropertyPricing
+                    instance.property = obj.property
+                if commit:
+                    instance.save()
+                return instance
+        
+        return CustomFormSet
+
+
 class PropertyPhotoAdmin(admin.ModelAdmin):
     list_display = ("property", "alt_text", "order", "is_main", "deleted")
     list_filter = ("is_main", "deleted", "property")
@@ -137,6 +182,7 @@ class PropertyPricingAdmin(admin.ModelAdmin):
     list_display = ('property', 'weekday_low_season_usd', 'weekend_low_season_usd', 'weekday_high_season_usd', 'weekend_high_season_usd', 'get_special_dates_count')
     list_filter = ('property',)
     search_fields = ('property__name',)
+    inlines = [SpecialDatePricingForPropertyPricingInline]
     fieldsets = (
         ('Información General', {
             'fields': ('property',)
@@ -184,7 +230,6 @@ class SeasonPricingAdmin(admin.ModelAdmin):
         return obj.get_date_range_display()
     get_date_range_display.short_description = 'Período'
 
-@admin.register(SpecialDatePricing)
 class SpecialDatePricingAdmin(admin.ModelAdmin):
     list_display = ('property', 'description', 'get_date_display', 'price_usd', 'is_active')
     list_filter = ('is_active', 'property', 'month')
@@ -313,3 +358,4 @@ admin.site.register(DiscountCode, DiscountCodeAdmin)
 admin.site.register(AdditionalService, AdditionalServiceAdmin)
 admin.site.register(CancellationPolicy, CancellationPolicyAdmin)
 admin.site.register(AutomaticDiscount, AutomaticDiscountAdmin)
+# SpecialDatePricing ya no se registra aquí - se maneja solo a través de inlines
