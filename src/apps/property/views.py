@@ -429,8 +429,8 @@ class CalculatePricingAPIView(APIView):
                 name='guests',
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
-                description='Número de huéspedes',
-                required=True
+                description='Número de huéspedes (por defecto: 1)',
+                required=False
             ),
             OpenApiParameter(
                 name='client_id',
@@ -461,9 +461,9 @@ class CalculatePricingAPIView(APIView):
             check_out_date_str = request.query_params.get('check_out_date')
             guests_str = request.query_params.get('guests')
 
-            if not all([check_in_date_str, check_out_date_str, guests_str]):
+            if not all([check_in_date_str, check_out_date_str]):
                 return Response({
-                    'error': 'Parámetros requeridos: check_in_date, check_out_date, guests'
+                    'error': 'Parámetros requeridos: check_in_date, check_out_date'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             # Parsear y validar fechas
@@ -476,15 +476,18 @@ class CalculatePricingAPIView(APIView):
                     'error': 'Formato de fecha inválido. Use YYYY-MM-DD'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-            # Validar número de huéspedes
-            try:
-                guests = int(guests_str)
-                if guests < 1:
-                    raise ValueError()
-            except ValueError:
-                return Response({
-                    'error': 'El número de huéspedes debe ser un entero mayor a 0'
-                }, status=status.HTTP_400_BAD_REQUEST)
+            # Validar número de huéspedes (asignar 1 por defecto si no se envía)
+            if not guests_str:
+                guests = 1
+            else:
+                try:
+                    guests = int(guests_str)
+                    if guests < 1:
+                        raise ValueError()
+                except ValueError:
+                    return Response({
+                        'error': 'El número de huéspedes debe ser un entero mayor a 0'
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
             # Parámetros opcionales
             property_id = request.query_params.get('property_id')
