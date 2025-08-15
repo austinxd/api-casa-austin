@@ -192,17 +192,11 @@ class PricingCalculationService:
             property_pricing = PropertyPricing.objects.get(property=property, deleted=False)
             return property_pricing.get_base_price_for_date(date)
         except PropertyPricing.DoesNotExist:
-            # 3. Buscar en temporadas globales
-            season_pricing = SeasonPricing.objects.filter(
-                is_active=True,
-                start_date__lte=date,
-                end_date__gte=date
-            ).first()
-            
-            if season_pricing:
-                # Usar precio base de la propiedad con ajuste de temporada
+            # 3. Verificar si está en temporada alta usando el nuevo sistema
+            if SeasonPricing.is_high_season(date):
+                # Usar precio base de la propiedad con incremento por temporada alta
                 base_price = property.precio_desde or Decimal('100.00')
-                return base_price * season_pricing.price_multiplier
+                return base_price * Decimal('1.5')  # 50% más en temporada alta
             
             # 4. Precio por defecto si no hay configuración
             return property.precio_desde or Decimal('100.00')

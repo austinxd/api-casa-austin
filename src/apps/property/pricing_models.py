@@ -76,12 +76,8 @@ class PropertyPricing(BaseModel):
     def get_base_price_for_date(self, date):
         """Obtiene el precio base para una fecha específica considerando temporada y tipo de día"""
         
-        # Verificar si es temporada alta usando SeasonPricing
-        is_high_season = SeasonPricing.objects.filter(
-            is_active=True,
-            start_date__lte=date,
-            end_date__gte=date
-        ).exists()
+        # Verificar si es temporada alta usando el nuevo método de SeasonPricing
+        is_high_season = SeasonPricing.is_high_season(date)
         
         # Verificar si es fin de semana (Viernes=4, Sábado=5, Domingo=6)
         is_weekend = date.weekday() >= 4
