@@ -153,12 +153,32 @@ class AutomaticDiscountAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 
+# Configurar títulos del admin para organizar mejor
+admin.site.site_header = "Casa Austin - Panel de Administración"
+admin.site.site_title = "Casa Austin Admin"
+admin.site.index_title = "Gestión de Casa Austin"
+
+# Registrar modelos principales de Property
 admin.site.register(Property, PropertyAdmin)
 admin.site.register(PropertyPhoto, PropertyPhotoAdmin)
+admin.site.register(ProfitPropertyAirBnb)
+
+# Crear una aplicación virtual para los modelos de precios
+class PricingAdminConfig:
+    name = 'pricing'
+    verbose_name = '💰 Precios y Descuentos'
+
+# Registrar modelos de precios y descuentos con app_label personalizada
+ExchangeRateAdmin.model._meta.app_label = 'pricing'
+SeasonPricingAdmin.model._meta.app_label = 'pricing'
+DiscountCodeAdmin.model._meta.app_label = 'pricing'
+AdditionalServiceAdmin.model._meta.app_label = 'pricing'
+CancellationPolicyAdmin.model._meta.app_label = 'pricing'
+AutomaticDiscountAdmin.model._meta.app_label = 'pricing'
+
 admin.site.register(ExchangeRate, ExchangeRateAdmin)
 admin.site.register(SeasonPricing, SeasonPricingAdmin)
 admin.site.register(DiscountCode, DiscountCodeAdmin)
 admin.site.register(AdditionalService, AdditionalServiceAdmin)
 admin.site.register(CancellationPolicy, CancellationPolicyAdmin)
 admin.site.register(AutomaticDiscount, AutomaticDiscountAdmin)
-admin.site.register(ProfitPropertyAirBnb)
