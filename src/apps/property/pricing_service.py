@@ -537,10 +537,15 @@ class PricingCalculationService:
             check_out_date.strftime("%B"), self._get_month_name_spanish(check_out_date.month)
         )
 
+        # Obtener información de descuento de la primera propiedad disponible
+        discount_info = None
+        if available_properties and 'discount_applied' in available_properties[0]:
+            discount_info = available_properties[0]['discount_applied']
+
         # Generar MESSAGE1 (mensaje de encabezado/contexto)
         message1 = self._generate_message1(
             estado_disponibilidad, fecha_inicio_str, fecha_fin_str, 
-            available_properties, guests, nights, client
+            available_properties, guests, nights, client, discount_info
         )
 
         # Generar MESSAGE2 (mensaje de detalles/precios)
@@ -563,16 +568,26 @@ class PricingCalculationService:
         }
         return months.get(month, 'mes')
 
-    def _generate_message1(self, estado_disponibilidad, fecha_inicio_str, fecha_fin_str, available_properties, guests, nights, client):
+    def _generate_message1(self, estado_disponibilidad, fecha_inicio_str, fecha_fin_str, available_properties, guests, nights, client, discount_info):
         """Genera mensaje1 según el estado de disponibilidad"""
         
         if estado_disponibilidad == 1:
             # Disponibilidad completa
             message1 = f"📅 Disponibilidad del {fecha_inicio_str} al {fecha_fin_str}"
             
-            # Agregar descuento de cliente si aplica
-            if client:
-                message1 += "\n✨ Descuento del 10% aplicado por ser cliente registrado"
+            # Agregar información de descuento si aplica
+            if discount_info and discount_info.get('type') not in ['none', 'error']:
+                if discount_info['type'] == 'discount_code':
+                    percentage = discount_info.get('discount_percentage', 0)
+                    if percentage > 0:
+                        message1 += f"\n✨ Descuento del {percentage}% aplicado con código '{discount_info.get('code_used', '')}'"
+                    else:
+                        # Para descuentos de monto fijo
+                        amount = discount_info.get('discount_amount_usd', 0)
+                        message1 += f"\n✨ Descuento de ${amount} aplicado con código '{discount_info.get('code_used', '')}'"
+                elif discount_info['type'] == 'automatic':
+                    percentage = discount_info.get('discount_percentage', 0)
+                    message1 += f"\n✨ Descuento automático del {percentage}% aplicado por ser cliente registrado"
             
             # Recomendación para grupos pequeños en fin de semana
             if guests <= 4 and nights <= 3:
