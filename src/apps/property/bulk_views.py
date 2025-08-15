@@ -6,7 +6,6 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 from .forms import BulkSpecialDateForm, CSVUploadForm
 from .models import Property
 from .pricing_models import SpecialDatePricing
@@ -86,17 +85,6 @@ class PropertySpecialDatesView(View):
 
 
 @method_decorator(staff_member_required, name='dispatch')
-
-
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
-from django.utils.decorators import method_decorator
-from django.views import View
-from .forms import BulkSpecialDateForm, CSVUploadForm
-
-
-@method_decorator(staff_member_required, name='dispatch')
 class BulkSpecialDateView(View):
     template_name = 'admin/property/bulk_special_dates.html'
     
@@ -150,8 +138,6 @@ class BulkSpecialDateView(View):
                 
                 created_count = 0
                 updated_count = 0
-                
-                from .pricing_models import SpecialDatePricing
                 
                 for date_info in dates_data:
                     special_date, created = SpecialDatePricing.objects.get_or_create(
