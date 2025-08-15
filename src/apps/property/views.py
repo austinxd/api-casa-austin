@@ -406,9 +406,9 @@ class CalculatePricingAPIView(APIView):
         parameters=[
             OpenApiParameter(
                 name='property_id',
-                type=OpenApiTypes.INT,
+                type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description='ID de la propiedad (opcional - si no se especifica, muestra todas)',
+                description='UUID de la propiedad (opcional - si no se especifica, muestra todas)',
                 required=False
             ),
             OpenApiParameter(
@@ -494,14 +494,16 @@ class CalculatePricingAPIView(APIView):
             # Validar property_id si se proporciona
             if property_id:
                 try:
-                    property_id = int(property_id)
+                    from uuid import UUID
+                    # Validar que sea un UUID válido
+                    UUID(property_id)
                     if not Property.objects.filter(id=property_id, deleted=False).exists():
                         return Response({
                             'error': 'Propiedad no encontrada'
                         }, status=status.HTTP_404_NOT_FOUND)
                 except ValueError:
                     return Response({
-                        'error': 'property_id debe ser un entero válido'
+                        'error': 'property_id debe ser un UUID válido'
                     }, status=status.HTTP_400_BAD_REQUEST)
 
             # Validar client_id si se proporciona
