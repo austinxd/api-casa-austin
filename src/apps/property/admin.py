@@ -163,17 +163,10 @@ admin.site.register(Property, PropertyAdmin)
 admin.site.register(PropertyPhoto, PropertyPhotoAdmin)
 admin.site.register(ProfitPropertyAirBnb)
 
-# Cambiar app_label de los modelos para organizarlos mejor en el admin
-ExchangeRate._meta.app_label = 'pricing'
-SeasonPricing._meta.app_label = 'pricing'
-DiscountCode._meta.app_label = 'pricing'
-AdditionalService._meta.app_label = 'pricing'
-CancellationPolicy._meta.app_label = 'pricing'
-AutomaticDiscount._meta.app_label = 'pricing'
-
+# Registrar modelos de precios en el admin
 admin.site.register(ExchangeRate, ExchangeRateAdmin)
 admin.site.register(SeasonPricing, SeasonPricingAdmin)
 admin.site.register(DiscountCode, DiscountCodeAdmin)
-admin.site.register(AdditionalService, AdditionalServiceAdmin)
+admin.site.register(AdditionalService, AdditionalServiceAdmin)  
 admin.site.register(CancellationPolicy, CancellationPolicyAdmin)
 admin.site.register(AutomaticDiscount, AutomaticDiscountAdmin)
