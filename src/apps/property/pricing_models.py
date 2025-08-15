@@ -33,55 +33,132 @@ class ExchangeRate(BaseModel):
         return rate.usd_to_sol if rate else Decimal('3.800')
 
 
-class SeasonPricing(BaseModel):
-    """Precios por temporada y tipo de día para propiedades"""
+class PropertyPricing(BaseModel):
+    """Precios base de propiedades por temporada y tipo de día"""
     
-    class SeasonType(models.TextChoices):
-        LOW = "low", ("Temporada Baja")
-        HIGH = "high", ("Temporada Alta")
+    property = models.OneToOneField(Property, on_delete=models.CASCADE, related_name='pricing')
     
-    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='season_pricing')
-    season_type = models.CharField(max_length=4, choices=SeasonType.choices)
-    start_date = models.DateField(help_text="Fecha de inicio de la temporada")
-    end_date = models.DateField(help_text="Fecha de fin de la temporada")
-    
-    # Precios base por tipo de día y temporada
-    weekday_price_usd = models.DecimalField(
+    # Precios base en temporada baja
+    weekday_low_season_usd = models.DecimalField(
         max_digits=10, 
-        decimal_places=2, 
-        help_text="Precio base por noche de día de semana (Lunes-Jueves) en USD para 1 persona"
+        decimal_places=2,
+        default=0,
+        help_text="Precio base por noche de día de semana en temporada baja (Lunes-Jueves) en USD para 1 persona"
     )
-    weekend_price_usd = models.DecimalField(
+    weekend_low_season_usd = models.DecimalField(
         max_digits=10, 
-        decimal_places=2, 
-        help_text="Precio base por noche de fin de semana (Viernes-Domingo) en USD para 1 persona"
+        decimal_places=2,
+        default=0,
+        help_text="Precio base por noche de fin de semana en temporada baja (Viernes-Domingo) en USD para 1 persona"
     )
     
-    is_active = models.BooleanField(default=True)
+    # Precios base en temporada alta
+    weekday_high_season_usd = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        default=0,
+        help_text="Precio base por noche de día de semana en temporada alta (Lunes-Jueves) en USD para 1 persona"
+    )
+    weekend_high_season_usd = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        default=0,
+        help_text="Precio base por noche de fin de semana en temporada alta (Viernes-Domingo) en USD para 1 persona"
+    )
     
     class Meta:
-        verbose_name = "📅 Precio de Temporada"
-        verbose_name_plural = "📅 Precios de Temporada"
-        ordering = ['property', 'season_type', 'start_date']
-        unique_together = ['property', 'season_type', 'start_date', 'end_date']
+        verbose_name = "💰 Precio Base de Propiedad"
+        verbose_name_plural = "💰 Precios Base de Propiedades"
     
     def __str__(self):
-        return f"{self.property.name} - {self.get_season_type_display()} ({self.start_date} - {self.end_date})"
+        return f"Precios de {self.property.name}"
     
-    def get_base_price_for_date(self, date):
-        """Obtiene el precio base para una fecha específica según el día de la semana"""
+    def get_base_price_for_date(self, date, is_high_season=False):
+        """Obtiene el precio base para una fecha específica según el día de la semana y temporada"""
         # 0=Lunes, 6=Domingo
         weekday = date.weekday()
         
         # Viernes (4), Sábado (5), Domingo (6) son fin de semana
         if weekday >= 4:  # Viernes, Sábado, Domingo
-            return self.weekend_price_usd
+            return self.weekend_high_season_usd if is_high_season else self.weekend_low_season_usd
         else:  # Lunes a Jueves
-            return self.weekday_price_usd
+            return self.weekday_high_season_usd if is_high_season else self.weekday_low_season_usd
     
-    def calculate_total_price_for_date(self, date, guests=1):
+    def calculate_total_price_for_date(self, date, guests=1, is_high_season=False):
         """Calcula el precio total para una fecha específica incluyendo huéspedes adicionales"""
-        base_price = self.get_base_price_for_date(date)
+        base_price = self.get_base_price_for_date(date, is_high_season)
+        
+        # Agregar precio por persona adicional (después de la primera)
+        if guests > 1 and self.property.precio_extra_persona:
+            additional_guests = guests - 1
+            additional_cost = self.property.precio_extra_persona * additional_guests
+            return base_price + additional_cost
+        
+        return base_price
+
+
+class SeasonPricing(BaseModel):
+    """Define períodos de temporada alta y baja"""
+    
+    class SeasonType(models.TextChoices):
+        LOW = "low", ("Temporada Baja")
+        HIGH = "high", ("Temporada Alta")
+    
+    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='seasons')
+    season_type = models.CharField(max_length=4, choices=SeasonType.choices)
+    start_date = models.DateField(help_text="Fecha de inicio de la temporada")
+    end_date = models.DateField(help_text="Fecha de fin de la temporada")
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = "📅 Temporada"
+        verbose_name_plural = "📅 Temporadas"
+        ordering = ['property', 'start_date']
+    
+    def __str__(self):
+        return f"{self.property.name} - {self.get_season_type_display()} ({self.start_date} - {self.end_date})"
+    
+    @classmethod
+    def is_high_season(cls, property_obj, date):
+        """Verifica si una fecha está en temporada alta para una propiedad"""
+        high_seasons = cls.objects.filter(
+            property=property_obj,
+            season_type=cls.SeasonType.HIGH,
+            start_date__lte=date,
+            end_date__gte=date,
+            is_active=True
+        )
+        return high_seasons.exists()
+
+
+class SpecialDatePricing(BaseModel):
+    """Precios especiales para fechas específicas (ej: 31 de diciembre)"""
+    
+    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='special_dates')
+    date = models.DateField(help_text="Fecha especial")
+    price_usd = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        help_text="Precio especial por noche en USD para 1 persona"
+    )
+    description = models.CharField(
+        max_length=100, 
+        help_text="Descripción del día especial (ej: Año Nuevo, Navidad)"
+    )
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = "🎉 Precio de Fecha Especial"
+        verbose_name_plural = "🎉 Precios de Fechas Especiales"
+        unique_together = ['property', 'date']
+        ordering = ['property', 'date']
+    
+    def __str__(self):
+        return f"{self.property.name} - {self.description} ({self.date}) - ${self.price_usd}"
+    
+    def calculate_total_price(self, guests=1):
+        """Calcula el precio total para la fecha especial incluyendo huéspedes adicionales"""
+        base_price = self.price_usd
         
         # Agregar precio por persona adicional (después de la primera)
         if guests > 1 and self.property.precio_extra_persona:
