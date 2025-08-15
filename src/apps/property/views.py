@@ -463,7 +463,8 @@ class CalculatePricingAPIView(APIView):
 
             if not all([check_in_date_str, check_out_date_str]):
                 return Response({
-                    'error': 'Parámetros requeridos: check_in_date, check_out_date'
+                    'error': 1,
+                    'error_message': 'Parámetros requeridos: check_in_date, check_out_date'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             # Parsear y validar fechas
@@ -473,7 +474,8 @@ class CalculatePricingAPIView(APIView):
                 check_out_date = datetime.strptime(check_out_date_str, '%Y-%m-%d').date()
             except ValueError:
                 return Response({
-                    'error': 'Formato de fecha inválido. Use YYYY-MM-DD'
+                    'error': 2,
+                    'error_message': 'Formato de fecha inválido. Use YYYY-MM-DD'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             # Validar número de huéspedes (asignar 1 por defecto si no se envía)
@@ -486,7 +488,8 @@ class CalculatePricingAPIView(APIView):
                         raise ValueError()
                 except ValueError:
                     return Response({
-                        'error': 'El número de huéspedes debe ser un entero mayor a 0'
+                        'error': 3,
+                        'error_message': 'El número de huéspedes debe ser un entero mayor a 0'
                     }, status=status.HTTP_400_BAD_REQUEST)
 
             # Parámetros opcionales
@@ -502,11 +505,13 @@ class CalculatePricingAPIView(APIView):
                     UUID(property_id)
                     if not Property.objects.filter(id=property_id, deleted=False).exists():
                         return Response({
-                            'error': 'Propiedad no encontrada'
+                            'error': 4,
+                            'error_message': 'Propiedad no encontrada'
                         }, status=status.HTTP_404_NOT_FOUND)
                 except ValueError:
                     return Response({
-                        'error': 'property_id debe ser un UUID válido'
+                        'error': 5,
+                        'error_message': 'property_id debe ser un UUID válido'
                     }, status=status.HTTP_400_BAD_REQUEST)
 
             # Validar client_id si se proporciona
@@ -517,11 +522,13 @@ class CalculatePricingAPIView(APIView):
                     UUID(client_id)
                     if not Client.objects.filter(id=client_id, deleted=False).exists():
                         return Response({
-                            'error': 'Cliente no encontrado'
+                            'error': 6,
+                            'error_message': 'Cliente no encontrado'
                         }, status=status.HTTP_404_NOT_FOUND)
                 except ValueError:
                     return Response({
-                        'error': 'client_id debe ser un UUID válido'
+                        'error': 7,
+                        'error_message': 'client_id debe ser un UUID válido'
                     }, status=status.HTTP_400_BAD_REQUEST)
 
             # Calcular precios usando el servicio correcto
@@ -545,12 +552,13 @@ class CalculatePricingAPIView(APIView):
 
         except ValidationError as e:
             return Response({
-                'error': str(e)
+                'error': 8,
+                'error_message': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
             return Response({
-                'error': 'Error interno del servidor',
+                'error': 0,
+                'error_message': 'Error interno del servidor',
                 'detail': str(e) if settings.DEBUG else None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
