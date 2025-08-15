@@ -78,7 +78,7 @@ class PropertyAdmin(admin.ModelAdmin):
     list_filter = ("dormitorios", "banos", "deleted")
     search_fields = ("name", "titulo", "location", "slug")
     prepopulated_fields = {"slug": ("name",)}
-    inlines = [PropertyPhotoInline]
+    inlines = [PropertyPhotoInline, SpecialDatePricingInline]
     fieldsets = (
         ("Información Básica", {
             "fields": ("name", "titulo", "slug", "descripcion", "location", "background_color")
@@ -153,11 +153,30 @@ class SeasonPricingAdmin(admin.ModelAdmin):
         return obj.get_date_range_display()
     get_date_range_display.short_description = 'Período'
 
+# Inline para fechas especiales dentro de cada propiedad
+class SpecialDatePricingInline(admin.TabularInline):
+    model = SpecialDatePricing
+    extra = 1
+    fields = ('month', 'day', 'description', 'price_usd', 'is_active')
+    ordering = ['month', 'day']
+
+    def get_queryset(self, request):
+        """Solo mostrar fechas especiales activas"""
+        return SpecialDatePricing.objects.filter(deleted=False)
+
 @admin.register(SpecialDatePricing)
 class SpecialDatePricingAdmin(admin.ModelAdmin):
     list_display = ('property', 'description', 'get_date_display', 'price_usd', 'is_active')
     list_filter = ('is_active', 'property', 'month')
     search_fields = ('property__name', 'description')
+    
+    # Agrupar por propiedad
+    list_display_links = ('description',)
+    
+    def get_queryset(self, request):
+        """Ordenar por propiedad y luego por fecha"""
+        return super().get_queryset(request).select_related('property').order_by('property__name', 'month', 'day')
+    
     fieldsets = (
         ('Información de la Fecha Especial Recurrente', {
             'fields': ('property', 'description', 'is_active'),
@@ -184,6 +203,16 @@ class SpecialDatePricingAdmin(admin.ModelAdmin):
         """Agregar contexto adicional a la vista de lista"""
         extra_context = extra_context or {}
         extra_context['bulk_special_dates_url'] = '/property/admin/bulk-special-dates/'
+        
+        # Agrupar fechas especiales por propiedad para mejor visualización
+        from collections import defaultdict
+        special_dates_by_property = defaultdict(list)
+        
+        for special_date in SpecialDatePricing.objects.select_related('property').filter(deleted=False).order_by('property__name', 'month', 'day'):
+            special_dates_by_property[special_date.property].append(special_date)
+        
+        extra_context['special_dates_by_property'] = dict(special_dates_by_property)
+        
         return super().changelist_view(request, extra_context)
     
     class Media:

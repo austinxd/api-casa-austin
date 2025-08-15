@@ -14,6 +14,32 @@
 {% block content %}
     {{ block.super }}
     
+    {% if special_dates_by_property %}
+    <div class="module filtered" style="margin-top: 20px;">
+        <h2>📋 Resumen por Propiedad</h2>
+        {% for property, special_dates in special_dates_by_property.items %}
+        <div class="property-group" style="margin-bottom: 20px; border: 1px solid #ddd; padding: 15px; border-radius: 5px;">
+            <h3 style="color: #417690; margin-bottom: 10px;">
+                🏠 {{ property.name }} 
+                <small style="color: #666;">({{ special_dates|length }} fecha{{ special_dates|length|pluralize:"s" }} especial{{ special_dates|length|pluralize:"es" }})</small>
+            </h3>
+            <div class="special-dates-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px;">
+                {% for special_date in special_dates %}
+                <div class="special-date-card" style="background: #f8f9fa; padding: 10px; border-radius: 3px; border-left: 4px solid #417690;">
+                    <div style="font-weight: bold; color: #333;">{{ special_date.description }}</div>
+                    <div style="color: #666; font-size: 0.9em;">📅 {{ special_date.get_date_display }}</div>
+                    <div style="color: #28a745; font-weight: bold;">💰 ${{ special_date.price_usd }}</div>
+                    {% if not special_date.is_active %}
+                    <div style="color: #dc3545; font-size: 0.8em;">❌ Inactiva</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Agregar estilo al botón de carga masiva
@@ -28,4 +54,4 @@
         }
     });
     </script>
-{% endblock %}
+{% endblock %}}
