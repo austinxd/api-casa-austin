@@ -27,12 +27,15 @@ TWILIO_VERIFY_SERVICE_SID = os.environ.get('TWILIO_VERIFY_SERVICE_SID')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DJANGO_DEBUG', default=True)
 
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[
-    '*',
-    'ac4f8fba-15fb-4014-8235-6b8a0be1d56e-00-3l5w4ss0bb8fk.spock.replit.dev',
-    '.replit.dev',
-    '.spock.replit.dev'
-])
+# Para desarrollo en Replit, permitir todos los hosts
+if DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[
+        'ac4f8fba-15fb-4014-8235-6b8a0be1d56e-00-3l5w4ss0bb8fk.spock.replit.dev',
+        '.replit.dev',
+        '.spock.replit.dev'
+    ])
 
 CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS",
                                 default=['http://localhost:8000'])
