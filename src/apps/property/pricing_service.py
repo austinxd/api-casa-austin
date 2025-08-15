@@ -57,6 +57,11 @@ class PricingCalculationService:
             )
             results.append(property_pricing)
 
+        # Generar mensajes contextuales para chatbot
+        chatbot_messages = self._generate_chatbot_messages(
+            results, check_in_date, check_out_date, guests, nights, client, property_id
+        )
+
         # Información general (solo incluir client_info si se proporciona client_id)
         general_info = {
             'check_in_date': check_in_date,
@@ -65,7 +70,11 @@ class PricingCalculationService:
             'total_nights': nights,
             'exchange_rate': round(float(self.exchange_rate), 2),
             'properties': results,
-            'general_recommendations': self._get_general_recommendations(results, guests, nights)
+            'general_recommendations': self._get_general_recommendations(results, guests, nights),
+            # Mensajes para chatbot
+            'estado_disponibilidad': chatbot_messages['estado_disponibilidad'],
+            'message1': chatbot_messages['message1'],
+            'message2': chatbot_messages['message2']
         }
         
         # Solo incluir client_info si se proporciona un client_id
@@ -494,3 +503,115 @@ class PricingCalculationService:
             'total_reservations': reservation_count,
             'points_available': client.get_available_points()
         }
+
+    def _generate_chatbot_messages(self, properties_results, check_in_date, check_out_date, guests, nights, client, property_id):
+        """Genera mensajes contextuales para chatbot similares al sistema PHP"""
+        from datetime import datetime
+        import locale
+        
+        # Configurar localización en español
+        try:
+            locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
+        except:
+            try:
+                locale.setlocale(locale.LC_TIME, 'es_ES')
+            except:
+                pass  # Usar configuración por defecto si no está disponible
+
+        # Determinar estado de disponibilidad
+        available_properties = [p for p in properties_results if p['available']]
+        partially_available_properties = []  # En futuras versiones podríamos implementar disponibilidad parcial
+        
+        if len(available_properties) == len(properties_results) and available_properties:
+            estado_disponibilidad = 1  # Disponibilidad completa
+        elif available_properties:
+            estado_disponibilidad = 2  # Disponibilidad parcial
+        else:
+            estado_disponibilidad = 0  # Sin disponibilidad
+
+        # Formatear fechas en español
+        fecha_inicio_str = check_in_date.strftime("%d de %B de %Y").replace(
+            check_in_date.strftime("%B"), self._get_month_name_spanish(check_in_date.month)
+        )
+        fecha_fin_str = check_out_date.strftime("%d de %B de %Y").replace(
+            check_out_date.strftime("%B"), self._get_month_name_spanish(check_out_date.month)
+        )
+
+        # Generar MESSAGE1 (mensaje de encabezado/contexto)
+        message1 = self._generate_message1(
+            estado_disponibilidad, fecha_inicio_str, fecha_fin_str, 
+            available_properties, guests, nights, client
+        )
+
+        # Generar MESSAGE2 (mensaje de detalles/precios)
+        message2 = self._generate_message2(
+            estado_disponibilidad, available_properties, properties_results, property_id
+        )
+
+        return {
+            'estado_disponibilidad': estado_disponibilidad,
+            'message1': message1,
+            'message2': message2
+        }
+
+    def _get_month_name_spanish(self, month):
+        """Convierte número de mes a nombre en español"""
+        months = {
+            1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril',
+            5: 'mayo', 6: 'junio', 7: 'julio', 8: 'agosto',
+            9: 'septiembre', 10: 'octubre', 11: 'noviembre', 12: 'diciembre'
+        }
+        return months.get(month, 'mes')
+
+    def _generate_message1(self, estado_disponibilidad, fecha_inicio_str, fecha_fin_str, available_properties, guests, nights, client):
+        """Genera mensaje1 según el estado de disponibilidad"""
+        
+        if estado_disponibilidad == 1:
+            # Disponibilidad completa
+            message1 = f"📅 Disponibilidad del {fecha_inicio_str} al {fecha_fin_str}"
+            
+            # Agregar descuento de cliente si aplica
+            if client:
+                message1 += "\n✨ Descuento del 10% aplicado por ser cliente registrado"
+            
+            # Recomendación para grupos pequeños en fin de semana
+            if guests <= 4 and nights <= 3:
+                message1 += "\n💡 Perfecto para una escapada de fin de semana"
+                
+        elif estado_disponibilidad == 2:
+            # Disponibilidad parcial
+            num_casas = len(available_properties)
+            message1 = f"📅 Del {fecha_inicio_str} al {fecha_fin_str} ✨ Encontramos {num_casas} casa(s) con disponibilidad"
+            
+        else:
+            # Sin disponibilidad
+            message1 = f"📅 Disponibilidad del {fecha_inicio_str} al {fecha_fin_str}\n❌ No hay casas disponibles para estas fechas"
+
+        return message1
+
+    def _generate_message2(self, estado_disponibilidad, available_properties, all_properties, property_id):
+        """Genera message2 según la disponibilidad específica"""
+        
+        if estado_disponibilidad == 0:
+            # Sin disponibilidad
+            return "No hay casas disponibles en las fechas seleccionadas. Te sugerimos revisar otras fechas."
+        
+        if property_id and available_properties:
+            # Casa específica disponible
+            property_info = available_properties[0]
+            return f"🏠 {property_info['property_name']}: ${property_info['final_price_usd']} Dólares ó S/.{property_info['final_price_sol']} Soles"
+        
+        if not property_id and available_properties:
+            # Mostrar lista de casas disponibles
+            casas_disponibles = []
+            for prop in available_properties:
+                casas_disponibles.append(
+                    f"🏠 {prop['property_name']}: ${prop['final_price_usd']} USD ó S/.{prop['final_price_sol']} SOL"
+                )
+            return "\n".join(casas_disponibles)
+        
+        if estado_disponibilidad == 2:
+            # Disponibilidad parcial - en el futuro podríamos mostrar calendario
+            return "✅ Algunas casas tienen disponibilidad parcial. Contáctanos para verificar fechas específicas."
+        
+        return "Información de disponibilidad no disponible."

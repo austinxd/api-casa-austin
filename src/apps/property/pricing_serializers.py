@@ -77,6 +77,10 @@ class PricingCalculationSerializer(serializers.Serializer):
     properties = PropertyPricingSerializer(many=True)
     general_recommendations = serializers.ListField()
     client_info = serializers.DictField(required=False)
+    # Campos para chatbot
+    estado_disponibilidad = serializers.IntegerField(help_text="0=Sin disponibilidad, 1=Disponibilidad completa, 2=Disponibilidad parcial")
+    message1 = serializers.CharField(help_text="Mensaje contextual de encabezado para chatbot")
+    message2 = serializers.CharField(help_text="Mensaje de detalles y precios para chatbot")
     
     def validate(self, data):
         if data['check_in_date'] >= data['check_out_date']:
