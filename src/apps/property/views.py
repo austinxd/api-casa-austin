@@ -434,9 +434,9 @@ class CalculatePricingAPIView(APIView):
             ),
             OpenApiParameter(
                 name='client_id',
-                type=OpenApiTypes.INT,
+                type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description='ID del cliente (opcional - para descuentos automáticos)',
+                description='UUID del cliente (opcional - para descuentos automáticos)',
                 required=False
             ),
             OpenApiParameter(
@@ -509,10 +509,16 @@ class CalculatePricingAPIView(APIView):
             # Validar client_id si se proporciona
             if client_id:
                 try:
-                    client_id = int(client_id)
+                    from uuid import UUID
+                    # Validar que sea un UUID válido
+                    UUID(client_id)
+                    if not Client.objects.filter(id=client_id, deleted=False).exists():
+                        return Response({
+                            'error': 'Cliente no encontrado'
+                        }, status=status.HTTP_404_NOT_FOUND)
                 except ValueError:
                     return Response({
-                        'error': 'client_id debe ser un entero válido'
+                        'error': 'client_id debe ser un UUID válido'
                     }, status=status.HTTP_400_BAD_REQUEST)
 
             # Calcular precios usando el servicio correcto
