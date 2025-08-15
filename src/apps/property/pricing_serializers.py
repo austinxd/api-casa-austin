@@ -60,8 +60,6 @@ class PropertyPricingSerializer(serializers.Serializer):
     discount_applied = serializers.DictField()
     final_price_usd = serializers.DecimalField(max_digits=10, decimal_places=2)
     final_price_sol = serializers.DecimalField(max_digits=10, decimal_places=2)
-    total_price_usd = serializers.DecimalField(max_digits=10, decimal_places=2)
-    total_price_sol = serializers.DecimalField(max_digits=10, decimal_places=2)
     available = serializers.BooleanField()
     availability_message = serializers.CharField()
     additional_services = AdditionalServiceSerializer(many=True)

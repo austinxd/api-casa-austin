@@ -97,9 +97,7 @@ class PricingCalculationService:
         final_price_usd = subtotal_usd - Decimal(str(discount_applied['discount_amount_usd']))
         final_price_sol = (subtotal_usd * self.exchange_rate) - Decimal(str(discount_applied['discount_amount_sol']))
 
-        # Calcular precio total que incluye todo (base + extras + aplicar descuentos)
-        total_price_usd = final_price_usd
-        total_price_sol = final_price_sol
+        
 
 
         # Convertir a soles
@@ -147,8 +145,6 @@ class PricingCalculationService:
             'discount_applied': discount_applied,
             'final_price_usd': round(float(final_price_usd), 2),
             'final_price_sol': round(float(final_price_sol), 2),
-            'total_price_usd': round(float(total_price_usd), 2),
-            'total_price_sol': round(float(total_price_sol), 2),
             'available': available,
             'availability_message': availability_message,
             'additional_services': additional_services,
