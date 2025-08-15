@@ -77,16 +77,16 @@ class PricingCalculationService:
         # Verificar disponibilidad
         available, availability_message = self._check_availability(property, check_in_date, check_out_date)
 
-        # Obtener precios noche por noche
-        nightly_prices, base_total_usd = self._get_nightly_prices(property, check_in_date, check_out_date)
+        # Obtener precios noche por noche (ya incluye huéspedes adicionales)
+        nightly_prices, subtotal_usd = self._get_nightly_prices(property, check_in_date, check_out_date, guests)
 
+        # Calcular precio base (sin huéspedes adicionales) para mostrar desglose
+        _, base_total_usd = self._get_nightly_prices(property, check_in_date, check_out_date, 1)
+        
         # Calcular precio por personas extra
         extra_guests = max(0, guests - 1)  # Después de la primera persona
         extra_person_price_usd = property.precio_extra_persona or Decimal('0.00')
-        extra_person_total_usd = extra_person_price_usd * extra_guests * nights
-
-        # Calcular subtotal
-        subtotal_usd = base_total_usd + extra_person_total_usd
+        extra_person_total_usd = subtotal_usd - base_total_usd
 
         # Aplicar descuentos
         discount_applied = self._apply_discounts(
@@ -154,7 +154,7 @@ class PricingCalculationService:
 
         return True, "Propiedad disponible"
 
-    def _get_nightly_prices(self, property, check_in_date, check_out_date):
+    def _get_nightly_prices(self, property, check_in_date, check_out_date, guests=1):
         """Obtiene precios noche por noche considerando temporadas, tipo de día y fechas especiales"""
         from datetime import timedelta
         
@@ -163,10 +163,12 @@ class PricingCalculationService:
         total_price = Decimal('0.00')
         
         while current_date < check_out_date:
-            night_price = self._get_price_for_specific_date(property, current_date)
+            night_price = self._get_price_for_specific_date(property, current_date, guests)
             nightly_prices.append({
                 'date': current_date,
                 'price': night_price,
+                'price_base': self._get_price_for_specific_date(property, current_date, 1),
+                'guests': guests,
                 'type': self._get_date_type(current_date)
             })
             total_price += night_price
@@ -174,8 +176,8 @@ class PricingCalculationService:
         
         return nightly_prices, total_price
     
-    def _get_price_for_specific_date(self, property, date):
-        """Obtiene el precio para una fecha específica"""
+    def _get_price_for_specific_date(self, property, date, guests=1):
+        """Obtiene el precio para una fecha específica incluyendo huéspedes adicionales"""
         # 1. Verificar si hay precio especial para esta fecha
         special_pricing = SpecialDatePricing.objects.filter(
             property=property,
@@ -185,21 +187,28 @@ class PricingCalculationService:
         ).first()
         
         if special_pricing:
-            return special_pricing.price_usd
+            return special_pricing.calculate_total_price(guests)
         
         # 2. Buscar precio según PropertyPricing
         try:
             property_pricing = PropertyPricing.objects.get(property=property, deleted=False)
-            return property_pricing.get_base_price_for_date(date)
+            return property_pricing.calculate_total_price_for_date(date, guests)
         except PropertyPricing.DoesNotExist:
             # 3. Verificar si está en temporada alta usando el nuevo sistema
             if SeasonPricing.is_high_season(date):
                 # Usar precio base de la propiedad con incremento por temporada alta
                 base_price = property.precio_desde or Decimal('100.00')
-                return base_price * Decimal('1.5')  # 50% más en temporada alta
+                base_price = base_price * Decimal('1.5')  # 50% más en temporada alta
+            else:
+                base_price = property.precio_desde or Decimal('100.00')
             
-            # 4. Precio por defecto si no hay configuración
-            return property.precio_desde or Decimal('100.00')
+            # Calcular precio por huéspedes adicionales
+            if guests > 1 and property.precio_extra_persona:
+                additional_guests = guests - 1
+                additional_cost = property.precio_extra_persona * additional_guests
+                return base_price + additional_cost
+            
+            return base_price
     
     def _get_date_type(self, date):
         """Determina el tipo de fecha"""
