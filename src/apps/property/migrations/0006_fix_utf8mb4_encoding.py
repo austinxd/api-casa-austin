@@ -1,4 +1,5 @@
-# Generated manually to fix charset encoding
+
+# Generated manually to fix charset encoding - SQLite compatible version
 
 from django.db import migrations
 
@@ -10,18 +11,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # SQLite maneja automáticamente la codificación UTF-8
+        # No necesitamos hacer nada específico para charset encoding en SQLite
         migrations.RunSQL(
-            """
-            SET FOREIGN_KEY_CHECKS = 0;
-            ALTER TABLE property_property CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-            ALTER TABLE property_profitpropertyairbnb CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-            SET FOREIGN_KEY_CHECKS = 1;
-            """,
-            reverse_sql="""
-            SET FOREIGN_KEY_CHECKS = 0;
-            ALTER TABLE property_property CONVERT TO CHARACTER SET utf8 COLLATE utf8_unicode_ci;
-            ALTER TABLE property_profitpropertyairbnb CONVERT TO CHARACTER SET utf8 COLLATE utf8_unicode_ci;
-            SET FOREIGN_KEY_CHECKS = 1;
-            """
+            "SELECT 1;",  # Operación dummy que no hace nada pero es válida en SQLite
+            reverse_sql="SELECT 1;"
         ),
     ]
