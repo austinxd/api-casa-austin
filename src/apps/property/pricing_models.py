@@ -220,6 +220,8 @@ class SpecialDatePricing(BaseModel):
     
     description = models.CharField(
         max_length=100, 
+        blank=True,
+        null=True,
         help_text="Descripción del día especial (ej: Año Nuevo, Navidad, Día de la Madre)"
     )
     price_usd = models.DecimalField(
