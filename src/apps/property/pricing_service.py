@@ -1,4 +1,3 @@
-
 from decimal import Decimal
 from datetime import date, timedelta
 from django.db.models import Q
@@ -6,10 +5,10 @@ from django.utils import timezone
 
 from .models import Property
 from .pricing_models import (
-    ExchangeRate, 
-    SeasonPricing, 
-    DiscountCode, 
-    AdditionalService, 
+    ExchangeRate,
+    SeasonPricing,
+    DiscountCode,
+    AdditionalService,
     CancellationPolicy,
     AutomaticDiscount
 )
@@ -18,22 +17,22 @@ from apps.reservation.models import Reservation
 
 
 class PricingCalculationService:
-    
+
     def __init__(self):
         self.exchange_rate = ExchangeRate.get_current_rate()
-    
+
     def calculate_pricing(self, check_in_date, check_out_date, guests, property_id=None, client_id=None, discount_code=None):
         """Calcula precios para una o todas las propiedades"""
-        
+
         # Validaciones básicas
         if check_in_date >= check_out_date:
             raise ValueError("La fecha de salida debe ser posterior a la fecha de entrada")
-        
+
         if check_in_date < date.today():
             raise ValueError("La fecha de entrada no puede ser en el pasado")
-        
+
         nights = (check_out_date - check_in_date).days
-        
+
         # Obtener cliente si se proporciona
         client = None
         if client_id:
@@ -41,21 +40,21 @@ class PricingCalculationService:
                 client = Clients.objects.get(id=client_id, deleted=False)
             except Clients.DoesNotExist:
                 pass
-        
+
         # Obtener propiedades
         if property_id:
             properties = Property.objects.filter(id=property_id, deleted=False)
         else:
             properties = Property.objects.filter(deleted=False)
-        
+
         results = []
-        
+
         for property in properties:
             property_pricing = self._calculate_property_pricing(
                 property, check_in_date, check_out_date, guests, nights, client, discount_code
             )
             results.append(property_pricing)
-        
+
         # Información general
         general_info = {
             'check_in_date': check_in_date,
@@ -67,52 +66,52 @@ class PricingCalculationService:
             'general_recommendations': self._get_general_recommendations(results, guests, nights),
             'client_info': self._get_client_info(client)
         }
-        
+
         return general_info
-    
+
     def _calculate_property_pricing(self, property, check_in_date, check_out_date, guests, nights, client, discount_code):
         """Calcula precios para una propiedad específica"""
-        
+
         # Verificar disponibilidad
         available, availability_message = self._check_availability(property, check_in_date, check_out_date)
-        
+
         # Obtener precio base (considerar temporadas)
         base_price_usd = self._get_seasonal_price(property, check_in_date, check_out_date)
-        
+
         # Calcular precio por personas extra
         extra_guests = max(0, guests - 1)  # Después de la primera persona
         extra_person_price_usd = property.precio_extra_persona or Decimal('0.00')
-        
+
         # Calcular subtotal
         subtotal_usd = (base_price_usd * nights) + (extra_person_price_usd * extra_guests * nights)
-        
+
         # Aplicar descuentos
         discount_applied = self._apply_discounts(
             subtotal_usd, property, client, discount_code, nights, guests
         )
-        
+
         final_price_usd = subtotal_usd - discount_applied['discount_amount_usd']
-        
+
         # Convertir a soles
         base_price_sol = base_price_usd * self.exchange_rate
         extra_person_price_sol = extra_person_price_usd * self.exchange_rate
         subtotal_sol = subtotal_usd * self.exchange_rate
         final_price_sol = final_price_usd * self.exchange_rate
-        
+
         # Servicios adicionales
         additional_services = self._get_additional_services(property, nights, guests)
-        
+
         # Política de cancelación
         cancellation_policy = CancellationPolicy.get_applicable_policy(property.id)
-        
+
         # Beneficios del cliente
         client_benefits = self._get_client_benefits(client, property)
-        
+
         # Recomendaciones específicas
         recommendations = self._get_property_recommendations(
             property, guests, nights, subtotal_usd, available
         )
-        
+
         return {
             'property_id': property.id,
             'property_name': property.name,
@@ -136,7 +135,7 @@ class PricingCalculationService:
             'client_benefits': client_benefits,
             'recommendations': recommendations
         }
-    
+
     def _check_availability(self, property, check_in_date, check_out_date):
         """Verifica disponibilidad de la propiedad"""
         conflicting_reservations = Reservation.objects.filter(
@@ -146,16 +145,16 @@ class PricingCalculationService:
         ).filter(
             Q(check_in_date__lt=check_out_date) & Q(check_out_date__gt=check_in_date)
         )
-        
+
         if conflicting_reservations.exists():
             return False, "Propiedad no disponible para las fechas seleccionadas"
-        
+
         return True, "Propiedad disponible"
-    
+
     def _get_seasonal_price(self, property, check_in_date, check_out_date):
         """Obtiene precio considerando temporadas"""
         base_price = property.precio_desde or Decimal('100.00')
-        
+
         # Buscar precios de temporada que apliquen
         seasonal_pricing = SeasonPricing.objects.filter(
             property=property,
@@ -163,15 +162,15 @@ class PricingCalculationService:
             start_date__lte=check_in_date,
             end_date__gte=check_in_date
         ).first()
-        
+
         if seasonal_pricing:
             if seasonal_pricing.price_usd:
                 base_price = seasonal_pricing.price_usd
             else:
                 base_price = base_price * seasonal_pricing.multiplier
-        
+
         return base_price
-    
+
     def _apply_discounts(self, subtotal_usd, property, client, discount_code, nights, guests):
         """Aplica descuentos automáticos o códigos de descuento"""
         discount_info = {
@@ -182,13 +181,13 @@ class PricingCalculationService:
             'discount_amount_sol': Decimal('0.00'),
             'code_used': None
         }
-        
+
         # Si hay código de descuento, verificar y aplicar
         if discount_code:
             try:
                 code = DiscountCode.objects.get(code=discount_code.upper(), is_active=True)
                 is_valid, message = code.is_valid(property.id, subtotal_usd)
-                
+
                 if is_valid:
                     discount_amount_usd = code.calculate_discount(subtotal_usd)
                     discount_info.update({
@@ -202,14 +201,14 @@ class PricingCalculationService:
                     return discount_info
                 else:
                     discount_info['description'] = f"Código inválido: {message}"
-                    
+
             except DiscountCode.DoesNotExist:
                 discount_info['description'] = "Código de descuento no encontrado"
-        
+
         # Si no hay código válido, verificar descuentos automáticos
         if client:
             automatic_discounts = AutomaticDiscount.objects.filter(is_active=True)
-            
+
             for auto_discount in automatic_discounts:
                 applies, message = auto_discount.applies_to_client(client)
                 if applies:
@@ -223,9 +222,9 @@ class PricingCalculationService:
                         'code_used': None
                     })
                     break  # Aplicar solo el primer descuento automático que aplique
-        
+
         return discount_info
-    
+
     def _get_additional_services(self, property, nights, guests):
         """Obtiene servicios adicionales disponibles"""
         services = AdditionalService.objects.filter(
@@ -233,7 +232,7 @@ class PricingCalculationService:
         ).filter(
             Q(properties__isnull=True) | Q(properties=property)
         ).distinct()
-        
+
         service_list = []
         for service in services:
             total_price_usd = service.calculate_price(nights, guests)
@@ -249,9 +248,9 @@ class PricingCalculationService:
                 'total_price_usd': float(total_price_usd),
                 'total_price_sol': float(total_price_usd * self.exchange_rate)
             })
-        
+
         return service_list
-    
+
     def _get_client_benefits(self, client, property):
         """Obtiene beneficios del cliente"""
         benefits = {
@@ -261,11 +260,11 @@ class PricingCalculationService:
             'referral_code': None,
             'membership_level': 'standard'
         }
-        
+
         if client:
             available_points = client.get_available_points()
             points_value_usd = available_points * Decimal('0.01')  # 1 punto = $0.01
-            
+
             benefits.update({
                 'points_available': available_points,
                 'points_value_usd': float(points_value_usd),
@@ -273,20 +272,20 @@ class PricingCalculationService:
                 'referral_code': client.get_referral_code(),
                 'membership_level': self._get_membership_level(client)
             })
-        
+
         return benefits
-    
+
     def _get_membership_level(self, client):
         """Determina el nivel de membresía del cliente"""
         if not client:
             return 'guest'
-        
+
         reservation_count = Reservation.objects.filter(
-            client=client, 
+            client=client,
             deleted=False,
             status__in=['approved', 'completed']
         ).count()
-        
+
         if reservation_count >= 10:
             return 'platinum'
         elif reservation_count >= 5:
@@ -295,57 +294,57 @@ class PricingCalculationService:
             return 'silver'
         else:
             return 'bronze'
-    
+
     def _get_property_recommendations(self, property, guests, nights, subtotal_usd, available):
         """Genera recomendaciones específicas para la propiedad"""
         recommendations = []
-        
+
         if not available:
             recommendations.append("Esta propiedad no está disponible para las fechas seleccionadas")
-        
+
         if property.capacity_max and guests > property.capacity_max:
             recommendations.append(f"Esta propiedad tiene capacidad máxima para {property.capacity_max} personas")
-        
+
         if nights >= 7:
             recommendations.append("Estancia de 7+ noches - ¡Excelente para relajarse!")
-        
+
         if subtotal_usd >= 500:
             recommendations.append("Reserva de alto valor - Considere servicios adicionales premium")
-        
+
         if property.temperatura_pool_url:
             recommendations.append("Esta propiedad cuenta con piscina temperada disponible")
-        
+
         return recommendations
-    
+
     def _get_general_recommendations(self, properties_results, guests, nights):
         """Genera recomendaciones generales"""
         recommendations = []
-        
+
         available_properties = [p for p in properties_results if p['available']]
-        
+
         if not available_properties:
             recommendations.append("No hay propiedades disponibles para las fechas seleccionadas")
         elif len(available_properties) < len(properties_results):
             recommendations.append(f"Disponibles {len(available_properties)} de {len(properties_results)} propiedades")
-        
+
         if nights >= 14:
             recommendations.append("Estancia larga - Considere contactarnos para descuentos especiales")
-        
+
         if guests >= 8:
             recommendations.append("Grupo grande - Verifique servicios adicionales y políticas de grupo")
-        
+
         return recommendations
-    
+
     def _get_client_info(self, client):
         """Información del cliente"""
         if not client:
             return {'status': 'guest', 'message': 'Usuario no registrado'}
-        
+
         reservation_count = Reservation.objects.filter(
-            client=client, 
+            client=client,
             deleted=False
         ).count()
-        
+
         return {
             'status': 'registered',
             'name': f"{client.first_name} {client.last_name or ''}".strip(),
