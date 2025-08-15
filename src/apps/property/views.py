@@ -559,7 +559,7 @@ class CalculatePricingAPIView(APIView):
 
         except Exception as e:
             return Response({
-                'error': 0,
+                'error': 9,
                 'error_message': 'Error interno del servidor',
                 'detail': str(e) if settings.DEBUG else None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
