@@ -363,4 +363,17 @@ CSRF_TRUSTED_ORIGINS = [
     "https://reservas.casaaustin.pe",
     "https://6d9c1416-4d5a-43ff-b6d9-45dcb8a576cf-00-1qgg6m6ft27vv.riker.replit.dev:5000",
     "https://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.replit.dev",
+    # Permitir todos los dominios de Replit
+    "https://*.replit.dev",
 ]
+
+# Para desarrollo en Replit, también obtener el dominio actual automáticamente
+import os
+if os.environ.get('REPL_ID'):
+    # Estamos en Replit, agregar el dominio actual
+    repl_id = os.environ.get('REPL_ID')
+    repl_owner = os.environ.get('REPL_OWNER')
+    if repl_id and repl_owner:
+        current_replit_domain = f"https://{repl_id}.{repl_owner}.replit.dev"
+        if current_replit_domain not in CSRF_TRUSTED_ORIGINS:
+            CSRF_TRUSTED_ORIGINS.append(current_replit_domain)
