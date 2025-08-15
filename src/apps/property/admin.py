@@ -93,6 +93,8 @@ from .pricing_models import (
     CancellationPolicy,
     AutomaticDiscount
 )
+    AutomaticDiscount
+)
 
 
 class ExchangeRateAdmin(admin.ModelAdmin):

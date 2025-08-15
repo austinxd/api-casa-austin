@@ -13,7 +13,7 @@ from .pricing_models import (
     CancellationPolicy,
     AutomaticDiscount
 )
-from apps.clients.models import Clients
+from apps.clients.models import Clients as Client
 from apps.reservation.models import Reservation
 
 

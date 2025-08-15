@@ -14,11 +14,13 @@ from rest_framework.permissions import AllowAny
 from apps.core.paginator import CustomPagination
 from apps.core.functions import update_air_bnb_api
 
-from .models import Property, ProfitPropertyAirBnb, PropertyPhoto, ExchangeRate, DiscountCode, SeasonPricing, AdditionalService, CancellationPolicy
+from .models import Property, ProfitPropertyAirBnb, PropertyPhoto
+from .pricing_models import ExchangeRate, DiscountCode, SeasonPricing, AdditionalService, CancellationPolicy
 from apps.reservation.models import Reservation
 from apps.client.models import Client
 
-from .serializers import PropertyListSerializer, PropertyDetailSerializer, PropertySerializer, ProfitPropertyAirBnbSerializer, PropertyPhotoSerializer, PricingCalculationSerializer
+from .serializers import PropertyListSerializer, PropertyDetailSerializer, PropertySerializer, ProfitPropertyAirBnbSerializer, PropertyPhotoSerializer
+from .pricing_serializers import PricingCalculationSerializer
 
 class PricingCalculationService:
     """

@@ -1,4 +1,4 @@
-from .views import (PropertyApiView, ProfitPropertyApiView, CheckAvailabilityApiView, PropertyPhotoApiView, CalculatePricingAPIView)
+from .views import (PropertyApiView, ProfitPropertyApiView, CheckAvaiblePorperty as CheckAvailabilityApiView, PropertyPhotoViewSet as PropertyPhotoApiView, CalculatePricingAPIView)
 
 
 from django.urls import include, path
