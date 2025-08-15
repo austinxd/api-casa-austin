@@ -271,27 +271,26 @@ class PricingCalculationService:
                 discount_info['description'] = "Código de descuento no encontrado"
 
         # Si no hay código válido, verificar descuentos automáticos
-        # Asumiendo que el cliente puede ser None
-        if property.automatic_discount and property.automatic_discount.is_active:
-            auto_discount = property.automatic_discount
-            # Verificar si aplica al cliente (si existe)
-            applies = True
-            if auto_discount.applies_to_client_type and property.client: # Asumiendo que property.client existe si discount_type es 'client_type'
-                if auto_discount.applies_to_client_type != property.client.client_type: # Asumiendo que client_type existe en el modelo Client
-                    applies = False
+        if client:
+            from .pricing_models import AutomaticDiscount
             
-            if applies:
-                discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
-                discount_info.update({
-                    'type': 'automatic',
-                    'description': auto_discount.description,
-                    'discount_percentage': float(auto_discount.discount_percentage),
-                    'discount_amount_usd': discount_amount_usd,
-                    'discount_amount_sol': discount_amount_usd * self.exchange_rate,
-                    'code_used': None
-                })
-                # No se aplica un 'break' aquí porque podría haber otros descuentos automáticos a considerar.
-                # Si solo se debe aplicar uno, se necesitaría una lógica adicional para seleccionar el mejor.
+            # Buscar descuentos automáticos aplicables al cliente
+            automatic_discounts = AutomaticDiscount.objects.filter(is_active=True)
+            
+            for auto_discount in automatic_discounts:
+                applies, message = auto_discount.applies_to_client(client)
+                
+                if applies:
+                    discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
+                    discount_info.update({
+                        'type': 'automatic',
+                        'description': message,
+                        'discount_percentage': float(auto_discount.discount_percentage),
+                        'discount_amount_usd': discount_amount_usd,
+                        'discount_amount_sol': discount_amount_usd * self.exchange_rate,
+                        'code_used': None
+                    })
+                    break  # Aplicar solo el primer descuento automático que califique
 
         return discount_info
 
