@@ -336,28 +336,31 @@ class DiscountCode(BaseModel):
         
         today = date.today()
         
-        # Verificar si está activo
-        if not self.is_active:
+        # Verificar si está activo y no eliminado
+        if not self.is_active or self.deleted:
             return False, "Código de descuento inactivo"
         
         # Verificar fechas
-        if today < self.start_date or today > self.end_date:
-            return False, "Código de descuento expirado o no válido aún"
+        if today < self.start_date:
+            return False, f"Código válido desde {self.start_date.strftime('%d/%m/%Y')}"
+        
+        if today > self.end_date:
+            return False, f"Código expiró el {self.end_date.strftime('%d/%m/%Y')}"
         
         # Verificar límite de uso
         if self.usage_limit and self.used_count >= self.usage_limit:
-            return False, "Código de descuento agotado"
+            return False, f"Código agotado ({self.used_count}/{self.usage_limit} usos)"
         
-        # Verificar propiedad
+        # Verificar propiedad (solo si el código tiene propiedades específicas asignadas)
         if property_id and self.properties.exists():
-            if not self.properties.filter(id=property_id).exists():
+            if not self.properties.filter(id=property_id, deleted=False).exists():
                 return False, "Código no válido para esta propiedad"
         
         # Verificar monto mínimo
         if self.min_amount_usd and total_amount_usd and total_amount_usd < self.min_amount_usd:
-            return False, f"Monto mínimo requerido: ${self.min_amount_usd}"
+            return False, f"Monto mínimo requerido: ${self.min_amount_usd:.2f} (actual: ${total_amount_usd:.2f})"
         
-        return True, "Código válido"
+        return True, f"Código válido - Descuento aplicado: {self.discount_value}{'%' if self.discount_type == 'percentage' else ' USD'}"
     
     def calculate_discount(self, total_amount_usd):
         """Calcula el descuento en USD"""

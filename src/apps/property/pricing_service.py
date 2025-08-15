@@ -248,10 +248,12 @@ class PricingCalculationService:
         }
 
         # Si hay código de descuento, verificar y aplicar
-        if discount_code:
+        if discount_code and discount_code.strip():
             try:
-                code = DiscountCode.objects.get(code=discount_code.upper(), is_active=True)
-                is_valid, message = code.is_valid(property.id, subtotal_usd) # Se necesita el id de la propiedad para validar el código de descuento
+                # Limpiar el código y convertir a mayúsculas
+                clean_code = discount_code.strip().upper()
+                code = DiscountCode.objects.get(code=clean_code, is_active=True, deleted=False)
+                is_valid, message = code.is_valid(property.id, subtotal_usd)
 
                 if is_valid:
                     discount_amount_usd = code.calculate_discount(subtotal_usd)
@@ -265,10 +267,33 @@ class PricingCalculationService:
                     })
                     return discount_info
                 else:
-                    discount_info['description'] = f"Código inválido: {message}"
+                    discount_info.update({
+                        'type': 'error',
+                        'description': f"Código inválido: {message}",
+                        'discount_percentage': 0,
+                        'discount_amount_usd': 0.00,
+                        'discount_amount_sol': 0.00,
+                        'code_used': clean_code
+                    })
 
             except DiscountCode.DoesNotExist:
-                discount_info['description'] = "Código de descuento no encontrado"
+                discount_info.update({
+                    'type': 'error',
+                    'description': f"Código '{discount_code.strip().upper()}' no encontrado",
+                    'discount_percentage': 0,
+                    'discount_amount_usd': 0.00,
+                    'discount_amount_sol': 0.00,
+                    'code_used': discount_code.strip().upper()
+                })
+            except Exception as e:
+                discount_info.update({
+                    'type': 'error',
+                    'description': f"Error al procesar código: {str(e)}",
+                    'discount_percentage': 0,
+                    'discount_amount_usd': 0.00,
+                    'discount_amount_sol': 0.00,
+                    'code_used': discount_code.strip() if discount_code else None
+                })
 
         # Si no hay código válido, verificar descuentos automáticos
         if client:
