@@ -155,15 +155,30 @@ class SeasonPricingAdmin(admin.ModelAdmin):
 
 @admin.register(SpecialDatePricing)
 class SpecialDatePricingAdmin(admin.ModelAdmin):
-    list_display = ('property', 'description', 'date', 'price_usd', 'is_active')
-    list_filter = ('is_active', 'property', 'date')
+    list_display = ('property', 'description', 'get_date_display', 'price_usd', 'is_active')
+    list_filter = ('is_active', 'property', 'month')
     search_fields = ('property__name', 'description')
-    date_hierarchy = 'date'
     fieldsets = (
-        ('Información de la Fecha Especial', {
-            'fields': ('property', 'date', 'description', 'price_usd', 'is_active')
+        ('Información de la Fecha Especial Recurrente', {
+            'fields': ('property', 'description', 'is_active'),
+            'description': 'Esta fecha especial se aplicará cada año para la propiedad seleccionada'
+        }),
+        ('Fecha de la Ocasión Especial', {
+            'fields': (
+                ('month', 'day'),
+            ),
+            'description': 'Define el día y mes que se repetirá cada año. Ejemplo: 25 de Diciembre para Navidad'
+        }),
+        ('Precio Especial', {
+            'fields': ('price_usd',),
+            'description': 'Precio base especial para esta fecha'
         }),
     )
+    
+    def get_date_display(self, obj):
+        """Muestra la fecha en formato legible"""
+        return obj.get_date_display()
+    get_date_display.short_description = 'Fecha'
 
 
 class DiscountCodeAdmin(admin.ModelAdmin):

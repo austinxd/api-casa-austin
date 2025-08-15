@@ -196,13 +196,23 @@ class SeasonPricing(BaseModel):
 
 
 class SpecialDatePricing(BaseModel):
-    """Precios especiales para fechas específicas"""
+    """Precios especiales para fechas recurrentes anuales"""
     
     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='special_date_pricing')
-    date = models.DateField(help_text="Fecha específica (ej: 2024-12-31)")
+    
+    # Cambiar a mes y día para que sea recurrente cada año
+    month = models.PositiveIntegerField(
+        help_text="Mes de la fecha especial (1-12)",
+        validators=[MinValueValidator(1), MaxValueValidator(12)]
+    )
+    day = models.PositiveIntegerField(
+        help_text="Día de la fecha especial (1-31)",
+        validators=[MinValueValidator(1), MaxValueValidator(31)]
+    )
+    
     description = models.CharField(
         max_length=100, 
-        help_text="Descripción del día especial (ej: Año Nuevo, Navidad)"
+        help_text="Descripción del día especial (ej: Año Nuevo, Navidad, Día de la Madre)"
     )
     price_usd = models.DecimalField(
         max_digits=10, 
@@ -212,13 +222,38 @@ class SpecialDatePricing(BaseModel):
     is_active = models.BooleanField(default=True)
     
     class Meta:
-        verbose_name = "🎉 Precio Fecha Especial"
-        verbose_name_plural = "🎉 Precios Fechas Especiales"
-        ordering = ['property', 'date']
-        unique_together = ['property', 'date']
+        verbose_name = "🎉 Precio Fecha Especial Recurrente"
+        verbose_name_plural = "🎉 Precios Fechas Especiales Recurrentes"
+        ordering = ['property', 'month', 'day']
+        unique_together = ['property', 'month', 'day']
     
     def __str__(self):
-        return f"{self.property.name} - {self.description} ({self.date.strftime('%d/%m')}) - ${self.price_usd}"
+        return f"{self.property.name} - {self.description} ({self.day}/{self.month}) - ${self.price_usd}"
+    
+    def get_date_display(self):
+        """Devuelve la fecha en formato legible"""
+        months = [
+            "", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+        ]
+        month_name = months[self.month]
+        return f"{self.day} de {month_name}"
+    
+    def is_date_special(self, date):
+        """Verifica si una fecha específica coincide con esta fecha especial"""
+        return date.month == self.month and date.day == self.day
+    
+    @classmethod
+    def get_special_price_for_date(cls, property, date):
+        """Obtiene el precio especial para una fecha específica de una propiedad"""
+        special_date = cls.objects.filter(
+            property=property,
+            month=date.month,
+            day=date.day,
+            is_active=True
+        ).first()
+        
+        return special_date
     
     def calculate_total_price(self, guests=1):
         """Calcula el precio total incluyendo huéspedes adicionales"""
