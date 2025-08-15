@@ -17,7 +17,6 @@ env.read_env(env_file=env_file)
 SECRET_KEY_DEFAULT = "django-insecure-3**i%5(i9m$3&m)&js8m^(m96!+^*t8u#r#aiq_^z-%f38hy)u"
 SECRET_KEY = env("DJANGO_SECRET_KEY", default=SECRET_KEY_DEFAULT)
 
-# SECURITY WARNING: keep the secret key used in production secret!
 # Twilio Configuration
 TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
@@ -327,7 +326,7 @@ SECOND_CHAT_ID = env('SECOND_CHAT_ID', default='N° second chat ID')
 PERSONAL_CHAT_ID = env('PERSONAL_CHAT_ID', default='N° personal chat ID')
 CLIENTS_CHAT_ID = env('CLIENTS_CHAT_ID', default='N° clients chat ID')
 
-# Twilio settings for OTP
+# Twilio settings for OTP (using env function for consistency)
 TWILIO_ACCOUNT_SID = env('TWILIO_ACCOUNT_SID', default='No SID')
 TWILIO_AUTH_TOKEN = env('TWILIO_AUTH_TOKEN', default='No token')
 TWILIO_VERIFY_SID = env('TWILIO_VERIFY_SID', default='No verify SID')
