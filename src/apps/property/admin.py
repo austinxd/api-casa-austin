@@ -163,18 +163,13 @@ admin.site.register(Property, PropertyAdmin)
 admin.site.register(PropertyPhoto, PropertyPhotoAdmin)
 admin.site.register(ProfitPropertyAirBnb)
 
-# Crear una aplicación virtual para los modelos de precios
-class PricingAdminConfig:
-    name = 'pricing'
-    verbose_name = '💰 Precios y Descuentos'
-
-# Registrar modelos de precios y descuentos con app_label personalizada
-ExchangeRateAdmin.model._meta.app_label = 'pricing'
-SeasonPricingAdmin.model._meta.app_label = 'pricing'
-DiscountCodeAdmin.model._meta.app_label = 'pricing'
-AdditionalServiceAdmin.model._meta.app_label = 'pricing'
-CancellationPolicyAdmin.model._meta.app_label = 'pricing'
-AutomaticDiscountAdmin.model._meta.app_label = 'pricing'
+# Cambiar app_label de los modelos para organizarlos mejor en el admin
+ExchangeRate._meta.app_label = 'pricing'
+SeasonPricing._meta.app_label = 'pricing'
+DiscountCode._meta.app_label = 'pricing'
+AdditionalService._meta.app_label = 'pricing'
+CancellationPolicy._meta.app_label = 'pricing'
+AutomaticDiscount._meta.app_label = 'pricing'
 
 admin.site.register(ExchangeRate, ExchangeRateAdmin)
 admin.site.register(SeasonPricing, SeasonPricingAdmin)
