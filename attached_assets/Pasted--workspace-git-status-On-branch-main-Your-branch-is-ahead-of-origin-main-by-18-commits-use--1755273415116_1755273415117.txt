@@ -1,0 +1,29 @@
+~/workspace$ git status
+On branch main
+Your branch is ahead of 'origin/main' by 18 commits.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+    deleted:    attached_assets/Pasted-Building-wheels-for-collected-packages-backports-zoneinfo-Building-wheel-for-backports-zoneinfo--1755271487063_1755271487064.txt
+    deleted:    attached_assets/Pasted-DJANGO-SECRET-KEY-django-insecure-3-i-5-i9m-3-m-js8m-m96-t8u-r-aiq-z-f38hy-u-DJANGO-DEBUG-Tr-1755271997723_1755271997724.txt
+    deleted:    attached_assets/Pasted-Operations-to-perform-Apply-all-migrations-accounts-admin-auth-clients-contenttypes-propert-1755272596163_1755272596163.txt
+    deleted:    attached_assets/Pasted-Operations-to-perform-Apply-all-migrations-accounts-admin-auth-clients-contenttypes-propert-1755272643614_1755272643615.txt
+    deleted:    attached_assets/Pasted-Operations-to-perform-Apply-all-migrations-accounts-admin-auth-clients-contenttypes-propert-1755272720839_1755272720840.txt
+    deleted:    attached_assets/Pasted-Operations-to-perform-Apply-all-migrations-accounts-admin-auth-clients-contenttypes-propert-1755273012650_1755273012651.txt
+    deleted:    attached_assets/Pasted-Operations-to-perform-Apply-all-migrations-accounts-admin-auth-clients-contenttypes-propert-1755273069623_1755273069624.txt
+    deleted:    attached_assets/Pasted-Running-migrations-Applying-contenttypes-0001-initial-OK-Applying-contenttypes-0002-remove-c-1755272549678_1755272549678.txt
+    deleted:    attached_assets/Pasted-Traceback-most-recent-call-last-File-home-runner-workspace-pythonlibs-lib-python3-12-site-pa-1755272372549_1755272372550.txt
+    deleted:    attached_assets/Pasted-Traceback-most-recent-call-last-File-home-runner-workspace-src-manage-py-line-22-in-modul-1755271559879_1755271559880.txt
+    deleted:    attached_assets/Pasted-Traceback-most-recent-call-last-File-home-runner-workspace-src-manage-py-line-22-in-modul-1755271623588_1755271623589.txt
+    deleted:    attached_assets/Pasted-Traceback-most-recent-call-last-File-home-runner-workspace-src-manage-py-line-22-in-modul-1755271659680_1755271659680.txt
+    deleted:    attached_assets/Pasted-Traceback-most-recent-call-last-File-home-runner-workspace-src-manage-py-line-22-in-modul-1755271702438_1755271702439.txt
+    deleted:    attached_assets/Pasted-Traceback-most-recent-call-last-File-home-runner-workspace-src-manage-py-line-22-in-modul-1755271838888_1755271838888.txt
+    deleted:    attached_assets/Pasted-Traceback-most-recent-call-last-File-home-runner-workspace-src-manage-py-line-22-in-modul-1755271883404_1755271883405.txt
+    deleted:    attached_assets/Pasted-Traceback-most-recent-call-last-File-home-runner-workspace-src-manage-py-line-22-in-modul-1755272458474_1755272458475.txt
+    deleted:    attached_assets/Pasted-Traceback-most-recent-call-last-File-home-runner-workspace-src-manage-py-line-22-in-modul-1755272511431_1755272511431.txt
+    deleted:    attached_assets/Pasted-Using-cached-jsonschema-4-21-1-py3-none-any-whl-85-kB-Using-cached-jsonschema-specifications-2023--1755272416530_1755272416530.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+~/workspace$ git add .

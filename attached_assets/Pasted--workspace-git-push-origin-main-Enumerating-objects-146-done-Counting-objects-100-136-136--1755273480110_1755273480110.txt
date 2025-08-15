@@ -1,0 +1,36 @@
+~/workspace$ git push origin main
+Enumerating objects: 146, done.
+Counting objects: 100% (136/136), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (115/115), done.
+Writing objects: 100% (115/115), 40.10 KiB | 8.02 MiB/s, done.
+Total 115 (delta 90), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (90/90), completed with 14 local objects.
+remote: error: GH013: Repository rule violations found for refs/heads/main.
+remote: 
+remote: - GITHUB PUSH PROTECTION
+remote:   —————————————————————————————————————————
+remote:     Resolve the following violations before pushing again
+remote: 
+remote:     - Push cannot contain secrets
+remote: 
+remote:     
+remote:      (?) Learn how to resolve a blocked push
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push
+remote:     
+remote:     
+remote:       —— Twilio Account String Identifier ——————————————————
+remote:        locations:
+remote:          - commit: 1d9e3b32e9144629f928f97facb3c75d187f5f9e
+remote:            path: attached_assets/Pasted-DJANGO-SECRET-KEY-django-insecure-3-i-5-i9m-3-m-js8m-m96-t8u-r-aiq-z-f38hy-u-DJANGO-DEBUG-Tr-1755271997723_1755271997724.txt:24
+remote:          - commit: b2cdf6701cb15250771d47830d0cd8448c79836d
+remote:            path: attached_assets/Pasted-USE-MYSQL-True-DJANGO-SECRET-KEY-django-insecure-3-i-5-i9m-3-m-js8m-m96-t8u-r-aiq-z-f38hy-u--1755271787089_1755271787089.txt:25
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/austinxd/api-casa-austin/security/secret-scanning/unblock-secret/31KGSsclPaCHHx0lZsdslcSBiHp
+remote:     
+remote: 
+remote: 
+To https://github.com/austinxd/api-casa-austin
+ ! [remote rejected] main -> main (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/austinxd/api-casa-austin'
