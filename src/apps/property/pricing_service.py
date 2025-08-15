@@ -63,7 +63,7 @@ class PricingCalculationService:
             'check_out_date': check_out_date,
             'guests': guests,
             'total_nights': nights,
-            'exchange_rate': self.exchange_rate,
+            'exchange_rate': round(float(self.exchange_rate), 2),
             'properties': results,
             'general_recommendations': self._get_general_recommendations(results, guests, nights),
             'client_info': self._get_client_info(client)
@@ -127,22 +127,22 @@ class PricingCalculationService:
             'property_id': property.id,
             'property_name': property.name,
             'property_slug': property.slug,
-            'base_price_usd': float(base_total_usd),
-            'base_price_sol': float(base_price_sol),
-            'extra_person_price_per_night_usd': float(extra_person_price_usd),
-            'extra_person_price_per_night_sol': float(extra_person_price_sol),
-            'extra_person_total_usd': float(extra_person_total_usd),
-            'extra_person_total_sol': float(extra_person_total_sol),
+            'base_price_usd': round(float(base_total_usd), 2),
+            'base_price_sol': round(float(base_price_sol), 2),
+            'extra_person_price_per_night_usd': round(float(extra_person_price_usd), 2),
+            'extra_person_price_per_night_sol': round(float(extra_person_price_sol), 2),
+            'extra_person_total_usd': round(float(extra_person_total_usd), 2),
+            'extra_person_total_sol': round(float(extra_person_total_sol), 2),
             'total_nights': nights,
             'total_guests': guests,
             'extra_guests': extra_guests,
-            'subtotal_usd': float(subtotal_usd),
-            'subtotal_sol': float(subtotal_sol),
+            'subtotal_usd': round(float(subtotal_usd), 2),
+            'subtotal_sol': round(float(subtotal_sol), 2),
             'discount_applied': discount_applied,
-            'final_price_usd': float(final_price_usd),
-            'final_price_sol': float(final_price_sol),
-            'total_price_usd': float(total_price_usd),
-            'total_price_sol': float(total_price_sol),
+            'final_price_usd': round(float(final_price_usd), 2),
+            'final_price_sol': round(float(final_price_sol), 2),
+            'total_price_usd': round(float(total_price_usd), 2),
+            'total_price_sol': round(float(total_price_sol), 2),
             'available': available,
             'availability_message': availability_message,
             'additional_services': additional_services,
@@ -259,8 +259,8 @@ class PricingCalculationService:
                         'type': 'discount_code',
                         'description': f"Código: {code.code} - {code.description}",
                         'discount_percentage': float(code.discount_value) if code.discount_type == 'percentage' else 0,
-                        'discount_amount_usd': discount_amount_usd,
-                        'discount_amount_sol': discount_amount_usd * self.exchange_rate,
+                        'discount_amount_usd': round(float(discount_amount_usd), 2),
+                        'discount_amount_sol': round(float(discount_amount_usd * self.exchange_rate), 2),
                         'code_used': code.code
                     })
                     return discount_info
@@ -285,9 +285,9 @@ class PricingCalculationService:
                     discount_info.update({
                         'type': 'automatic',
                         'description': message,
-                        'discount_percentage': float(auto_discount.discount_percentage),
-                        'discount_amount_usd': discount_amount_usd,
-                        'discount_amount_sol': discount_amount_usd * self.exchange_rate,
+                        'discount_percentage': round(float(auto_discount.discount_percentage), 2),
+                        'discount_amount_usd': round(float(discount_amount_usd), 2),
+                        'discount_amount_sol': round(float(discount_amount_usd * self.exchange_rate), 2),
                         'code_used': None
                     })
                     break  # Aplicar solo el primer descuento automático que califique
@@ -309,13 +309,13 @@ class PricingCalculationService:
                 'id': service.id,
                 'name': service.name,
                 'description': service.description,
-                'price_usd': float(service.price_usd),
-                'price_sol': float(service.price_usd * self.exchange_rate),
+                'price_usd': round(float(service.price_usd), 2),
+                'price_sol': round(float(service.price_usd * self.exchange_rate), 2),
                 'service_type': service.service_type,
                 'is_per_night': service.is_per_night,
                 'is_per_person': service.is_per_person,
-                'total_price_usd': float(total_price_usd),
-                'total_price_sol': float(total_price_usd * self.exchange_rate)
+                'total_price_usd': round(float(total_price_usd), 2),
+                'total_price_sol': round(float(total_price_usd * self.exchange_rate), 2)
             })
 
         return service_list
@@ -343,8 +343,8 @@ class PricingCalculationService:
 
             benefits.update({
                 'points_available': available_points,
-                'points_value_usd': float(points_value_usd),
-                'points_value_sol': float(points_value_usd * self.exchange_rate),
+                'points_value_usd': round(float(points_value_usd), 2),
+                'points_value_sol': round(float(points_value_usd * self.exchange_rate), 2),
                 'referral_code': referral_code,
                 'membership_level': self._get_membership_level(client)
             })
