@@ -5,7 +5,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('property', '0006_add_new_property_fields'),
+        ('property', '0006_fix_utf8mb4_encoding'),
     ]
 
     operations = [
