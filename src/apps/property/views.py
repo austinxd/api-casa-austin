@@ -33,10 +33,12 @@ class PricingCalculationService:
         self.additional_services = AdditionalService.objects.all()
         self.cancellation_policies = CancellationPolicy.objects.all()
 
-    def get_exchange_rate(self, target_currency='USD'):
+    def get_exchange_rate(self, target_currency='PEN'):
         """Obtiene el tipo de cambio actual para la moneda especificada."""
-        rate = self.exchange_rates.filter(target_currency=target_currency).order_by('-created_at').first()
-        return rate.rate if rate else 1.0  # Valor por defecto si no hay tipo de cambio
+        if target_currency == 'PEN':
+            rate = self.exchange_rates.filter(is_active=True).order_by('-created').first()
+            return rate.usd_to_sol if rate else 3.800  # Valor por defecto si no hay tipo de cambio
+        return 1.0  # Para USD
 
     def calculate_base_price(self, property_obj, check_in_date, check_out_date, guests):
         """Calcula el precio base con ajustes por temporada y personas extra."""
@@ -511,8 +513,9 @@ class CalculatePricingAPIView(APIView):
                         'error': 'client_id debe ser un entero válido'
                     }, status=status.HTTP_400_BAD_REQUEST)
 
-            # Calcular precios
-            pricing_service = PricingCalculationService()
+            # Calcular precios usando el servicio correcto
+            from .pricing_service import PricingCalculationService as ProperPricingService
+            pricing_service = ProperPricingService()
             pricing_data = pricing_service.calculate_pricing(
                 check_in_date=check_in_date,
                 check_out_date=check_out_date,
@@ -522,12 +525,10 @@ class CalculatePricingAPIView(APIView):
                 discount_code=discount_code
             )
 
-            # Serializar respuesta
-            serializer = PricingCalculationSerializer(pricing_data, many=True) # many=True because it can return multiple properties
-
+            # El servicio ya retorna el formato correcto
             return Response({
                 'success': True,
-                'data': serializer.data,
+                'data': pricing_data,
                 'message': 'Cálculo de precios realizado exitosamente'
             }, status=status.HTTP_200_OK)
 
