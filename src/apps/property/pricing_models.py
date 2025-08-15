@@ -22,7 +22,6 @@ class ExchangeRate(BaseModel):
         verbose_name = "💱 Tipo de Cambio"
         verbose_name_plural = "💱 Tipos de Cambio"
         ordering = ['-created']
-        app_label = 'pricing'
     
     def __str__(self):
         return f"1 USD = {self.usd_to_sol} SOL - {'Activo' if self.is_active else 'Inactivo'}"
@@ -64,7 +63,6 @@ class SeasonPricing(BaseModel):
         verbose_name = "📅 Precio de Temporada"
         verbose_name_plural = "📅 Precios de Temporada"
         ordering = ['property', 'start_date']
-        app_label = 'pricing'
     
     def __str__(self):
         return f"{self.property.name} - {self.get_season_type_display()} - ${self.price_usd}"
@@ -119,7 +117,6 @@ class DiscountCode(BaseModel):
         verbose_name = "🎫 Código de Descuento"
         verbose_name_plural = "🎫 Códigos de Descuento"
         ordering = ['-created']
-        app_label = 'pricing'
     
     def __str__(self):
         return f"{self.code} - {self.description}"
@@ -196,7 +193,6 @@ class AdditionalService(BaseModel):
         verbose_name = "🛎️ Servicio Adicional"
         verbose_name_plural = "🛎️ Servicios Adicionales"
         ordering = ['name']
-        app_label = 'pricing'
     
     def __str__(self):
         return f"{self.name} - ${self.price_usd}"
@@ -240,7 +236,6 @@ class CancellationPolicy(BaseModel):
         verbose_name = "📋 Política de Cancelación"
         verbose_name_plural = "📋 Políticas de Cancelación"
         ordering = ['days_before_checkin']
-        app_label = 'pricing'
     
     def __str__(self):
         return f"{self.name} - {self.refund_percentage}% ({self.days_before_checkin} días antes)"
@@ -303,7 +298,6 @@ class AutomaticDiscount(BaseModel):
         verbose_name = "🤖 Descuento Automático"
         verbose_name_plural = "🤖 Descuentos Automáticos"
         ordering = ['trigger']
-        app_label = 'pricing'
     
     def __str__(self):
         return f"{self.name} - {self.discount_percentage}%"
