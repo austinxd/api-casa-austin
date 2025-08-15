@@ -82,7 +82,7 @@ class PricingCalculationService:
 
         # Calcular precio base (sin huéspedes adicionales) para mostrar desglose
         _, base_total_usd = self._get_nightly_prices(property, check_in_date, check_out_date, 1)
-        
+
         # Calcular precio por personas extra
         extra_guests = max(0, guests - 1)  # Después de la primera persona
         extra_person_price_per_night_usd = property.precio_extra_persona or Decimal('0.00')
@@ -91,17 +91,23 @@ class PricingCalculationService:
 
         # Aplicar descuentos
         discount_applied = self._apply_discounts(
-            subtotal_usd, property, client, discount_code, nights, guests
+            property, subtotal_usd, Decimal(0), nights, guests, discount_code # Corregido para pasar property y subtotal_usd, subtotal_sol, nights, guests, discount_code
         )
 
         final_price_usd = subtotal_usd - discount_applied['discount_amount_usd']
+        final_price_sol = (subtotal_usd * self.exchange_rate) - discount_applied['discount_amount_sol']
+
+        # Calcular precio total que incluye todo (base + extras + aplicar descuentos)
+        total_price_usd = final_price_usd
+        total_price_sol = final_price_sol
+
 
         # Convertir a soles
         base_price_sol = base_total_usd * self.exchange_rate
         extra_person_price_sol = extra_person_price_usd * self.exchange_rate
         extra_person_total_sol = extra_person_total_usd * self.exchange_rate
         subtotal_sol = subtotal_usd * self.exchange_rate
-        final_price_sol = final_price_usd * self.exchange_rate
+        #final_price_sol = final_price_usd * self.exchange_rate # Ya calculado arriba
 
         # Servicios adicionales
         additional_services = self._get_additional_services(property, nights, guests)
@@ -135,6 +141,8 @@ class PricingCalculationService:
             'discount_applied': discount_applied,
             'final_price_usd': float(final_price_usd),
             'final_price_sol': float(final_price_sol),
+            'total_price_usd': float(total_price_usd),
+            'total_price_sol': float(total_price_sol),
             'available': available,
             'availability_message': availability_message,
             'additional_services': additional_services,
@@ -161,11 +169,11 @@ class PricingCalculationService:
     def _get_nightly_prices(self, property, check_in_date, check_out_date, guests=1):
         """Obtiene precios noche por noche considerando temporadas, tipo de día y fechas especiales"""
         from datetime import timedelta
-        
+
         current_date = check_in_date
         nightly_prices = []
         total_price = Decimal('0.00')
-        
+
         while current_date < check_out_date:
             night_price = self._get_price_for_specific_date(property, current_date, guests)
             nightly_prices.append({
@@ -177,9 +185,9 @@ class PricingCalculationService:
             })
             total_price += night_price
             current_date += timedelta(days=1)
-        
+
         return nightly_prices, total_price
-    
+
     def _get_price_for_specific_date(self, property, date, guests=1):
         """Obtiene el precio para una fecha específica incluyendo huéspedes adicionales"""
         # 1. Verificar si hay precio especial para esta fecha
@@ -189,10 +197,10 @@ class PricingCalculationService:
             day=date.day,
             is_active=True
         ).first()
-        
+
         if special_pricing:
             return special_pricing.calculate_total_price(guests)
-        
+
         # 2. Buscar precio según PropertyPricing
         try:
             property_pricing = PropertyPricing.objects.get(property=property, deleted=False)
@@ -205,22 +213,22 @@ class PricingCalculationService:
                 base_price = base_price * Decimal('1.5')  # 50% más en temporada alta
             else:
                 base_price = property.precio_desde or Decimal('100.00')
-            
+
             # Calcular precio por huéspedes adicionales  
             if guests > 1 and property.precio_extra_persona:
                 additional_guests = guests - 1
                 additional_cost = property.precio_extra_persona * additional_guests
                 return base_price + additional_cost
-            
+
             return base_price
-    
+
     def _get_date_type(self, date):
         """Determina el tipo de fecha"""
         # Verificar si es fecha especial
         if SpecialDatePricing.objects.filter(month=date.month, day=date.day, is_active=True).exists():
             special = SpecialDatePricing.objects.filter(month=date.month, day=date.day, is_active=True).first()
             return f"Fecha Especial: {special.description}"
-        
+
         # Verificar tipo de día
         weekday = date.weekday()
         if weekday >= 4:  # Viernes, Sábado, Domingo
@@ -228,7 +236,7 @@ class PricingCalculationService:
         else:
             return "Día de semana"
 
-    def _apply_discounts(self, subtotal_usd, property, client, discount_code, nights, guests):
+    def _apply_discounts(self, property, subtotal_usd, subtotal_sol, nights, guests, discount_code):
         """Aplica descuentos automáticos o códigos de descuento"""
         discount_info = {
             'type': 'none',
@@ -243,7 +251,7 @@ class PricingCalculationService:
         if discount_code:
             try:
                 code = DiscountCode.objects.get(code=discount_code.upper(), is_active=True)
-                is_valid, message = code.is_valid(property.id, subtotal_usd)
+                is_valid, message = code.is_valid(property.id, subtotal_usd) # Se necesita el id de la propiedad para validar el código de descuento
 
                 if is_valid:
                     discount_amount_usd = code.calculate_discount(subtotal_usd)
@@ -263,22 +271,27 @@ class PricingCalculationService:
                 discount_info['description'] = "Código de descuento no encontrado"
 
         # Si no hay código válido, verificar descuentos automáticos
-        if client:
-            automatic_discounts = AutomaticDiscount.objects.filter(is_active=True)
-
-            for auto_discount in automatic_discounts:
-                applies, message = auto_discount.applies_to_client(client)
-                if applies:
-                    discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
-                    discount_info.update({
-                        'type': 'automatic',
-                        'description': message,
-                        'discount_percentage': float(auto_discount.discount_percentage),
-                        'discount_amount_usd': discount_amount_usd,
-                        'discount_amount_sol': discount_amount_usd * self.exchange_rate,
-                        'code_used': None
-                    })
-                    break  # Aplicar solo el primer descuento automático que aplique
+        # Asumiendo que el cliente puede ser None
+        if property.automatic_discount and property.automatic_discount.is_active:
+            auto_discount = property.automatic_discount
+            # Verificar si aplica al cliente (si existe)
+            applies = True
+            if auto_discount.applies_to_client_type and property.client: # Asumiendo que property.client existe si discount_type es 'client_type'
+                if auto_discount.applies_to_client_type != property.client.client_type: # Asumiendo que client_type existe en el modelo Client
+                    applies = False
+            
+            if applies:
+                discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
+                discount_info.update({
+                    'type': 'automatic',
+                    'description': auto_discount.description,
+                    'discount_percentage': float(auto_discount.discount_percentage),
+                    'discount_amount_usd': discount_amount_usd,
+                    'discount_amount_sol': discount_amount_usd * self.exchange_rate,
+                    'code_used': None
+                })
+                # No se aplica un 'break' aquí porque podría haber otros descuentos automáticos a considerar.
+                # Si solo se debe aplicar uno, se necesitaría una lógica adicional para seleccionar el mejor.
 
         return discount_info
 
