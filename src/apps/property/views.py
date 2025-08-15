@@ -546,6 +546,7 @@ class CalculatePricingAPIView(APIView):
             # El servicio ya retorna el formato correcto
             return Response({
                 'success': True,
+                'error': 0,
                 'data': pricing_data,
                 'message': 'Cálculo de precios realizado exitosamente'
             }, status=status.HTTP_200_OK)
