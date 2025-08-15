@@ -43,67 +43,7 @@ class SpecialDatePricingInline(admin.TabularInline):
         return SpecialDatePricing.objects.filter(deleted=False)
 
 
-# Inline especial para fechas especiales en PropertyPricing
-class SpecialDatePricingForPropertyPricingInline(admin.TabularInline):
-    model = SpecialDatePricing
-    extra = 3
-    fields = ('month', 'day', 'description', 'price_usd', 'is_active')
-    ordering = ['month', 'day']
-    verbose_name = "Fecha Especial"
-    verbose_name_plural = "🎉 Agregar Fechas Especiales (Navidad, Año Nuevo, etc.)"
-    fk_name = None  # No hay FK directa, manejamos manualmente
-    
-    def get_queryset(self, request):
-        """Mostrar fechas especiales de la propiedad del PropertyPricing"""
-        qs = super().get_queryset(request)
-        return qs.filter(deleted=False)
-    
-    def get_formset(self, request, obj=None, **kwargs):
-        """Personalizar el formset para manejar la relación a través de Property"""
-        from django import forms
-        from django.forms.models import BaseInlineFormSet
-        
-        class SpecialDateFormSet(BaseInlineFormSet):
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                if obj:  # obj es el PropertyPricing
-                    # Filtrar queryset para mostrar solo fechas de esta propiedad
-                    self.queryset = SpecialDatePricing.objects.filter(
-                        property=obj.property,
-                        deleted=False
-                    )
-                else:
-                    self.queryset = SpecialDatePricing.objects.none()
-            
-            def save_new(self, form, commit=True):
-                """Auto-establecer la propiedad al guardar nuevas fechas especiales"""
-                instance = form.save(commit=False)
-                if obj:  # obj es el PropertyPricing
-                    instance.property = obj.property
-                if commit:
-                    instance.save()
-                return instance
-            
-            def save_existing(self, form, instance, commit=True):
-                """Asegurar que la propiedad se mantenga correcta al editar"""
-                if obj and instance.property != obj.property:
-                    instance.property = obj.property
-                return super().save_existing(form, instance, commit)
-        
-        kwargs['formset'] = SpecialDateFormSet
-        return super().get_formset(request, obj, **kwargs)
-    
-    def has_add_permission(self, request, obj):
-        """Solo permitir agregar si ya existe el PropertyPricing"""
-        return obj is not None
-    
-    def has_change_permission(self, request, obj=None):
-        """Permitir cambios"""
-        return True
-    
-    def has_delete_permission(self, request, obj=None):
-        """Permitir eliminación"""
-        return True
+
 
 
 class PropertyPhotoAdmin(admin.ModelAdmin):
@@ -200,7 +140,6 @@ class PropertyPricingAdmin(admin.ModelAdmin):
     list_display = ('property', 'weekday_low_season_usd', 'weekend_low_season_usd', 'weekday_high_season_usd', 'weekend_high_season_usd', 'get_special_dates_count')
     list_filter = ('property',)
     search_fields = ('property__name',)
-    inlines = [SpecialDatePricingForPropertyPricingInline]
     fieldsets = (
         ('Información General', {
             'fields': ('property',)
@@ -216,11 +155,27 @@ class PropertyPricingAdmin(admin.ModelAdmin):
     )
     
     def get_special_dates_count(self, obj):
-        """Muestra cuántas fechas especiales tiene la propiedad"""
+        """Muestra cuántas fechas especiales tiene la propiedad con enlace para gestionarlas"""
+        from django.utils.html import format_html
+        from django.urls import reverse
+        
         count = obj.property.special_date_pricing.filter(deleted=False, is_active=True).count()
+        
+        # Crear enlace directo al admin de la propiedad donde están las fechas especiales
+        property_admin_url = reverse('admin:property_property_change', args=[obj.property.id])
+        
         if count == 0:
-            return "Sin fechas especiales"
-        return f"{count} fecha{'s' if count != 1 else ''} especial{'es' if count != 1 else ''}"
+            return format_html(
+                '<a href="{}">⚠️ Sin fechas especiales - Gestionar</a>',
+                property_admin_url
+            )
+        return format_html(
+            '<a href="{}">{} fecha{} especial{} - Gestionar</a>',
+            property_admin_url,
+            count,
+            's' if count != 1 else '',
+            'es' if count != 1 else ''
+        )
     get_special_dates_count.short_description = "Fechas Especiales"
 
 
