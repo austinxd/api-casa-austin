@@ -37,3 +37,5 @@ twilio==8.10.0
 twilio
 drf-spectacular
 uritemplate
+babel
+docxtpl
