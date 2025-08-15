@@ -78,7 +78,7 @@ class PricingCalculationSerializer(serializers.Serializer):
     general_recommendations = serializers.ListField()
     client_info = serializers.DictField(required=False)
     # Campos para chatbot
-    estado_disponibilidad = serializers.IntegerField(help_text="0=Sin disponibilidad, 1=Disponibilidad completa, 2=Disponibilidad parcial")
+    estado_disponibilidad = serializers.IntegerField(help_text="Cantidad de propiedades disponibles (0=sin disponibilidad, >0=número de propiedades disponibles)")
     message1 = serializers.CharField(help_text="Mensaje contextual de encabezado para chatbot")
     message2 = serializers.CharField(help_text="Mensaje de detalles y precios para chatbot")
     

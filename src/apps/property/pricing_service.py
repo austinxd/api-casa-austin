@@ -518,16 +518,9 @@ class PricingCalculationService:
             except:
                 pass  # Usar configuración por defecto si no está disponible
 
-        # Determinar estado de disponibilidad
+        # Determinar cantidad de propiedades disponibles
         available_properties = [p for p in properties_results if p['available']]
-        partially_available_properties = []  # En futuras versiones podríamos implementar disponibilidad parcial
-        
-        if len(available_properties) == len(properties_results) and available_properties:
-            estado_disponibilidad = 1  # Disponibilidad completa
-        elif available_properties:
-            estado_disponibilidad = 2  # Disponibilidad parcial
-        else:
-            estado_disponibilidad = 0  # Sin disponibilidad
+        estado_disponibilidad = len(available_properties)  # Cantidad de propiedades disponibles
 
         # Formatear fechas en español
         fecha_inicio_str = check_in_date.strftime("%d de %B de %Y").replace(
@@ -571,9 +564,12 @@ class PricingCalculationService:
     def _generate_message1(self, estado_disponibilidad, fecha_inicio_str, fecha_fin_str, available_properties, guests, nights, client, discount_info):
         """Genera mensaje1 según el estado de disponibilidad"""
         
-        if estado_disponibilidad == 1:
-            # Disponibilidad completa
-            message1 = f"📅 Disponibilidad del {fecha_inicio_str} al {fecha_fin_str}"
+        if estado_disponibilidad > 0:
+            # Hay propiedades disponibles
+            if estado_disponibilidad == 1:
+                message1 = f"📅 Disponibilidad del {fecha_inicio_str} al {fecha_fin_str}"
+            else:
+                message1 = f"📅 Del {fecha_inicio_str} al {fecha_fin_str} ✨ Encontramos {estado_disponibilidad} casa(s) disponibles"
             
             # Agregar información de descuento si aplica
             if discount_info and discount_info.get('type') not in ['none', 'error']:
@@ -593,11 +589,6 @@ class PricingCalculationService:
             if guests <= 4 and nights <= 3:
                 message1 += "\n💡 Perfecto para una escapada de fin de semana"
                 
-        elif estado_disponibilidad == 2:
-            # Disponibilidad parcial
-            num_casas = len(available_properties)
-            message1 = f"📅 Del {fecha_inicio_str} al {fecha_fin_str} ✨ Encontramos {num_casas} casa(s) con disponibilidad"
-            
         else:
             # Sin disponibilidad
             message1 = f"📅 Disponibilidad del {fecha_inicio_str} al {fecha_fin_str}\n❌ No hay casas disponibles para estas fechas"
@@ -624,9 +615,5 @@ class PricingCalculationService:
                     f"🏠 {prop['property_name']}: ${prop['final_price_usd']} USD ó S/.{prop['final_price_sol']} SOL"
                 )
             return "\n".join(casas_disponibles)
-        
-        if estado_disponibilidad == 2:
-            # Disponibilidad parcial - en el futuro podríamos mostrar calendario
-            return "✅ Algunas casas tienen disponibilidad parcial. Contáctanos para verificar fechas específicas."
         
         return "Información de disponibilidad no disponible."
