@@ -1,0 +1,56 @@
+
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label=app_label %}">{{ app_label|capfirst|escape }}</a>
+    &rsaquo; <a href="{% url 'admin:property_specialdatepricing_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+    &rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<div class="module aligned">
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-row">
+            <div>
+                <label for="property_select">Seleccionar Propiedad:</label>
+                <select name="property_id" id="property_select" required>
+                    <option value="">---------</option>
+                    {% for property in properties %}
+                        <option value="{{ property.id }}">{{ property.name }}</option>
+                    {% endfor %}
+                </select>
+                <p class="help">Selecciona la propiedad para gestionar sus fechas especiales</p>
+            </div>
+        </div>
+        
+        <div class="submit-row">
+            <input type="submit" value="Continuar" class="default">
+        </div>
+    </form>
+</div>
+
+<style>
+.form-row {
+    margin-bottom: 20px;
+}
+.form-row label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+.form-row select {
+    width: 300px;
+    padding: 5px;
+    font-size: 14px;
+}
+</style>
+{% endblock %}

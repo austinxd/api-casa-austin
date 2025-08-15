@@ -206,6 +206,10 @@ class SpecialDatePricingAdmin(admin.ModelAdmin):
         extra_context['bulk_special_dates_url'] = '/property/admin/bulk-special-dates/'
         extra_context['property_manager_url'] = '/property/admin/special-dates-manager/'
         
+        # URL para gestión de fechas por propiedad
+        from django.urls import reverse
+        extra_context['property_dates_url'] = reverse('admin:property_specialdatepricing_property-special-dates-select')
+        
         # Agrupar fechas especiales por propiedad para mejor visualización
         from collections import defaultdict
         special_dates_by_property = defaultdict(list)
@@ -228,6 +232,8 @@ class SpecialDatePricingAdmin(admin.ModelAdmin):
         urls = super().get_urls()
         custom_urls = [
             path('bulk-add/', self.admin_site.admin_view(self.bulk_add_view), name='bulk-add-special-dates'),
+            path('property-dates/<int:property_id>/', self.admin_site.admin_view(self.property_dates_view), name='property-special-dates'),
+            path('property-dates/', self.admin_site.admin_view(self.property_dates_view), name='property-special-dates-select'),
         ]
         return custom_urls + urls
     
@@ -235,6 +241,83 @@ class SpecialDatePricingAdmin(admin.ModelAdmin):
         """Redireccionar a la vista de carga masiva"""
         from django.shortcuts import redirect
         return redirect('/property/admin/bulk-special-dates/')
+    
+    def property_dates_view(self, request, property_id=None):
+        """Vista para gestionar todas las fechas especiales de una propiedad"""
+        from django.shortcuts import render, redirect, get_object_or_404
+        from django.contrib import messages
+        import json
+        
+        if not property_id and request.method == 'GET':
+            # Mostrar selector de propiedades
+            properties = Property.objects.filter(deleted=False).order_by('name')
+            return render(request, 'admin/property/select_property_for_dates.html', {
+                'title': 'Seleccionar Propiedad para Fechas Especiales',
+                'properties': properties,
+                'opts': self.model._meta,
+                'app_label': self.model._meta.app_label,
+            })
+        
+        if not property_id and request.method == 'POST':
+            property_id = request.POST.get('property_id')
+            return redirect('admin:property_specialdatepricing_property-special-dates', property_id=property_id)
+        
+        property_obj = get_object_or_404(Property, id=property_id, deleted=False)
+        
+        if request.method == 'GET':
+            # Obtener fechas especiales existentes
+            special_dates = SpecialDatePricing.objects.filter(
+                property=property_obj, 
+                deleted=False
+            ).order_by('month', 'day')
+            
+            special_dates_data = []
+            for sd in special_dates:
+                special_dates_data.append({
+                    'id': sd.id,
+                    'month': sd.month,
+                    'day': sd.day,
+                    'description': sd.description,
+                    'price_usd': float(sd.price_usd),
+                    'is_active': sd.is_active
+                })
+            
+            return render(request, 'admin/property/bulk_property_special_dates.html', {
+                'title': f'Gestionar Fechas Especiales - {property_obj.name}',
+                'property': property_obj,
+                'special_dates': json.dumps(special_dates_data),
+                'opts': self.model._meta,
+                'app_label': self.model._meta.app_label,
+            })
+        
+        elif request.method == 'POST':
+            try:
+                # Procesar datos del formulario
+                dates_data = json.loads(request.POST.get('dates_data', '[]'))
+                
+                # Eliminar fechas existentes para esta propiedad
+                SpecialDatePricing.objects.filter(property=property_obj).delete()
+                
+                # Crear nuevas fechas
+                created_count = 0
+                for date_info in dates_data:
+                    if date_info.get('description') and date_info.get('price_usd'):
+                        SpecialDatePricing.objects.create(
+                            property=property_obj,
+                            month=int(date_info['month']),
+                            day=int(date_info['day']),
+                            description=date_info['description'],
+                            price_usd=float(date_info['price_usd']),
+                            is_active=date_info.get('is_active', True)
+                        )
+                        created_count += 1
+                
+                messages.success(request, f'Se guardaron {created_count} fechas especiales exitosamente')
+                return redirect('admin:property_specialdatepricing_changelist')
+                
+            except Exception as e:
+                messages.error(request, f'Error al guardar: {e}')
+                return redirect('admin:property_specialdatepricing_property-special-dates', property_id=property_id)
 
 
 class DiscountCodeAdmin(admin.ModelAdmin):

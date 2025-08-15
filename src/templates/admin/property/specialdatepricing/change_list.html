@@ -1,4 +1,3 @@
-
 {% extends "admin/change_list.html" %}
 {% load i18n admin_urls static %}
 
@@ -14,11 +13,14 @@
             Agregar Fechas Masivamente
         </a>
     </li>
+    <li><a href="{{ bulk_special_dates_url }}" class="addlink">Agregar Fechas Masivamente (CSV)</a></li>
+    <li><a href="{{ property_manager_url }}" class="addlink">Gestor de Fechas por Propiedad</a></li>
+    <li><a href="{{ property_dates_url }}" class="addlink">🎉 Gestionar Todas las Fechas de una Propiedad</a></li>
 {% endblock %}
 
 {% block content %}
     {{ block.super }}
-    
+
     {% if special_dates_by_property %}
     <div class="module filtered" style="margin-top: 20px;">
         <h2>📋 Resumen por Propiedad</h2>
@@ -44,7 +46,7 @@
         {% endfor %}
     </div>
     {% endif %}
-    
+
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Agregar estilo al botón de carga masiva

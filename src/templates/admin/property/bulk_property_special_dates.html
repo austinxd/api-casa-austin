@@ -1,0 +1,217 @@
+
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; <a href="{% url 'admin:app_list' app_label=app_label %}">{{ app_label|capfirst|escape }}</a>
+    &rsaquo; <a href="{% url 'admin:property_specialdatepricing_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+    &rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<div class="module aligned">
+    <form id="specialDatesForm" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="dates_data" id="datesData">
+        
+        <div class="special-dates-manager">
+            <div class="dates-header">
+                <h3>Fechas Especiales</h3>
+                <button type="button" id="addDateBtn" class="btn btn-primary">➕ Agregar Fecha</button>
+            </div>
+            
+            <div id="datesContainer">
+                <!-- Las fechas se cargarán aquí dinámicamente -->
+            </div>
+        </div>
+        
+        <div class="submit-row">
+            <input type="submit" value="Guardar Fechas Especiales" class="default">
+            <a href="{% url 'admin:property_specialdatepricing_changelist' %}" class="button cancel-link">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<style>
+.special-dates-manager {
+    margin: 20px 0;
+}
+
+.dates-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.date-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: #f9f9f9;
+}
+
+.date-row input, .date-row select {
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+.date-row input[type="number"] {
+    width: 60px;
+}
+
+.date-row input[type="text"] {
+    width: 200px;
+}
+
+.date-row input[type="number"]:last-of-type {
+    width: 100px;
+}
+
+.btn {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: #417690;
+    color: white;
+}
+
+.btn-danger {
+    background: #ba2121;
+    color: white;
+}
+
+.btn:hover {
+    opacity: 0.8;
+}
+
+.cancel-link {
+    margin-left: 10px;
+}
+
+.form-row label {
+    font-weight: bold;
+    margin-right: 10px;
+    min-width: 80px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const specialDates = JSON.parse('{{ special_dates|escapejs }}');
+    const datesContainer = document.getElementById('datesContainer');
+    const addDateBtn = document.getElementById('addDateBtn');
+    const form = document.getElementById('specialDatesForm');
+    
+    let dateIndex = 0;
+    
+    function createDateRow(dateData = {}) {
+        const row = document.createElement('div');
+        row.className = 'date-row';
+        row.innerHTML = `
+            <label>Día:</label>
+            <input type="number" name="day_${dateIndex}" min="1" max="31" value="${dateData.day || ''}" placeholder="Día" required>
+            
+            <label>Mes:</label>
+            <select name="month_${dateIndex}" required>
+                <option value="">Mes</option>
+                <option value="1" ${dateData.month === 1 ? 'selected' : ''}>Enero</option>
+                <option value="2" ${dateData.month === 2 ? 'selected' : ''}>Febrero</option>
+                <option value="3" ${dateData.month === 3 ? 'selected' : ''}>Marzo</option>
+                <option value="4" ${dateData.month === 4 ? 'selected' : ''}>Abril</option>
+                <option value="5" ${dateData.month === 5 ? 'selected' : ''}>Mayo</option>
+                <option value="6" ${dateData.month === 6 ? 'selected' : ''}>Junio</option>
+                <option value="7" ${dateData.month === 7 ? 'selected' : ''}>Julio</option>
+                <option value="8" ${dateData.month === 8 ? 'selected' : ''}>Agosto</option>
+                <option value="9" ${dateData.month === 9 ? 'selected' : ''}>Septiembre</option>
+                <option value="10" ${dateData.month === 10 ? 'selected' : ''}>Octubre</option>
+                <option value="11" ${dateData.month === 11 ? 'selected' : ''}>Noviembre</option>
+                <option value="12" ${dateData.month === 12 ? 'selected' : ''}>Diciembre</option>
+            </select>
+            
+            <label>Descripción:</label>
+            <input type="text" name="description_${dateIndex}" value="${dateData.description || ''}" placeholder="Ej: Navidad, Año Nuevo" required>
+            
+            <label>Precio USD:</label>
+            <input type="number" name="price_${dateIndex}" step="0.01" min="0" value="${dateData.price_usd || ''}" placeholder="0.00" required>
+            
+            <label>
+                <input type="checkbox" name="active_${dateIndex}" ${dateData.is_active !== false ? 'checked' : ''}>
+                Activo
+            </label>
+            
+            <button type="button" class="btn btn-danger remove-date">🗑️</button>
+        `;
+        
+        // Agregar evento para remover
+        row.querySelector('.remove-date').addEventListener('click', function() {
+            row.remove();
+        });
+        
+        dateIndex++;
+        return row;
+    }
+    
+    // Cargar fechas existentes
+    specialDates.forEach(dateData => {
+        datesContainer.appendChild(createDateRow(dateData));
+    });
+    
+    // Si no hay fechas, agregar una fila vacía
+    if (specialDates.length === 0) {
+        datesContainer.appendChild(createDateRow());
+    }
+    
+    // Agregar nueva fecha
+    addDateBtn.addEventListener('click', function() {
+        datesContainer.appendChild(createDateRow());
+    });
+    
+    // Procesar formulario
+    form.addEventListener('submit', function(e) {
+        const dates = [];
+        const dateRows = datesContainer.querySelectorAll('.date-row');
+        
+        dateRows.forEach((row, index) => {
+            const day = row.querySelector(`input[name*="day"]`).value;
+            const month = row.querySelector(`select[name*="month"]`).value;
+            const description = row.querySelector(`input[name*="description"]`).value;
+            const price = row.querySelector(`input[name*="price"]`).value;
+            const isActive = row.querySelector(`input[name*="active"]`).checked;
+            
+            if (day && month && description && price) {
+                dates.push({
+                    day: parseInt(day),
+                    month: parseInt(month),
+                    description: description,
+                    price_usd: parseFloat(price),
+                    is_active: isActive
+                });
+            }
+        });
+        
+        document.getElementById('datesData').value = JSON.stringify(dates);
+    });
+});
+</script>
+{% endblock %}
