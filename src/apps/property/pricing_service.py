@@ -11,9 +11,10 @@ from .pricing_models import (
     DiscountCode,
     AdditionalService,
     CancellationPolicy,
-    AutomaticDiscount
+    AutomaticDiscount,
+    PropertyPricing
 )
-from apps.clients.models import Clients as Client
+from apps.clients.models import Clients
 from apps.reservation.models import Reservation
 
 
@@ -186,12 +187,24 @@ class PricingCalculationService:
         if special_pricing:
             return special_pricing.price_usd
         
-        # 2. Buscar precio según PropertyPricing y temporadas globales
+        # 2. Buscar precio según PropertyPricing
         try:
-            property_pricing = property.pricing
+            property_pricing = PropertyPricing.objects.get(property=property, deleted=False)
             return property_pricing.get_base_price_for_date(date)
-        except:
-            # 3. Precio por defecto si no hay configuración de precios
+        except PropertyPricing.DoesNotExist:
+            # 3. Buscar en temporadas globales
+            season_pricing = SeasonPricing.objects.filter(
+                is_active=True,
+                start_date__lte=date,
+                end_date__gte=date
+            ).first()
+            
+            if season_pricing:
+                # Usar precio base de la propiedad con ajuste de temporada
+                base_price = property.precio_desde or Decimal('100.00')
+                return base_price * season_pricing.price_multiplier
+            
+            # 4. Precio por defecto si no hay configuración
             return property.precio_desde or Decimal('100.00')
     
     def _get_date_type(self, date):
@@ -299,14 +312,21 @@ class PricingCalculationService:
         }
 
         if client:
-            available_points = client.get_available_points()
-            points_value_usd = available_points * Decimal('0.01')  # 1 punto = $0.01
+            # Verificar si el cliente tiene métodos de puntos
+            try:
+                available_points = client.get_available_points() if hasattr(client, 'get_available_points') else 0
+                points_value_usd = available_points * Decimal('0.01')  # 1 punto = $0.01
+                referral_code = client.get_referral_code() if hasattr(client, 'get_referral_code') else client.referral_code if hasattr(client, 'referral_code') else None
+            except:
+                available_points = 0
+                points_value_usd = Decimal('0.00')
+                referral_code = None
 
             benefits.update({
                 'points_available': available_points,
                 'points_value_usd': float(points_value_usd),
                 'points_value_sol': float(points_value_usd * self.exchange_rate),
-                'referral_code': client.get_referral_code(),
+                'referral_code': referral_code,
                 'membership_level': self._get_membership_level(client)
             })
 
@@ -348,7 +368,7 @@ class PricingCalculationService:
         if subtotal_usd >= 500:
             recommendations.append("Reserva de alto valor - Considere servicios adicionales premium")
 
-        if property.temperatura_pool_url:
+        if property.on_temperature_pool_url:
             recommendations.append("Esta propiedad cuenta con piscina temperada disponible")
 
         return recommendations
