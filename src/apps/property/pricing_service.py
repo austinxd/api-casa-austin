@@ -85,8 +85,9 @@ class PricingCalculationService:
         
         # Calcular precio por personas extra
         extra_guests = max(0, guests - 1)  # Después de la primera persona
-        extra_person_price_usd = property.precio_extra_persona or Decimal('0.00')
-        extra_person_total_usd = subtotal_usd - base_total_usd
+        extra_person_price_per_night_usd = property.precio_extra_persona or Decimal('0.00')
+        extra_person_price_usd = extra_person_price_per_night_usd  # Precio por noche por persona adicional
+        extra_person_total_usd = extra_person_price_per_night_usd * extra_guests * nights  # Total por todas las noches y personas extra
 
         # Aplicar descuentos
         discount_applied = self._apply_discounts(
@@ -98,6 +99,7 @@ class PricingCalculationService:
         # Convertir a soles
         base_price_sol = base_total_usd * self.exchange_rate
         extra_person_price_sol = extra_person_price_usd * self.exchange_rate
+        extra_person_total_sol = extra_person_total_usd * self.exchange_rate
         subtotal_sol = subtotal_usd * self.exchange_rate
         final_price_sol = final_price_usd * self.exchange_rate
 
@@ -121,8 +123,10 @@ class PricingCalculationService:
             'property_slug': property.slug,
             'base_price_usd': float(base_total_usd),
             'base_price_sol': float(base_price_sol),
-            'extra_person_price_usd': float(extra_person_price_usd),
-            'extra_person_price_sol': float(extra_person_price_sol),
+            'extra_person_price_per_night_usd': float(extra_person_price_usd),
+            'extra_person_price_per_night_sol': float(extra_person_price_sol),
+            'extra_person_total_usd': float(extra_person_total_usd),
+            'extra_person_total_sol': float(extra_person_total_sol),
             'total_nights': nights,
             'total_guests': guests,
             'extra_guests': extra_guests,
@@ -202,7 +206,7 @@ class PricingCalculationService:
             else:
                 base_price = property.precio_desde or Decimal('100.00')
             
-            # Calcular precio por huéspedes adicionales
+            # Calcular precio por huéspedes adicionales  
             if guests > 1 and property.precio_extra_persona:
                 additional_guests = guests - 1
                 additional_cost = property.precio_extra_persona * additional_guests
