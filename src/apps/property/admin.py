@@ -137,7 +137,6 @@ class PropertyPricingAdmin(admin.ModelAdmin):
     list_display = ('property', 'weekday_low_season_usd', 'weekend_low_season_usd', 'weekday_high_season_usd', 'weekend_high_season_usd', 'get_special_dates_count')
     list_filter = ('property',)
     search_fields = ('property__name',)
-    inlines = [SpecialDatePricingInline]
     fieldsets = (
         ('Información General', {
             'fields': ('property',)
