@@ -510,7 +510,7 @@ class AutomaticDiscount(BaseModel):
     def __str__(self):
         return f"{self.name} - {self.discount_percentage}%"
     
-    def applies_to_client(self, client):
+    def applies_to_client(self, client, check_in_date=None):
         """Verifica si el descuento aplica al cliente"""
         if not self.is_active or not client:
             return False, "Descuento inactivo o cliente no válido"
@@ -519,8 +519,13 @@ class AutomaticDiscount(BaseModel):
         from apps.reservation.models import Reservation
         
         if self.trigger == self.DiscountTrigger.BIRTHDAY:
-            if client.date and client.date.month == date.today().month:
-                return True, f"Descuento por cumpleaños: {self.discount_percentage}%"
+            if client.date:
+                # Si se proporciona check_in_date, verificar si la reserva es PARA el mes de cumpleaños
+                if check_in_date and client.date.month == check_in_date.month:
+                    return True, f"Descuento por cumpleaños: {self.discount_percentage}%"
+                # Si no se proporciona check_in_date, usar la lógica anterior por compatibilidad
+                elif not check_in_date and client.date.month == date.today().month:
+                    return True, f"Descuento por cumpleaños: {self.discount_percentage}%"
         
         elif self.trigger == self.DiscountTrigger.RETURNING:
             reservation_count = Reservation.objects.filter(
