@@ -57,14 +57,14 @@ class PropertyPricingSerializer(serializers.Serializer):
     extra_guests = serializers.IntegerField()
     subtotal_usd = serializers.DecimalField(max_digits=10, decimal_places=2)
     subtotal_sol = serializers.DecimalField(max_digits=10, decimal_places=2)
-    discount_applied = serializers.DictField()
+    discount_applied = serializers.DictField(required=False)
     final_price_usd = serializers.DecimalField(max_digits=10, decimal_places=2)
     final_price_sol = serializers.DecimalField(max_digits=10, decimal_places=2)
     available = serializers.BooleanField()
     availability_message = serializers.CharField()
     additional_services = AdditionalServiceSerializer(many=True)
     cancellation_policy = CancellationPolicySerializer()
-    client_benefits = serializers.DictField()
+    client_benefits = serializers.DictField(required=False)
     recommendations = serializers.ListField()
 
 
@@ -76,7 +76,7 @@ class PricingCalculationSerializer(serializers.Serializer):
     exchange_rate = serializers.DecimalField(max_digits=6, decimal_places=3)
     properties = PropertyPricingSerializer(many=True)
     general_recommendations = serializers.ListField()
-    client_info = serializers.DictField()
+    client_info = serializers.DictField(required=False)
     
     def validate(self, data):
         if data['check_in_date'] >= data['check_out_date']:

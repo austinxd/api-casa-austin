@@ -57,7 +57,7 @@ class PricingCalculationService:
             )
             results.append(property_pricing)
 
-        # Información general
+        # Información general (solo incluir client_info si se proporciona client_id)
         general_info = {
             'check_in_date': check_in_date,
             'check_out_date': check_out_date,
@@ -65,9 +65,12 @@ class PricingCalculationService:
             'total_nights': nights,
             'exchange_rate': round(float(self.exchange_rate), 2),
             'properties': results,
-            'general_recommendations': self._get_general_recommendations(results, guests, nights),
-            'client_info': self._get_client_info(client)
+            'general_recommendations': self._get_general_recommendations(results, guests, nights)
         }
+        
+        # Solo incluir client_info si se proporciona un client_id
+        if client_id:
+            general_info['client_info'] = self._get_client_info(client)
 
         return general_info
 
@@ -121,13 +124,8 @@ class PricingCalculationService:
             property, guests, nights, subtotal_usd, available
         )
 
-        # Actualizar discount_applied para convertir a float para JSON
-        discount_applied.update({
-            'discount_amount_usd': round(float(discount_applied['discount_amount_usd']), 2),
-            'discount_amount_sol': round(float(discount_applied['discount_amount_sol']), 2)
-        })
-
-        return {
+        # Construir respuesta base
+        response = {
             'property_id': property.id,
             'property_name': property.name,
             'property_slug': property.slug,
@@ -142,16 +140,28 @@ class PricingCalculationService:
             'extra_guests': extra_guests,
             'subtotal_usd': round(float(subtotal_usd), 2),
             'subtotal_sol': round(float(subtotal_sol), 2),
-            'discount_applied': discount_applied,
             'final_price_usd': round(float(final_price_usd), 2),
             'final_price_sol': round(float(final_price_sol), 2),
             'available': available,
             'availability_message': availability_message,
             'additional_services': additional_services,
             'cancellation_policy': cancellation_policy,
-            'client_benefits': client_benefits,
             'recommendations': recommendations
         }
+
+        # Solo incluir discount_applied si hay descuento aplicado o si se proporcionó un código
+        if discount_applied['type'] != 'none' or discount_code:
+            discount_applied.update({
+                'discount_amount_usd': round(float(discount_applied['discount_amount_usd']), 2),
+                'discount_amount_sol': round(float(discount_applied['discount_amount_sol']), 2)
+            })
+            response['discount_applied'] = discount_applied
+
+        # Solo incluir client_benefits si hay un cliente
+        if client:
+            response['client_benefits'] = client_benefits
+
+        return response
 
     def _check_availability(self, property, check_in_date, check_out_date):
         """Verifica disponibilidad de la propiedad"""
@@ -240,6 +250,18 @@ class PricingCalculationService:
 
     def _apply_discounts(self, property, subtotal_usd, subtotal_sol, nights, guests, discount_code, client, check_in_date):
         """Aplica descuentos automáticos o códigos de descuento"""
+        
+        # Si no hay código de descuento ni cliente, no procesar descuentos
+        if not discount_code and not client:
+            return {
+                'type': 'none',
+                'description': 'Sin descuento',
+                'discount_percentage': 0,
+                'discount_amount_usd': Decimal('0.00'),
+                'discount_amount_sol': Decimal('0.00'),
+                'code_used': None
+            }
+            
         discount_info = {
             'type': 'none',
             'description': 'Sin descuento',
