@@ -95,19 +95,9 @@ class PropertyPricing(BaseModel):
             if is_weekend:
                 return self.weekend_low_season_usd
             else:
-                return self.weekday_low_season_usdte(self, date):
-        """Obtiene el precio base para una fecha específica según el día de la semana y temporada"""
-        # Determinar si es temporada alta usando el método global
-        is_high_season = SeasonPricing.is_high_season(date)
-        
-        # 0=Lunes, 6=Domingo
-        weekday = date.weekday()
-        
-        # Viernes (4), Sábado (5), Domingo (6) son fin de semana
-        if weekday >= 4:  # Viernes, Sábado, Domingo
-            return self.weekend_high_season_usd if is_high_season else self.weekend_low_season_usd
-        else:  # Lunes a Jueves
-            return self.weekday_high_season_usd if is_high_season else self.weekday_low_season_usd
+                return self.weekday_low_season_usd
+    
+    
     
     def calculate_total_price_for_date(self, date, guests=1):
         """Calcula el precio total para una fecha específica incluyendo huéspedes adicionales"""
