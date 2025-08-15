@@ -258,7 +258,32 @@ class PricingCalculationService:
             try:
                 # Limpiar el código y convertir a mayúsculas
                 clean_code = discount_code.strip().upper()
-                code = DiscountCode.objects.get(code=clean_code, is_active=True, deleted=False)
+                
+                # Buscar el código de descuento con búsqueda case-insensitive
+                code = DiscountCode.objects.filter(
+                    code__iexact=clean_code, 
+                    is_active=True, 
+                    deleted=False
+                ).first()
+                
+                if not code:
+                    # Debug: listar códigos disponibles
+                    available_codes = DiscountCode.objects.filter(
+                        is_active=True, 
+                        deleted=False
+                    ).values_list('code', flat=True)
+                    print(f"DEBUG: Código '{clean_code}' no encontrado. Códigos disponibles: {list(available_codes)}")
+                    
+                    discount_info.update({
+                        'type': 'error',
+                        'description': f"Código '{clean_code}' no encontrado",
+                        'discount_percentage': 0,
+                        'discount_amount_usd': 0.00,
+                        'discount_amount_sol': 0.00,
+                        'code_used': clean_code
+                    })
+                    return discount_info
+                
                 is_valid, message = code.is_valid(property.id, subtotal_usd)
 
                 if is_valid:
@@ -282,15 +307,7 @@ class PricingCalculationService:
                         'code_used': clean_code
                     })
 
-            except DiscountCode.DoesNotExist:
-                discount_info.update({
-                    'type': 'error',
-                    'description': f"Código '{discount_code.strip().upper()}' no encontrado",
-                    'discount_percentage': 0,
-                    'discount_amount_usd': 0.00,
-                    'discount_amount_sol': 0.00,
-                    'code_used': discount_code.strip().upper()
-                })
+            
             except Exception as e:
                 discount_info.update({
                     'type': 'error',
