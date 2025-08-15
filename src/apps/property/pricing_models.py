@@ -132,51 +132,13 @@ class SeasonPricing(BaseModel):
 
 
 class SpecialDatePricing(BaseModel):
-    """Precios especiales para fechas específicas (ej: 31 de diciembre)"""
-    
-    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='special_dates')
-    date = models.DateField(help_text="Fecha especial")
-    price_usd = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2,
-        help_text="Precio especial por noche en USD para 1 persona"
-    )
-    description = models.CharField(
-        max_length=100, 
-        help_text="Descripción del día especial (ej: Año Nuevo, Navidad)"
-    )
-    is_active = models.BooleanField(default=True)
-    
-    class Meta:
-        verbose_name = "🎉 Precio de Fecha Especial"
-        verbose_name_plural = "🎉 Precios de Fechas Especiales"
-        unique_together = ['property', 'date']
-        ordering = ['property', 'date']
-    
-    def __str__(self):
-        return f"{self.property.name} - {self.description} ({self.date}) - ${self.price_usd}"
-    
-    def calculate_total_price(self, guests=1):
-        """Calcula el precio total para la fecha especial incluyendo huéspedes adicionales"""
-        base_price = self.price_usd
-        
-        # Agregar precio por persona adicional (después de la primera)
-        if guests > 1 and self.property.precio_extra_persona:
-            additional_guests = guests - 1
-            additional_cost = self.property.precio_extra_persona * additional_guests
-            return base_price + additional_cost
-        
-        return base_price
-
-
-class SpecialDatePricing(BaseModel):
     """Precios especiales para fechas específicas"""
     
     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='special_date_pricing')
     date = models.DateField(help_text="Fecha específica (ej: 2024-12-31)")
-    name = models.CharField(
+    description = models.CharField(
         max_length=100, 
-        help_text="Nombre del día especial (ej: Año Nuevo, Navidad)"
+        help_text="Descripción del día especial (ej: Año Nuevo, Navidad)"
     )
     price_usd = models.DecimalField(
         max_digits=10, 
@@ -192,7 +154,7 @@ class SpecialDatePricing(BaseModel):
         unique_together = ['property', 'date']
     
     def __str__(self):
-        return f"{self.property.name} - {self.name} ({self.date.strftime('%d/%m')}) - ${self.price_usd}"
+        return f"{self.property.name} - {self.description} ({self.date.strftime('%d/%m')}) - ${self.price_usd}"
     
     def calculate_total_price(self, guests=1):
         """Calcula el precio total incluyendo huéspedes adicionales"""

@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import Property, ProfitPropertyAirBnb, PropertyPhoto
 from .pricing_models import (
     ExchangeRate,
+    PropertyPricing,
     SeasonPricing,
     SpecialDatePricing,
     DiscountCode,
@@ -108,9 +109,29 @@ class ExchangeRateAdmin(admin.ModelAdmin):
     make_active.short_description = "Activar tipos de cambio seleccionados"
 
 
+@admin.register(PropertyPricing)
+class PropertyPricingAdmin(admin.ModelAdmin):
+    list_display = ('property', 'weekday_low_season_usd', 'weekend_low_season_usd', 'weekday_high_season_usd', 'weekend_high_season_usd')
+    list_filter = ('property',)
+    search_fields = ('property__name',)
+    fieldsets = (
+        ('Información General', {
+            'fields': ('property',)
+        }),
+        ('Precios Temporada Baja', {
+            'fields': ('weekday_low_season_usd', 'weekend_low_season_usd'),
+            'description': 'Precios base para temporada baja'
+        }),
+        ('Precios Temporada Alta', {
+            'fields': ('weekday_high_season_usd', 'weekend_high_season_usd'),
+            'description': 'Precios base para temporada alta'
+        }),
+    )
+
+
 @admin.register(SeasonPricing)
 class SeasonPricingAdmin(admin.ModelAdmin):
-    list_display = ('property', 'season_type', 'start_date', 'end_date', 'weekday_price_usd', 'weekend_price_usd', 'is_active')
+    list_display = ('property', 'season_type', 'start_date', 'end_date', 'is_active')
     list_filter = ('season_type', 'is_active', 'property')
     search_fields = ('property__name',)
     date_hierarchy = 'start_date'
@@ -118,21 +139,17 @@ class SeasonPricingAdmin(admin.ModelAdmin):
         ('Información General', {
             'fields': ('property', 'season_type', 'start_date', 'end_date', 'is_active')
         }),
-        ('Precios por Tipo de Día', {
-            'fields': ('weekday_price_usd', 'weekend_price_usd'),
-            'description': 'Lun-Jue = Día de semana, Vie-Dom = Fin de semana'
-        }),
     )
 
 @admin.register(SpecialDatePricing)
 class SpecialDatePricingAdmin(admin.ModelAdmin):
-    list_display = ('property', 'name', 'date', 'price_usd', 'is_active')
+    list_display = ('property', 'description', 'date', 'price_usd', 'is_active')
     list_filter = ('is_active', 'property', 'date')
-    search_fields = ('property__name', 'name')
+    search_fields = ('property__name', 'description')
     date_hierarchy = 'date'
     fieldsets = (
         ('Información de la Fecha Especial', {
-            'fields': ('property', 'date', 'name', 'price_usd', 'is_active')
+            'fields': ('property', 'date', 'description', 'price_usd', 'is_active')
         }),
     )
 
