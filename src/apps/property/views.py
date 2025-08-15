@@ -1,4 +1,6 @@
 from django.db.models import Q
+from django.conf import settings
+from django.urls import path
 
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, viewsets, status
@@ -7,14 +9,164 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.permissions import AllowAny
 
 from apps.core.paginator import CustomPagination
 from apps.core.functions import update_air_bnb_api
 
-from .models import Property, ProfitPropertyAirBnb, PropertyPhoto
+from .models import Property, ProfitPropertyAirBnb, PropertyPhoto, ExchangeRate, DiscountCode, SeasonPricing, AdditionalService, CancellationPolicy
 from apps.reservation.models import Reservation
+from apps.client.models import Client
 
-from .serializers import PropertyListSerializer, PropertyDetailSerializer, PropertySerializer, ProfitPropertyAirBnbSerializer, PropertyPhotoSerializer
+from .serializers import PropertyListSerializer, PropertyDetailSerializer, PropertySerializer, ProfitPropertyAirBnbSerializer, PropertyPhotoSerializer, PricingCalculationSerializer
+
+class PricingCalculationService:
+    """
+    Servicio para calcular precios de propiedades, aplicando descuentos, servicios y políticas.
+    """
+    def __init__(self):
+        # Cargar modelos necesarios
+        self.exchange_rates = ExchangeRate.objects.all()
+        self.discount_codes = DiscountCode.objects.all()
+        self.season_pricings = SeasonPricing.objects.all()
+        self.additional_services = AdditionalService.objects.all()
+        self.cancellation_policies = CancellationPolicy.objects.all()
+
+    def get_exchange_rate(self, target_currency='USD'):
+        """Obtiene el tipo de cambio actual para la moneda especificada."""
+        rate = self.exchange_rates.filter(target_currency=target_currency).order_by('-created_at').first()
+        return rate.rate if rate else 1.0  # Valor por defecto si no hay tipo de cambio
+
+    def calculate_base_price(self, property_obj, check_in_date, check_out_date, guests):
+        """Calcula el precio base con ajustes por temporada y personas extra."""
+        nights = (check_out_date - check_in_date).days
+        base_price_per_night = property_obj.price_per_night
+
+        # Ajuste por temporada
+        season_adjustment = 1.0
+        for season in self.season_pricings:
+            if season.start_date <= check_in_date <= season.end_date:
+                season_adjustment = season.price_adjustment
+                break
+
+        adjusted_price_per_night = base_price_per_night * season_adjustment
+        total_base_price = adjusted_price_per_night * nights
+
+        # Ajuste por personas extra
+        extra_guests = max(0, guests - property_obj.base_guests)
+        if extra_guests > 0:
+            total_base_price += extra_guests * property_obj.extra_guest_price * nights
+
+        return total_base_price
+
+    def apply_client_discounts(self, client, reservations_count):
+        """Aplica descuentos automáticos basados en el cliente y su historial."""
+        discount_percentage = 0.0
+
+        # Descuento por mes de cumpleaños
+        if client and client.birth_date:
+            now = datetime.now().date()
+            if client.birth_date.month == now.month:
+                discount_percentage = max(discount_percentage, 0.05)  # 5% de descuento
+
+        # Descuento por reservas existentes (ejemplo: 10% si tiene 1 o más reservas previas)
+        if reservations_count >= 1:
+            discount_percentage = max(discount_percentage, 0.10) # 10% de descuento
+
+        return discount_percentage
+
+    def apply_discount_code(self, code):
+        """Valida y aplica un código de descuento."""
+        if not code:
+            return 0.0
+
+        discount = self.discount_codes.filter(code=code, is_active=True).first()
+        if discount:
+            return discount.discount_percentage / 100.0
+        return 0.0
+
+    def get_additional_services(self, property_obj):
+        """Retorna los servicios adicionales disponibles para la propiedad."""
+        return self.additional_services.filter(property=property_obj)
+
+    def get_cancellation_policy(self, property_obj):
+        """Retorna la política de cancelación aplicable."""
+        return self.cancellation_policies.filter(property=property_obj).first()
+
+    def calculate_pricing(self, check_in_date, check_out_date, guests, property_id=None, client_id=None, discount_code=None):
+        """Función principal para calcular el precio."""
+        from datetime import datetime
+
+        properties_to_calculate = []
+        if property_id:
+            try:
+                prop = Property.objects.get(id=property_id, deleted=False)
+                properties_to_calculate.append(prop)
+            except Property.DoesNotExist:
+                raise ValidationError("Propiedad no encontrada")
+        else:
+            properties_to_calculate = Property.objects.filter(deleted=False)
+
+        if not properties_to_calculate:
+            raise ValidationError("No hay propiedades disponibles para calcular")
+
+        results = []
+        usd_to_sol_rate = self.get_exchange_rate('PEN') # Asumiendo que PEN es Soles
+
+        for prop in properties_to_calculate:
+            base_price = self.calculate_base_price(prop, check_in_date, check_out_date, guests)
+
+            applied_discount_percentage = 0.0
+            client = None
+            reservations_count = 0
+
+            if client_id:
+                try:
+                    client = Client.objects.get(id=client_id, deleted=False)
+                    reservations = Reservation.objects.filter(client=client_id, property=prop.id, deleted=False)
+                    reservations_count = reservations.count()
+                    applied_discount_percentage = self.apply_client_discounts(client, reservations_count)
+                except Client.DoesNotExist:
+                    pass # Cliente no encontrado, no se aplican descuentos automáticos
+
+            if discount_code and applied_discount_percentage == 0: # Aplicar código solo si no se aplicaron descuentos automáticos
+                applied_discount_percentage = self.apply_discount_code(discount_code)
+
+            discount_amount = base_price * applied_discount_percentage
+            final_price_usd = base_price - discount_amount
+            final_price_sol = final_price_usd * usd_to_sol_rate
+
+            additional_services = self.get_additional_services(prop)
+            cancellation_policy = self.get_cancellation_policy(prop)
+
+            results.append({
+                'property_id': prop.id,
+                'property_name': prop.name,
+                'check_in_date': check_in_date,
+                'check_out_date': check_out_date,
+                'guests': guests,
+                'base_price_usd': round(base_price, 2),
+                'discount_percentage': round(applied_discount_percentage * 100, 2),
+                'discount_amount_usd': round(discount_amount, 2),
+                'final_price_usd': round(final_price_usd, 2),
+                'final_price_sol': round(final_price_sol, 2),
+                'client_benefits': {
+                    'is_birthday_month': client and client.birth_date and client.birth_date.month == datetime.now().date().month,
+                    'has_existing_reservations': reservations_count > 0
+                },
+                'additional_services': [{
+                    'name': service.name,
+                    'price_usd': service.price_usd,
+                    'price_sol': service.price_usd * usd_to_sol_rate
+                } for service in additional_services],
+                'cancellation_policy': {
+                    'name': cancellation_policy.name,
+                    'description': cancellation_policy.description
+                } if cancellation_policy else None,
+                'recommendations': "Considera reservar con anticipación para asegurar disponibilidad."
+            })
+
+        return results
 
 
 class PropertyApiView(viewsets.ReadOnlyModelViewSet):
@@ -238,3 +390,214 @@ class PropertyPhotoViewSet(viewsets.ModelViewSet):
                 "message": f"Archivo recibido correctamente: {file.size} bytes"
             })
         return Response({"error": "No se recibió ningún archivo"}, status=400)
+
+
+class CalculatePricingAPIView(APIView):
+    """
+    Endpoint público para calcular precios de propiedades
+    GET /api/v1/properties/calculate-pricing/
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='property_id',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description='ID de la propiedad (opcional - si no se especifica, muestra todas)',
+                required=False
+            ),
+            OpenApiParameter(
+                name='check_in_date',
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description='Fecha de check-in (YYYY-MM-DD)',
+                required=True
+            ),
+            OpenApiParameter(
+                name='check_out_date',
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description='Fecha de check-out (YYYY-MM-DD)',
+                required=True
+            ),
+            OpenApiParameter(
+                name='guests',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description='Número de huéspedes',
+                required=True
+            ),
+            OpenApiParameter(
+                name='client_id',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description='ID del cliente (opcional - para descuentos automáticos)',
+                required=False
+            ),
+            OpenApiParameter(
+                name='discount_code',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Código de descuento (opcional)',
+                required=False
+            ),
+        ],
+        responses={
+            200: PricingCalculationSerializer,
+            400: 'Bad Request - Parámetros inválidos',
+            404: 'Not Found - Propiedad no encontrada'
+        },
+        description='Calcula precios de propiedades con descuentos, servicios adicionales y políticas de cancelación'
+    )
+    def get(self, request):
+        try:
+            # Validar parámetros requeridos
+            check_in_date_str = request.query_params.get('check_in_date')
+            check_out_date_str = request.query_params.get('check_out_date')
+            guests_str = request.query_params.get('guests')
+
+            if not all([check_in_date_str, check_out_date_str, guests_str]):
+                return Response({
+                    'error': 'Parámetros requeridos: check_in_date, check_out_date, guests'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Parsear y validar fechas
+            try:
+                from datetime import datetime
+                check_in_date = datetime.strptime(check_in_date_str, '%Y-%m-%d').date()
+                check_out_date = datetime.strptime(check_out_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return Response({
+                    'error': 'Formato de fecha inválido. Use YYYY-MM-DD'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Validar número de huéspedes
+            try:
+                guests = int(guests_str)
+                if guests < 1:
+                    raise ValueError()
+            except ValueError:
+                return Response({
+                    'error': 'El número de huéspedes debe ser un entero mayor a 0'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Parámetros opcionales
+            property_id = request.query_params.get('property_id')
+            client_id = request.query_params.get('client_id')
+            discount_code = request.query_params.get('discount_code')
+
+            # Validar property_id si se proporciona
+            if property_id:
+                try:
+                    property_id = int(property_id)
+                    if not Property.objects.filter(id=property_id, deleted=False).exists():
+                        return Response({
+                            'error': 'Propiedad no encontrada'
+                        }, status=status.HTTP_404_NOT_FOUND)
+                except ValueError:
+                    return Response({
+                        'error': 'property_id debe ser un entero válido'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Validar client_id si se proporciona
+            if client_id:
+                try:
+                    client_id = int(client_id)
+                except ValueError:
+                    return Response({
+                        'error': 'client_id debe ser un entero válido'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Calcular precios
+            pricing_service = PricingCalculationService()
+            pricing_data = pricing_service.calculate_pricing(
+                check_in_date=check_in_date,
+                check_out_date=check_out_date,
+                guests=guests,
+                property_id=property_id,
+                client_id=client_id,
+                discount_code=discount_code
+            )
+
+            # Serializar respuesta
+            serializer = PricingCalculationSerializer(pricing_data, many=True) # many=True because it can return multiple properties
+
+            return Response({
+                'success': True,
+                'data': serializer.data,
+                'message': 'Cálculo de precios realizado exitosamente'
+            }, status=status.HTTP_200_OK)
+
+        except ValidationError as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response({
+                'error': 'Error interno del servidor',
+                'detail': str(e) if settings.DEBUG else None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# Define las URLs para las vistas
+urlpatterns = [
+    # ... otras urls ...
+    path('properties/calculate-pricing/', CalculatePricingAPIView.as_view(), name='calculate_pricing'),
+]
+
+# Add models to admin.py
+# from django.contrib import admin
+# from .models import ExchangeRate, DiscountCode, SeasonPricing, AdditionalService, CancellationPolicy
+#
+# admin.site.register(ExchangeRate)
+# admin.site.register(DiscountCode)
+# admin.site.register(SeasonPricing)
+# admin.site.register(AdditionalService)
+# admin.site.register(CancellationPolicy)
+
+# Add serializers for the new models and the pricing calculation response
+# Example:
+# from rest_framework import serializers
+#
+# class ExchangeRateSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = ExchangeRate
+#         fields = '__all__'
+#
+# class DiscountCodeSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = DiscountCode
+#         fields = '__all__'
+#
+# class SeasonPricingSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = SeasonPricing
+#         fields = '__all__'
+#
+# class AdditionalServiceSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = AdditionalService
+#         fields = '__all__'
+#
+# class CancellationPolicySerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = CancellationPolicy
+#         fields = '__all__'
+#
+# class PricingCalculationSerializer(serializers.Serializer):
+#     property_id = serializers.IntegerField()
+#     property_name = serializers.CharField()
+#     check_in_date = serializers.DateField()
+#     check_out_date = serializers.DateField()
+#     guests = serializers.IntegerField()
+#     base_price_usd = serializers.DecimalField(max_digits=10, decimal_places=2)
+#     discount_percentage = serializers.DecimalField(max_digits=5, decimal_places=2)
+#     discount_amount_usd = serializers.DecimalField(max_digits=10, decimal_places=2)
+#     final_price_usd = serializers.DecimalField(max_digits=10, decimal_places=2)
+#     final_price_sol = serializers.DecimalField(max_digits=10, decimal_places=2)
+#     client_benefits = serializers.DictField()
+#     additional_services = serializers.ListField(child=serializers.DictField())
+#     cancellation_policy = serializers.DictField(allow_null=True)
+#     recommendations = serializers.CharField()

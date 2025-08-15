@@ -85,6 +85,80 @@ class PropertyAdmin(admin.ModelAdmin):
     )
 
 
+from .pricing_models import (
+    ExchangeRate, 
+    SeasonPricing, 
+    DiscountCode, 
+    AdditionalService, 
+    CancellationPolicy,
+    AutomaticDiscount
+)
+
+
+class ExchangeRateAdmin(admin.ModelAdmin):
+    list_display = ('usd_to_sol', 'is_active', 'created', 'updated')
+    list_filter = ('is_active',)
+    actions = ['make_active']
+    
+    def make_active(self, request, queryset):
+        # Desactivar todos primero
+        ExchangeRate.objects.update(is_active=False)
+        # Activar seleccionados
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f'{updated} tipos de cambio activados.')
+    make_active.short_description = "Activar tipos de cambio seleccionados"
+
+
+class SeasonPricingAdmin(admin.ModelAdmin):
+    list_display = ('property', 'season_type', 'start_date', 'end_date', 'price_usd', 'multiplier', 'is_active')
+    list_filter = ('season_type', 'is_active', 'property')
+    search_fields = ('property__name',)
+    date_hierarchy = 'start_date'
+
+
+class DiscountCodeAdmin(admin.ModelAdmin):
+    list_display = ('code', 'description', 'discount_type', 'discount_value', 'used_count', 'usage_limit', 'is_active')
+    list_filter = ('discount_type', 'is_active')
+    search_fields = ('code', 'description')
+    filter_horizontal = ('properties',)
+    readonly_fields = ('used_count',)
+
+
+class AdditionalServiceAdmin(admin.ModelAdmin):
+    list_display = ('name', 'price_usd', 'service_type', 'is_per_night', 'is_per_person', 'is_active')
+    list_filter = ('service_type', 'is_per_night', 'is_per_person', 'is_active')
+    search_fields = ('name', 'description')
+    filter_horizontal = ('properties',)
+
+
+class CancellationPolicyAdmin(admin.ModelAdmin):
+    list_display = ('name', 'days_before_checkin', 'refund_percentage', 'is_default', 'is_active')
+    list_filter = ('is_default', 'is_active')
+    search_fields = ('name', 'description')
+    filter_horizontal = ('properties',)
+    actions = ['make_default']
+    
+    def make_default(self, request, queryset):
+        # Desactivar todos los defaults primero
+        CancellationPolicy.objects.update(is_default=False)
+        # Activar seleccionados
+        updated = queryset.update(is_default=True)
+        self.message_user(request, f'{updated} políticas marcadas como por defecto.')
+    make_default.short_description = "Marcar como política por defecto"
+
+
+class AutomaticDiscountAdmin(admin.ModelAdmin):
+    list_display = ('name', 'trigger', 'discount_percentage', 'max_discount_usd', 'min_reservations', 'is_active')
+    list_filter = ('trigger', 'is_active')
+    search_fields = ('name',)
+
+
 admin.site.register(Property, PropertyAdmin)
 admin.site.register(PropertyPhoto, PropertyPhotoAdmin)
+admin.site.register(ExchangeRate, ExchangeRateAdmin)
+admin.site.register(SeasonPricing, SeasonPricingAdmin)
+admin.site.register(DiscountCode, DiscountCodeAdmin)
+admin.site.register(AdditionalService, AdditionalServiceAdmin)
+admin.site.register(CancellationPolicy, CancellationPolicyAdmin)
+admin.site.register(AutomaticDiscount, AutomaticDiscountAdmin)
 admin.site.register(ProfitPropertyAirBnb)

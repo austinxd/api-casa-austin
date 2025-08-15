@@ -1,4 +1,4 @@
-from .views import PropertyApiView, ProfitPropertyApiView, CheckAvaiblePorperty, PropertyPhotoViewSet
+from .views import (PropertyApiView, ProfitPropertyApiView, CheckAvailabilityApiView, PropertyPhotoApiView, CalculatePricingAPIView)
 
 
 from django.urls import include, path
@@ -8,11 +8,11 @@ router = DefaultRouter()
 
 router.register("property", PropertyApiView, basename="property")
 router.register("profit", ProfitPropertyApiView, basename="profit")
-router.register("photos", PropertyPhotoViewSet, basename="property-photos")
+router.register("photos", PropertyPhotoApiView, basename="property-photos")
 
 urlpatterns = [
     path("", include(router.urls)),
-    path("prop/check-avaible/", CheckAvaiblePorperty.as_view()),
-    # Opcional: Ruta personalizada para slug
-    # path("property/slug/<str:slug>/", PropertyDetailBySlugView.as_view(), name="property-by-slug"),
+    path("prop/check-avaible/", CheckAvailabilityApiView.as_view()),
+    path('properties/<int:property_id>/photos/', PropertyPhotoApiView.as_view(), name='property-photos'),
+    path('properties/calculate-pricing/', CalculatePricingAPIView.as_view(), name='calculate-pricing'),
 ]
