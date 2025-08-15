@@ -1,0 +1,54 @@
+Merging clients
+  Branch 0013_referralpointsconfig_clients_comentarios_clientes_and_more
+    - Add field referral_code to clients
+    - Create model ReferralPointsConfig
+    - Add field comentarios_clientes to clients
+    - Add field enviado_meta to clients
+    - Add field is_password_set to clients
+    - Add field last_login to clients
+    - Add field otp_code to clients
+    - Add field otp_expires_at to clients
+    - Add field password to clients
+    - Add field points_balance to clients
+    - Add field points_expires_at to clients
+    - Add field referred_by to clients
+    - Alter field date on clients
+    - Alter field id_manychat on clients
+    - Alter field sex on clients
+    - Create model SearchTracking
+    - Create model ClientPoints
+  Branch 0023_searchtracking
+    - Add field comentarios_clientes to clients
+    - Alter field id_manychat on clients
+    - Alter field date on clients
+    - Alter field sex on clients
+    - Add field enviado_meta to clients
+    - Add field is_active_client to clients
+    - Add field last_login_client to clients
+    - Add field otp_code to clients
+    - Add field otp_expires_at to clients
+    - Add field password to clients
+    - Remove field is_active_client from clients
+    - Remove field last_login_client from clients
+    - Remove field otp_code from clients
+    - Remove field otp_expires_at from clients
+    - Remove field password from clients
+    - Add field is_password_set to clients
+    - Add field last_login to clients
+    - Add field otp_code to clients
+    - Add field otp_expires_at to clients
+    - Add field password to clients
+    - Add field points_balance to clients
+    - Add field points_expires_at to clients
+    - Create model ClientPoints
+    - Alter field transaction_type on clientpoints
+    - Create model ReferralPointsConfig
+    - Add field referred_client to clientpoints
+    - Add field referred_by to clients
+    - Alter field transaction_type on clientpoints
+    - Add field referral_code to clients
+    - Create model SearchTracking
+
+Merging will only work if the operations printed above do not conflict
+with each other (working on different fields or models)
+Should these migration branches be merged? [y/N] 

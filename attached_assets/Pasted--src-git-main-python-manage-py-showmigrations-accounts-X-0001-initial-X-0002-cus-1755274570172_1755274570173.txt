@@ -1,0 +1,98 @@
+➜  src git:(main) ✗ python manage.py showmigrations        
+accounts
+ [X] 0001_initial
+ [X] 0002_customuser_profile_photo
+admin
+ [X] 0001_initial
+ [X] 0002_logentry_remove_auto_add
+ [X] 0003_logentry_add_action_flag_choices
+auth
+ [X] 0001_initial
+ [X] 0002_alter_permission_name_max_length
+ [X] 0003_alter_user_email_max_length
+ [X] 0004_alter_user_username_opts
+ [X] 0005_alter_user_last_login_null
+ [X] 0006_require_contenttypes_0002
+ [X] 0007_alter_validators_add_error_messages
+ [X] 0008_alter_user_username_max_length
+ [X] 0009_alter_user_last_name_max_length
+ [X] 0010_alter_group_name_max_length
+ [X] 0011_update_proxy_permissions
+ [X] 0012_alter_user_first_name_max_length
+clients
+ [X] 0001_initial
+ [X] 0002_tokenapiclients
+ [X] 0003_alter_tokenapiclients_token
+ [X] 0004_alter_clients_unique_together
+ [X] 0005_alter_clients_email
+ [X] 0006_alter_tokenapiclients_options
+ [X] 0007_alter_clients_document_type_alter_clients_first_name_and_more
+ [X] 0008_alter_clients_document_type
+ [X] 0009_alter_clients_sex
+ [X] 0010_mensajefidelidad
+ [X] 0011_clients_id_manychat_clients_manychat
+ [X] 0012_clients_comentarios_clientes
+ [X] 0013_alter_clients_id_manychat
+ [X] 0014_alter_clients_date_alter_clients_sex
+ [X] 0015_clients_enviado_meta
+ [X] 0016_clients_is_active_client_clients_last_login_client_and_more
+ [X] 0017_remove_clients_is_active_client_and_more
+ [X] 0018_clients_is_password_set_clients_last_login_and_more
+ [X] 0019_clients_points_balance_clients_points_expires_at_and_more
+ [X] 0020_alter_clientpoints_transaction_type
+ [X] 0021_referralpointsconfig_clientpoints_referred_client_and_more
+ [X] 0012_clients_referral_code
+ [X] 0022_merge_20250802_0904
+ [X] 0023_searchtracking
+ [ ] 0013_referralpointsconfig_clients_comentarios_clientes_and_more
+ [ ] 0024_merge_20250815_1114
+contenttypes
+ [X] 0001_initial
+ [X] 0002_remove_content_type_name
+dashboard
+ (no migrations)
+property
+ [X] 0001_initial
+ [X] 0002_profitpropertyairbnb
+ [X] 0003_alter_profitpropertyairbnb_unique_together
+ [X] 0004_property_background_color
+ [X] 0005_property_off_temperature_pool_url_and_more
+ [X] 0006_fix_utf8mb4_encoding
+ [X] 0007_mark_slug_as_existing
+ [X] 0008_add_slug_field_safely
+ [X] 0010_fix_property_photo_foreign_key
+ [X] 0009_add_property_photos
+ [X] 0011_merge_20250804_0409
+ [X] 0012_add_image_upload_field
+ [X] 0013_alter_propertyphoto_image_file
+ [X] 0014_alter_propertyphoto_image_file
+ [X] 0015_alter_propertyphoto_image_file
+ [X] 0016_merge_20250815_0739
+ [ ] 0011_property_banos_property_caracteristicas_and_more
+ [X] 0006_add_new_property_fields
+ [ ] 0017_merge_20250815_1112
+reservation
+ [X] 0001_initial
+ [X] 0002_reservation_origin_reservation_uuid_external
+ [X] 0003_alter_reservation_uuid_external
+ [X] 0004_alter_reservation_price_usd
+ [X] 0005_alter_reservation_advance_payment_and_more
+ [X] 0006_reservation_tel_contact_number
+ [X] 0007_alter_reservation_origin
+ [X] 0008_reservation_full_payment_and_more
+ [X] 0009_alter_reservation_price_sol_and_more
+ [X] 0010_alter_reservation_advance_payment
+ [X] 0011_reservation_manychatfecha
+ [X] 0012_reservation_late_check_out_date_and_more
+ [X] 0013_reservation_comentarios_reservas
+ [X] 0014_reservation_fbclid_reservation_ip_cliente_and_more
+ [X] 0015_reservation_fbp
+ [X] 0016_reservation_fbc
+ [X] 0017_reservation_points_redeemed
+ [X] 0018_reservation_status_alter_reservation_origin
+ [X] 0019_reservation_payment_confirmed_and_more
+ [X] 0020_alter_reservation_status
+ [ ] 0012_reservation_comentarios_reservas_reservation_fbc_and_more
+ [ ] 0021_merge_20250815_1112
+sessions
+ [X] 0001_initial
