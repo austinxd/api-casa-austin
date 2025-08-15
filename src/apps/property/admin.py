@@ -131,13 +131,14 @@ class PropertyPricingAdmin(admin.ModelAdmin):
 
 @admin.register(SeasonPricing)
 class SeasonPricingAdmin(admin.ModelAdmin):
-    list_display = ('property', 'season_type', 'start_date', 'end_date', 'is_active')
-    list_filter = ('season_type', 'is_active', 'property')
-    search_fields = ('property__name',)
+    list_display = ('name', 'season_type', 'start_date', 'end_date', 'is_active')
+    list_filter = ('season_type', 'is_active')
+    search_fields = ('name',)
     date_hierarchy = 'start_date'
     fieldsets = (
-        ('Información General', {
-            'fields': ('property', 'season_type', 'start_date', 'end_date', 'is_active')
+        ('Información de Temporada Global', {
+            'fields': ('name', 'season_type', 'start_date', 'end_date', 'is_active'),
+            'description': 'Esta temporada se aplicará a TODAS las propiedades'
         }),
     )
 

@@ -73,8 +73,11 @@ class PropertyPricing(BaseModel):
     def __str__(self):
         return f"Precios de {self.property.name}"
     
-    def get_base_price_for_date(self, date, is_high_season=False):
+    def get_base_price_for_date(self, date):
         """Obtiene el precio base para una fecha específica según el día de la semana y temporada"""
+        # Determinar si es temporada alta usando el método global
+        is_high_season = SeasonPricing.is_high_season(date)
+        
         # 0=Lunes, 6=Domingo
         weekday = date.weekday()
         
@@ -84,9 +87,9 @@ class PropertyPricing(BaseModel):
         else:  # Lunes a Jueves
             return self.weekday_high_season_usd if is_high_season else self.weekday_low_season_usd
     
-    def calculate_total_price_for_date(self, date, guests=1, is_high_season=False):
+    def calculate_total_price_for_date(self, date, guests=1):
         """Calcula el precio total para una fecha específica incluyendo huéspedes adicionales"""
-        base_price = self.get_base_price_for_date(date, is_high_season)
+        base_price = self.get_base_price_for_date(date)
         
         # Agregar precio por persona adicional (después de la primera)
         if guests > 1 and self.property.precio_extra_persona:
@@ -98,37 +101,49 @@ class PropertyPricing(BaseModel):
 
 
 class SeasonPricing(BaseModel):
-    """Define períodos de temporada alta y baja"""
+    """Define períodos de temporada alta y baja GLOBALES para todas las propiedades"""
     
     class SeasonType(models.TextChoices):
         LOW = "low", ("Temporada Baja")
         HIGH = "high", ("Temporada Alta")
     
-    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='seasons')
+    name = models.CharField(
+        max_length=100, 
+        help_text="Nombre de la temporada (ej: 'Verano 2024', 'Navidad y Año Nuevo')"
+    )
     season_type = models.CharField(max_length=4, choices=SeasonType.choices)
     start_date = models.DateField(help_text="Fecha de inicio de la temporada")
     end_date = models.DateField(help_text="Fecha de fin de la temporada")
     is_active = models.BooleanField(default=True)
     
     class Meta:
-        verbose_name = "📅 Temporada"
-        verbose_name_plural = "📅 Temporadas"
-        ordering = ['property', 'start_date']
+        verbose_name = "📅 Temporada Global"
+        verbose_name_plural = "📅 Temporadas Globales"
+        ordering = ['start_date']
     
     def __str__(self):
-        return f"{self.property.name} - {self.get_season_type_display()} ({self.start_date} - {self.end_date})"
+        return f"{self.name} - {self.get_season_type_display()} ({self.start_date} - {self.end_date})"
     
     @classmethod
-    def is_high_season(cls, property_obj, date):
-        """Verifica si una fecha está en temporada alta para una propiedad"""
+    def is_high_season(cls, date):
+        """Verifica si una fecha está en temporada alta GLOBALMENTE"""
         high_seasons = cls.objects.filter(
-            property=property_obj,
             season_type=cls.SeasonType.HIGH,
             start_date__lte=date,
             end_date__gte=date,
             is_active=True
         )
         return high_seasons.exists()
+    
+    @classmethod
+    def get_season_for_date(cls, date):
+        """Obtiene la temporada para una fecha específica"""
+        season = cls.objects.filter(
+            start_date__lte=date,
+            end_date__gte=date,
+            is_active=True
+        ).first()
+        return season
 
 
 class SpecialDatePricing(BaseModel):
