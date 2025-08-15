@@ -101,7 +101,7 @@ class PropertyPricing(BaseModel):
 
 
 class SeasonPricing(BaseModel):
-    """Define períodos de temporada alta y baja GLOBALES para todas las propiedades"""
+    """Define períodos de temporada alta y baja GLOBALES recurrentes para todas las propiedades"""
     
     class SeasonType(models.TextChoices):
         LOW = "low", ("Temporada Baja")
@@ -109,41 +109,90 @@ class SeasonPricing(BaseModel):
     
     name = models.CharField(
         max_length=100, 
-        help_text="Nombre de la temporada (ej: 'Verano 2024', 'Navidad y Año Nuevo')"
+        help_text="Nombre de la temporada (ej: 'Verano', 'Navidad y Año Nuevo', 'Fiestas Patrias')"
     )
     season_type = models.CharField(max_length=4, choices=SeasonType.choices)
-    start_date = models.DateField(help_text="Fecha de inicio de la temporada")
-    end_date = models.DateField(help_text="Fecha de fin de la temporada")
+    
+    # Cambiar a mes y día para que sea recurrente cada año
+    start_month = models.PositiveIntegerField(
+        help_text="Mes de inicio (1-12)",
+        validators=[MinValueValidator(1), MaxValueValidator(12)]
+    )
+    start_day = models.PositiveIntegerField(
+        help_text="Día de inicio (1-31)",
+        validators=[MinValueValidator(1), MaxValueValidator(31)]
+    )
+    end_month = models.PositiveIntegerField(
+        help_text="Mes de fin (1-12)",
+        validators=[MinValueValidator(1), MaxValueValidator(12)]
+    )
+    end_day = models.PositiveIntegerField(
+        help_text="Día de fin (1-31)",
+        validators=[MinValueValidator(1), MaxValueValidator(31)]
+    )
+    
     is_active = models.BooleanField(default=True)
     
     class Meta:
-        verbose_name = "📅 Temporada Global"
-        verbose_name_plural = "📅 Temporadas Globales"
-        ordering = ['start_date']
+        verbose_name = "📅 Temporada Global Recurrente"
+        verbose_name_plural = "📅 Temporadas Globales Recurrentes"
+        ordering = ['start_month', 'start_day']
     
     def __str__(self):
-        return f"{self.name} - {self.get_season_type_display()} ({self.start_date} - {self.end_date})"
+        return f"{self.name} - {self.get_season_type_display()} ({self.start_day}/{self.start_month} - {self.end_day}/{self.end_month})"
+    
+    def get_date_range_display(self):
+        """Devuelve el rango de fechas en formato legible"""
+        months = [
+            "", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+            "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+        ]
+        start_month_name = months[self.start_month]
+        end_month_name = months[self.end_month]
+        return f"{self.start_day} de {start_month_name} - {self.end_day} de {end_month_name}"
+    
+    def is_date_in_season(self, date):
+        """Verifica si una fecha específica está dentro de esta temporada"""
+        month = date.month
+        day = date.day
+        
+        # Crear tuplas para comparar (mes, día)
+        date_tuple = (month, day)
+        start_tuple = (self.start_month, self.start_day)
+        end_tuple = (self.end_month, self.end_day)
+        
+        # Caso 1: La temporada no cruza el año (ej: 15/06 - 15/09)
+        if start_tuple <= end_tuple:
+            return start_tuple <= date_tuple <= end_tuple
+        
+        # Caso 2: La temporada cruza el año (ej: 15/12 - 15/03)
+        else:
+            return date_tuple >= start_tuple or date_tuple <= end_tuple
     
     @classmethod
     def is_high_season(cls, date):
         """Verifica si una fecha está en temporada alta GLOBALMENTE"""
         high_seasons = cls.objects.filter(
             season_type=cls.SeasonType.HIGH,
-            start_date__lte=date,
-            end_date__gte=date,
             is_active=True
         )
-        return high_seasons.exists()
+        
+        for season in high_seasons:
+            if season.is_date_in_season(date):
+                return True
+        
+        return False
     
     @classmethod
     def get_season_for_date(cls, date):
         """Obtiene la temporada para una fecha específica"""
-        season = cls.objects.filter(
-            start_date__lte=date,
-            end_date__gte=date,
-            is_active=True
-        ).first()
-        return season
+        seasons = cls.objects.filter(is_active=True)
+        
+        for season in seasons:
+            if season.is_date_in_season(date):
+                return season
+        
+        return None
 
 
 class SpecialDatePricing(BaseModel):

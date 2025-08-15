@@ -131,16 +131,27 @@ class PropertyPricingAdmin(admin.ModelAdmin):
 
 @admin.register(SeasonPricing)
 class SeasonPricingAdmin(admin.ModelAdmin):
-    list_display = ('name', 'season_type', 'start_date', 'end_date', 'is_active')
-    list_filter = ('season_type', 'is_active')
+    list_display = ('name', 'season_type', 'get_date_range_display', 'is_active')
+    list_filter = ('season_type', 'is_active', 'start_month', 'end_month')
     search_fields = ('name',)
-    date_hierarchy = 'start_date'
     fieldsets = (
-        ('Información de Temporada Global', {
-            'fields': ('name', 'season_type', 'start_date', 'end_date', 'is_active'),
-            'description': 'Esta temporada se aplicará a TODAS las propiedades'
+        ('Información de Temporada Global Recurrente', {
+            'fields': ('name', 'season_type', 'is_active'),
+            'description': 'Esta temporada se aplicará a TODAS las propiedades cada año'
+        }),
+        ('Período de la Temporada', {
+            'fields': (
+                ('start_month', 'start_day'),
+                ('end_month', 'end_day')
+            ),
+            'description': 'Define el rango de fechas que se repetirá cada año. Ejemplo: Verano del 15 de Diciembre al 15 de Marzo'
         }),
     )
+    
+    def get_date_range_display(self, obj):
+        """Muestra el rango de fechas en formato legible"""
+        return obj.get_date_range_display()
+    get_date_range_display.short_description = 'Período'
 
 @admin.register(SpecialDatePricing)
 class SpecialDatePricingAdmin(admin.ModelAdmin):
