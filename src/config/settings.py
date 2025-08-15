@@ -151,20 +151,30 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 # Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': env('MYSQL_DATABASE', default='my_database'),
-        'USER': 'Reservas',
-        'PASSWORD': env('MYSQL_PASSWORD', default='!Leonel123'),
-        'HOST': env('MYSQL_HOST', default='172.18.0.2'),
-        'PORT': env('MYSQL_PORT', default='3306'),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+USE_MYSQL = env.bool('USE_MYSQL', default=False)
+
+if USE_MYSQL:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': env('MYSQL_DATABASE', default='my_database'),
+            'USER': 'Reservas',
+            'PASSWORD': env('MYSQL_PASSWORD', default='!Leonel123'),
+            'HOST': env('MYSQL_HOST', default='172.18.0.2'),
+            'PORT': env('MYSQL_PORT', default='3306'),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+            }
         }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
