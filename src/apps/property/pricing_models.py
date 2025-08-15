@@ -45,16 +45,16 @@ class SeasonPricing(BaseModel):
     start_date = models.DateField(help_text="Fecha de inicio de la temporada")
     end_date = models.DateField(help_text="Fecha de fin de la temporada")
     
-    # Precios por tipo de día
+    # Precios base por tipo de día y temporada
     weekday_price_usd = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 
-        help_text="Precio por noche de día de semana (Lunes-Jueves) en USD"
+        help_text="Precio base por noche de día de semana (Lunes-Jueves) en USD para 1 persona"
     )
     weekend_price_usd = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 
-        help_text="Precio por noche de fin de semana (Viernes-Domingo) en USD"
+        help_text="Precio base por noche de fin de semana (Viernes-Domingo) en USD para 1 persona"
     )
     
     is_active = models.BooleanField(default=True)
@@ -62,14 +62,14 @@ class SeasonPricing(BaseModel):
     class Meta:
         verbose_name = "📅 Precio de Temporada"
         verbose_name_plural = "📅 Precios de Temporada"
-        ordering = ['property', 'start_date']
+        ordering = ['property', 'season_type', 'start_date']
         unique_together = ['property', 'season_type', 'start_date', 'end_date']
     
     def __str__(self):
         return f"{self.property.name} - {self.get_season_type_display()} ({self.start_date} - {self.end_date})"
     
-    def get_price_for_date(self, date):
-        """Obtiene el precio para una fecha específica según el día de la semana"""
+    def get_base_price_for_date(self, date):
+        """Obtiene el precio base para una fecha específica según el día de la semana"""
         # 0=Lunes, 6=Domingo
         weekday = date.weekday()
         
@@ -78,6 +78,18 @@ class SeasonPricing(BaseModel):
             return self.weekend_price_usd
         else:  # Lunes a Jueves
             return self.weekday_price_usd
+    
+    def calculate_total_price_for_date(self, date, guests=1):
+        """Calcula el precio total para una fecha específica incluyendo huéspedes adicionales"""
+        base_price = self.get_base_price_for_date(date)
+        
+        # Agregar precio por persona adicional (después de la primera)
+        if guests > 1 and self.property.precio_extra_persona:
+            additional_guests = guests - 1
+            additional_cost = self.property.precio_extra_persona * additional_guests
+            return base_price + additional_cost
+        
+        return base_price
 
 
 class SpecialDatePricing(BaseModel):
@@ -92,7 +104,7 @@ class SpecialDatePricing(BaseModel):
     price_usd = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 
-        help_text="Precio especial por noche en USD"
+        help_text="Precio base especial por noche en USD para 1 persona"
     )
     is_active = models.BooleanField(default=True)
     
@@ -104,6 +116,18 @@ class SpecialDatePricing(BaseModel):
     
     def __str__(self):
         return f"{self.property.name} - {self.name} ({self.date.strftime('%d/%m')}) - ${self.price_usd}"
+    
+    def calculate_total_price(self, guests=1):
+        """Calcula el precio total incluyendo huéspedes adicionales"""
+        base_price = self.price_usd
+        
+        # Agregar precio por persona adicional (después de la primera)
+        if guests > 1 and self.property.precio_extra_persona:
+            additional_guests = guests - 1
+            additional_cost = self.property.precio_extra_persona * additional_guests
+            return base_price + additional_cost
+        
+        return base_price
 
 
 class DiscountCode(BaseModel):
