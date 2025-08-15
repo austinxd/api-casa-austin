@@ -10,39 +10,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Paso 1: Eliminar cualquier restricción existente de manera segura
+        # SQLite no requiere modificaciones específicas de foreign keys como MySQL
+        # Esta migración era específica para MySQL, en SQLite no necesitamos hacer nada
         migrations.RunSQL(
-            """
-            SET @sql = IF((SELECT COUNT(*) FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
-                          WHERE TABLE_SCHEMA = DATABASE() 
-                          AND TABLE_NAME = 'property_propertyphoto' 
-                          AND CONSTRAINT_NAME = 'property_propertyphoto_property_id_fk') > 0,
-                         'ALTER TABLE property_propertyphoto DROP FOREIGN KEY property_propertyphoto_property_id_fk',
-                         'SELECT "No constraint to drop" as info');
-            PREPARE stmt FROM @sql;
-            EXECUTE stmt;
-            DEALLOCATE PREPARE stmt;
-            """,
-            reverse_sql="-- No reverse needed"
-        ),
-
-        # Paso 2: Modificar property_id para que sea exactamente igual que property.id
-        migrations.RunSQL(
-            """
-            ALTER TABLE property_propertyphoto 
-            MODIFY COLUMN property_id CHAR(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL;
-            """,
-            reverse_sql="ALTER TABLE property_propertyphoto MODIFY COLUMN property_id INT NOT NULL;"
-        ),
-
-        # Paso 3: Recrear la foreign key
-        migrations.RunSQL(
-            """
-            ALTER TABLE property_propertyphoto 
-            ADD CONSTRAINT property_propertyphoto_property_id_fk 
-            FOREIGN KEY (property_id) REFERENCES property_property (id) 
-            ON DELETE CASCADE;
-            """,
-            reverse_sql="ALTER TABLE property_propertyphoto DROP FOREIGN KEY property_propertyphoto_property_id_fk;"
+            "SELECT 1;",  # Operación dummy que no hace nada pero es válida en SQLite
+            reverse_sql="SELECT 1;"
         ),
     ]
