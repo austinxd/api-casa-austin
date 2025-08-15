@@ -31,9 +31,12 @@ class PropertyPhotoInline(admin.TabularInline):
 # Inline para fechas especiales dentro de cada propiedad
 class SpecialDatePricingInline(admin.TabularInline):
     model = SpecialDatePricing
-    extra = 1
+    extra = 3
     fields = ('month', 'day', 'description', 'price_usd', 'is_active')
     ordering = ['month', 'day']
+    verbose_name = "Fecha Especial"
+    verbose_name_plural = "🎉 Fechas Especiales para esta Propiedad"
+    classes = ['collapse']
 
     def get_queryset(self, request):
         """Solo mostrar fechas especiales activas"""
@@ -105,6 +108,14 @@ class PropertyAdmin(admin.ModelAdmin):
             "fields": ("airbnb_url", "on_temperature_pool_url", "off_temperature_pool_url")
         })
     )
+    
+    def get_inline_instances(self, request, obj=None):
+        """Customizar los inlines según el contexto"""
+        inlines = super().get_inline_instances(request, obj)
+        if obj:  # Solo mostrar fechas especiales si la propiedad ya existe
+            return inlines
+        else:  # Si es nueva propiedad, solo mostrar fotos
+            return [inline for inline in inlines if isinstance(inline, PropertyPhotoInline)]
 
 
 class ExchangeRateAdmin(admin.ModelAdmin):
@@ -123,9 +134,10 @@ class ExchangeRateAdmin(admin.ModelAdmin):
 
 @admin.register(PropertyPricing)
 class PropertyPricingAdmin(admin.ModelAdmin):
-    list_display = ('property', 'weekday_low_season_usd', 'weekend_low_season_usd', 'weekday_high_season_usd', 'weekend_high_season_usd')
+    list_display = ('property', 'weekday_low_season_usd', 'weekend_low_season_usd', 'weekday_high_season_usd', 'weekend_high_season_usd', 'get_special_dates_count')
     list_filter = ('property',)
     search_fields = ('property__name',)
+    inlines = [SpecialDatePricingInline]
     fieldsets = (
         ('Información General', {
             'fields': ('property',)
@@ -139,6 +151,14 @@ class PropertyPricingAdmin(admin.ModelAdmin):
             'description': 'Precios base para temporada alta'
         }),
     )
+    
+    def get_special_dates_count(self, obj):
+        """Muestra cuántas fechas especiales tiene la propiedad"""
+        count = obj.property.special_date_pricing.filter(deleted=False, is_active=True).count()
+        if count == 0:
+            return "Sin fechas especiales"
+        return f"{count} fecha{'s' if count != 1 else ''} especial{'es' if count != 1 else ''}"
+    get_special_dates_count.short_description = "Fechas Especiales"
 
 
 @admin.register(SeasonPricing)
