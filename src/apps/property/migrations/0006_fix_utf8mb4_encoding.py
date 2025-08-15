@@ -1,4 +1,3 @@
-
 # Generated manually to fix charset encoding - SQLite compatible version
 
 from django.db import migrations
