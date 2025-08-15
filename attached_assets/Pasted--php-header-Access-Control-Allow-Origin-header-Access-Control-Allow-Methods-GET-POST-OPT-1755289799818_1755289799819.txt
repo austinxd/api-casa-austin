@@ -1,0 +1,800 @@
+<?php
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+
+setlocale(LC_TIME, 'es_ES.UTF-8'); // Configuración regional en español
+
+// URLs de los calendarios ICS para cada casa
+$calendarios = [
+    1 => 'https://api.casaaustin.pe/media/casa-austin-1.ics',
+    2 => 'https://api.casaaustin.pe/media/casa-austin-2.ics',
+    3 => 'https://api.casaaustin.pe/media/casa-austin-3.ics',
+    4 => 'https://api.casaaustin.pe/media/casa-austin-4.ics',
+];
+
+// Precios de las casas según el día y la temporada
+$precios = [
+    1 => ['finDeSemana' => 230, 'normal' => 55, 'finDeSemanaAlta' => 300, 'normalAlta' => 250, 'personaAdicional' => 10],
+    2 => ['finDeSemana' => 230, 'normal' => 55, 'finDeSemanaAlta' => 300, 'normalAlta' => 250, 'personaAdicional' => 15],
+    3 => ['finDeSemana' => 300, 'normal' => 200, 'finDeSemanaAlta' => 350, 'normalAlta' => 300, 'personaAdicional' => 20],
+    4 => ['finDeSemana' => 230, 'normal' => 55, 'finDeSemanaAlta' => 300, 'normalAlta' => 250, 'personaAdicional' => 15],
+];
+
+// Fechas especiales y sus precios para cada casa
+$fechasEspeciales = [
+    '07-26' => ['1' => 300, '2' => 300, '3' => 350, '4' => 300], // Ejemplo
+    '07-27' => ['1' => 300, '2' => 300, '3' => 350, '4' => 300], // Ejemplo
+    '07-28' => ['1' => 300, '2' => 300, '3' => 350, '4' => 300], // Ejemplo
+    '07-21' => ['1' => 150, '2' => 150, '3' => 350, '4' => 150], // Ejemplo
+    '07-29' => ['1' => 150, '2' => 150, '3' => 350, '4' => 150], // Ejemplo
+    '10-31' => ['1' => 150, '2' => 150, '3' => 350, '4' => 150], // Ejemplo
+    '12-24' => ['1' => 350, '2' => 350, '3' => 400, '4' => 350], // Navidad
+    '12-30' => ['1' => 350, '2' => 350, '3' => 400, '4' => 350], // Año Nuevo -1
+    '12-31' => ['1' => 1900, '2' => 1900, '3' => 2500, '4' => 1900], // Año Nuevo
+    '01-01' => ['1' => 300, '2' => 300, '3' => 350, '4' => 300], // Año Nuevo +1
+    // Agregar otras fechas especiales aquí en formato 'MM-DD' y sus precios correspondientes para cada casa
+];
+
+function parseDateTime($dateTime) {
+    return DateTime::createFromFormat('Ymd\THis', substr($dateTime, 0, 15));
+}
+
+// Convierte fechas de 'YYYY-MM-DD' a 'YYYYMMDDT000000' para coincidir con el formato esperado por parseDateTime
+function adaptDateFormat($date) {
+    $dateObject = DateTime::createFromFormat('Y-m-d', $date);
+    if (!$dateObject) {
+        return false;
+    }
+    return $dateObject->format('Ymd') . 'T000000';
+}
+
+function esFinDeSemana($date) {
+    return in_array($date->format('N'), [5, 6]); // 5 = Viernes, 6 = Sábado
+}
+
+function esTemporadaAlta($date) {
+    // Temporada alta de Diciembre a Marzo
+    $month = $date->format('n');
+    return $month == 12 || $month <= 4;
+}
+
+function obtenerPrecioEspecial($date, $fechasEspeciales, $casaId) {
+    $fecha = $date->format('m-d');
+    return isset($fechasEspeciales[$fecha][$casaId]) ? $fechasEspeciales[$fecha][$casaId] : null;
+}
+
+function parseEventsFromICS($icsContent) {
+    $events = [];
+    $lines = explode("\n", $icsContent);
+    $event = null;
+
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if (strpos($line, 'BEGIN:VEVENT') !== false) {
+            $event = [];
+        } elseif (strpos($line, 'END:VEVENT') !== false) {
+            if ($event) {
+                $events[] = $event;
+                $event = null;
+            }
+        } elseif ($event !== null) {
+            if (strpos($line, 'DTSTART') !== false) {
+                $event['DTSTART'] = parseDateTime(substr($line, strpos($line, ':') + 1));
+            } elseif (strpos($line, 'DTEND') !== false) {
+                $event['DTEND'] = parseDateTime(substr($line, strpos($line, ':') + 1));
+            }
+        }
+    }
+    return $events;
+}
+
+function checkAvailability($events, $start_date, $end_date) {
+    foreach ($events as $event) {
+        if ($event['DTSTART'] < $end_date && $event['DTEND'] > $start_date) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function findAndMoveReservations(&$eventsCasa2, &$eventsCasa4, $start_date, $end_date, &$debugInfo) {
+    $available = false;
+
+    // Intentar mover reservas en Casa 2
+    foreach ($eventsCasa2 as $key2 => $event2) {
+        if ($event2['DTSTART'] < $end_date && $event2['DTEND'] > $start_date) {
+            $debugInfo[] = "Intentando mover reserva en Casa 2: [{$event2['DTSTART']->format('Y-m-d')} - {$event2['DTEND']->format('Y-m-d')}] dentro del rango solicitado.";
+            $tempEvent2 = $eventsCasa2[$key2];
+            unset($eventsCasa2[$key2]);
+
+            if (checkAvailability($eventsCasa2, $start_date, $end_date)) {
+                // Verificar que mover la reserva no cause conflicto en Casa 4
+                if (checkAvailability($eventsCasa4, $event2['DTSTART'], $event2['DTEND'])) {
+                    $debugInfo[] = "Movimiento exitoso en Casa 2: Reserva [{$event2['DTSTART']->format('Y-m-d')} - {$event2['DTEND']->format('Y-m-d')}] movida.";
+                    $eventsCasa4[] = $tempEvent2;
+                    $available = true;
+                    break;
+                } else {
+                    $debugInfo[] = "Conflicto al intentar mover reserva de Casa 2 a Casa 4: [{$event2['DTSTART']->format('Y-m-d')} - {$event2['DTEND']->format('Y-m-d')}].";
+                    $eventsCasa2[$key2] = $tempEvent2;
+                }
+            } else {
+                $debugInfo[] = "Conflicto al intentar mover reserva en Casa 2: [{$event2['DTSTART']->format('Y-m-d')} - {$event2['DTEND']->format('Y-m-d')}].";
+                $eventsCasa2[$key2] = $tempEvent2;
+            }
+        }
+    }
+
+    // Intentar mover reservas en Casa 4 si no se encontró disponibilidad en Casa 2
+    if (!$available) {
+        foreach ($eventsCasa4 as $key4 => $event4) {
+            if ($event4['DTSTART'] < $end_date && $event4['DTEND'] > $start_date) {
+                $debugInfo[] = "Intentando mover reserva en Casa 4: [{$event4['DTSTART']->format('Y-m-d')} - {$event4['DTEND']->format('Y-m-d')}] dentro del rango solicitado.";
+                $tempEvent4 = $eventsCasa4[$key4];
+                unset($eventsCasa4[$key4]);
+
+                if (checkAvailability($eventsCasa4, $start_date, $end_date)) {
+                    // Verificar que mover la reserva no cause conflicto en Casa 2
+                    if (checkAvailability($eventsCasa2, $event4['DTSTART'], $event4['DTEND'])) {
+                        $debugInfo[] = "Movimiento exitoso en Casa 4: Reserva [{$event4['DTSTART']->format('Y-m-d')} - {$event4['DTEND']->format('Y-m-d')}] movida.";
+                        $eventsCasa2[] = $tempEvent4;
+                        $available = true;
+                        break;
+                    } else {
+                        $debugInfo[] = "Conflicto al intentar mover reserva de Casa 4 a Casa 2: [{$event4['DTSTART']->format('Y-m-d')} - {$event4['DTEND']->format('Y-m-d')}].";
+                        $eventsCasa4[$key4] = $tempEvent4;
+                    }
+                } else {
+                    $debugInfo[] = "Conflicto al intentar mover reserva en Casa 4: [{$event4['DTSTART']->format('Y-m-d')} - {$event4['DTEND']->format('Y-m-d')}].";
+                    $eventsCasa4[$key4] = $tempEvent4;
+                }
+            }
+        }
+    }
+
+    return $available;
+}
+
+$response = [];
+if (isset($_GET['start_date'], $_GET['end_date'])) {
+    $start_date = adaptDateFormat($_GET['start_date']);
+    $end_date = adaptDateFormat($_GET['end_date']);
+
+    if (!$start_date || !$end_date) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['error' => 100, 'message' => 'Formato de fecha no válido. Utilice el formato YYYY-MM-DD.']);
+        exit;
+    }
+
+    $start_date = parseDateTime($start_date);
+    $end_date = parseDateTime($end_date);
+
+    if ($start_date > $end_date) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['error' => 101, 'message' => 'La fecha de inicio debe ser anterior a la fecha de finalización.']);
+        exit;
+    }
+
+    $num_personas = isset($_GET['num_personas']) ? intval($_GET['num_personas']) : 1;
+    $casa_id = isset($_GET['casa']) ? intval($_GET['casa']) : null;
+    $tipo_cambio = isset($_GET['tipo_cambio']) ? floatval($_GET['tipo_cambio']) : null;
+    $dsct_base = isset($_GET['dsct_base']) ? floatval($_GET['dsct_base']) : 0;
+    $dsct_total = isset($_GET['dsct_total']) ? floatval($_GET['dsct_total']) : 0;
+    $es_cliente = isset($_GET['escliente']) ? intval($_GET['escliente']) : 0;
+
+    $casasDisponibles = [];
+    $selectedCasaDetails = [];
+    $eventsCasa2 = [];
+    $eventsCasa4 = [];
+    $switchFlag = false;
+    $debugInfo = [];
+    $casasCompletamenteDisponibles = 0; //Variable para contar casas completamente disponibles
+
+
+    // Ordenar calendarios por ID de casa
+    ksort($calendarios);
+
+    foreach ($calendarios as $casaId => $casaURL) {
+        $contenido = @file_get_contents($casaURL);
+        if ($contenido) {
+            $eventos = parseEventsFromICS($contenido);
+            $casaDisponible = checkAvailability($eventos, $start_date, $end_date);
+
+            if ($casaDisponible) {
+                $casasDisponibles[$casaId] = 1; // Collect all available houses
+                $casasCompletamenteDisponibles++; // Incrementamos el contador de casas completamente disponibles
+                if ($casaId == $casa_id) {
+                    $precioBaseTotal = 0;
+                    $interval = new DateInterval('P1D');
+                    $periodo = new DatePeriod($start_date, $interval, $end_date);
+
+                    foreach ($periodo as $day) {
+                        $precioEspecial = obtenerPrecioEspecial($day, $fechasEspeciales, $casaId);
+                        if ($precioEspecial !== null) {
+                            $precioBase = $precioEspecial;
+                        } else {
+                            $tipoPrecio = esTemporadaAlta($day) ? (esFinDeSemana($day) ? 'finDeSemanaAlta' : 'normalAlta') : (esFinDeSemana($day) ? 'finDeSemana' : 'normal');
+                            $precioBase = $precios[$casaId][$tipoPrecio];
+                        }
+                        $precioBaseConDescuento = $precioBase * ((100 - $dsct_base) / 100);
+                        $precioBaseTotal += $precioBaseConDescuento;
+                    }
+                    $noches = (int)$start_date->diff($end_date)->days; // excluye la fecha de salida
+                    $precioAdicionalTotal = max(0, $num_personas - 1) * $precios[$casaId]['personaAdicional'] * $noches;
+                    $precioTotal = $precioBaseTotal + $precioAdicionalTotal;
+                    $precioTotalConDescuento = $precioTotal * ((100 - $dsct_total) / 100);
+
+                    // Aplicar descuento del 10% si es cliente
+                    if ($es_cliente == 1) {
+                        $precioTotalConDescuento = $precioTotalConDescuento * 0.9;
+                    }
+
+                    $selectedCasaDetails = ['idCasa' => $casaId, 'precioTotal' => $precioTotalConDescuento, 'numPersonas' => $num_personas];
+                }
+            } else {
+                $casasDisponibles[$casaId] = 0;
+                if ($casaId == 2) {
+                    $eventsCasa2 = $eventos;
+                } elseif ($casaId == 4) {
+                    $eventsCasa4 = $eventos;
+                }
+            }
+        } else {
+            $response["error"] = "No se pudo obtener el contenido del calendario para la Casa Austin $casaId.";
+        }
+    }
+
+    // Intentar el cambio solo si ambas casas no están disponibles
+    if (isset($casasDisponibles[2]) && isset($casasDisponibles[4]) && $casasDisponibles[2] == 0 && $casasDisponibles[4] == 0) {
+        $switchSuccessful = findAndMoveReservations($eventsCasa2, $eventsCasa4, $start_date, $end_date, $debugInfo);
+
+        if ($switchSuccessful) {
+            // Volver a verificar la disponibilidad después del switch
+            $casaDisponible2 = checkAvailability($eventsCasa2, $start_date, $end_date);
+            $casaDisponible4 = checkAvailability($eventsCasa4, $start_date, $end_date);
+
+            if ($casaDisponible2 || $casaDisponible4) {
+                $switchFlag = true;
+                $casasDisponibles['2 ó 4'] = 1; // Indicar que la casa "2 ó 4" está disponible
+                $casasCompletamenteDisponibles++; //Añadimos la casa combinada como disponible
+            }
+        }
+    }
+
+    // Inicializar variables para disponibilidad parcial
+    $hayDisponibilidadParcial = false;
+    $casasConDisponibilidadParcial = 0;
+    $fechasDisponiblesPorCasa = [];
+    $message1 = ""; // Inicializamos vacío para definir después según los casos
+
+    // Este bloque inicialmente procesa la disponibilidad parcial cuando está disponible
+    if (isset($disponibilidad_por_fecha) && !empty($disponibilidad_por_fecha)) {
+        $casasConDisponibilidadParcial = 0;
+        $fechasDisponiblesPorCasa = [];
+        $hayDisponibilidadParcial = false;
+
+        // Organizar las fechas disponibles por casa
+        foreach ($disponibilidad_por_fecha as $fecha => $casas) {
+            foreach ($casas as $casaKey => $info) {
+                if ($info['disponible'] === true) {
+                    $casaId = str_replace('casa_', '', $casaKey);
+                    if (!isset($fechasDisponiblesPorCasa[$casaId])) {
+                        $fechasDisponiblesPorCasa[$casaId] = [];
+                        $casasConDisponibilidadParcial++;
+                    }
+                    $hayDisponibilidadParcial = true;
+                }
+            }
+        }
+    }
+
+    // Función para verificar si hay días de fin de semana en el período
+    function hayFinDeSemanaEnPeriodo($start_date, $end_date) {
+        $interval = new DateInterval('P1D');
+        $periodo = new DatePeriod($start_date, $interval, $end_date);
+
+        foreach ($periodo as $day) {
+            if (esFinDeSemana($day)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Construir recomendación para 5 personas o menos en fin de semana
+    $recomendacion2Personas = "";
+    if ($num_personas <= 5 && hayFinDeSemanaEnPeriodo($start_date, $end_date)) {
+        $recomendacion2Personas = "\n💡 Tip: Los días de semana son más recomendables para reservas de 5 personas o menos, ya que el costo es menor.";
+    }
+
+    // Definimos mensaje según el estado de disponibilidad
+    if (isset($response["estadoDisponibilidad"])) {
+        if ($response["estadoDisponibilidad"] == 1) {
+            // Disponibilidad completa
+            $message1 = sprintf(
+                "📅 Disponibilidad del %d al %d de %s de %s%s%s",
+                $start_date->format('d'),
+                $end_date->format('d'),
+                strftime('%B', $start_date->getTimestamp()),
+                $end_date->format('Y'),
+                $es_cliente == 1 ? "\n🎉 ¡Descuento del 10% aplicado por ser cliente de Casa Austin!" : "",
+                $recomendacion2Personas
+            );
+        } 
+        else if ($response["estadoDisponibilidad"] == 2) {
+            // Disponibilidad parcial
+            $message1 = sprintf(
+                "📅 Del %d al %d de %s de %s\n✨ Encontramos %d %s con algunas noches disponibles%s%s",
+                $start_date->format('d'),
+                $end_date->format('d'),
+                strftime('%B', $start_date->getTimestamp()),
+                $end_date->format('Y'),
+                $casasConDisponibilidadParcial,
+                $casasConDisponibilidadParcial == 1 ? "casa" : "casas",
+                $es_cliente == 1 ? "\n🎉 ¡Descuento del 10% aplicado por ser cliente de Casa Austin!" : "",
+                $recomendacion2Personas
+            );
+        }
+        else {
+            // Sin disponibilidad (estadoDisponibilidad = 0)
+            $message1 = sprintf(
+                "📅 Disponibilidad del %d al %d de %s de %s\nNo hay casas disponibles para estas fechas%s%s",
+                $start_date->format('d'),
+                $end_date->format('d'),
+                strftime('%B', $start_date->getTimestamp()),
+                $end_date->format('Y'),
+                $es_cliente == 1 ? "\n🎉 ¡Descuento del 10% aplicado por ser cliente de Casa Austin!" : "",
+                $recomendacion2Personas
+            );
+        }
+    } else {
+        // Caso por defecto si estadoDisponibilidad no está definido
+        $message1 = sprintf(
+            "📅 Disponibilidad del %d al %d de %s de %s%s%s",
+            $start_date->format('d'),
+            $end_date->format('d'),
+            strftime('%B', $start_date->getTimestamp()),
+            $end_date->format('Y'),
+            $es_cliente == 1 ? "\n🎉 ¡Descuento del 10% aplicado por ser cliente de Casa Austin!" : "",
+            $recomendacion2Personas
+        );
+    }
+
+    $message2 = "";
+    if ($casa_id) {
+        if (!empty($selectedCasaDetails)) {
+            $response["totalCasasDisponibles"] = 1;
+            
+            // Agregar precioTotalSoles al array de detalles si hay tipo de cambio
+            if ($tipo_cambio) {
+                $selectedCasaDetails['precioTotalSoles'] = round($selectedCasaDetails['precioTotal'] * $tipo_cambio, 2);
+                $message2 .= sprintf(
+                    "Casa %d: $%d Dólares ó S/.%0.2f Soles\n",
+                    $selectedCasaDetails['idCasa'],
+                    $selectedCasaDetails['precioTotal'],
+                    $selectedCasaDetails['precioTotalSoles']
+                );
+            } else {
+                $selectedCasaDetails['precioTotalSoles'] = 0;
+                $message2 .= sprintf(
+                    "Casa %d: $%d Dólares\n",
+                    $selectedCasaDetails['idCasa'],
+                    $selectedCasaDetails['precioTotal']
+                );
+            }
+            
+            // Agregar el array casasDisponibles con la casa específica
+            $response["casasDisponibles"] = [$selectedCasaDetails];
+        } else {
+            $availableCasasList = array_keys(array_filter($casasDisponibles));
+            $response["totalCasasDisponibles"] = 0;
+            $response["casasDisponibles"] = [];
+            $message2 = "No hay disponibilidad para Casa Austin $casa_id en las fechas seleccionadas." .
+                ($availableCasasList ? " \nTenemos estas casas disponibles para las fechas solicitadas: \n" . implode(" \n", array_map(function($id) {
+                    return "Casa Austin $id";
+                }, $availableCasasList)) : "");
+        }
+    } else {
+        $casasDisponiblesInfo = [];
+        // Ordenar por ID de casa
+        ksort($casasDisponibles);
+        foreach ($casasDisponibles as $casaId => $disponible) {
+            if ($disponible) {
+                if ($casaId == '2 ó 4') {
+                    $precioTotal = 0;
+                    $interval = new DateInterval('P1D');
+                    $periodo = new DatePeriod($start_date, $interval, $end_date);
+
+                    foreach ($periodo as $day) {
+                        $precioEspecial = obtenerPrecioEspecial($day, $fechasEspeciales, 2); // Usar los precios de la casa 2
+                        if ($precioEspecial !== null) {
+                            $precioBase = $precioEspecial;
+                        } else {
+                            $tipoPrecio = esTemporadaAlta($day) ? (esFinDeSemana($day) ? 'finDeSemanaAlta' : 'normalAlta') : (esFinDeSemana($day) ? 'finDeSemana' : 'normal');
+                            $precioBase = $precios[2][$tipoPrecio];
+                        }
+                        $precioBaseConDescuento = $precioBase * ((100 - $dsct_base) / 100);
+                        $precioAdicional = ($num_personas - 1) * $precios[2]['personaAdicional'];
+                        $precioTotal += $precioBaseConDescuento + $precioAdicional;
+                    }
+                    $precioTotalConDescuento = $precioTotal * ((100 - $dsct_total) / 100);
+
+                    // Aplicar descuento del 10% si es cliente
+                    if ($es_cliente == 1) {
+                        $precioTotalConDescuento = $precioTotalConDescuento * 0.9;
+                    }
+
+                    $casasDisponiblesInfo[] = ['idCasa' => '2 ó 4', 'precioTotal' => $precioTotalConDescuento, 'numPersonas' => $num_personas];
+                    if ($tipo_cambio) {
+                        $precioTotalSoles = $precioTotalConDescuento * $tipo_cambio;
+                        $message2 .= sprintf(
+                            "Casa 2 ó 4: $%d Dólares ó S/.%0.2f Soles\n",
+                            $precioTotalConDescuento,
+                            $precioTotalSoles
+                        );
+                    } else {
+                        $message2 .= sprintf(
+                            "Casa 2 ó 4: $%d Dólares\n",
+                            $precioTotalConDescuento
+                        );
+                    }
+                } else {
+                    $precioTotal = 0;
+                    $interval = new DateInterval('P1D');
+                    $periodo = new DatePeriod($start_date, $interval, $end_date);
+
+                    foreach ($periodo as $day) {
+                        $precioEspecial = obtenerPrecioEspecial($day, $fechasEspeciales, $casaId);
+                        if ($precioEspecial !== null) {
+                            $precioBase = $precioEspecial;
+                        } else {
+                            $tipoPrecio = esTemporadaAlta($day) ? (esFinDeSemana($day) ? 'finDeSemanaAlta' : 'normalAlta') : (esFinDeSemana($day) ? 'finDeSemana' : 'normal');
+                            $precioBase = $precios[$casaId][$tipoPrecio];
+                        }
+                        $precioBaseConDescuento = $precioBase * ((100 - $dsct_base) / 100);
+                        $precioAdicional = ($num_personas - 1) * $precios[$casaId]['personaAdicional'];
+                        $precioTotal += $precioBaseConDescuento + $precioAdicional;
+                    }
+                    $precioTotalConDescuento = $precioTotal * ((100 - $dsct_total) / 100);
+
+                    // Aplicar descuento del 10% si es cliente
+                    if ($es_cliente == 1) {
+                        $precioTotalConDescuento = $precioTotalConDescuento * 0.9;
+                    }
+
+                    $precioTotalSoles = $tipo_cambio ? round($precioTotalConDescuento * $tipo_cambio, 2) : 0;
+                    $casasDisponiblesInfo[] = [
+                        'idCasa' => $casaId,
+                        'precioTotal' => $precioTotalConDescuento,
+                        'precioTotalSoles' => $precioTotalSoles,
+                        'numPersonas' => $num_personas
+                    ];
+                    if ($tipo_cambio) {
+                        $precioTotalSoles = $precioTotalConDescuento * $tipo_cambio;
+                        $message2 .= sprintf(
+                            "Casa %d: $%d Dólares ó S/.%0.2f Soles\n",
+                            $casaId,
+                            $precioTotalConDescuento,
+                            $precioTotalSoles
+                        );
+                    } else {
+                        $message2 .= sprintf(
+                            "Casa %d: $%d Dólares\n",
+                            $casaId,
+                            $precioTotalConDescuento
+                        );
+                    }
+                }
+            }
+        }
+        $response["totalCasasDisponibles"] = count($casasDisponiblesInfo);
+        $response["casasDisponibles"] = $casasDisponiblesInfo;
+        if ($response["totalCasasDisponibles"] === 0) {
+            $message2 = "No hay casas disponibles en las fechas seleccionadas.";
+        }
+    }
+    // Agregar información detallada de disponibilidad por fecha
+    if (isset($_GET['detalles_disponibilidad']) && $_GET['detalles_disponibilidad'] == 1) {
+        $disponibilidad_por_fecha = [];
+        $interval = new DateInterval('P1D');
+        $periodo = new DatePeriod($start_date, $interval, $end_date);
+
+        foreach ($periodo as $fecha) {
+            $fecha_fmt = $fecha->format('Y-m-d');
+
+            // No incluir la fecha de salida en la disponibilidad
+            if ($fecha_fmt === $end_date->format('Y-m-d')) {
+                continue;
+            }
+
+            $disponibilidad_por_fecha[$fecha_fmt] = [];
+
+            foreach ($calendarios as $casaId => $casaURL) {
+                $contenido = @file_get_contents($casaURL);
+                if ($contenido) {
+                    $eventos = parseEventsFromICS($contenido);
+
+                    // Verificar si la fecha específica está ocupada
+                    $fecha_disponible = true;
+                    foreach ($eventos as $evento) {
+                        $event_start = $evento['DTSTART']->format('Y-m-d');
+                        $event_end = $evento['DTEND']->format('Y-m-d');
+
+                        if ($fecha_fmt >= $event_start && $fecha_fmt < $event_end) {
+                            $fecha_disponible = false;
+                            break;
+                        }
+                    }
+
+                    // Si está disponible, calculamos y añadimos el precio para esa noche específica
+                    if ($fecha_disponible) {
+                        // Calculamos el precio base según fecha (especial, fin de semana, temporada alta, etc)
+                        $precioEspecial = obtenerPrecioEspecial($fecha, $fechasEspeciales, $casaId);
+                        if ($precioEspecial !== null) {
+                            $precioBase = $precioEspecial;
+                        } else {
+                            $tipoPrecio = esTemporadaAlta($fecha) ? (esFinDeSemana($fecha) ? 'finDeSemanaAlta' : 'normalAlta') : (esFinDeSemana($fecha) ? 'finDeSemana' : 'normal');
+                            $precioBase = $precios[$casaId][$tipoPrecio];
+                        }
+
+                        // Aplicamos descuentos si existen
+                        $precioBaseConDescuento = $precioBase * ((100 - $dsct_base) / 100);
+
+                        // Precio por persona adicional
+                        $precioAdicional = ($num_personas - 1) * $precios[$casaId]['personaAdicional'];
+
+                        // Precio total para esta noche
+                        $precioTotal = $precioBaseConDescuento + $precioAdicional;
+                        $precioTotalConDescuento = $precioTotal * ((100 - $dsct_total) / 100);
+
+                        // Aplicar descuento del 10% si es cliente
+                        if ($es_cliente == 1) {
+                            $precioTotalConDescuento = $precioTotalConDescuento * 0.9;
+                        }
+
+                        // Guardar disponibilidad y precio
+                        $precioUSD = round($precioTotalConDescuento);
+                        $precioSoles = 0;
+
+                        // Calcular precio en soles si hay tipo de cambio disponible
+                        if ($tipo_cambio) {
+                            $precioSoles = round($precioUSD * $tipo_cambio, 2);
+                        }
+
+                        $disponibilidad_por_fecha[$fecha_fmt]["casa_" . $casaId] = [
+                            "disponible" => true,
+                            "precio" => $precioUSD,
+                            "precioSoles" => $precioSoles
+                        ];
+                    } else {
+                        $disponibilidad_por_fecha[$fecha_fmt]["casa_" . $casaId] = [
+                            "disponible" => false,
+                            "precio" => 0
+                        ];
+                    }
+                } else {
+                    $disponibilidad_por_fecha[$fecha_fmt]["casa_" . $casaId] = [
+                        "disponible" => "error",
+                        "precio" => 0
+                    ];
+                }
+            }
+        }
+
+        // Verificar disponibilidad total
+        if ($response["totalCasasDisponibles"] > 0) {
+            $response["estadoDisponibilidad"] = 1; // 1 = disponibilidad completa
+        } else {
+            // Inicializamos con 0 (sin disponibilidad) y actualizamos si hay parcial
+            $response["estadoDisponibilidad"] = 0; 
+
+            // Si no hay casas totalmente disponibles, verificamos si hay disponibilidad parcial
+            $fechasDisponiblesPorCasa = [];
+            $disponibilidadParcial = false;
+            $casasConDisponibilidadParcial = 0;
+
+            // Organizar las fechas disponibles por casa
+            foreach ($disponibilidad_por_fecha as $fecha => $casas) {
+                foreach ($casas as $casaKey => $info) {
+                    if ($info['disponible'] === true) {
+                        $casaId = str_replace('casa_', '', $casaKey);
+                        if (!isset($fechasDisponiblesPorCasa[$casaId])) {
+                            $fechasDisponiblesPorCasa[$casaId] = [];
+                            $casasConDisponibilidadParcial++;
+                        }
+                        $fechasDisponiblesPorCasa[$casaId][] = $fecha;
+                        $disponibilidadParcial = true;
+                    }
+                }
+            }
+
+            // Ordenar por número de casa
+            ksort($fechasDisponiblesPorCasa);
+
+            // Actualizar variables globales para el mensaje
+            $hayDisponibilidadParcial = $disponibilidadParcial;
+
+            // Añadir estado de disponibilidad parcial (2)
+            if ($disponibilidadParcial) {
+                $response["estadoDisponibilidad"] = 2; // 2 = disponibilidad parcial
+
+                // Actualizar el mensaje1 para indicar disponibilidad parcial
+                $message1 = sprintf(
+                    "📅 Del %d al %d de %s de %s\n✨ Encontramos %d %s con algunas noches disponibles%s",
+                    $start_date->format('d'),
+                    $end_date->format('d'),
+                    strftime('%B', $start_date->getTimestamp()),
+                    $end_date->format('Y'),
+                    $casasConDisponibilidadParcial,
+                    $casasConDisponibilidadParcial == 1 ? "casa" : "casas",
+                    $es_cliente == 1 ? "\n🎉 ¡Descuento del 10% aplicado por ser cliente de Casa Austin!" : ""
+                );
+
+                // Construir mensaje con fechas disponibles parciales
+                $message2 = "✅ Estas son las noches disponibles en cada casa:\n";
+
+                // Primero ordenamos todas las fechas del período
+                $todasFechas = array_keys($disponibilidad_por_fecha);
+                sort($todasFechas);
+
+                foreach ($fechasDisponiblesPorCasa as $casaId => $fechas) {
+                    $diasDisponibles = count($fechas);
+                    $totalDias = count($disponibilidad_por_fecha);
+                    $message2 .= sprintf("Casa %s: %d de %d noches disponibles\n", $casaId, $diasDisponibles, $totalDias);
+
+                    // Crear calendario visual con checkmarks o X y un salto de línea después de cada día
+                    $message2 .= "    ";
+                    foreach ($todasFechas as $fecha) {
+                        // Convertir día a español
+                        $timestamp = strtotime($fecha);
+                        $diasEs = [
+                            'Mon' => 'Lun',
+                            'Tue' => 'Mar',
+                            'Wed' => 'Mié',
+                            'Thu' => 'Jue',
+                            'Fri' => 'Vie',
+                            'Sat' => 'Sáb',
+                            'Sun' => 'Dom'
+                        ];
+                        $mesesEs = [
+                            'Jan' => 'Ene',
+                            'Feb' => 'Feb',
+                            'Mar' => 'Mar',
+                            'Apr' => 'Abr',
+                            'May' => 'May',
+                            'Jun' => 'Jun',
+                            'Jul' => 'Jul',
+                            'Aug' => 'Ago',
+                            'Sep' => 'Sep',
+                            'Oct' => 'Oct',
+                            'Nov' => 'Nov',
+                            'Dec' => 'Dic'
+                        ];
+
+                        $diaSemanaEn = date('D', $timestamp);
+                        $diaSemana = $diasEs[$diaSemanaEn];
+                        $diaMes = date('d', $timestamp);
+                        $mesEn = date('M', $timestamp);
+                        $mes = $mesesEs[$mesEn];
+                        $disponible = in_array($fecha, $fechas);
+                        $message2 .= sprintf("%s %s/%s: %s\n    ", 
+                            $diaSemana, 
+                            $diaMes, 
+                            $mes, 
+                            $disponible ? "✅" : "❌"
+                        );
+                    }
+                    $message2 .= "\n";
+                }
+            } else {
+                $response["estadoDisponibilidad"] = 0; // 0 = no hay disponibilidad
+                $message2 = "No hay disponibilidad en ninguna casa para las fechas seleccionadas.";
+            }
+        }
+
+        $response["disponibilidad_por_fecha"] = $disponibilidad_por_fecha;
+
+        // Construir recomendación para 5 personas o menos en fin de semana
+        $recomendacion2Personas = "";
+        if ($num_personas <= 5 && hayFinDeSemanaEnPeriodo($start_date, $end_date)) {
+            $recomendacion2Personas = "\n💡 Tip: Los días de semana son más recomendables para reservas de 5 personas o menos, ya que el costo es menor.";
+        }
+
+        // Verificar disponibilidad total y establecer estado
+        if ($response["totalCasasDisponibles"] > 0) {
+            $response["estadoDisponibilidad"] = 1; // disponibilidad completa
+            $message1 = sprintf(
+                "📅 Disponibilidad del %d al %d de %s de %s%s%s",
+                $start_date->format('d'),
+                $end_date->format('d'),
+                strftime('%B', $start_date->getTimestamp()),
+                $end_date->format('Y'),
+                $es_cliente == 1 ? "\n🎉 ¡Descuento del 10% aplicado por ser cliente de Casa Austin!" : "",
+                $recomendacion2Personas
+            );
+        } else {
+            // Verificar disponibilidad parcial
+            $fechasDisponiblesPorCasa = [];
+            $casasConDisponibilidadParcial = 0;
+            $disponibilidadParcial = false;
+
+            foreach ($disponibilidad_por_fecha as $fecha => $casas) {
+                foreach ($casas as $casaKey => $info) {
+                    if ($info['disponible'] === true) {
+                        $casaId = str_replace('casa_', '', $casaKey);
+                        if (!isset($fechasDisponiblesPorCasa[$casaId])) {
+                            $fechasDisponiblesPorCasa[$casaId] = [];
+                            $casasConDisponibilidadParcial++;
+                        }
+                        $fechasDisponiblesPorCasa[$casaId][] = $fecha;
+                        $disponibilidadParcial = true;
+                    }
+                }
+            }
+
+            if ($disponibilidadParcial) {
+                $response["estadoDisponibilidad"] = 2; // disponibilidad parcial
+                $message1 = sprintf(
+                    "📅 Del %d al %d de %s de %s\n✨ Encontramos %d %s con algunas noches disponibles%s%s",
+                    $start_date->format('d'),
+                    $end_date->format('d'),
+                    strftime('%B', $start_date->getTimestamp()),
+                    $end_date->format('Y'),
+                    $casasConDisponibilidadParcial,
+                    $casasConDisponibilidadParcial == 1 ? "casa" : "casas",
+                    $es_cliente == 1 ? "\n🎉 ¡Descuento del 10% aplicado por ser cliente de Casa Austin!" : "",
+                    $recomendacion2Personas
+                );
+            } else {
+                $response["estadoDisponibilidad"] = 0; // sin disponibilidad
+                $message1 = sprintf(
+                    "📅 Disponibilidad del %d al %d de %s de %s\nNo hay casas disponibles para estas fechas%s%s",
+                    $start_date->format('d'),
+                    $end_date->format('d'),
+                    strftime('%B', $start_date->getTimestamp()),
+                    $end_date->format('Y'),
+                    $es_cliente == 1 ? "\n🎉 ¡Descuento del 10% aplicado por ser cliente de Casa Austin!" : "",
+                    $recomendacion2Personas
+                );
+            }
+        }
+    }
+
+    $response["message1"] = $message1;
+    $response["message2"] = $message2;
+    $response["error"] = 0;
+    $response["message"] = "Consulta Correcta";
+    $response["switch"] = $switchFlag ? "si" : "no";
+    $response["debug"] = $debugInfo;
+} else {
+    // Si no se solicitan detalles de disponibilidad, usar el mensaje simple
+    if (empty($message1)) {
+        // Construir recomendación para 5 personas o menos en fin de semana
+        $recomendacion2Personas = "";
+        if ($num_personas <= 5 && hayFinDeSemanaEnPeriodo($start_date, $end_date)) {
+            $recomendacion2Personas = "\n💡 Tip: Los días de semana son más recomendables para reservas de 5 personas o menos, ya que el costo es menor.";
+        }
+
+        $message1 = sprintf(
+            "📅 Disponibilidad del %d al %d de %s de %s\nTenemos %d %s disponible%s%s%s",
+            $start_date->format('d'),
+            $end_date->format('d'),
+            strftime('%B', $start_date->getTimestamp()),
+            $end_date->format('Y'),
+            $casasCompletamenteDisponibles,
+            $casasCompletamenteDisponibles == 1 ? "casa" : "casas",
+            $casasCompletamenteDisponibles == 1 ? "" : "s",
+            $es_cliente == 1 ? "\n🎉 ¡Descuento del 10% aplicado por ser cliente de Casa Austin!" : "",
+            $recomendacion2Personas
+        );
+    }
+
+    $response["totalCasasDisponibles"] = 0;
+    $response["error"] = "Por favor, ingrese un rango de fechas (start_date y end_date) y opcionalmente el número de personas yo la casa en la consulta GET.";
+}
+
+header('Content-Type: application/json; charset=utf-8');
+echo json_encode($response);
+
+?>
