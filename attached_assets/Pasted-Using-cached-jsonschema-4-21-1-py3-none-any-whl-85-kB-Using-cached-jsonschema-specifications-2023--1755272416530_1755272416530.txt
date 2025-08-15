@@ -1,0 +1,81 @@
+Using cached jsonschema-4.21.1-py3-none-any.whl (85 kB)
+Using cached jsonschema_specifications-2023.12.1-py3-none-any.whl (18 kB)
+Using cached pillow-10.3.0-cp312-cp312-manylinux_2_28_x86_64.whl (4.5 MB)
+Using cached pkgutil_resolve_name-1.3.10-py3-none-any.whl (4.7 kB)
+Using cached PyJWT-2.8.0-py3-none-any.whl (22 kB)
+Using cached pytz-2024.1-py2.py3-none-any.whl (505 kB)
+Using cached PyYAML-6.0.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (724 kB)
+Using cached referencing-0.34.0-py3-none-any.whl (26 kB)
+Using cached requests-2.31.0-py3-none-any.whl (62 kB)
+Using cached rpds_py-0.18.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (1.1 MB)
+Using cached six-1.16.0-py2.py3-none-any.whl (11 kB)
+Using cached sqlparse-0.4.4-py3-none-any.whl (41 kB)
+Using cached typing_extensions-4.10.0-py3-none-any.whl (33 kB)
+Using cached uritemplate-4.1.1-py2.py3-none-any.whl (10 kB)
+Using cached urllib3-2.2.1-py3-none-any.whl (121 kB)
+Using cached zipp-3.18.1-py3-none-any.whl (8.2 kB)
+Building wheels for collected packages: backports.zoneinfo
+  Building wheel for backports.zoneinfo (pyproject.toml) ... error
+  error: subprocess-exited-with-error
+  
+  × Building wheel for backports.zoneinfo (pyproject.toml) did not run successfully.
+  │ exit code: 1
+  ╰─> [51 lines of output]
+      /tmp/pip-build-env-temj52ms/overlay/lib/python3.12/site-packages/setuptools/dist.py:759: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+      !!
+      
+              ********************************************************************************
+              Please consider removing the following classifiers in favor of a SPDX license expression:
+      
+              License :: OSI Approved :: Apache Software License
+      
+              See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+              ********************************************************************************
+      
+      !!
+        self._finalize_license_expression()
+      running bdist_wheel
+      running build
+      running build_py
+      creating build/lib.linux-x86_64-cpython-312/backports
+      copying src/backports/__init__.py -> build/lib.linux-x86_64-cpython-312/backports
+      creating build/lib.linux-x86_64-cpython-312/backports/zoneinfo
+      copying src/backports/zoneinfo/__init__.py -> build/lib.linux-x86_64-cpython-312/backports/zoneinfo
+      copying src/backports/zoneinfo/_common.py -> build/lib.linux-x86_64-cpython-312/backports/zoneinfo
+      copying src/backports/zoneinfo/_tzpath.py -> build/lib.linux-x86_64-cpython-312/backports/zoneinfo
+      copying src/backports/zoneinfo/_version.py -> build/lib.linux-x86_64-cpython-312/backports/zoneinfo
+      copying src/backports/zoneinfo/_zoneinfo.py -> build/lib.linux-x86_64-cpython-312/backports/zoneinfo
+      running egg_info
+      writing src/backports.zoneinfo.egg-info/PKG-INFO
+      writing dependency_links to src/backports.zoneinfo.egg-info/dependency_links.txt
+      writing requirements to src/backports.zoneinfo.egg-info/requires.txt
+      writing top-level names to src/backports.zoneinfo.egg-info/top_level.txt
+      reading manifest file 'src/backports.zoneinfo.egg-info/SOURCES.txt'
+      reading manifest template 'MANIFEST.in'
+      warning: no files found matching '*.png' under directory 'docs'
+      warning: no files found matching '*.svg' under directory 'docs'
+      no previously-included directories found matching 'docs/_build'
+      no previously-included directories found matching 'docs/_output'
+      adding license file 'LICENSE'
+      adding license file 'licenses/LICENSE_APACHE'
+      writing manifest file 'src/backports.zoneinfo.egg-info/SOURCES.txt'
+      copying src/backports/zoneinfo/__init__.pyi -> build/lib.linux-x86_64-cpython-312/backports/zoneinfo
+      copying src/backports/zoneinfo/py.typed -> build/lib.linux-x86_64-cpython-312/backports/zoneinfo
+      running build_ext
+      building 'backports.zoneinfo._czoneinfo' extension
+      creating build/temp.linux-x86_64-cpython-312/lib
+      gcc -isystem /nix/store/rxd3kdsc7k72198g58wk0qp3xdip5x5d-zlib-1.3.1-dev/include -isystem /nix/store/kfbfka4ykzp66mi2hb5v183s64ivv1r6-libXft-2.3.9-dev/include -isystem /nix/store/2imhf872xdkal60k4ypkr3dfj8940hgj-libxcrypt-4.4.38/include -isystem /nix/store/ffcy54i1yjp7nk1lwxcnbkwkzdh0yg6h-krb5-1.21.3-dev/include -isystem /nix/store/wli0iwx640zxjkyvzbbw5ljrf7d7wxbr-libidn2-2.3.8-dev/include -isystem /nix/store/pl2sf8yd2ydpmxfv3am14h0y2d6n9n2z-libssh2-1.11.1-dev/include -isystem /nix/store/96gg2hmb5h8bk9lw2mcd26nmyxzpjpkx-xz-5.8.1-dev/include -isystem /nix/store/y2jwi4a4pgmavi994lfdvc6nj45nxi4f-icu4c-76.1-dev/include -isystem /nix/store/iywn2pwh2cmyvq12d5a9jm9xgx86i2sw-libXrender-0.9.12-dev/include -isystem /nix/store/xdczp4bkrp2dff2apb1vbybbfmfi8f7d-brotli-1.1.0-dev/include -isystem /nix/store/g62rrqm02r4gjpgmq75702n7bip6zrji-abseil-cpp-20250127.1/include -isystem /nix/store/wjqj8ncgdxqpn78qp23blp5ijprpavp9-bzip2-1.0.8-dev/include -isystem /nix/store/fhzm23qj8n52xb7rhq4fx5pzwlkqafbz-re2-2024-07-02-dev/include -isystem /nix/store/mijswdfwx4yvqpfrxg6c0cs228w9v7ll-zstd-1.5.7-dev/include -isystem /nix/store/wp4nmh0byqn6w9885q10qm6v0vxq8m28-libxcb-1.17.0-dev/include -isystem /nix/store/f57f52ppyksjmdvdlmxbvxp2vc29jiq4-fontconfig-2.16.0-dev/include -isystem /nix/store/a92yy00dna3mpxl0ab9mzs8vbyc6qnfc-openjpeg-2.5.2-dev/include -isystem /nix/store/bqppwwi9g8nzbk0b6hq6fwkqnwd06y63-tcl-8.6.15/include -isystem /nix/store/2h7ka57m0a8bspl8lfvvz4j21n72gnl3-libimagequant-4.3.4/include -isystem /nix/store/gbcjq0rdlqwc3yixgi7gx6vb7xagv816-grpc-1.71.0/include -isystem /nix/store/0225zs9jl9s2y3ai1arbg0h9z7z4bmfi-openssl-3.4.1-dev/include -isystem /nix/store/8xj3g825qwj894bxafa8h98scxxyvxps-libdeflate-1.23/include -isystem /nix/store/3pclwk2qy9vh4l175ivj4v1jhqr1qw4h-nghttp2-1.65.0-dev/include -isystem /nix/store/hf83zvz1bkmfmd52nlzc79937ardd4gr-lcms2-2.17-dev/include -isystem /nix/store/b2aj478jxny0yvwqr6zglcmp99r3563b-libX11-1.8.12-dev/include -isystem /nix/store/glmlgiwv29vn9jaskk42byy0w6szph1c-libwebp-1.5.0/include -isystem /nix/store/w9qijf113qkgqcv54ydhbjh0rlslysbr-freetype-2.13.3-dev/include -isystem /nix/store/pyxxd3rq3swcrl93cq2bx6gjfwdpa1nc-mariadb-connector-c-3.3.5-dev/include -isystem /nix/store/b6y8k7i7bgkld9bgjjnsv5bqf2anq7yk-libjpeg-turbo-3.0.4-dev/include -isystem /nix/store/yl4f9w6g0msqj3nfmyndvkwh8bpcpp04-libtiff-4.7.0-dev/include -isystem /nix/store/5g9x5d47q7l3xwzalsc2hh4dc6lciri5-python3.12-greenlet-3.2.1/include -isystem /nix/store/m9rqkx8s9a45wivak202kiw7p11xp6n5-libwebp-1.5.0/include -isystem /nix/store/cy5f79cnkbnqr2rm04lh32m82dpif1qb-c-ares-1.34.5-dev/include -isystem /nix/store/skgkpw072rb1vff56y2yfiw1ahmjkac9-libjpeg-turbo-3.0.4-dev_private/include -isystem /nix/store/spg20iadf5ylh7pl1l9q8ydf7dqghdfi-xorgproto-2024.1/include -isystem /nix/store/s5jwhvn7j2gyr4abfzkjrg0j9hlma2xr-glibc-iconv-2.40/include -isystem /nix/store/hkxgmb75798m9ksgyyqlrzyknj23vav7-curl-8.14.1-dev/include -isystem /nix/store/i2c4lj0hirk7i27xgib08zy0rdrkfi70-libpng-apng-1.6.46-dev/include -isystem /nix/store/hsppjyxppm3gkb2m3m62ky2c3aarnf91-tk-8.6.15-dev/include -isystem /nix/store/w3y3kkvf7q5pky33pq97y6gdrhsc09qa-libtiff-4.7.0-dev_private/include -isystem /nix/store/h097imm3w6dpx10qynrd2sz9fks2wbq8-python3-3.12.11/include -isystem /nix/store/7jif4k8zgss9c19pk78k8i0f8f7am1mx-libpsl-0.21.5-dev/include -fPIC -I/nix/store/vnvdzw4182wb2ifzi0cczhv80yfnpx1q-python3-3.12.11/include/python3.12 -c lib/zoneinfo_module.c -o build/temp.linux-x86_64-cpython-312/lib/zoneinfo_module.o -std=c99
+      lib/zoneinfo_module.c: In function ‘zoneinfo_fromutc’:
+      lib/zoneinfo_module.c:600:19: error: ‘_PyLong_One’ undeclared (first use in this function); did you mean ‘_PyLong_New’?
+        600 |             one = _PyLong_One;
+            |                   ^~~~~~~~~~~
+            |                   _PyLong_New
+      lib/zoneinfo_module.c:600:19: note: each undeclared identifier is reported only once for each function it appears in
+      error: command '/nix/store/1yj5z39xwiram4s0dm1i2ldpw4cbmwa6-replit-runtime-path/bin/gcc' failed with exit code 1
+      [end of output]
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+  ERROR: Failed building wheel for backports.zoneinfo
+Failed to build backports.zoneinfo
+ERROR: Failed to build installable wheels for some pyproject.toml based projects (backports.zoneinfo)
+exit status 1
