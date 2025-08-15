@@ -95,7 +95,7 @@ class PricingCalculationService:
         final_price_usd = subtotal_usd - discount_applied['discount_amount_usd']
 
         # Convertir a soles
-        base_price_sol = base_price_usd * self.exchange_rate
+        base_price_sol = base_total_usd * self.exchange_rate
         extra_person_price_sol = extra_person_price_usd * self.exchange_rate
         subtotal_sol = subtotal_usd * self.exchange_rate
         final_price_sol = final_price_usd * self.exchange_rate
@@ -118,7 +118,7 @@ class PricingCalculationService:
             'property_id': property.id,
             'property_name': property.name,
             'property_slug': property.slug,
-            'base_price_usd': float(base_price_usd),
+            'base_price_usd': float(base_total_usd),
             'base_price_sol': float(base_price_sol),
             'extra_person_price_usd': float(extra_person_price_usd),
             'extra_person_price_sol': float(extra_person_price_sol),
@@ -199,7 +199,6 @@ class PricingCalculationService:
         # Verificar si es fecha especial
         if SpecialDatePricing.objects.filter(month=date.month, day=date.day, is_active=True).exists():
             special = SpecialDatePricing.objects.filter(month=date.month, day=date.day, is_active=True).first()
-            return f"Fecha Especial: {special.description}"</special_pricing.first()
             return f"Fecha Especial: {special.description}"
         
         # Verificar tipo de día
