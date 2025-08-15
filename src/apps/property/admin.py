@@ -204,6 +204,7 @@ class SpecialDatePricingAdmin(admin.ModelAdmin):
         """Agregar contexto adicional a la vista de lista"""
         extra_context = extra_context or {}
         extra_context['bulk_special_dates_url'] = '/property/admin/bulk-special-dates/'
+        extra_context['property_manager_url'] = '/property/admin/special-dates-manager/'
         
         # Agrupar fechas especiales por propiedad para mejor visualización
         from collections import defaultdict

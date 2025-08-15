@@ -1,0 +1,314 @@
+
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrahead %}
+<style>
+.special-dates-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.property-selector {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.dates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.date-card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.date-card.new {
+    border: 2px dashed #28a745;
+    background: #f8fff9;
+}
+
+.date-card input, .date-card select {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.date-card label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.month-names {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 5px;
+}
+
+.btn-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: #007cba;
+    color: white;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.remove-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    float: right;
+    font-size: 12px;
+}
+
+.property-select {
+    width: 300px;
+    padding: 10px;
+    font-size: 16px;
+}
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+&rsaquo; <a href="{% url 'admin:app_list' app_label='property' %}">Property</a>
+&rsaquo; <a href="{% url 'admin:property_specialdatepricing_changelist' %}">Fechas Especiales</a>
+&rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="special-dates-container">
+    <h1>🎉 {{ title }}</h1>
+
+    <!-- Selector de Propiedad -->
+    <div class="property-selector">
+        <h3>Seleccionar Propiedad</h3>
+        <select class="property-select" onchange="location.href='/property/admin/special-dates-manager/' + this.value + '/'">
+            <option value="">-- Selecciona una propiedad --</option>
+            {% for prop in properties %}
+            <option value="{{ prop.id }}" {% if property and prop.id == property.id %}selected{% endif %}>
+                {{ prop.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    {% if property %}
+    <div class="property-info">
+        <h2>🏠 {{ property.name }}</h2>
+        <p>Gestiona todas las fechas especiales para esta propiedad</p>
+    </div>
+
+    <form method="post" id="special-dates-form">
+        {% csrf_token %}
+        <input type="hidden" id="dates-data" name="dates_data" value="">
+        
+        <div class="btn-group">
+            <button type="button" class="btn btn-success" onclick="addNewDate()">
+                ➕ Agregar Nueva Fecha
+            </button>
+            <button type="submit" class="btn btn-primary">
+                💾 Guardar Todos los Cambios
+            </button>
+            <a href="{% url 'admin:property_specialdatepricing_changelist' %}" class="btn btn-secondary">
+                ↩️ Volver a Lista
+            </a>
+        </div>
+
+        <div id="dates-container" class="dates-grid">
+            <!-- Las fechas se cargarán aquí con JavaScript -->
+        </div>
+
+        <div class="btn-group">
+            <button type="submit" class="btn btn-primary">
+                💾 Guardar Todos los Cambios
+            </button>
+        </div>
+    </form>
+    {% endif %}
+</div>
+
+<script>
+let datesData = {{ special_dates|safe }};
+let dateCounter = 0;
+
+const monthNames = [
+    '', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
+
+function renderDates() {
+    const container = document.getElementById('dates-container');
+    container.innerHTML = '';
+    
+    datesData.forEach((date, index) => {
+        const card = createDateCard(date, index);
+        container.appendChild(card);
+    });
+    
+    updateFormData();
+}
+
+function createDateCard(date, index) {
+    const div = document.createElement('div');
+    div.className = `date-card ${date.id ? '' : 'new'}`;
+    
+    div.innerHTML = `
+        <button type="button" class="remove-btn" onclick="removeDate(${index})">🗑️</button>
+        
+        <label>Descripción:</label>
+        <input type="text" 
+               value="${date.description || ''}" 
+               placeholder="Ej: Navidad, Año Nuevo..."
+               onchange="updateDate(${index}, 'description', this.value)">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+                <label>Mes:</label>
+                <select onchange="updateDate(${index}, 'month', this.value)">
+                    <option value="">--</option>
+                    ${Array.from({length: 12}, (_, i) => {
+                        const monthNum = i + 1;
+                        return `<option value="${monthNum}" ${date.month == monthNum ? 'selected' : ''}>
+                                    ${monthNum} - ${monthNames[monthNum]}
+                                </option>`;
+                    }).join('')}
+                </select>
+            </div>
+            
+            <div>
+                <label>Día:</label>
+                <select onchange="updateDate(${index}, 'day', this.value)">
+                    <option value="">--</option>
+                    ${Array.from({length: 31}, (_, i) => {
+                        const dayNum = i + 1;
+                        return `<option value="${dayNum}" ${date.day == dayNum ? 'selected' : ''}>
+                                    ${dayNum}
+                                </option>`;
+                    }).join('')}
+                </select>
+            </div>
+        </div>
+        
+        <label>Precio USD:</label>
+        <input type="number" 
+               step="0.01" 
+               value="${date.price_usd || ''}" 
+               placeholder="150.00"
+               onchange="updateDate(${index}, 'price_usd', parseFloat(this.value))">
+        
+        <label>
+            <input type="checkbox" 
+                   ${date.is_active ? 'checked' : ''} 
+                   onchange="updateDate(${index}, 'is_active', this.checked)">
+            Fecha activa
+        </label>
+        
+        ${date.month && date.day ? 
+            `<div class="month-names">📅 ${date.day} de ${monthNames[date.month]}</div>` : 
+            '<div class="month-names">⚠️ Selecciona mes y día</div>'
+        }
+    `;
+    
+    return div;
+}
+
+function addNewDate() {
+    datesData.push({
+        id: null,
+        month: '',
+        day: '',
+        description: '',
+        price_usd: '',
+        is_active: true
+    });
+    renderDates();
+}
+
+function removeDate(index) {
+    if (confirm('¿Estás seguro de eliminar esta fecha especial?')) {
+        datesData.splice(index, 1);
+        renderDates();
+    }
+}
+
+function updateDate(index, field, value) {
+    datesData[index][field] = value;
+    updateFormData();
+}
+
+function updateFormData() {
+    document.getElementById('dates-data').value = JSON.stringify(datesData);
+}
+
+// Cargar fechas al inicio
+document.addEventListener('DOMContentLoaded', function() {
+    if (datesData.length === 0) {
+        addNewDate(); // Agregar una fecha vacía por defecto
+    } else {
+        renderDates();
+    }
+});
+
+// Validar antes de enviar
+document.getElementById('special-dates-form').addEventListener('submit', function(e) {
+    const validDates = datesData.filter(date => 
+        date.description && date.month && date.day && date.price_usd
+    );
+    
+    if (validDates.length === 0) {
+        e.preventDefault();
+        alert('Debe agregar al menos una fecha especial válida');
+        return;
+    }
+    
+    updateFormData();
+});
+</script>
+{% endblock %}
