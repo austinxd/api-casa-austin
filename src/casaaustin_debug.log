@@ -20,3 +20,35 @@ Propiedad: CA1
 Invitados: 0
 Mensaje enviado a través del executor.
 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-08-15 16:23:12,200 signals 13659 140001647537344 Nuevo cliente creado: Clients object (d1a26945-65ed-480a-9de9-657c967f7047)
+DEBUG 2025-08-15 16:23:12,218 signals 13659 140001647537344 Cliente actualizado: Clients object (d1a26945-65ed-480a-9de9-657c967f7047)
+WARNING 2025-08-15 16:23:12,350 signals 13659 140001647537344 Error al actualizar audiencia de cliente d1a26945-65ed-480a-9de9-657c967f7047. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"A_9alm-3LjmOI2XWftqI_aO"}}
+DEBUG 2025-08-15 16:23:12,372 signals 13659 140001647537344 Código de referido generado para cliente d1a26945-65ed-480a-9de9-657c967f7047: MAN152
+WARNING 2025-08-15 16:23:12,463 signals 13659 140001647537344 Error al actualizar audiencia de cliente d1a26945-65ed-480a-9de9-657c967f7047. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"ADakWa_Nkagupv9PUvVJwl9"}}
+DEBUG 2025-08-15 16:23:12,465 telegram_notifier 13659 140001647537344 Preparando para enviar mensaje: 🆕 **NUEVO CLIENTE REGISTRADO** 🆕
+👤 Cliente: Mantenimiento Mantenimiento
+📄 Documento: Documento Nacional de Identidad: 0
+📧 Email: mantenimiento@mail.com
+📱 Teléfono: +0
+🔑 Contraseña: ❌ Pendiente
+🔗 Código referido: MAN152
+DEBUG 2025-08-15 16:23:12,465 telegram_notifier 13659 140001647537344 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-08-15 16:23:13,208 telegram_notifier 13659 140001647537344 Mensaje enviado.
+DEBUG 2025-08-15 16:23:13,209 telegram_notifier 13659 140001647537344 Mensaje enviado a través del executor.
+DEBUG 2025-08-15 16:23:13,209 signals 13659 140001647537344 Notificación enviada para nuevo cliente: d1a26945-65ed-480a-9de9-657c967f7047
+DEBUG 2025-08-15 16:23:13,228 signals 13659 140001647537344 Nuevo cliente creado: Clients object (14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+DEBUG 2025-08-15 16:23:13,244 signals 13659 140001647537344 Cliente actualizado: Clients object (14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+WARNING 2025-08-15 16:23:13,355 signals 13659 140001647537344 Error al actualizar audiencia de cliente 14ae737b-26b5-4555-acb5-3bdcd0d680f6. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"A4qx6b-2M-u4UMkwo3IZ4e-"}}
+DEBUG 2025-08-15 16:23:13,371 signals 13659 140001647537344 Código de referido generado para cliente 14ae737b-26b5-4555-acb5-3bdcd0d680f6: AIR185
+WARNING 2025-08-15 16:23:13,457 signals 13659 140001647537344 Error al actualizar audiencia de cliente 14ae737b-26b5-4555-acb5-3bdcd0d680f6. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"Ad05jnL9r9ZGkxOBwMFtomZ"}}
+DEBUG 2025-08-15 16:23:13,459 telegram_notifier 13659 140001647537344 Preparando para enviar mensaje: 🆕 **NUEVO CLIENTE REGISTRADO** 🆕
+👤 Cliente: AirBnB *
+📄 Documento: Documento Nacional de Identidad: 00
+📧 Email: airbnb@mail.com
+📱 Teléfono: +0
+🔑 Contraseña: ❌ Pendiente
+🔗 Código referido: AIR185
+DEBUG 2025-08-15 16:23:13,459 telegram_notifier 13659 140001647537344 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-08-15 16:23:13,726 telegram_notifier 13659 140001647537344 Mensaje enviado.
+DEBUG 2025-08-15 16:23:13,726 telegram_notifier 13659 140001647537344 Mensaje enviado a través del executor.
+DEBUG 2025-08-15 16:23:13,726 signals 13659 140001647537344 Notificación enviada para nuevo cliente: 14ae737b-26b5-4555-acb5-3bdcd0d680f6
