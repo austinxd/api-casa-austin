@@ -359,6 +359,9 @@ class PricingCalculationService:
             automatic_discounts = AutomaticDiscount.objects.filter(is_active=True, deleted=False)
             logger.info(f"Descuentos automáticos disponibles: {automatic_discounts.count()}")
             
+            # Evaluar todos los descuentos automáticos aplicables y elegir el mejor
+            applicable_discounts = []
+            
             for auto_discount in automatic_discounts:
                 logger.info(f"Evaluando descuento: {auto_discount.name} - Trigger: {auto_discount.trigger}")
                 applies, message = auto_discount.applies_to_client(client, check_in_date)
@@ -366,16 +369,28 @@ class PricingCalculationService:
                 
                 if applies:
                     discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
-                    logger.info(f"Descuento aplicado: ${discount_amount_usd} USD")
-                    discount_info.update({
-                        'type': 'automatic',
-                        'description': message,
-                        'discount_percentage': round(float(auto_discount.discount_percentage), 2),
-                        'discount_amount_usd': discount_amount_usd,
-                        'discount_amount_sol': discount_amount_usd * self.exchange_rate,
-                        'code_used': None
+                    logger.info(f"Descuento evaluado: ${discount_amount_usd} USD ({auto_discount.discount_percentage}%)")
+                    applicable_discounts.append({
+                        'discount': auto_discount,
+                        'message': message,
+                        'amount_usd': discount_amount_usd
                     })
-                    break  # Aplicar solo el primer descuento automático que califique
+            
+            # Si hay descuentos aplicables, elegir el que mayor ahorro genere
+            if applicable_discounts:
+                # Ordenar por monto de descuento (de mayor a menor)
+                best_discount = max(applicable_discounts, key=lambda x: x['amount_usd'])
+                
+                logger.info(f"Mejor descuento seleccionado: {best_discount['discount'].name} - ${best_discount['amount_usd']} USD")
+                
+                discount_info.update({
+                    'type': 'automatic',
+                    'description': best_discount['message'],
+                    'discount_percentage': round(float(best_discount['discount'].discount_percentage), 2),
+                    'discount_amount_usd': best_discount['amount_usd'],
+                    'discount_amount_sol': best_discount['amount_usd'] * self.exchange_rate,
+                    'code_used': None
+                })
 
         return discount_info
 
