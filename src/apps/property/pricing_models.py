@@ -539,7 +539,7 @@ class AutomaticDiscount(BaseModel):
                 status__in=['approved', 'completed']
             ).count()
             if reservation_count >= self.min_reservations:
-                return True, f"Descuento cliente recurrente: {self.discount_percentage}%"
+                return True, f"Descuento de cliente: {self.discount_percentage}%"
         
         elif self.trigger == self.DiscountTrigger.FIRST_TIME:
             reservation_count = Reservation.objects.filter(
