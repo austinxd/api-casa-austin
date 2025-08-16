@@ -278,11 +278,37 @@ class SpecialDatePricingAdmin(admin.ModelAdmin):
 
 
 class DiscountCodeAdmin(admin.ModelAdmin):
-    list_display = ('code', 'description', 'discount_type', 'discount_value', 'used_count', 'usage_limit', 'is_active')
-    list_filter = ('discount_type', 'is_active')
+    list_display = ('code', 'description', 'discount_type', 'discount_value', 'used_count', 'usage_limit', 'get_day_restrictions', 'is_active')
+    list_filter = ('discount_type', 'is_active', 'restrict_weekdays', 'restrict_weekends')
     search_fields = ('code', 'description')
     filter_horizontal = ('properties',)
     readonly_fields = ('used_count',)
+    
+    fieldsets = (
+        ('Información del Código', {
+            'fields': ('code', 'description', 'is_active')
+        }),
+        ('Configuración de Descuento', {
+            'fields': ('discount_type', 'discount_value', 'min_amount_usd', 'max_discount_usd')
+        }),
+        ('Validez', {
+            'fields': ('start_date', 'end_date', 'usage_limit', 'used_count')
+        }),
+        ('Restricciones', {
+            'fields': ('properties', 'restrict_weekdays', 'restrict_weekends'),
+            'description': 'Restricciones de aplicabilidad del código'
+        }),
+    )
+    
+    def get_day_restrictions(self, obj):
+        """Muestra las restricciones de días de forma legible"""
+        if obj.restrict_weekdays:
+            return "🗓️ Solo días de semana"
+        elif obj.restrict_weekends:
+            return "🎉 Solo fines de semana"
+        else:
+            return "📅 Todos los días"
+    get_day_restrictions.short_description = "Restricciones de Días"
 
 
 class AdditionalServiceAdmin(admin.ModelAdmin):

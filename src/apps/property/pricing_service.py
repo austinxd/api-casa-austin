@@ -311,7 +311,7 @@ class PricingCalculationService:
                     })
                     return discount_info
                 
-                is_valid, message = code.is_valid(property.id, subtotal_usd)
+                is_valid, message = code.is_valid(property.id, subtotal_usd, check_in_date)
 
                 if is_valid:
                     discount_amount_usd = code.calculate_discount(subtotal_usd)
