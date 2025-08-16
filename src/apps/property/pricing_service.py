@@ -76,7 +76,7 @@ class PricingCalculationService:
             'message1': chatbot_messages['message1'],
             'message2': chatbot_messages['message2']
         }
-        
+
         # Solo incluir client_info si se proporciona un client_id
         if client_id:
             general_info['client_info'] = self._get_client_info(client)
@@ -109,7 +109,7 @@ class PricingCalculationService:
         final_price_usd = subtotal_usd - Decimal(str(discount_applied['discount_amount_usd']))
         final_price_sol = (subtotal_usd * self.exchange_rate) - Decimal(str(discount_applied['discount_amount_sol']))
 
-        
+
 
 
         # Convertir a soles
@@ -259,7 +259,7 @@ class PricingCalculationService:
 
     def _apply_discounts(self, property, subtotal_usd, subtotal_sol, nights, guests, discount_code, client, check_in_date):
         """Aplica descuentos automáticos o códigos de descuento"""
-        
+
         # Si no hay código de descuento ni cliente, no procesar descuentos
         if not discount_code and not client:
             return {
@@ -270,7 +270,7 @@ class PricingCalculationService:
                 'discount_amount_sol': Decimal('0.00'),
                 'code_used': None
             }
-            
+
         discount_info = {
             'type': 'none',
             'description': 'Sin descuento',
@@ -285,14 +285,14 @@ class PricingCalculationService:
             try:
                 # Limpiar el código y convertir a mayúsculas
                 clean_code = discount_code.strip().upper()
-                
+
                 # Buscar el código de descuento con búsqueda case-insensitive
                 code = DiscountCode.objects.filter(
                     code__iexact=clean_code, 
                     is_active=True, 
                     deleted=False
                 ).first()
-                
+
                 if not code:
                     # Debug: listar códigos disponibles
                     available_codes = DiscountCode.objects.filter(
@@ -300,7 +300,7 @@ class PricingCalculationService:
                         deleted=False
                     ).values_list('code', flat=True)
                     print(f"DEBUG: Código '{clean_code}' no encontrado. Códigos disponibles: {list(available_codes)}")
-                    
+
                     discount_info.update({
                         'type': 'error',
                         'description': f"Código '{clean_code}' no encontrado",
@@ -311,7 +311,13 @@ class PricingCalculationService:
                     })
                     return discount_info
                 
-                is_valid, message = code.is_valid(property.id, subtotal_usd)
+                # Verificar código de descuento si se proporciona
+                is_valid, message = code.is_valid(
+                    property_id=property.id, 
+                    total_amount_usd=subtotal_usd,
+                    check_in_date=check_in_date,
+                    check_out_date=(check_in_date + timedelta(days=nights)) # Recalcular check_out_date si es necesario
+                )
 
                 if is_valid:
                     discount_amount_usd = code.calculate_discount(subtotal_usd)
@@ -334,7 +340,7 @@ class PricingCalculationService:
                         'code_used': clean_code
                     })
 
-            
+
             except Exception as e:
                 discount_info.update({
                     'type': 'error',
@@ -348,13 +354,13 @@ class PricingCalculationService:
         # Si no hay código válido, verificar descuentos automáticos
         if client:
             from .pricing_models import AutomaticDiscount
-            
+
             # Buscar descuentos automáticos aplicables al cliente
             automatic_discounts = AutomaticDiscount.objects.filter(is_active=True)
-            
+
             for auto_discount in automatic_discounts:
                 applies, message = auto_discount.applies_to_client(client, check_in_date)
-                
+
                 if applies:
                     discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
                     discount_info.update({
@@ -508,7 +514,7 @@ class PricingCalculationService:
         """Genera mensajes contextuales para chatbot similares al sistema PHP"""
         from datetime import datetime
         import locale
-        
+
         # Configurar localización en español
         try:
             locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
@@ -563,14 +569,14 @@ class PricingCalculationService:
 
     def _generate_message1(self, estado_disponibilidad, fecha_inicio_str, fecha_fin_str, available_properties, guests, nights, client, discount_info):
         """Genera mensaje1 según el estado de disponibilidad"""
-        
+
         if estado_disponibilidad > 0:
             # Hay propiedades disponibles
             if estado_disponibilidad == 1:
                 message1 = f"📅 Disponibilidad del {fecha_inicio_str} al {fecha_fin_str}"
             else:
                 message1 = f"📅 Del {fecha_inicio_str} al {fecha_fin_str} ✨ Encontramos {estado_disponibilidad} casa(s) disponibles"
-            
+
             # Agregar información de descuento si aplica
             if discount_info and discount_info.get('type') not in ['none', 'error']:
                 if discount_info['type'] == 'discount_code':
@@ -584,11 +590,11 @@ class PricingCalculationService:
                 elif discount_info['type'] == 'automatic':
                     percentage = discount_info.get('discount_percentage', 0)
                     message1 += f"\n✨ Descuento automático del {percentage}% aplicado por ser cliente registrado"
-            
+
             # Recomendación para grupos pequeños en fin de semana
             if guests <= 4 and nights <= 3:
                 message1 += "\n💡 Perfecto para una escapada de fin de semana"
-                
+
         else:
             # Sin disponibilidad
             message1 = f"📅 Disponibilidad del {fecha_inicio_str} al {fecha_fin_str}\n❌ No hay casas disponibles para estas fechas"
@@ -597,16 +603,16 @@ class PricingCalculationService:
 
     def _generate_message2(self, estado_disponibilidad, available_properties, all_properties, property_id):
         """Genera message2 según la disponibilidad específica"""
-        
+
         if estado_disponibilidad == 0:
             # Sin disponibilidad
             return "No hay casas disponibles en las fechas seleccionadas. Te sugerimos revisar otras fechas."
-        
+
         if property_id and available_properties:
             # Casa específica disponible
             property_info = available_properties[0]
             return f"🏠 {property_info['property_name']}: ${property_info['final_price_usd']} Dólares ó S/.{property_info['final_price_sol']} Soles"
-        
+
         if not property_id and available_properties:
             # Mostrar lista de casas disponibles
             casas_disponibles = []
@@ -615,5 +621,5 @@ class PricingCalculationService:
                     f"🏠 {prop['property_name']}: ${prop['final_price_usd']} USD ó S/.{prop['final_price_sol']} SOL"
                 )
             return "\n".join(casas_disponibles)
-        
+
         return "Información de disponibilidad no disponible."
