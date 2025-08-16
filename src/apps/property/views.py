@@ -486,6 +486,143 @@ class CalculatePricingAPIView(APIView):
 
 
 
+class GenerateSimpleDiscountAPIView(APIView):
+    """
+    Endpoint para generar un código de descuento simple válido por X días
+    POST /api/v1/properties/generate-simple-discount/
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'validity_days': {
+                        'type': 'integer',
+                        'description': 'Número de días de validez del código (por defecto: 7)',
+                        'minimum': 1,
+                        'maximum': 365
+                    },
+                    'discount_percentage': {
+                        'type': 'number',
+                        'description': 'Porcentaje de descuento (por defecto: 10)',
+                        'minimum': 1,
+                        'maximum': 100
+                    }
+                }
+            }
+        },
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'data': {
+                        'type': 'object',
+                        'properties': {
+                            'code': {'type': 'string'},
+                            'discount_percentage': {'type': 'number'},
+                            'created_date': {'type': 'string', 'format': 'date'},
+                            'expiration_date': {'type': 'string', 'format': 'date'},
+                            'validity_days': {'type': 'integer'},
+                            'days_remaining': {'type': 'integer'},
+                            'is_active': {'type': 'boolean'}
+                        }
+                    },
+                    'message': {'type': 'string'}
+                }
+            },
+            400: 'Bad Request - Parámetros inválidos'
+        },
+        description='Genera un código de descuento simple válido por X días'
+    )
+    def post(self, request):
+        try:
+            from datetime import date, timedelta
+            import random
+            import string
+            
+            # Obtener parámetros con valores por defecto
+            validity_days = request.data.get('validity_days', 7)
+            discount_percentage = request.data.get('discount_percentage', 10)
+            
+            # Validar parámetros
+            try:
+                validity_days = int(validity_days)
+                if validity_days < 1 or validity_days > 365:
+                    return Response({
+                        'success': False,
+                        'error': 1,
+                        'message': 'validity_days debe estar entre 1 y 365'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            except (ValueError, TypeError):
+                return Response({
+                    'success': False,
+                    'error': 2,
+                    'message': 'validity_days debe ser un número entero'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                discount_percentage = float(discount_percentage)
+                if discount_percentage < 1 or discount_percentage > 100:
+                    return Response({
+                        'success': False,
+                        'error': 3,
+                        'message': 'discount_percentage debe estar entre 1 y 100'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            except (ValueError, TypeError):
+                return Response({
+                    'success': False,
+                    'error': 4,
+                    'message': 'discount_percentage debe ser un número'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Generar código único
+            while True:
+                code = 'SIMPLE' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+                if not DiscountCode.objects.filter(code=code).exists():
+                    break
+            
+            # Calcular fechas
+            start_date = date.today()
+            end_date = start_date + timedelta(days=validity_days)
+            
+            # Crear el código de descuento
+            discount_code = DiscountCode.objects.create(
+                code=code,
+                description=f"Descuento temporal {discount_percentage}% válido por {validity_days} días",
+                discount_type='percentage',
+                discount_value=discount_percentage,
+                start_date=start_date,
+                end_date=end_date,
+                usage_limit=1,  # Una sola vez por defecto
+                is_active=True
+            )
+            
+            return Response({
+                'success': True,
+                'data': {
+                    'code': discount_code.code,
+                    'discount_percentage': float(discount_code.discount_value),
+                    'created_date': discount_code.start_date.isoformat(),
+                    'expiration_date': discount_code.end_date.isoformat(),
+                    'validity_days': validity_days,
+                    'days_remaining': (discount_code.end_date - start_date).days,
+                    'is_active': discount_code.is_active
+                },
+                'message': f'Código de descuento {discount_code.code} generado exitosamente'
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': 5,
+                'message': 'Error interno del servidor',
+                'detail': str(e) if settings.DEBUG else None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class GenerateDynamicDiscountAPIView(APIView):
     """
     Endpoint para generar códigos de descuento dinámicos

@@ -4,7 +4,8 @@ from .views import (
     CheckAvaiblePorperty, 
     PropertyPhotoViewSet,
     CalculatePricingAPIView,
-    GenerateDynamicDiscountAPIView
+    GenerateDynamicDiscountAPIView,
+    GenerateSimpleDiscountAPIView
 )
 
 from django.urls import include, path
@@ -23,7 +24,7 @@ urlpatterns = [
     path('properties/<int:property_id>/photos/', PropertyPhotoApiView.as_view({'get': 'list', 'post': 'create'}), name='property-photos'),
     # Endpoint para calcular precios
     path('calculate-pricing/', CalculatePricingAPIView.as_view(), name='calculate-pricing'),
-
+    path('generate-simple-discount/', GenerateSimpleDiscountAPIView.as_view(), name='generate-simple-discount'),
     # Endpoint para generar códigos dinámicos
     path('generate-discount/', GenerateDynamicDiscountAPIView.as_view(), name='generate-discount'),
     path('admin/bulk-special-dates/', BulkSpecialDateView.as_view(), name='bulk-special-dates'),
