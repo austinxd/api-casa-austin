@@ -111,7 +111,7 @@ class PropertyAdmin(admin.ModelAdmin):
             "fields": ("airbnb_url", "on_temperature_pool_url", "off_temperature_pool_url")
         })
     )
-
+    
     def get_inline_instances(self, request, obj=None):
         """Customizar los inlines según el contexto"""
         inlines = super().get_inline_instances(request, obj)
@@ -153,17 +153,17 @@ class PropertyPricingAdmin(admin.ModelAdmin):
             'description': 'Precios base para temporada alta'
         }),
     )
-
+    
     def get_special_dates_count(self, obj):
         """Muestra cuántas fechas especiales tiene la propiedad con enlace para gestionarlas"""
         from django.utils.html import format_html
         from django.urls import reverse
-
+        
         count = obj.property.special_date_pricing.filter(deleted=False, is_active=True).count()
-
+        
         # Crear enlace directo al admin de la propiedad donde están las fechas especiales
         property_admin_url = reverse('admin:property_property_change', args=[obj.property.id])
-
+        
         if count == 0:
             return format_html(
                 '<a href="{}">⚠️ Sin fechas especiales - Gestionar</a>',
@@ -197,7 +197,7 @@ class SeasonPricingAdmin(admin.ModelAdmin):
             'description': 'Define el rango de fechas que se repetirá cada año. Ejemplo: Verano del 15 de Diciembre al 15 de Marzo'
         }),
     )
-
+    
     def get_date_range_display(self, obj):
         """Muestra el rango de fechas en formato legible"""
         return obj.get_date_range_display()
@@ -207,14 +207,14 @@ class SpecialDatePricingAdmin(admin.ModelAdmin):
     list_display = ('property', 'description', 'get_date_display', 'price_usd', 'is_active')
     list_filter = ('is_active', 'property', 'month')
     search_fields = ('property__name', 'description')
-
+    
     # Agrupar por propiedad
     list_display_links = ('description',)
-
+    
     def get_queryset(self, request):
         """Ordenar por propiedad y luego por fecha"""
         return super().get_queryset(request).select_related('property').order_by('property__name', 'month', 'day')
-
+    
     fieldsets = (
         ('Información de la Fecha Especial Recurrente', {
             'fields': ('property', 'description', 'is_active'),
@@ -231,38 +231,38 @@ class SpecialDatePricingAdmin(admin.ModelAdmin):
             'description': 'Precio base especial para esta fecha'
         }),
     )
-
+    
     def get_date_display(self, obj):
         """Muestra la fecha en formato legible"""
         return obj.get_date_display()
     get_date_display.short_description = 'Fecha'
-
+    
     def changelist_view(self, request, extra_context=None):
         """Agregar contexto adicional a la vista de lista"""
         extra_context = extra_context or {}
         extra_context['bulk_special_dates_url'] = '/property/admin/bulk-special-dates/'
         extra_context['property_manager_url'] = '/property/admin/special-dates-manager/'
-
+        
         # URL para gestión de fechas por propiedad - usar URL directa
         extra_context['property_dates_url'] = '/property/admin/special-dates-manager/'
-
+        
         # Agrupar fechas especiales por propiedad para mejor visualización
         from collections import defaultdict
         special_dates_by_property = defaultdict(list)
-
+        
         for special_date in SpecialDatePricing.objects.select_related('property').filter(deleted=False).order_by('property__name', 'month', 'day'):
             special_dates_by_property[special_date.property].append(special_date)
-
+        
         extra_context['special_dates_by_property'] = dict(special_dates_by_property)
-
+        
         return super().changelist_view(request, extra_context)
-
+    
     class Media:
         css = {
             'all': ('admin/css/changelists.css',)
         }
         js = ()
-
+    
     def get_urls(self):
         from django.urls import path
         urls = super().get_urls()
@@ -270,44 +270,19 @@ class SpecialDatePricingAdmin(admin.ModelAdmin):
             path('bulk-add/', self.admin_site.admin_view(self.bulk_add_view), name='bulk-add-special-dates'),
         ]
         return custom_urls + urls
-
+    
     def bulk_add_view(self, request):
         """Redireccionar a la vista de carga masiva"""
         from django.shortcuts import redirect
         return redirect('/property/admin/bulk-special-dates/')
 
 
-@admin.register(DiscountCode)
 class DiscountCodeAdmin(admin.ModelAdmin):
-    list_display = ['code', 'description', 'discount_type', 'discount_value', 'start_date', 'end_date', 'restrict_weekdays', 'restrict_weekends', 'is_active']
-    list_filter = ['discount_type', 'is_active', 'restrict_weekdays', 'restrict_weekends', 'start_date', 'end_date']
-    search_fields = ['code', 'description']
-    filter_horizontal = ['properties']
-    fieldsets = [
-        ('Información Básica', {
-            'fields': ['code', 'description', 'is_active']
-        }),
-        ('Configuración de Descuento', {
-            'fields': ['discount_type', 'discount_value', 'max_discount_usd']
-        }),
-        ('Restricciones de Monto', {
-            'fields': ['min_amount_usd']
-        }),
-        ('Restricciones de Fechas', {
-            'fields': ['start_date', 'end_date']
-        }),
-        ('Restricciones de Reserva', {
-            'fields': ['min_nights', 'max_nights', 'restrict_weekdays', 'restrict_weekends'],
-            'description': 'Restricciones específicas para los días y duración de la reserva'
-        }),
-        ('Límites de Uso', {
-            'fields': ['usage_limit', 'used_count']
-        }),
-        ('Propiedades Aplicables', {
-            'fields': ['properties'],
-            'description': 'Dejar vacío para aplicar a todas las propiedades'
-        })
-    ]
+    list_display = ('code', 'description', 'discount_type', 'discount_value', 'used_count', 'usage_limit', 'is_active')
+    list_filter = ('discount_type', 'is_active')
+    search_fields = ('code', 'description')
+    filter_horizontal = ('properties',)
+    readonly_fields = ('used_count',)
 
 
 class AdditionalServiceAdmin(admin.ModelAdmin):
