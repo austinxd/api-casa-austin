@@ -13,7 +13,7 @@ class Command(BaseCommand):
         
         # Buscar reservas que ya pasaron checkout pero no tienen puntos asignados
         pending_reservations = Reservation.objects.filter(
-            origin='aus',
+            origin__in=['aus', 'client'],
             check_out_date__lt=today,  # Ya pasó el checkout
             client__isnull=False,
             price_sol__gt=0,

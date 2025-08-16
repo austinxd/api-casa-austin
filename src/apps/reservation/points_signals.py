@@ -14,8 +14,8 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
     if not instance.client:
         return
 
-    # Solo asignar puntos para reservas de Austin
-    if instance.origin != 'aus':
+    # Solo asignar puntos para reservas de Austin y Cliente Web
+    if instance.origin not in ['aus', 'client']:
         return
 
     # Verificar que no sea cliente de mantenimiento o AirBnB

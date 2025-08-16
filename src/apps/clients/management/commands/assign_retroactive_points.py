@@ -39,7 +39,7 @@ class Command(BaseCommand):
         today = timezone.now().date()
         
         completed_reservations = Reservation.objects.filter(
-            origin='aus',  # Solo reservas de Austin
+            origin__in=['aus', 'client'],  # Reservas de Austin y Cliente Web
             check_out_date__lt=today,  # Ya pasó el checkout
             client__isnull=False,  # Tiene cliente
             price_sol__gt=0,  # Tiene precio válido
