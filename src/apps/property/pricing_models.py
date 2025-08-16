@@ -2,6 +2,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
+from datetime import timedelta
 from apps.core.models import BaseModel
 from apps.property.models import Property
 from apps.clients.models import Clients
@@ -323,6 +324,26 @@ class DiscountCode(BaseModel):
         help_text="Propiedades aplicables (vacío = todas)"
     )
     
+    # Restricciones de días de la semana
+    restrict_weekdays = models.BooleanField(
+        default=False, 
+        help_text="Aplicar solo a días de semana (Lunes-Jueves)"
+    )
+    restrict_weekends = models.BooleanField(
+        default=False, 
+        help_text="Aplicar solo a fines de semana (Viernes-Domingo)"
+    )
+    min_nights = models.PositiveIntegerField(
+        null=True, 
+        blank=True, 
+        help_text="Número mínimo de noches requeridas"
+    )
+    max_nights = models.PositiveIntegerField(
+        null=True, 
+        blank=True, 
+        help_text="Número máximo de noches permitidas"
+    )
+    
     class Meta:
         verbose_name = "🎫 Código de Descuento"
         verbose_name_plural = "🎫 Códigos de Descuento"
@@ -331,7 +352,7 @@ class DiscountCode(BaseModel):
     def __str__(self):
         return f"{self.code} - {self.description}"
     
-    def is_valid(self, property_id=None, total_amount_usd=None):
+    def is_valid(self, property_id=None, total_amount_usd=None, check_in_date=None, check_out_date=None):
         """Verifica si el código de descuento es válido"""
         from django.utils import timezone
         from datetime import date
@@ -361,6 +382,54 @@ class DiscountCode(BaseModel):
         # Verificar monto mínimo
         if self.min_amount_usd and total_amount_usd and total_amount_usd < self.min_amount_usd:
             return False, f"Monto mínimo requerido: ${self.min_amount_usd:.2f} (actual: ${total_amount_usd:.2f})"
+        
+        # Verificar restricciones de fechas de reserva
+        if check_in_date and check_out_date:
+            # Verificar número de noches
+            nights = (check_out_date - check_in_date).days
+            
+            if self.min_nights and nights < self.min_nights:
+                return False, f"Mínimo {self.min_nights} noches requeridas (actual: {nights})"
+            
+            if self.max_nights and nights > self.max_nights:
+                return False, f"Máximo {self.max_nights} noches permitidas (actual: {nights})"
+            
+            # Verificar restricciones de días de la semana
+            if self.restrict_weekdays or self.restrict_weekends:
+                current_date = check_in_date
+                valid_days = []
+                
+                while current_date < check_out_date:
+                    day_of_week = current_date.weekday()  # 0=Lunes, 6=Domingo
+                    
+                    # Verificar si es día de semana (Lunes-Jueves: 0-3)
+                    is_weekday = day_of_week <= 3
+                    # Verificar si es fin de semana (Viernes-Domingo: 4-6)
+                    is_weekend = day_of_week >= 4
+                    
+                    if self.restrict_weekdays and is_weekday:
+                        valid_days.append(current_date)
+                    elif self.restrict_weekends and is_weekend:
+                        valid_days.append(current_date)
+                    elif not self.restrict_weekdays and not self.restrict_weekends:
+                        valid_days.append(current_date)
+                    
+                    current_date += timedelta(days=1)
+                
+                # Si hay restricciones y no hay días válidos
+                if (self.restrict_weekdays or self.restrict_weekends) and len(valid_days) == 0:
+                    if self.restrict_weekdays:
+                        return False, "Este código solo aplica para reservas en días de semana (Lunes-Jueves)"
+                    if self.restrict_weekends:
+                        return False, "Este código solo aplica para reservas en fines de semana (Viernes-Domingo)"
+                
+                # Si solo algunos días son válidos, informar
+                total_nights = (check_out_date - check_in_date).days
+                if len(valid_days) < total_nights and (self.restrict_weekdays or self.restrict_weekends):
+                    if self.restrict_weekdays:
+                        return False, f"Todas las noches deben ser días de semana (Lunes-Jueves)"
+                    if self.restrict_weekends:
+                        return False, f"Todas las noches deben ser fines de semana (Viernes-Domingo)"
         
         return True, f"Código válido - Descuento aplicado: {self.discount_value}{'%' if self.discount_type == 'percentage' else ' USD'}"
     
