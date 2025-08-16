@@ -203,6 +203,7 @@ class SeasonPricingAdmin(admin.ModelAdmin):
         return obj.get_date_range_display()
     get_date_range_display.short_description = 'Período'
 
+@admin.register(SpecialDatePricing)
 class SpecialDatePricingAdmin(admin.ModelAdmin):
     list_display = ('property', 'description', 'get_date_display', 'price_usd', 'is_active')
     list_filter = ('is_active', 'property', 'month')
@@ -277,6 +278,7 @@ class SpecialDatePricingAdmin(admin.ModelAdmin):
         return redirect('/property/admin/bulk-special-dates/')
 
 
+@admin.register(DiscountCode)
 class DiscountCodeAdmin(admin.ModelAdmin):
     list_display = ('code', 'description', 'discount_type', 'discount_value', 'used_count', 'usage_limit', 'get_day_restrictions', 'is_active')
     list_filter = ('discount_type', 'is_active', 'restrict_weekdays', 'restrict_weekends')
@@ -352,8 +354,8 @@ admin.site.register(ProfitPropertyAirBnb)
 
 # Registrar modelos de precios en el admin
 admin.site.register(ExchangeRate, ExchangeRateAdmin)
-# Previously, SeasonPricing was registered directly, now it uses the @admin.register decorator.
-admin.site.register(DiscountCode, DiscountCodeAdmin)
+# SeasonPricing usa @admin.register decorator
+# DiscountCode usa clase DiscountCodeAdmin definida arriba (sin registro duplicado)
 admin.site.register(AdditionalService, AdditionalServiceAdmin)
 admin.site.register(CancellationPolicy, CancellationPolicyAdmin)
 admin.site.register(AutomaticDiscount, AutomaticDiscountAdmin)
