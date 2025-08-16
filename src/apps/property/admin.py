@@ -203,7 +203,6 @@ class SeasonPricingAdmin(admin.ModelAdmin):
         return obj.get_date_range_display()
     get_date_range_display.short_description = 'Período'
 
-@admin.register(SpecialDatePricing)
 class SpecialDatePricingAdmin(admin.ModelAdmin):
     list_display = ('property', 'description', 'get_date_display', 'price_usd', 'is_active')
     list_filter = ('is_active', 'property', 'month')
