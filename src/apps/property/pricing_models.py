@@ -554,7 +554,7 @@ class AutomaticDiscount(BaseModel):
             return False, "Descuento no activo"
 
         if self.trigger == self.DiscountTrigger.BIRTHDAY:
-            if client.birth_date and client.birth_date.month == booking_date.month:
+            if client.date and client.date.month == booking_date.month:
                 return True, f"¡Feliz cumpleaños! {self.discount_percentage}% de descuento"
 
         elif self.trigger == self.DiscountTrigger.RETURNING:
