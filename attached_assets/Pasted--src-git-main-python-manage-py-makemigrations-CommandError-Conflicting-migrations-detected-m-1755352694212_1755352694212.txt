@@ -1,0 +1,112 @@
+➜  src git:(main) ✗ python manage.py makemigrations
+CommandError: Conflicting migrations detected; multiple leaf nodes in the migration graph: (0025_dynamicdiscountconfig_and_more, 0027_dynamicdiscountconfig_and_more in property).
+To fix them run 'python manage.py makemigrations --merge'
+➜  src git:(main) ✗ python manage.py makemigrations --merge
+Merging property
+  Branch 0025_dynamicdiscountconfig_and_more
+    - Alter field description on specialdatepricing
+    - Add field restrict_weekdays to discountcode
+    - Add field restrict_weekends to discountcode
+    - Create model DynamicDiscountConfig
+    - Change Meta options on automaticdiscount
+  Branch 0027_dynamicdiscountconfig_and_more
+    - Create model PropertyPhoto
+    - Add field image_file to propertyphoto
+    - Alter field image_url on propertyphoto
+    - Alter field image_file on propertyphoto
+    - Alter field image_file on propertyphoto
+    - Alter field image_file on propertyphoto
+    - Add field banos to property
+    - Add field caracteristicas to property
+    - Add field descripcion to property
+    - Add field detalle_dormitorios to property
+    - Add field dormitorios to property
+    - Add field hora_ingreso to property
+    - Add field hora_salida to property
+    - Add field precio_desde to property
+    - Add field precio_extra_persona to property
+    - Add field titulo to property
+    - Alter field precio_extra_persona on property
+    - Alter field description on specialdatepricing
+    - Alter field description on specialdatepricing
+    - Add field restrict_weekdays to discountcode
+    - Add field restrict_weekends to discountcode
+    - Create model DynamicDiscountConfig
+    - Change Meta options on automaticdiscount
+
+Merging will only work if the operations printed above do not conflict
+with each other (working on different fields or models)
+Should these migration branches be merged? [y/N] y
+
+Created new merge migration /srv/casaaustin/api-casa-austin/src/apps/property/migrations/0028_merge_20250816_0857.py
+➜  src git:(main) ✗ python manage.py migrate               
+Operations to perform:
+  Apply all migrations: accounts, admin, auth, clients, contenttypes, property, reservation, sessions
+Running migrations:
+  Applying property.0025_dynamicdiscountconfig_and_more...Traceback (most recent call last):
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/backends/utils.py", line 87, in _execute
+    return self.cursor.execute(sql)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/backends/mysql/base.py", line 75, in execute
+    return self.cursor.execute(query, args)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/MySQLdb/cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/MySQLdb/cursors.py", line 330, in _query
+    db.query(q)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/MySQLdb/connections.py", line 261, in query
+    _mysql.connection.query(self, query)
+MySQLdb.OperationalError: (1050, "Table 'property_dynamicdiscountconfig' already exists")
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/srv/casaaustin/api-casa-austin/src/manage.py", line 22, in <module>
+    main()
+  File "/srv/casaaustin/api-casa-austin/src/manage.py", line 18, in main
+    execute_from_command_line(sys.argv)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/management/__init__.py", line 436, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/management/base.py", line 412, in run_from_argv
+    self.execute(*args, **cmd_options)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/management/base.py", line 458, in execute
+    output = self.handle(*args, **options)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/management/base.py", line 106, in wrapper
+    res = handle_func(*args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/management/commands/migrate.py", line 356, in handle
+    post_migrate_state = executor.migrate(
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/migrations/executor.py", line 135, in migrate
+    state = self._migrate_all_forwards(
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/migrations/executor.py", line 167, in _migrate_all_forwards
+    state = self.apply_migration(
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/migrations/executor.py", line 252, in apply_migration
+    state = migration.apply(state, schema_editor)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/migrations/migration.py", line 132, in apply
+    operation.database_forwards(
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/migrations/operations/models.py", line 96, in database_forwards
+    schema_editor.create_model(model)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/backends/base/schema.py", line 451, in create_model
+    self.execute(sql, params or None)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/backends/base/schema.py", line 201, in execute
+    cursor.execute(sql, params)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/backends/utils.py", line 102, in execute
+    return super().execute(sql, params)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/backends/utils.py", line 67, in execute
+    return self._execute_with_wrappers(
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/backends/utils.py", line 80, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/backends/utils.py", line 89, in _execute
+    return self.cursor.execute(sql, params)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/backends/utils.py", line 87, in _execute
+    return self.cursor.execute(sql)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/backends/mysql/base.py", line 75, in execute
+    return self.cursor.execute(query, args)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/MySQLdb/cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/MySQLdb/cursors.py", line 330, in _query
+    db.query(q)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/MySQLdb/connections.py", line 261, in query
+    _mysql.connection.query(self, query)
+django.db.utils.OperationalError: (1050, "Table 'property_dynamicdiscountconfig' already exists")
