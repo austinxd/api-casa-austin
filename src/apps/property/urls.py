@@ -16,12 +16,12 @@ router = DefaultRouter()
 
 router.register("property", PropertyApiView, basename="property")
 router.register("profit", ProfitPropertyApiView, basename="profit")
-router.register("photos", PropertyPhotoApiView, basename="property-photos")
+router.register("photos", PropertyPhotoViewSet, basename="property-photos")
 
 urlpatterns = [
     path("", include(router.urls)),
-    path("prop/check-avaible/", CheckAvailabilityApiView.as_view()),
-    path('properties/<int:property_id>/photos/', PropertyPhotoApiView.as_view({'get': 'list', 'post': 'create'}), name='property-photos'),
+    path("prop/check-avaible/", CheckAvaiblePorperty.as_view()),
+    path('properties/<int:property_id>/photos/', PropertyPhotoViewSet.as_view({'get': 'list', 'post': 'create'}), name='property-photos'),
     # Endpoint para calcular precios
     path('calculate-pricing/', CalculatePricingAPIView.as_view(), name='calculate-pricing'),
     path('generate-simple-discount/', GenerateSimpleDiscountAPIView.as_view(), name='generate-simple-discount'),
