@@ -541,46 +541,39 @@ class AutomaticDiscount(BaseModel):
     class Meta:
         verbose_name = "🤖 Descuento Automático"
         verbose_name_plural = "🤖 Descuentos Automáticos"
-        ordering = ['trigger']
 
     def __str__(self):
-        return f"{self.name} - {self.discount_percentage}%"
+        return f"{self.name} ({self.get_trigger_display()})"
 
-    def applies_to_client(self, client, check_in_date=None):
-        """Verifica si el descuento aplica al cliente"""
-        if not self.is_active or not client:
-            return False, "Descuento inactivo o cliente no válido"
-
-        from datetime import date
+    def applies_to_client(self, client, booking_date):
+        """Verifica si el descuento automático aplica al cliente"""
         from apps.reservation.models import Reservation
+        from datetime import date
+
+        if not self.is_active:
+            return False, "Descuento no activo"
 
         if self.trigger == self.DiscountTrigger.BIRTHDAY:
-            if client.date:
-                # Si se proporciona check_in_date, verificar si la reserva es PARA el mes de cumpleaños
-                if check_in_date and client.date.month == check_in_date.month:
-                    return True, f"Descuento por cumpleaños: {self.discount_percentage}%"
-                # Si no se proporciona check_in_date, usar la lógica anterior por compatibilidad
-                elif not check_in_date and client.date.month == date.today().month:
-                    return True, f"Descuento por cumpleaños: {self.discount_percentage}%"
+            if client.birth_date and client.birth_date.month == booking_date.month:
+                return True, f"¡Feliz cumpleaños! {self.discount_percentage}% de descuento"
 
         elif self.trigger == self.DiscountTrigger.RETURNING:
-            reservation_count = Reservation.objects.filter(
-                client=client,
-                deleted=False,
-                status__in=['approved', 'completed']
-            ).count()
-            if reservation_count >= self.min_reservations:
-                return True, f"Descuento de cliente: {self.discount_percentage}%"
-
-        elif self.trigger == self.DiscountTrigger.FIRST_TIME:
-            reservation_count = Reservation.objects.filter(
+            reservations_count = Reservation.objects.filter(
                 client=client,
                 deleted=False
             ).count()
-            if reservation_count == 0:
-                return True, f"Descuento primera reserva: {self.discount_percentage}%"
+            if reservations_count >= self.min_reservations:
+                return True, f"Cliente frecuente: {self.discount_percentage}% de descuento"
 
-        return False, "No aplica descuento automático"
+        elif self.trigger == self.DiscountTrigger.FIRST_TIME:
+            reservations_count = Reservation.objects.filter(
+                client=client,
+                deleted=False
+            ).count()
+            if reservations_count == 0:
+                return True, f"Bienvenido! {self.discount_percentage}% de descuento en tu primera reserva"
+
+        return False, "No aplica"
 
     def calculate_discount(self, total_amount_usd):
         """Calcula el descuento en USD"""
@@ -588,3 +581,80 @@ class AutomaticDiscount(BaseModel):
         if self.max_discount_usd:
             discount = min(discount, self.max_discount_usd)
         return discount
+
+
+class DynamicDiscountConfig(BaseModel):
+    """Configuración para generar códigos de descuento dinámicos"""
+
+    name = models.CharField(max_length=100, help_text="Nombre de la configuración")
+    prefix = models.CharField(max_length=10, help_text="Prefijo para los códigos generados (ej: PROMO)")
+    discount_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('1.00')), MaxValueValidator(Decimal('100.00'))],
+        help_text="Porcentaje de descuento"
+    )
+    validity_days = models.PositiveIntegerField(
+        default=7,
+        help_text="Días de validez desde la creación del código"
+    )
+    min_amount_usd = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('30.00'),
+        help_text="Monto mínimo en USD para aplicar descuento"
+    )
+    max_discount_usd = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Descuento máximo en USD"
+    )
+    usage_limit = models.PositiveIntegerField(
+        default=1,
+        help_text="Límite de usos por código generado"
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "⚡ Generador de Códigos Dinámicos"
+        verbose_name_plural = "⚡ Generadores de Códigos Dinámicos"
+
+    def __str__(self):
+        return f"{self.name} ({self.prefix}XX - {self.discount_percentage}%)"
+
+    def generate_code(self):
+        """Genera un nuevo código de descuento dinámico"""
+        import random
+        import string
+        from datetime import date, timedelta
+
+        # Generar código único
+        suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        code = f"{self.prefix}{suffix}"
+
+        # Verificar que el código no exista
+        while DiscountCode.objects.filter(code=code).exists():
+            suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+            code = f"{self.prefix}{suffix}"
+
+        # Calcular fechas
+        start_date = date.today()
+        end_date = start_date + timedelta(days=self.validity_days)
+
+        # Crear el código de descuento
+        discount_code = DiscountCode.objects.create(
+            code=code,
+            description=f"Código dinámico generado - {self.name}",
+            discount_type=DiscountCode.DiscountType.PERCENTAGE,
+            discount_value=self.discount_percentage,
+            min_amount_usd=self.min_amount_usd,
+            max_discount_usd=self.max_discount_usd,
+            start_date=start_date,
+            end_date=end_date,
+            usage_limit=self.usage_limit,
+            is_active=True
+        )
+
+        return discount_code

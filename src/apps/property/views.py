@@ -14,7 +14,7 @@ from apps.core.paginator import CustomPagination
 from apps.core.functions import update_air_bnb_api
 
 from .models import Property, ProfitPropertyAirBnb, PropertyPhoto
-from .pricing_models import ExchangeRate, DiscountCode, SeasonPricing, AdditionalService, CancellationPolicy
+from .pricing_models import ExchangeRate, DiscountCode, DynamicDiscountConfig, SeasonPricing, AdditionalService, CancellationPolicy
 from apps.reservation.models import Reservation
 from apps.clients.models import Clients as Client
 
@@ -483,6 +483,167 @@ class CalculatePricingAPIView(APIView):
                 return Response({
                     'error': 8,
                     'error_message': 'La fecha de entrada no puede ser en el pasado'
+
+
+
+class GenerateDynamicDiscountAPIView(APIView):
+    """
+    Endpoint para generar códigos de descuento dinámicos
+    POST /api/v1/properties/generate-discount/
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'config_name': {
+                        'type': 'string',
+                        'description': 'Nombre de la configuración de descuento a usar'
+                    }
+                },
+                'required': ['config_name']
+            }
+        },
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'error': {'type': 'integer'},
+                    'data': {
+                        'type': 'object',
+                        'properties': {
+                            'code': {'type': 'string'},
+                            'description': {'type': 'string'},
+                            'discount_percentage': {'type': 'number'},
+                            'min_amount_usd': {'type': 'number'},
+                            'max_discount_usd': {'type': 'number'},
+                            'start_date': {'type': 'string', 'format': 'date'},
+                            'end_date': {'type': 'string', 'format': 'date'},
+                            'validity_days': {'type': 'integer'},
+                            'usage_limit': {'type': 'integer'},
+                            'expires_in_hours': {'type': 'number'}
+                        }
+                    },
+                    'message': {'type': 'string'}
+                }
+            },
+            400: 'Bad Request - Parámetros inválidos',
+            404: 'Not Found - Configuración no encontrada'
+        },
+        description='Genera un código de descuento dinámico basado en una configuración predefinida'
+    )
+    def post(self, request):
+        try:
+            config_name = request.data.get('config_name')
+            
+            if not config_name:
+                return Response({
+                    'success': False,
+                    'error': 1,
+                    'message': 'config_name es requerido'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Buscar la configuración
+            try:
+                config = DynamicDiscountConfig.objects.get(
+                    name__iexact=config_name.strip(),
+                    is_active=True,
+                    deleted=False
+                )
+            except DynamicDiscountConfig.DoesNotExist:
+                # Listar configuraciones disponibles para debugging
+                available_configs = DynamicDiscountConfig.objects.filter(
+                    is_active=True, 
+                    deleted=False
+                ).values_list('name', flat=True)
+                
+                return Response({
+                    'success': False,
+                    'error': 2,
+                    'message': f'Configuración "{config_name}" no encontrada',
+                    'available_configs': list(available_configs)
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            # Generar el código
+            discount_code = config.generate_code()
+            
+            # Calcular cuántas horas quedan hasta la expiración
+            from datetime import datetime, timezone
+            now = datetime.now().date()
+            days_until_expiry = (discount_code.end_date - now).days
+            expires_in_hours = days_until_expiry * 24
+
+            return Response({
+                'success': True,
+                'error': 0,
+                'data': {
+                    'code': discount_code.code,
+                    'description': discount_code.description,
+                    'discount_percentage': float(discount_code.discount_value),
+                    'min_amount_usd': float(discount_code.min_amount_usd) if discount_code.min_amount_usd else None,
+                    'max_discount_usd': float(discount_code.max_discount_usd) if discount_code.max_discount_usd else None,
+                    'start_date': discount_code.start_date.isoformat(),
+                    'end_date': discount_code.end_date.isoformat(),
+                    'validity_days': config.validity_days,
+                    'usage_limit': discount_code.usage_limit,
+                    'expires_in_hours': expires_in_hours
+                },
+                'message': f'Código de descuento {discount_code.code} generado exitosamente'
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': 3,
+                'message': 'Error interno del servidor',
+                'detail': str(e) if settings.DEBUG else None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @extend_schema(
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'data': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'name': {'type': 'string'},
+                                'prefix': {'type': 'string'},
+                                'discount_percentage': {'type': 'number'},
+                                'validity_days': {'type': 'integer'},
+                                'min_amount_usd': {'type': 'number'},
+                                'usage_limit': {'type': 'integer'}
+                            }
+                        }
+                    },
+                    'message': {'type': 'string'}
+                }
+            }
+        },
+        description='Lista las configuraciones disponibles para generar códigos dinámicos'
+    )
+    def get(self, request):
+        """Lista las configuraciones disponibles"""
+        configs = DynamicDiscountConfig.objects.filter(
+            is_active=True, 
+            deleted=False
+        ).values(
+            'name', 'prefix', 'discount_percentage', 
+            'validity_days', 'min_amount_usd', 'usage_limit'
+        )
+        
+        return Response({
+            'success': True,
+            'data': list(configs),
+            'message': f'{len(configs)} configuraciones disponibles'
+        }, status=status.HTTP_200_OK)
+
                 }, status=status.HTTP_400_BAD_REQUEST)
 
             # Validar número de huéspedes (asignar 1 por defecto si no se envía)

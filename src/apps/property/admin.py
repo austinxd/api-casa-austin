@@ -7,6 +7,7 @@ from .pricing_models import (
     SeasonPricing,
     SpecialDatePricing,
     DiscountCode,
+    DynamicDiscountConfig,
     AdditionalService,
     CancellationPolicy,
     AutomaticDiscount
@@ -341,6 +342,32 @@ class AutomaticDiscountAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 
+@admin.register(DynamicDiscountConfig)
+class DynamicDiscountConfigAdmin(admin.ModelAdmin):
+    list_display = ('name', 'prefix', 'discount_percentage', 'validity_days', 'min_amount_usd', 'usage_limit', 'is_active')
+    list_filter = ('is_active', 'validity_days')
+    search_fields = ('name', 'prefix')
+    
+    fieldsets = (
+        ('Información General', {
+            'fields': ('name', 'prefix', 'is_active')
+        }),
+        ('Configuración del Descuento', {
+            'fields': ('discount_percentage', 'min_amount_usd', 'max_discount_usd', 'usage_limit')
+        }),
+        ('Validez', {
+            'fields': ('validity_days',),
+            'description': 'Los códigos generados serán válidos por este número de días desde su creación'
+        }),
+    )
+    
+    def get_readonly_fields(self, request, obj=None):
+        """Hacer algunos campos de solo lectura después de la creación"""
+        if obj:  # Si está editando un objeto existente
+            return ['prefix']
+        return []
+
+
 # Configurar títulos del admin para organizar mejor
 admin.site.site_header = "Casa Austin - Panel de Administración"
 admin.site.site_title = "Casa Austin Admin"
@@ -355,6 +382,7 @@ admin.site.register(ProfitPropertyAirBnb)
 admin.site.register(ExchangeRate, ExchangeRateAdmin)
 # SeasonPricing usa @admin.register decorator
 # DiscountCode usa @admin.register decorator
+# DynamicDiscountConfig usa @admin.register decorator
 # SpecialDatePricing usa @admin.register decorator
 admin.site.register(AdditionalService, AdditionalServiceAdmin)
 admin.site.register(CancellationPolicy, CancellationPolicyAdmin)
