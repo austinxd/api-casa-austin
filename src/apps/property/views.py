@@ -483,7 +483,98 @@ class CalculatePricingAPIView(APIView):
                 return Response({
                     'error': 8,
                     'error_message': 'La fecha de entrada no puede ser en el pasado'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
+            # Validar que la fecha de salida sea posterior a la de entrada
+            if check_out_date <= check_in_date:
+                return Response({
+                    'error': 9,
+                    'error_message': 'La fecha de salida debe ser posterior a la fecha de entrada'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Validar número de huéspedes (asignar 1 por defecto si no se envía)
+            if not guests_str:
+                guests = 1
+            else:
+                try:
+                    guests = int(guests_str)
+                    if guests < 1:
+                        raise ValueError()
+                except ValueError:
+                    return Response({
+                        'error': 3,
+                        'error_message': 'El número de huéspedes debe ser un entero mayor a 0'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Parámetros opcionales
+            property_id = request.query_params.get('property_id')
+            client_id = request.query_params.get('client_id')
+            discount_code = request.query_params.get('discount_code')
+
+            # Validar property_id si se proporciona
+            if property_id:
+                try:
+                    from uuid import UUID
+                    # Validar que sea un UUID válido
+                    UUID(property_id)
+                    if not Property.objects.filter(id=property_id, deleted=False).exists():
+                        return Response({
+                            'error': 4,
+                            'error_message': 'Propiedad no encontrada'
+                        }, status=status.HTTP_404_NOT_FOUND)
+                except ValueError:
+                    return Response({
+                        'error': 5,
+                        'error_message': 'property_id debe ser un UUID válido'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Validar client_id si se proporciona
+            if client_id:
+                try:
+                    from uuid import UUID
+                    # Validar que sea un UUID válido
+                    UUID(client_id)
+                    if not Client.objects.filter(id=client_id, deleted=False).exists():
+                        return Response({
+                            'error': 6,
+                            'error_message': 'Cliente no encontrado'
+                        }, status=status.HTTP_404_NOT_FOUND)
+                except ValueError:
+                    return Response({
+                        'error': 7,
+                        'error_message': 'client_id debe ser un UUID válido'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Calcular precios usando el servicio
+            pricing_service = PricingCalculationService()
+            pricing_data = pricing_service.calculate_pricing(
+                check_in_date=check_in_date,
+                check_out_date=check_out_date,
+                guests=guests,
+                property_id=property_id,
+                client_id=client_id,
+                discount_code=discount_code
+            )
+
+            return Response({
+                'success': True,
+                'error': 0,
+                'data': pricing_data,
+                'message': 'Cálculo de precios realizado exitosamente'
+            }, status=status.HTTP_200_OK)
+
+        except ValidationError as e:
+            return Response({
+                'error': 9,
+                'error_message': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response({
+                'error': 10,
+                'error_message': 'Error interno del servidor',
+                'detail': str(e) if settings.DEBUG else None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class GenerateSimpleDiscountAPIView(APIView):
