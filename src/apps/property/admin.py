@@ -355,7 +355,8 @@ admin.site.register(ProfitPropertyAirBnb)
 # Registrar modelos de precios en el admin
 admin.site.register(ExchangeRate, ExchangeRateAdmin)
 # SeasonPricing usa @admin.register decorator
-# DiscountCode usa clase DiscountCodeAdmin definida arriba (sin registro duplicado)
+# DiscountCode usa @admin.register decorator
+# SpecialDatePricing usa @admin.register decorator
 admin.site.register(AdditionalService, AdditionalServiceAdmin)
 admin.site.register(CancellationPolicy, CancellationPolicyAdmin)
 admin.site.register(AutomaticDiscount, AutomaticDiscountAdmin)
