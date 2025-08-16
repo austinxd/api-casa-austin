@@ -348,15 +348,25 @@ class PricingCalculationService:
         # Si no hay código válido, verificar descuentos automáticos
         if client:
             from .pricing_models import AutomaticDiscount
+            import logging
+            logger = logging.getLogger(__name__)
+            
+            logger.info(f"Evaluando descuentos automáticos para cliente: {client.first_name} (ID: {client.id})")
+            logger.info(f"Fecha de nacimiento del cliente: {client.date}")
+            logger.info(f"Mes de búsqueda: {check_in_date.month}")
             
             # Buscar descuentos automáticos aplicables al cliente
-            automatic_discounts = AutomaticDiscount.objects.filter(is_active=True)
+            automatic_discounts = AutomaticDiscount.objects.filter(is_active=True, deleted=False)
+            logger.info(f"Descuentos automáticos disponibles: {automatic_discounts.count()}")
             
             for auto_discount in automatic_discounts:
+                logger.info(f"Evaluando descuento: {auto_discount.name} - Trigger: {auto_discount.trigger}")
                 applies, message = auto_discount.applies_to_client(client, check_in_date)
+                logger.info(f"¿Aplica descuento {auto_discount.name}?: {applies} - Mensaje: {message}")
                 
                 if applies:
                     discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
+                    logger.info(f"Descuento aplicado: ${discount_amount_usd} USD")
                     discount_info.update({
                         'type': 'automatic',
                         'description': message,
