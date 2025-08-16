@@ -217,15 +217,15 @@ class SpecialDatePricingAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related('property').order_by('property__name', 'month', 'day')
     
     fieldsets = (
-        ('Información de la Fecha Especial Recurrente', {
+        ('Información de la Fecha Especial', {
             'fields': ('property', 'description', 'is_active'),
-            'description': 'Esta fecha especial se aplicará cada año para la propiedad seleccionada'
+            'description': 'Fecha especial para la propiedad seleccionada'
         }),
         ('Fecha de la Ocasión Especial', {
             'fields': (
                 ('month', 'day'),
             ),
-            'description': 'Define el día y mes que se repetirá cada año. Ejemplo: 25 de Diciembre para Navidad'
+            'description': 'Define el día y mes. Ejemplo: 25 de Diciembre para Navidad'
         }),
         ('Precio Especial', {
             'fields': ('price_usd',),
