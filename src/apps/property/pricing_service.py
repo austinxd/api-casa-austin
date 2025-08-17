@@ -177,7 +177,7 @@ class PricingCalculationService:
         conflicting_reservations = Reservation.objects.filter(
             property=property,
             deleted=False,
-            status__in=['approved', 'pending']
+            status__in=['approved', 'pending', 'incomplete']
         ).filter(
             Q(check_in_date__lt=check_out_date) & Q(check_out_date__gt=check_in_date)
         )
