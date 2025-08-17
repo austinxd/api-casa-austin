@@ -101,3 +101,18 @@ INFO 2025-08-17 09:01:39,675 pricing_service 2090 140446593619648 Resultado vali
 INFO 2025-08-17 09:02:12,695 pricing_service 2138 140386616121024 Validando código nuevareserva para propiedad casa 1 (ID: 29fb5053-13a0-43b4-b97e-e5ebdf207aba)
 INFO 2025-08-17 09:02:12,696 pricing_service 2138 140386616121024 Propiedades asignadas al código: []
 INFO 2025-08-17 09:02:12,697 pricing_service 2138 140386616121024 Resultado validación: True - Código válido - Descuento aplicado: 50.00%
+INFO 2025-08-17 09:05:49,412 pricing_service 2844 139933887141568 Validando código nuevareserva para propiedad casa 1 (ID: 29fb5053-13a0-43b4-b97e-e5ebdf207aba)
+INFO 2025-08-17 09:05:49,413 pricing_service 2844 139933887141568 Propiedades asignadas al código: []
+INFO 2025-08-17 09:05:49,413 pricing_service 2844 139933887141568 Resultado validación: False - Este código no tiene propiedades asignadas y no es válido
+INFO 2025-08-17 09:06:31,943 pricing_service 2844 139933887141568 Validando código nuevareserva para propiedad casa 1 (ID: 29fb5053-13a0-43b4-b97e-e5ebdf207aba)
+INFO 2025-08-17 09:06:31,944 pricing_service 2844 139933887141568 Propiedades asignadas al código: ['casa 1']
+INFO 2025-08-17 09:06:31,945 pricing_service 2844 139933887141568 Resultado validación: True - Código válido - Descuento aplicado: 50.00%
+INFO 2025-08-17 09:06:56,422 pricing_service 3171 140588222682816 Validando código nuevareserva para propiedad casa 1 (ID: 29fb5053-13a0-43b4-b97e-e5ebdf207aba)
+INFO 2025-08-17 09:06:56,422 pricing_service 3171 140588222682816 Propiedades asignadas al código: ['casa 1']
+INFO 2025-08-17 09:06:56,424 pricing_service 3171 140588222682816 Resultado validación: True - Código válido - Descuento aplicado: 50.00%
+INFO 2025-08-17 09:07:11,865 pricing_service 3171 140588222682816 Validando código nuevareserva para propiedad casa 1 (ID: 29fb5053-13a0-43b4-b97e-e5ebdf207aba)
+INFO 2025-08-17 09:07:11,866 pricing_service 3171 140588222682816 Propiedades asignadas al código: ['casa 1']
+INFO 2025-08-17 09:07:11,867 pricing_service 3171 140588222682816 Resultado validación: True - Código válido - Descuento aplicado: 50.00%
+INFO 2025-08-17 09:07:31,158 pricing_service 3171 140588222682816 Validando código nuevareserva para propiedad casa 1 (ID: 29fb5053-13a0-43b4-b97e-e5ebdf207aba)
+INFO 2025-08-17 09:07:31,160 pricing_service 3171 140588222682816 Propiedades asignadas al código: ['casa 2']
+INFO 2025-08-17 09:07:31,163 pricing_service 3171 140588222682816 Resultado validación: False - Código válido solo para: casa 2
