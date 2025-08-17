@@ -95,3 +95,9 @@ INFO 2025-08-17 08:51:13,479 pricing_service 316 140180702009024 Evaluando descu
 INFO 2025-08-17 08:51:13,480 pricing_service 316 140180702009024 ¿Aplica descuento clientefrecuente?: True - Mensaje: Cliente frecuente: 10.00% de descuento
 INFO 2025-08-17 08:51:13,480 pricing_service 316 140180702009024 Descuento evaluado: $20.0000 USD (10.00%)
 INFO 2025-08-17 08:51:13,480 pricing_service 316 140180702009024 Mejor descuento seleccionado: clientefrecuente - $20.0000 USD
+INFO 2025-08-17 09:01:39,674 pricing_service 2090 140446593619648 Validando código nuevareserva para propiedad casa 1 (ID: 29fb5053-13a0-43b4-b97e-e5ebdf207aba)
+INFO 2025-08-17 09:01:39,675 pricing_service 2090 140446593619648 Propiedades asignadas al código: []
+INFO 2025-08-17 09:01:39,675 pricing_service 2090 140446593619648 Resultado validación: True - Código válido - Descuento aplicado: 50.00%
+INFO 2025-08-17 09:02:12,695 pricing_service 2138 140386616121024 Validando código nuevareserva para propiedad casa 1 (ID: 29fb5053-13a0-43b4-b97e-e5ebdf207aba)
+INFO 2025-08-17 09:02:12,696 pricing_service 2138 140386616121024 Propiedades asignadas al código: []
+INFO 2025-08-17 09:02:12,697 pricing_service 2138 140386616121024 Resultado validación: True - Código válido - Descuento aplicado: 50.00%
