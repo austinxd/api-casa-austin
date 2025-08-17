@@ -385,9 +385,12 @@ class DiscountCode(BaseModel):
             return False, f"Código agotado ({self.used_count}/{self.usage_limit} usos)"
 
         # Verificar propiedad (solo si el código tiene propiedades específicas asignadas)
-        if property_id and self.properties.exists():
+        if self.properties.exists():
+            if not property_id:
+                return False, "Este código requiere especificar una propiedad"
             if not self.properties.filter(id=property_id, deleted=False).exists():
-                return False, "Código no válido para esta propiedad"
+                property_names = list(self.properties.filter(deleted=False).values_list('name', flat=True))
+                return False, f"Código válido solo para: {', '.join(property_names)}"
 
         # Verificar monto mínimo
         if self.min_amount_usd and total_amount_usd and total_amount_usd < self.min_amount_usd:

@@ -311,7 +311,14 @@ class PricingCalculationService:
                     })
                     return discount_info
                 
+                # Debug logging
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.info(f"Validando código {code.code} para propiedad {property.name} (ID: {property.id})")
+                logger.info(f"Propiedades asignadas al código: {list(code.properties.values_list('name', flat=True))}")
+                
                 is_valid, message = code.is_valid(property.id, subtotal_usd, check_in_date)
+                logger.info(f"Resultado validación: {is_valid} - {message}")
 
                 if is_valid:
                     discount_amount_usd = code.calculate_discount(subtotal_usd)
