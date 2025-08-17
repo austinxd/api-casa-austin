@@ -347,20 +347,25 @@ class DiscountCode(BaseModel):
 
         today = date.today()
         
-        # Asegurar que check_date sea un objeto date
+        # Para códigos de descuento, normalmente validamos si está vigente HOY
+        # Solo usar booking_date para restricciones de días de la semana
+        check_date = today
+        
+        # Si se proporciona booking_date, convertirlo para restricciones de días
+        booking_check_date = None
         if booking_date:
             if isinstance(booking_date, str):
                 from datetime import datetime
                 try:
-                    check_date = datetime.strptime(booking_date, '%Y-%m-%d').date()
+                    booking_check_date = datetime.strptime(booking_date, '%Y-%m-%d').date()
                 except ValueError:
-                    check_date = today
+                    booking_check_date = today
             elif hasattr(booking_date, 'date'):
-                check_date = booking_date.date()
+                booking_check_date = booking_date.date()
             else:
-                check_date = booking_date
+                booking_check_date = booking_date
         else:
-            check_date = today
+            booking_check_date = today
 
         # Verificar si está activo y no eliminado
         if not self.is_active or self.deleted:
@@ -382,16 +387,18 @@ class DiscountCode(BaseModel):
         
         logger.info(f"Fechas válidas - Código activo")
 
-        # Verificar restricciones por día de la semana
+        # Verificar restricciones por día de la semana (usar fecha de reserva si se proporciona)
+        day_check_date = booking_check_date if booking_check_date else check_date
+        
         if self.restrict_weekdays and not self.restrict_weekends:
             # Es noche de semana si el día es de Lunes (0) a Jueves (3)
-            if check_date.weekday() < 4: # Lunes a Jueves
+            if day_check_date.weekday() < 4: # Lunes a Jueves
                 pass # Válido
             else:
                 return False, "Este código solo es válido para noches de semana (domingo a jueves)."
         elif self.restrict_weekends and not self.restrict_weekdays:
             # Es noche de fin de semana si el día es Viernes (4) o Sábado (5)
-            if check_date.weekday() >= 4: # Viernes y Sábado
+            if day_check_date.weekday() >= 4: # Viernes y Sábado
                 pass # Válido
             else:
                 return False, "Este código solo es válido para noches de fin de semana (viernes y sábado)."

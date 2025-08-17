@@ -317,7 +317,7 @@ class PricingCalculationService:
                 logger.info(f"Validando código {code.code} para propiedad {property.name} (ID: {property.id})")
                 logger.info(f"Propiedades asignadas al código: {list(code.properties.values_list('name', flat=True))}")
                 
-                is_valid, message = code.is_valid(property.id, subtotal_usd, check_in_date)
+                is_valid, message = code.is_valid(property.id, subtotal_usd, None)  # Usar None para validar con fecha actual
                 logger.info(f"Resultado validación: {is_valid} - {message}")
 
                 if is_valid:
