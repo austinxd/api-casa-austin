@@ -138,3 +138,8 @@ INFO 2025-08-17 10:00:29,965 pricing_service 166 139761508587200 Propiedades asi
 INFO 2025-08-17 10:00:29,965 pricing_models 166 139761508587200 Validando fechas - Hoy: 2025-08-17, Check date: 2025-09-28, Start: 2025-08-15, End: 2025-08-22
 INFO 2025-08-17 10:00:29,965 pricing_models 166 139761508587200 Código expirado - fecha muy tardía: 2025-09-28 > 2025-08-22
 INFO 2025-08-17 10:00:29,965 pricing_service 166 139761508587200 Resultado validación: False - Código expiró el 22/08/2025
+INFO 2025-08-17 10:03:29,153 pricing_service 1140 140597499262656 Validando código nuevareserva para propiedad casa 1 (ID: 29fb5053-13a0-43b4-b97e-e5ebdf207aba)
+INFO 2025-08-17 10:03:29,155 pricing_service 1140 140597499262656 Propiedades asignadas al código: ['casa 2', 'casa 1']
+INFO 2025-08-17 10:03:29,157 pricing_models 1140 140597499262656 Validando fechas - Hoy: 2025-08-17, Check date: 2025-08-17, Start: 2025-08-15, End: 2025-08-22
+INFO 2025-08-17 10:03:29,157 pricing_models 1140 140597499262656 Fechas válidas - Código activo
+INFO 2025-08-17 10:03:29,161 pricing_service 1140 140597499262656 Resultado validación: True - Código válido - Descuento aplicado: 50.00%
