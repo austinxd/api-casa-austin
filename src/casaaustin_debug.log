@@ -52,3 +52,46 @@ DEBUG 2025-08-15 16:23:13,459 telegram_notifier 13659 140001647537344 Enviando m
 DEBUG 2025-08-15 16:23:13,726 telegram_notifier 13659 140001647537344 Mensaje enviado.
 DEBUG 2025-08-15 16:23:13,726 telegram_notifier 13659 140001647537344 Mensaje enviado a través del executor.
 DEBUG 2025-08-15 16:23:13,726 signals 13659 140001647537344 Notificación enviada para nuevo cliente: 14ae737b-26b5-4555-acb5-3bdcd0d680f6
+INFO 2025-08-17 08:49:59,688 pricing_service 316 140180702009024 Evaluando descuentos automáticos para cliente: Mantenimiento (ID: d1a26945-65ed-480a-9de9-657c967f7047)
+INFO 2025-08-17 08:49:59,689 pricing_service 316 140180702009024 Fecha de nacimiento del cliente: 2025-08-15
+INFO 2025-08-17 08:49:59,689 pricing_service 316 140180702009024 Mes de búsqueda: 8
+INFO 2025-08-17 08:49:59,690 pricing_service 316 140180702009024 Descuentos automáticos disponibles: 2
+INFO 2025-08-17 08:49:59,690 pricing_service 316 140180702009024 Evaluando descuento: Cumpleaños - Trigger: birthday
+INFO 2025-08-17 08:49:59,690 pricing_service 316 140180702009024 ¿Aplica descuento Cumpleaños?: True - Mensaje: ¡Feliz cumpleaños! 15.00% de descuento
+INFO 2025-08-17 08:49:59,691 pricing_service 316 140180702009024 Descuento evaluado: $8.2500 USD (15.00%)
+INFO 2025-08-17 08:49:59,691 pricing_service 316 140180702009024 Evaluando descuento: clientefrecuente - Trigger: returning
+INFO 2025-08-17 08:49:59,692 pricing_service 316 140180702009024 ¿Aplica descuento clientefrecuente?: True - Mensaje: Cliente frecuente: 50.00% de descuento
+INFO 2025-08-17 08:49:59,692 pricing_service 316 140180702009024 Descuento evaluado: $27.5000 USD (50.00%)
+INFO 2025-08-17 08:49:59,692 pricing_service 316 140180702009024 Mejor descuento seleccionado: clientefrecuente - $27.5000 USD
+INFO 2025-08-17 08:50:15,964 pricing_service 316 140180702009024 Evaluando descuentos automáticos para cliente: Mantenimiento (ID: d1a26945-65ed-480a-9de9-657c967f7047)
+INFO 2025-08-17 08:50:15,965 pricing_service 316 140180702009024 Fecha de nacimiento del cliente: 2025-08-15
+INFO 2025-08-17 08:50:15,965 pricing_service 316 140180702009024 Mes de búsqueda: 8
+INFO 2025-08-17 08:50:15,966 pricing_service 316 140180702009024 Descuentos automáticos disponibles: 2
+INFO 2025-08-17 08:50:15,967 pricing_service 316 140180702009024 Evaluando descuento: Cumpleaños - Trigger: birthday
+INFO 2025-08-17 08:50:15,967 pricing_service 316 140180702009024 ¿Aplica descuento Cumpleaños?: True - Mensaje: ¡Feliz cumpleaños! 15.00% de descuento
+INFO 2025-08-17 08:50:15,967 pricing_service 316 140180702009024 Descuento evaluado: $8.2500 USD (15.00%)
+INFO 2025-08-17 08:50:15,967 pricing_service 316 140180702009024 Evaluando descuento: clientefrecuente - Trigger: returning
+INFO 2025-08-17 08:50:15,968 pricing_service 316 140180702009024 ¿Aplica descuento clientefrecuente?: True - Mensaje: Cliente frecuente: 50.00% de descuento
+INFO 2025-08-17 08:50:15,969 pricing_service 316 140180702009024 Descuento evaluado: $27.5000 USD (50.00%)
+INFO 2025-08-17 08:50:15,969 pricing_service 316 140180702009024 Mejor descuento seleccionado: clientefrecuente - $27.5000 USD
+INFO 2025-08-17 08:50:45,621 pricing_service 316 140180702009024 Evaluando descuentos automáticos para cliente: Mantenimiento (ID: d1a26945-65ed-480a-9de9-657c967f7047)
+INFO 2025-08-17 08:50:45,622 pricing_service 316 140180702009024 Fecha de nacimiento del cliente: 2025-08-15
+INFO 2025-08-17 08:50:45,622 pricing_service 316 140180702009024 Mes de búsqueda: 8
+INFO 2025-08-17 08:50:45,622 pricing_service 316 140180702009024 Descuentos automáticos disponibles: 2
+INFO 2025-08-17 08:50:45,623 pricing_service 316 140180702009024 Evaluando descuento: Cumpleaños - Trigger: birthday
+INFO 2025-08-17 08:50:45,623 pricing_service 316 140180702009024 ¿Aplica descuento Cumpleaños?: True - Mensaje: ¡Feliz cumpleaños! 15.00% de descuento
+INFO 2025-08-17 08:50:45,623 pricing_service 316 140180702009024 Descuento evaluado: $8.2500 USD (15.00%)
+INFO 2025-08-17 08:50:45,623 pricing_service 316 140180702009024 Evaluando descuento: clientefrecuente - Trigger: returning
+INFO 2025-08-17 08:50:45,624 pricing_service 316 140180702009024 ¿Aplica descuento clientefrecuente?: True - Mensaje: Cliente frecuente: 10.00% de descuento
+INFO 2025-08-17 08:50:45,624 pricing_service 316 140180702009024 Descuento evaluado: $5.5000 USD (10.00%)
+INFO 2025-08-17 08:50:45,624 pricing_service 316 140180702009024 Mejor descuento seleccionado: Cumpleaños - $8.2500 USD
+INFO 2025-08-17 08:51:13,477 pricing_service 316 140180702009024 Evaluando descuentos automáticos para cliente: Mantenimiento (ID: d1a26945-65ed-480a-9de9-657c967f7047)
+INFO 2025-08-17 08:51:13,478 pricing_service 316 140180702009024 Fecha de nacimiento del cliente: 2025-08-15
+INFO 2025-08-17 08:51:13,478 pricing_service 316 140180702009024 Mes de búsqueda: 9
+INFO 2025-08-17 08:51:13,479 pricing_service 316 140180702009024 Descuentos automáticos disponibles: 2
+INFO 2025-08-17 08:51:13,479 pricing_service 316 140180702009024 Evaluando descuento: Cumpleaños - Trigger: birthday
+INFO 2025-08-17 08:51:13,479 pricing_service 316 140180702009024 ¿Aplica descuento Cumpleaños?: False - Mensaje: No aplica
+INFO 2025-08-17 08:51:13,479 pricing_service 316 140180702009024 Evaluando descuento: clientefrecuente - Trigger: returning
+INFO 2025-08-17 08:51:13,480 pricing_service 316 140180702009024 ¿Aplica descuento clientefrecuente?: True - Mensaje: Cliente frecuente: 10.00% de descuento
+INFO 2025-08-17 08:51:13,480 pricing_service 316 140180702009024 Descuento evaluado: $20.0000 USD (10.00%)
+INFO 2025-08-17 08:51:13,480 pricing_service 316 140180702009024 Mejor descuento seleccionado: clientefrecuente - $20.0000 USD
