@@ -38,7 +38,7 @@ class ReservationSerializer(serializers.ModelSerializer):
         min_value=Decimal('0'),
         help_text="Puntos a canjear en esta reserva"
     )
-    
+
     class Meta:
         model = Reservation
         exclude = ["created", "updated", "deleted"]
@@ -55,7 +55,7 @@ class ReservationSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or request.method in ['GET', 'HEAD', 'OPTIONS']:
             return super().to_internal_value(data)
-            
+
         # Evitar deepcopy cuando hay archivos presentes para prevenir error de pickle
         if hasattr(data, 'getlist') and any(hasattr(item, 'read') for items in data.values() for item in (items if isinstance(items, list) else [items])):
             # Si hay archivos, crear un QueryDict mutable sin deepcopy
@@ -107,12 +107,12 @@ class ReservationSerializer(serializers.ModelSerializer):
         # Validar canje de puntos si se especifica (solo en creación, no en PATCH)
         points_to_redeem = attrs.get('points_to_redeem')
         is_patch = request and request.method == 'PATCH'
-        
+
         if points_to_redeem and points_to_redeem > 0 and not is_patch:
             client = attrs.get('client')
             if not client:
                 raise serializers.ValidationError("Debe especificar un cliente para canjear puntos")
-            
+
             # Verificar que el cliente tenga suficientes puntos
             available_points = client.get_available_points()
             if points_to_redeem > available_points:
@@ -125,7 +125,7 @@ class ReservationSerializer(serializers.ModelSerializer):
             points_redeemed = 0
             if self.instance:
                 points_redeemed = float(self.instance.points_redeemed or 0)
-            
+
             # En PATCH, usar los datos existentes si no se proporcionan nuevos valores
             if is_patch and self.instance:
                 price_sol = float(attrs.get('price_sol', self.instance.price_sol or 0))
@@ -135,7 +135,7 @@ class ReservationSerializer(serializers.ModelSerializer):
                 price_sol = float(attrs.get('price_sol', 0))
                 price_usd = float(attrs.get('price_usd', 0))
                 currency = attrs.get('advance_payment_currency', 'sol')
-            
+
             if currency == 'sol':
                 # Precio total menos puntos ya canjeados
                 attrs['advance_payment'] = price_sol - points_redeemed
@@ -172,22 +172,22 @@ class ReservationSerializer(serializers.ModelSerializer):
                 ).exists():
 
                 raise serializers.ValidationError("Esta propiedad esta reservada en este rango de fecha")
-        
+
         return attrs
 
     def create(self, validated_data):
         from decimal import Decimal
         from apps.property.pricing_models import DiscountCode
-        
+
         # Extraer puntos a canjear antes de crear la reserva
         points_to_redeem = validated_data.pop('points_to_redeem', 0)
-        
+
         # Extraer código de descuento si se proporciona
         discount_code = validated_data.pop('discount_code', None)
-        
+
         # Crear la reserva
         reservation = super().create(validated_data)
-        
+
         # Si hay código de descuento, validarlo y procesarlo
         if discount_code and discount_code.strip():
             try:
@@ -197,7 +197,7 @@ class ReservationSerializer(serializers.ModelSerializer):
                     is_active=True,
                     deleted=False
                 ).first()
-                
+
                 if code_obj:
                     # Validar el código una vez más al momento de crear la reserva
                     is_valid, message = code_obj.is_valid(
@@ -205,23 +205,23 @@ class ReservationSerializer(serializers.ModelSerializer):
                         total_amount_usd=float(reservation.price_usd) if reservation.price_usd else 0,
                         booking_date=None  # Usar fecha actual para validación
                     )
-                    
+
                     if is_valid:
                         # Guardar el código usado en la reserva
                         reservation.discount_code_used = code_obj.code
-                        
+
                         # Incrementar el contador de uso
                         code_obj.used_count += 1
                         code_obj.save()
-                        
+
                         reservation.save()
-                        
+
             except Exception as e:
                 # Solo logear el error, no fallar la creación de reserva
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.error(f"Error al procesar código de descuento: {str(e)}")
-        
+
         # Si hay puntos para canjear, procesarlos
         if points_to_redeem and points_to_redeem > 0 and reservation.client:
             # Verificar que el cliente tenga suficientes puntos
@@ -232,7 +232,7 @@ class ReservationSerializer(serializers.ModelSerializer):
                     reservation=reservation,
                     description=f"Puntos canjeados en reserva #{reservation.id} - {reservation.property.name}"
                 )
-                
+
                 if success:
                     # Guardar los puntos canjeados en la reserva
                     reservation.points_redeemed = points_to_redeem
@@ -245,7 +245,7 @@ class ReservationSerializer(serializers.ModelSerializer):
                 # Si no tiene suficientes puntos, eliminar la reserva y lanzar error
                 reservation.delete()
                 raise serializers.ValidationError("Error al canjear puntos: saldo insuficiente")
-        
+
         return reservation
 
     def update(self, instance, validated_data):
@@ -261,7 +261,7 @@ class ReservationListSerializer(ReservationSerializer):
     number_nights = serializers.SerializerMethodField()
     is_upcoming = serializers.SerializerMethodField()
     status_display = serializers.SerializerMethodField()
-    
+
     @extend_schema_field(ClientShortSerializer)
     def get_client(self, instance):
         return ClientShortSerializer(instance.client).data
@@ -279,24 +279,24 @@ class ReservationListSerializer(ReservationSerializer):
         price_total = float(instance.price_sol)
         adelanto_normalizado = instance.adelanto_normalizado  # Ya está en SOL
         puntos_canjeados = float(instance.points_redeemed or 0)  # Siempre en SOL (1 punto = 1 sol)
-        
+
         # Todos los valores están en SOL, se pueden restar directamente
         resta = price_total - adelanto_normalizado - puntos_canjeados
         return '%.2f' % round(resta, 2)
-    
+
     @extend_schema_field(serializers.IntegerField())
     def get_number_nights(self, instance):
         if instance.check_in_date and instance.check_out_date:
             delta = instance.check_out_date - instance.check_in_date
             return delta.days
         return 0
-    
+
     @extend_schema_field(serializers.BooleanField())
     def get_is_upcoming(self, instance):
         from datetime import date
         today = date.today()
         return instance.check_out_date > today
-    
+
     @extend_schema_field(serializers.CharField())
     def get_status_display(self, instance):
         return instance.get_status_display() if hasattr(instance, 'get_status_display') else 'Aprobada'
@@ -304,7 +304,7 @@ class ReservationListSerializer(ReservationSerializer):
 
 class ClientReservationSerializer(serializers.ModelSerializer):
     """Serializer para reservas creadas por clientes autenticados"""
-    
+
     class Meta:
         model = Reservation
         fields = [
@@ -334,9 +334,16 @@ class ClientReservationSerializer(serializers.ModelSerializer):
         help_text="Puntos a canjear en esta reserva"
     )
 
+    discount_code = serializers.CharField(
+        max_length=20,
+        required=False,
+        write_only=True,
+        help_text="Código de descuento a aplicar"
+    )
+
     def validate(self, attrs):
         from django.db.models import Q
-        
+
         # Validar fechas
         if attrs.get('check_in_date') and attrs.get('check_out_date'):
             if attrs.get('check_in_date') >= attrs.get('check_out_date'):
@@ -359,7 +366,7 @@ class ClientReservationSerializer(serializers.ModelSerializer):
             client = self.context.get('request').user if self.context.get('request') else None
             if not client:
                 raise serializers.ValidationError("No se pudo identificar el cliente")
-            
+
             # Verificar que el cliente tenga suficientes puntos
             available_points = client.get_available_points()
             if points_to_redeem > available_points:
@@ -372,28 +379,28 @@ class ClientReservationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         from decimal import Decimal
         from apps.property.pricing_models import DiscountCode
-        
+
         # Extraer puntos a canjear antes de crear la reserva
         points_to_redeem = validated_data.pop('points_to_redeem', 0)
-        
+
         # Extraer código de descuento si se proporciona
         discount_code = validated_data.pop('discount_code', None)
-        
+
         # Obtener el cliente del contexto de la request
         client = self.context['request'].user
-        
+
         # Configurar los datos de la reserva
         validated_data['client'] = client
-        
+
         # Verificar origin en los datos originales del request
         request_data = self.context['request'].data
         if request_data.get('origin') == 'aus':
             validated_data['origin'] = 'aus'
         else:
             validated_data['origin'] = 'client'
-            
+
         validated_data['status'] = 'incomplete'
-        
+
         # Asignar seller específico si se envía desde el frontend, sino usar seller por defecto (ID 14)
         if 'seller' in validated_data and validated_data['seller']:
             try:
@@ -411,7 +418,7 @@ class ClientReservationSerializer(serializers.ModelSerializer):
         else:
             # Asignar seller por defecto (ID 14) para reservas de clientes
             validated_data['seller'] = CustomUser.objects.get(id=14)
-        
+
         # Mantener los precios enviados desde el frontend si están presentes
         if 'price_usd' not in validated_data or not validated_data['price_usd']:
             validated_data['price_usd'] = 0
@@ -422,10 +429,10 @@ class ClientReservationSerializer(serializers.ModelSerializer):
         if 'advance_payment_currency' not in validated_data:
             validated_data['advance_payment_currency'] = 'sol'
         validated_data['full_payment'] = False
-        
+
         # Crear la reserva
         reservation = super().create(validated_data)
-        
+
         # Si hay código de descuento, validarlo y procesarlo
         if discount_code and discount_code.strip():
             try:
@@ -435,7 +442,7 @@ class ClientReservationSerializer(serializers.ModelSerializer):
                     is_active=True,
                     deleted=False
                 ).first()
-                
+
                 if code_obj:
                     # Validar el código una vez más al momento de crear la reserva
                     is_valid, message = code_obj.is_valid(
@@ -443,27 +450,27 @@ class ClientReservationSerializer(serializers.ModelSerializer):
                         total_amount_usd=float(reservation.price_usd) if reservation.price_usd else 0,
                         booking_date=None  # Usar fecha actual para validación
                     )
-                    
+
                     if is_valid:
                         # Guardar el código usado en la reserva
                         reservation.discount_code_used = code_obj.code
-                        
+
                         # Incrementar el contador de uso
                         code_obj.used_count += 1
                         code_obj.save()
-                        
+
                         reservation.save()
                     else:
                         # Si el código no es válido al momento de crear la reserva, 
                         # eliminar la reserva y lanzar error
                         reservation.delete()
                         raise serializers.ValidationError(f"Error con código de descuento: {message}")
-                        
+
             except Exception as e:
                 # Si hay error procesando el código, eliminar la reserva
                 reservation.delete()
                 raise serializers.ValidationError(f"Error al procesar código de descuento: {str(e)}")
-        
+
         # Si hay puntos para canjear, procesarlos INMEDIATAMENTE
         if points_to_redeem and points_to_redeem > 0:
             # Verificar que el cliente tenga suficientes puntos
@@ -474,7 +481,7 @@ class ClientReservationSerializer(serializers.ModelSerializer):
                     reservation=reservation,
                     description=f"Puntos canjeados en reserva #{reservation.id} - {reservation.property.name}"
                 )
-                
+
                 if success:
                     # Guardar los puntos canjeados en la reserva
                     reservation.points_redeemed = points_to_redeem
@@ -487,7 +494,7 @@ class ClientReservationSerializer(serializers.ModelSerializer):
                 # Si no tiene suficientes puntos, eliminar la reserva y lanzar error
                 reservation.delete()
                 raise serializers.ValidationError("Error al canjear puntos: saldo insuficiente")
-        
+
         return reservation
 
 class ReservationRetrieveSerializer(ReservationListSerializer):
