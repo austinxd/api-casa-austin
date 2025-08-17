@@ -909,11 +909,14 @@ class PropertyCalendarOccupancyAPIView(APIView):
                     first_name = reservation.client.first_name or ""
                     last_name = reservation.client.last_name or ""
                     
-                    # Crear formato "Nombre A." 
+                    # Crear formato con primer nombre e inicial del primer apellido
                     if first_name and last_name:
-                        guest_name = f"{first_name} {last_name[0]}."
+                        # Obtener solo el primer nombre y la inicial del primer apellido
+                        primer_nombre = first_name.split()[0] if first_name else ""
+                        guest_name = f"{primer_nombre} {last_name[0]}."
                     elif first_name:
-                        guest_name = first_name
+                        primer_nombre = first_name.split()[0] if first_name else ""
+                        guest_name = primer_nombre
                     elif last_name:
                         guest_name = f"{last_name[0]}."
                     else:
