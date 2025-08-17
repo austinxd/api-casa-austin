@@ -346,18 +346,41 @@ class DiscountCode(BaseModel):
         from datetime import date
 
         today = date.today()
-        check_date = booking_date if booking_date else today
+        
+        # Asegurar que check_date sea un objeto date
+        if booking_date:
+            if isinstance(booking_date, str):
+                from datetime import datetime
+                try:
+                    check_date = datetime.strptime(booking_date, '%Y-%m-%d').date()
+                except ValueError:
+                    check_date = today
+            elif hasattr(booking_date, 'date'):
+                check_date = booking_date.date()
+            else:
+                check_date = booking_date
+        else:
+            check_date = today
 
         # Verificar si está activo y no eliminado
         if not self.is_active or self.deleted:
             return False, "Código de descuento inactivo"
 
+        # Debug logging para fechas
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Validando fechas - Hoy: {today}, Check date: {check_date}, Start: {self.start_date}, End: {self.end_date}")
+        
         # Verificar fechas
         if check_date < self.start_date:
+            logger.info(f"Código no válido - fecha muy temprana: {check_date} < {self.start_date}")
             return False, f"Código válido desde {self.start_date.strftime('%d/%m/%Y')}"
 
         if check_date > self.end_date:
+            logger.info(f"Código expirado - fecha muy tardía: {check_date} > {self.end_date}")
             return False, f"Código expiró el {self.end_date.strftime('%d/%m/%Y')}"
+        
+        logger.info(f"Fechas válidas - Código activo")
 
         # Verificar restricciones por día de la semana
         if self.restrict_weekdays and not self.restrict_weekends:
