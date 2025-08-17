@@ -774,3 +774,182 @@ def confirm_reservation(request, uuid):
     )
 
     return JsonResponse({"message": "✅ ¡Reserva confirmada correctamente!"})
+
+
+class PropertyCalendarOccupancyAPIView(APIView):
+    """
+    Endpoint para obtener la ocupación del calendario de una propiedad
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "year",
+                OpenApiTypes.INT,
+                required=True,
+                description="Año para filtrar las reservas",
+                location=OpenApiParameter.QUERY
+            ),
+            OpenApiParameter(
+                "month",
+                OpenApiTypes.INT,
+                required=False,
+                description="Mes para filtrar las reservas (1-12). Si no se envía, devuelve todo el año",
+                location=OpenApiParameter.QUERY
+            ),
+        ],
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "success": {"type": "boolean"},
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "property_id": {"type": "string"},
+                            "occupancy": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "start_date": {"type": "string", "format": "date"},
+                                        "end_date": {"type": "string", "format": "date"},
+                                        "guest_name": {"type": "string"},
+                                        "status": {"type": "string", "enum": ["confirmed", "pending", "incomplete"]},
+                                        "reservation_id": {"type": "string"}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            404: {
+                "type": "object",
+                "properties": {
+                    "success": {"type": "boolean"},
+                    "error": {"type": "string"}
+                }
+            }
+        }
+    )
+    def get(self, request, property_id):
+        try:
+            # Buscar propiedad por ID o slug
+            try:
+                if property_id.isdigit():
+                    property_obj = Property.objects.get(id=property_id, deleted=False)
+                else:
+                    property_obj = Property.objects.get(slug=property_id, deleted=False)
+            except Property.DoesNotExist:
+                return Response({
+                    "success": False,
+                    "error": "Propiedad no encontrada"
+                }, status=404)
+
+            # Obtener parámetros de consulta
+            year_param = request.query_params.get('year')
+            month_param = request.query_params.get('month')
+
+            if not year_param:
+                return Response({
+                    "success": False,
+                    "error": "El parámetro 'year' es requerido"
+                }, status=400)
+
+            try:
+                year = int(year_param)
+                if year < 1900 or year > 2100:
+                    raise ValueError("Año fuera de rango válido")
+            except ValueError:
+                return Response({
+                    "success": False,
+                    "error": "El parámetro 'year' debe ser un año válido"
+                }, status=400)
+
+            # Validar mes si se proporciona
+            month = None
+            if month_param:
+                try:
+                    month = int(month_param)
+                    if month < 1 or month > 12:
+                        raise ValueError("Mes fuera de rango")
+                except ValueError:
+                    return Response({
+                        "success": False,
+                        "error": "El parámetro 'month' debe ser un número entre 1 y 12"
+                    }, status=400)
+
+            # Construir filtro de fechas
+            if month:
+                # Filtrar por mes específico
+                last_day_month = calendar.monthrange(year, month)[1]
+                start_date = datetime(year, month, 1).date()
+                end_date = datetime(year, month, last_day_month).date()
+            else:
+                # Filtrar por todo el año
+                start_date = datetime(year, 1, 1).date()
+                end_date = datetime(year, 12, 31).date()
+
+            # Obtener reservas de la propiedad en el rango de fechas
+            reservations = Reservation.objects.filter(
+                property=property_obj,
+                deleted=False,
+                status__in=['approved', 'pending', 'incomplete']
+            ).filter(
+                Q(check_in_date__lte=end_date) & Q(check_out_date__gte=start_date)
+            ).select_related('client').order_by('check_in_date')
+
+            # Formatear datos de ocupación
+            occupancy_data = []
+            for reservation in reservations:
+                # Formatear nombre del huésped
+                if reservation.client:
+                    first_name = reservation.client.first_name or ""
+                    last_name = reservation.client.last_name or ""
+                    
+                    # Crear formato "Nombre A." 
+                    if first_name and last_name:
+                        guest_name = f"{first_name} {last_name[0]}."
+                    elif first_name:
+                        guest_name = first_name
+                    elif last_name:
+                        guest_name = f"{last_name[0]}."
+                    else:
+                        guest_name = "Cliente sin nombre"
+                else:
+                    guest_name = "Cliente sin datos"
+
+                # Mapear status
+                status_mapping = {
+                    'approved': 'confirmed',
+                    'pending': 'pending',
+                    'incomplete': 'incomplete',
+                    'rejected': 'rejected',
+                    'cancelled': 'cancelled'
+                }
+                
+                status = status_mapping.get(reservation.status, reservation.status)
+
+                occupancy_data.append({
+                    "start_date": reservation.check_in_date.strftime('%Y-%m-%d'),
+                    "end_date": reservation.check_out_date.strftime('%Y-%m-%d'),
+                    "guest_name": guest_name,
+                    "status": status,
+                    "reservation_id": str(reservation.id)
+                })
+
+            return Response({
+                "success": True,
+                "data": {
+                    "property_id": property_obj.slug or str(property_obj.id),
+                    "occupancy": occupancy_data
+                }
+            })
+
+        except Exception as e:
+            return Response({
+                "success": False,
+                "error": f"Error interno del servidor: {str(e)}"
+            }, status=500)
