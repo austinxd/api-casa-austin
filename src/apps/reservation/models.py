@@ -86,6 +86,12 @@ class Reservation(BaseModel):
         default=0, 
         help_text="Puntos canjeados en esta reserva"
     )
+    discount_code_used = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        help_text="Código de descuento utilizado en esta reserva"
+    )
     # Campos para voucher de pago
     payment_voucher_deadline = models.DateTimeField(
         null=True, 

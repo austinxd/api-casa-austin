@@ -177,12 +177,50 @@ class ReservationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         from decimal import Decimal
+        from apps.property.pricing_models import DiscountCode
         
         # Extraer puntos a canjear antes de crear la reserva
         points_to_redeem = validated_data.pop('points_to_redeem', 0)
         
+        # Extraer código de descuento si se proporciona
+        discount_code = validated_data.pop('discount_code', None)
+        
         # Crear la reserva
         reservation = super().create(validated_data)
+        
+        # Si hay código de descuento, validarlo y procesarlo
+        if discount_code and discount_code.strip():
+            try:
+                # Buscar el código de descuento
+                code_obj = DiscountCode.objects.filter(
+                    code__iexact=discount_code.strip(),
+                    is_active=True,
+                    deleted=False
+                ).first()
+                
+                if code_obj:
+                    # Validar el código una vez más al momento de crear la reserva
+                    is_valid, message = code_obj.is_valid(
+                        property_id=reservation.property.id,
+                        total_amount_usd=float(reservation.price_usd) if reservation.price_usd else 0,
+                        booking_date=None  # Usar fecha actual para validación
+                    )
+                    
+                    if is_valid:
+                        # Guardar el código usado en la reserva
+                        reservation.discount_code_used = code_obj.code
+                        
+                        # Incrementar el contador de uso
+                        code_obj.used_count += 1
+                        code_obj.save()
+                        
+                        reservation.save()
+                        
+            except Exception as e:
+                # Solo logear el error, no fallar la creación de reserva
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error al procesar código de descuento: {str(e)}")
         
         # Si hay puntos para canjear, procesarlos
         if points_to_redeem and points_to_redeem > 0 and reservation.client:
@@ -273,7 +311,7 @@ class ClientReservationSerializer(serializers.ModelSerializer):
             'property', 'check_in_date', 'check_out_date', 'guests', 
             'temperature_pool', 'points_to_redeem', 'tel_contact_number',
             'price_usd', 'price_sol', 'advance_payment_currency', 'comentarios_reservas',
-            'seller', 'origin'
+            'seller', 'origin', 'discount_code'
         ]
         extra_kwargs = {
             'points_to_redeem': {'write_only': True, 'required': False},
@@ -283,7 +321,8 @@ class ClientReservationSerializer(serializers.ModelSerializer):
             'advance_payment_currency': {'required': False},
             'comentarios_reservas': {'required': False},
             'seller': {'required': False},
-            'origin': {'required': False}
+            'origin': {'required': False},
+            'discount_code': {'required': False}
         }
 
     points_to_redeem = serializers.DecimalField(
@@ -332,9 +371,13 @@ class ClientReservationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         from decimal import Decimal
+        from apps.property.pricing_models import DiscountCode
         
         # Extraer puntos a canjear antes de crear la reserva
         points_to_redeem = validated_data.pop('points_to_redeem', 0)
+        
+        # Extraer código de descuento si se proporciona
+        discount_code = validated_data.pop('discount_code', None)
         
         # Obtener el cliente del contexto de la request
         client = self.context['request'].user
@@ -382,6 +425,44 @@ class ClientReservationSerializer(serializers.ModelSerializer):
         
         # Crear la reserva
         reservation = super().create(validated_data)
+        
+        # Si hay código de descuento, validarlo y procesarlo
+        if discount_code and discount_code.strip():
+            try:
+                # Buscar el código de descuento
+                code_obj = DiscountCode.objects.filter(
+                    code__iexact=discount_code.strip(),
+                    is_active=True,
+                    deleted=False
+                ).first()
+                
+                if code_obj:
+                    # Validar el código una vez más al momento de crear la reserva
+                    is_valid, message = code_obj.is_valid(
+                        property_id=reservation.property.id,
+                        total_amount_usd=float(reservation.price_usd) if reservation.price_usd else 0,
+                        booking_date=None  # Usar fecha actual para validación
+                    )
+                    
+                    if is_valid:
+                        # Guardar el código usado en la reserva
+                        reservation.discount_code_used = code_obj.code
+                        
+                        # Incrementar el contador de uso
+                        code_obj.used_count += 1
+                        code_obj.save()
+                        
+                        reservation.save()
+                    else:
+                        # Si el código no es válido al momento de crear la reserva, 
+                        # eliminar la reserva y lanzar error
+                        reservation.delete()
+                        raise serializers.ValidationError(f"Error con código de descuento: {message}")
+                        
+            except Exception as e:
+                # Si hay error procesando el código, eliminar la reserva
+                reservation.delete()
+                raise serializers.ValidationError(f"Error al procesar código de descuento: {str(e)}")
         
         # Si hay puntos para canjear, procesarlos INMEDIATAMENTE
         if points_to_redeem and points_to_redeem > 0:
