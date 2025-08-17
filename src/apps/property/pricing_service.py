@@ -345,8 +345,9 @@ class PricingCalculationService:
                     'code_used': discount_code.strip() if discount_code else None
                 })
 
-        # Si no hay código válido, verificar descuentos automáticos
-        if client:
+        # Si no hay código válido y tampoco hubo error con código, verificar descuentos automáticos
+        # Solo evaluar descuentos automáticos si no se proporcionó código o si el tipo es 'none'
+        if client and discount_info['type'] == 'none':
             from .pricing_models import AutomaticDiscount
             import logging
             logger = logging.getLogger(__name__)
