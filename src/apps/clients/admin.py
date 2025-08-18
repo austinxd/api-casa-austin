@@ -91,6 +91,6 @@ class ClientAchievementAdmin(admin.ModelAdmin):
     readonly_fields = ('earned_at',)
     autocomplete_fields = ('client', 'achievement')
 
-admin.site.register(Clients)
-admin.site.register(MensajeFidelidad)
+admin.site.register(MensajeFidelidad, MensajeFidelidadAdmin)
 admin.site.register(TokenApiClients)
+admin.site.register(Clients, ClientsAdmin)
