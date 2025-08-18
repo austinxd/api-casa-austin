@@ -95,21 +95,21 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
                         f"(referido: {instance.client.first_name} {instance.client.last_name}) - {referral_config.percentage}% de S/{effective_price:.2f}"
                     )
 
-                    logger.debug(f"Puntos por referido procesados: {client.first_name} recibió {referral_points} puntos por referir a {reservation.client.first_name}")
+                    logger.debug(f"Puntos por referido procesados: {instance.client.referred_by.first_name} recibió {referral_points} puntos por referir a {instance.client.first_name}")
 
-        except Exception as e:
-            logger.error(f"Error procesando puntos por referido: {str(e)}")
+            except Exception as e:
+                logger.error(f"Error procesando puntos por referido: {str(e)}")
 
         # Verificar logros para ambos clientes después de procesar puntos y reservas
         try:
             from apps.clients.signals import check_and_assign_achievements
 
             # Verificar logros para el cliente que hizo la reserva
-            check_and_assign_achievements(reservation.client)
+            check_and_assign_achievements(instance.client)
 
             # Verificar logros para el cliente que refirió (si existe)
-            if reservation.client.referred_by:
-                check_and_assign_achievements(reservation.client.referred_by)
+            if instance.client.referred_by:
+                check_and_assign_achievements(instance.client.referred_by)
 
         except Exception as e:
             logger.error(f"Error verificando logros después de reserva: {str(e)}")
