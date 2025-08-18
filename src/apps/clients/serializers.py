@@ -169,14 +169,21 @@ class ClientProfileSerializer(serializers.ModelSerializer):
             deleted=False
         ).select_related('achievement').order_by('-earned_at')
         
-        # Obtener el logro más reciente (nivel actual)
+        # Obtener el nivel más alto obtenido (no solo el más reciente)
         current_level = None
         if earned_achievements.exists():
+            # Ordenar por requisitos para obtener el nivel más alto
+            highest_achievement = earned_achievements.select_related('achievement').order_by(
+                '-achievement__required_reservations',
+                '-achievement__required_referrals',
+                '-achievement__required_referral_reservations'
+            ).first()
+            
             current_level = {
-                'name': earned_achievements.first().achievement.name,
-                'description': earned_achievements.first().achievement.description,
-                'icon': earned_achievements.first().achievement.icon,
-                'earned_at': earned_achievements.first().earned_at
+                'name': highest_achievement.achievement.name,
+                'description': highest_achievement.achievement.description,
+                'icon': highest_achievement.achievement.icon,
+                'earned_at': highest_achievement.earned_at
             }
         
         # Buscar el siguiente logro disponible
