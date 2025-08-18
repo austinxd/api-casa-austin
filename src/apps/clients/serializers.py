@@ -90,6 +90,8 @@ class ClientProfileSerializer(serializers.ModelSerializer):
     points_are_expired = serializers.SerializerMethodField()
     referred_by_info = serializers.SerializerMethodField()
     referral_code = serializers.SerializerMethodField()
+    level_info = serializers.SerializerMethodField()
+    achievements_stats = serializers.SerializerMethodField()
 
     class Meta:
         model = Clients
@@ -109,7 +111,9 @@ class ClientProfileSerializer(serializers.ModelSerializer):
             "available_points",
             "points_are_expired",
             "referred_by_info",
-            "referral_code"
+            "referral_code",
+            "level_info",
+            "achievements_stats"
         ]
         read_only_fields = [
             "id", "document_type", "number_doc", "last_login",
@@ -135,6 +139,137 @@ class ClientProfileSerializer(serializers.ModelSerializer):
     def get_referral_code(self, obj):
         """Código de referido del cliente"""
         return obj.get_referral_code()
+
+    def get_level_info(self, obj):
+        """Información del nivel actual del cliente"""
+        from apps.reservation.models import Reservation
+        from django.db.models import Q, Count
+        
+        # Calcular estadísticas actuales del cliente
+        client_reservations = Reservation.objects.filter(
+            client=obj,
+            deleted=False,
+            status='approved'
+        ).count()
+        
+        client_referrals = Clients.objects.filter(
+            referred_by=obj,
+            deleted=False
+        ).count()
+        
+        referral_reservations = Reservation.objects.filter(
+            client__referred_by=obj,
+            deleted=False,
+            status='approved'
+        ).count()
+        
+        # Obtener logros obtenidos
+        earned_achievements = ClientAchievement.objects.filter(
+            client=obj,
+            deleted=False
+        ).select_related('achievement').order_by('-earned_at')
+        
+        # Obtener el logro más reciente (nivel actual)
+        current_level = None
+        if earned_achievements.exists():
+            current_level = {
+                'name': earned_achievements.first().achievement.name,
+                'description': earned_achievements.first().achievement.description,
+                'icon': earned_achievements.first().achievement.icon,
+                'earned_at': earned_achievements.first().earned_at
+            }
+        
+        # Buscar el siguiente logro disponible
+        earned_achievement_ids = earned_achievements.values_list('achievement_id', flat=True)
+        next_achievement = Achievement.objects.filter(
+            is_active=True,
+            deleted=False
+        ).exclude(id__in=earned_achievement_ids).order_by('order', 'required_reservations', 'required_referrals').first()
+        
+        next_level = None
+        progress = None
+        if next_achievement:
+            next_level = {
+                'name': next_achievement.name,
+                'description': next_achievement.description,
+                'icon': next_achievement.icon,
+                'required_reservations': next_achievement.required_reservations,
+                'required_referrals': next_achievement.required_referrals,
+                'required_referral_reservations': next_achievement.required_referral_reservations
+            }
+            
+            # Calcular progreso hacia el siguiente nivel
+            progress = {
+                'reservations': {
+                    'current': client_reservations,
+                    'required': next_achievement.required_reservations,
+                    'remaining': max(0, next_achievement.required_reservations - client_reservations)
+                },
+                'referrals': {
+                    'current': client_referrals,
+                    'required': next_achievement.required_referrals,
+                    'remaining': max(0, next_achievement.required_referrals - client_referrals)
+                },
+                'referral_reservations': {
+                    'current': referral_reservations,
+                    'required': next_achievement.required_referral_reservations,
+                    'remaining': max(0, next_achievement.required_referral_reservations - referral_reservations)
+                }
+            }
+        
+        return {
+            'current_level': current_level,
+            'next_level': next_level,
+            'progress': progress,
+            'total_achievements': earned_achievements.count()
+        }
+
+    def get_achievements_stats(self, obj):
+        """Estadísticas de logros del cliente"""
+        from apps.reservation.models import Reservation
+        from django.db.models import Q, Count
+        
+        # Calcular estadísticas actuales
+        client_reservations = Reservation.objects.filter(
+            client=obj,
+            deleted=False,
+            status='approved'
+        ).count()
+        
+        client_referrals = Clients.objects.filter(
+            referred_by=obj,
+            deleted=False
+        ).count()
+        
+        referral_reservations = Reservation.objects.filter(
+            client__referred_by=obj,
+            deleted=False,
+            status='approved'
+        ).count()
+        
+        # Contar logros totales
+        total_achievements = Achievement.objects.filter(
+            is_active=True,
+            deleted=False
+        ).count()
+        
+        earned_achievements = ClientAchievement.objects.filter(
+            client=obj,
+            deleted=False
+        ).count()
+        
+        return {
+            'client_stats': {
+                'reservations': client_reservations,
+                'referrals': client_referrals,
+                'referral_reservations': referral_reservations
+            },
+            'achievements': {
+                'earned': earned_achievements,
+                'total': total_achievements,
+                'percentage': round((earned_achievements / total_achievements * 100), 1) if total_achievements > 0 else 0
+            }
+        }
 
 
 
