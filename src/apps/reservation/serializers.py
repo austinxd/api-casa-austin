@@ -10,7 +10,7 @@ from apps.accounts.models import CustomUser
 
 from apps.accounts.serializers import SellerSerializer
 from apps.clients.serializers import ClientShortSerializer
-from apps.property.serializers import PropertySerializer
+from apps.property.serializers import PropertySerializer, PropertyListSerializer
 
 from apps.core.functions import check_user_has_rol
 
@@ -209,18 +209,20 @@ class ReservationSerializer(serializers.ModelSerializer):
                     if is_valid:
                         # Guardar el código usado en la reserva
                         reservation.discount_code_used = code_obj.code
-
-                        # Incrementar el contador de uso
                         code_obj.used_count += 1
                         code_obj.save()
-
                         reservation.save()
 
+                    else:
+                        # Si el código no es válido al momento de crear la reserva, 
+                        # eliminar la reserva y lanzar error
+                        reservation.delete()
+                        raise serializers.ValidationError(f"Error con código de descuento: {message}")
+
             except Exception as e:
-                # Solo logear el error, no fallar la creación de reserva
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Error al procesar código de descuento: {str(e)}")
+                # Si hay error procesando el código, eliminar la reserva
+                reservation.delete()
+                raise serializers.ValidationError(f"Error al procesar código de descuento: {str(e)}")
 
         # Si hay puntos para canjear, procesarlos
         if points_to_redeem and points_to_redeem > 0 and reservation.client:
@@ -300,6 +302,34 @@ class ReservationListSerializer(ReservationSerializer):
     @extend_schema_field(serializers.CharField())
     def get_status_display(self, instance):
         return instance.get_status_display() if hasattr(instance, 'get_status_display') else 'Aprobada'
+
+
+class CalendarReservationSerializer(ReservationSerializer):
+    """Serializer ligero para el calendario - solo información esencial"""
+    client = serializers.SerializerMethodField()
+    seller = serializers.SerializerMethodField()
+    property = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Reservation
+        fields = [
+            'id', 'check_in_date', 'check_out_date', 'guests',
+            'price_sol', 'price_usd', 'advance_payment_currency',
+            'adelanto_normalizado', 'status', 'client', 'seller', 'property'
+        ]
+
+    @extend_schema_field(ClientShortSerializer)
+    def get_client(self, instance):
+        return ClientShortSerializer(instance.client).data
+
+    @extend_schema_field(SellerSerializer)
+    def get_seller(self, instance):
+        return SellerSerializer(instance.seller).data
+
+    @extend_schema_field(PropertyListSerializer)
+    def get_property(self, instance):
+        # Usar el serializer ligero que NO incluye fotos ni detalles extensos
+        return PropertyListSerializer(instance.property).data
 
 
 class ClientReservationSerializer(serializers.ModelSerializer):

@@ -16,12 +16,12 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
+from .serializers import ReservationSerializer, ReservationListSerializer, ReservationRetrieveSerializer, ClientReservationSerializer, CalendarReservationSerializer
 
 from apps.core.paginator import CustomPagination
 from slugify import slugify
 
 from .models import Reservation, RentalReceipt, Clients, Property
-from .serializers import ReservationSerializer, ReservationListSerializer, ReservationRetrieveSerializer, ReciptSerializer
 
 from apps.accounts.models import CustomUser
 
@@ -118,7 +118,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                         (Q(check_out_date=today_date) & Q(check_out_date__gt=now)) |
                         (Q(check_out_date=tomorrow_date) & Q(check_out_date__gt=datetime.combine(tomorrow_date, check_out_time)))
                     )
-                
+
                 elif from_param == 'pending':
                     queryset = queryset.filter(status='pending')
 
@@ -450,7 +450,7 @@ class ProfitApiView(APIView):
 
 ############ Austin MOD ############
 class VistaCalendarioApiView(viewsets.ModelViewSet):
-    serializer_class = ReservationSerializer
+    serializer_class = CalendarReservationSerializer # Usar el nuevo serializer ligero
     queryset = Reservation.objects.exclude(deleted=True).order_by("check_in_date")
     search_fields = [
         "client__email",
@@ -908,7 +908,7 @@ class PropertyCalendarOccupancyAPIView(APIView):
                 if reservation.client:
                     first_name = reservation.client.first_name or ""
                     last_name = reservation.client.last_name or ""
-                    
+
                     # Crear formato con primer nombre e inicial del primer apellido
                     if first_name and last_name:
                         # Obtener solo el primer nombre y la inicial del primer apellido
@@ -932,7 +932,7 @@ class PropertyCalendarOccupancyAPIView(APIView):
                     'rejected': 'rejected',
                     'cancelled': 'cancelled'
                 }
-                
+
                 status = status_mapping.get(reservation.status, reservation.status)
 
                 occupancy_data.append({
