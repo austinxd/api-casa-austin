@@ -16,7 +16,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
-from .serializers import ReservationSerializer, ReservationListSerializer, ReservationRetrieveSerializer, ClientReservationSerializer, CalendarReservationSerializer
+from .serializers import ReservationSerializer, ReservationListSerializer, ReservationRetrieveSerializer, ClientReservationSerializer, CalendarReservationSerializer, ReciptSerializer
 
 from apps.core.paginator import CustomPagination
 from slugify import slugify
