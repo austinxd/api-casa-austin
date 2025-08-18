@@ -17,6 +17,8 @@ class TokenApiClienteSerializer(serializers.ModelSerializer):
         exclude = ["id", "created", "updated", "deleted"]
 
 class ClientsSerializer(serializers.ModelSerializer):
+    level_info = serializers.SerializerMethodField()
+    
     class Meta:
         model = Clients
         exclude = ["created", "updated", "deleted"]
@@ -27,6 +29,30 @@ class ClientsSerializer(serializers.ModelSerializer):
                 message="Este número de documento/ruc ya ha sido registrado"
             )
         ]
+
+    def get_level_info(self, obj):
+        """Información del nivel actual del cliente - versión simplificada"""
+        # Obtener logros obtenidos ordenados por nivel más alto
+        earned_achievements = ClientAchievement.objects.filter(
+            client=obj,
+            deleted=False
+        ).select_related('achievement').order_by(
+            '-achievement__required_reservations',
+            '-achievement__required_referrals',
+            '-achievement__required_referral_reservations'
+        )
+        
+        # Obtener el nivel más alto obtenido
+        if earned_achievements.exists():
+            highest_achievement = earned_achievements.first()
+            return {
+                'name': highest_achievement.achievement.name,
+                'description': highest_achievement.achievement.description,
+                'icon': highest_achievement.achievement.icon,
+                'earned_at': highest_achievement.earned_at
+            }
+        
+        return None
 
     def validate(self, attrs):
 
