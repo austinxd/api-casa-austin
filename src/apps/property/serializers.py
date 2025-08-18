@@ -32,15 +32,15 @@ class PropertyListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Property
         fields = [
-            "id", 
+            "id",
             "name",
-            "slug", 
-            "location", 
-            "capacity_max", 
-            "dormitorios", 
-            "banos", 
-            "hora_ingreso", 
-            "hora_salida", 
+            "slug",
+            "location",
+            "capacity_max",
+            "dormitorios",
+            "banos",
+            "hora_ingreso",
+            "hora_salida",
             "caracteristicas",
             "background_color",
             "precio_desde",
