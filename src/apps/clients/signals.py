@@ -1,7 +1,7 @@
 import logging
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Clients
+from .models import Clients, Achievement, ClientAchievement
 from django.conf import settings
 import requests
 import hashlib
@@ -86,6 +86,64 @@ def notify_password_setup(client):
     except Exception as e:
         logger.error(f"Error enviando notificación de configuración de contraseña {client.id}: {str(e)}")
 
+
+def check_and_assign_achievements(client):
+    """Verifica y asigna automáticamente logros al cliente según sus métricas"""
+    try:
+        # Obtener todos los logros activos ordenados por requisitos
+        achievements = Achievement.objects.filter(
+            is_active=True,
+            deleted=False
+        ).order_by('order', 'required_reservations', 'required_referrals')
+        
+        new_achievements = []
+        
+        for achievement in achievements:
+            # Verificar si el cliente ya tiene este logro
+            if ClientAchievement.objects.filter(
+                client=client,
+                achievement=achievement,
+                deleted=False
+            ).exists():
+                continue
+            
+            # Verificar si el cliente cumple los requisitos
+            if achievement.check_client_qualifies(client):
+                # Asignar el logro
+                client_achievement = ClientAchievement.objects.create(
+                    client=client,
+                    achievement=achievement
+                )
+                new_achievements.append(client_achievement)
+                logger.info(f"Logro automático asignado: {achievement.name} a {client.first_name} {client.last_name}")
+        
+        # Si se asignaron logros, enviar notificación
+        if new_achievements:
+            notify_new_achievements(client, new_achievements)
+            
+    except Exception as e:
+        logger.error(f"Error verificando logros para cliente {client.id}: {str(e)}")
+
+
+def notify_new_achievements(client, achievements):
+    """Envía notificación cuando se asignan nuevos logros automáticamente"""
+    try:
+        client_name = f"{client.first_name} {client.last_name}" if client.last_name else client.first_name
+        
+        achievements_list = "\n".join([f"🏆 {ach.achievement.name}" for ach in achievements])
+        
+        message = (
+            f"🎉 **NUEVOS LOGROS ASIGNADOS** 🎉\n"
+            f"👤 Cliente: {client_name}\n"
+            f"📄 Documento: {client.get_document_type_display()}: {client.number_doc}\n"
+            f"🏅 Logros obtenidos:\n{achievements_list}"
+        )
+        
+        send_telegram_message(message, settings.CLIENTS_CHAT_ID)
+        logger.debug(f"Notificación enviada para logros asignados a cliente: {client.id}")
+    except Exception as e:
+        logger.error(f"Error enviando notificación de logros para cliente {client.id}: {str(e)}")
+
 @receiver(post_save, sender=Clients)
 def update_audience_on_client_creation(sender, instance, created, **kwargs):
     if created:
@@ -100,6 +158,9 @@ def update_audience_on_client_creation(sender, instance, created, **kwargs):
                 logger.debug(f"Código de referido generado para cliente {instance.id}: {referral_code}")
             except Exception as e:
                 logger.error(f"Error generando código de referido para cliente {instance.id}: {str(e)}")
+
+        # Verificar y asignar logros automáticamente
+        check_and_assign_achievements(instance)
 
         update_meta_audience(instance)
         
@@ -123,3 +184,5 @@ def update_audience_on_client_creation(sender, instance, created, **kwargs):
             # Si no se especificaron campos, asumir que es una actualización relevante
             logger.debug(f"Cliente actualizado: {instance}")
             update_meta_audience(instance)
+            # También verificar logros en actualizaciones generales
+            check_and_assign_achievements(instance)

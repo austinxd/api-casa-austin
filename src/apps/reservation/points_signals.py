@@ -3,6 +3,11 @@ from django.dispatch import receiver
 from datetime import datetime, timedelta
 from django.utils import timezone
 from .models import Reservation
+from apps.clients.models import Clients, ReferralPointsConfig, Achievement, ClientAchievement
+from decimal import Decimal
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(post_save, sender=Reservation)
@@ -65,17 +70,17 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
         print(
             f"Puntos asignados: {points_to_add} puntos para cliente {instance.client.first_name} {instance.client.last_name}"
         )
-        
+
         # Asignar puntos por referido si aplica
         if instance.client.referred_by:
             from apps.clients.models import ReferralPointsConfig
             from decimal import Decimal
-            
+
             referral_config = ReferralPointsConfig.get_current_config()
             if referral_config and referral_config.is_active:
                 # Calcular puntos de referido basado en el porcentaje del valor de la reserva
                 referral_points = (Decimal(str(effective_price)) * referral_config.percentage) / Decimal('100')
-                
+
                 if referral_points > 0:
                     # Asignar puntos al cliente que refirió
                     instance.client.referred_by.add_referral_points(
@@ -84,8 +89,27 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
                         referred_client=instance.client,
                         description=f"Puntos por referido: {instance.client.first_name} {instance.client.last_name} - Reserva #{instance.id} ({referral_config.percentage}% de S/{effective_price:.2f})"
                     )
-                    
+
                     print(
                         f"Puntos de referido asignados: {referral_points} puntos para {instance.client.referred_by.first_name} {instance.client.referred_by.last_name} "
                         f"(referido: {instance.client.first_name} {instance.client.last_name}) - {referral_config.percentage}% de S/{effective_price:.2f}"
                     )
+
+                    logger.debug(f"Puntos por referido procesados: {client.first_name} recibió {referral_points} puntos por referir a {reservation.client.first_name}")
+
+        except Exception as e:
+            logger.error(f"Error procesando puntos por referido: {str(e)}")
+
+        # Verificar logros para ambos clientes después de procesar puntos y reservas
+        try:
+            from apps.clients.signals import check_and_assign_achievements
+
+            # Verificar logros para el cliente que hizo la reserva
+            check_and_assign_achievements(reservation.client)
+
+            # Verificar logros para el cliente que refirió (si existe)
+            if reservation.client.referred_by:
+                check_and_assign_achievements(reservation.client.referred_by)
+
+        except Exception as e:
+            logger.error(f"Error verificando logros después de reserva: {str(e)}")
