@@ -71,6 +71,9 @@ urlpatterns = [
     path('clients/client-auth/referral-stats/',
          views.ReferralStatsView.as_view(),
          name='client-referral-stats'),
+    path('clients/client-auth/achievements/',
+         views.ClientAchievementsView.as_view(),
+         name='client-achievements'),
 
     # Sistema de puntos (Integrated into the original structure)
     path('clients/points/balance/',

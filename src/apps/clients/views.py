@@ -686,3 +686,104 @@ class SearchTrackingView(APIView):
                 'success': False,
                 'message': 'Error interno del servidor'
             }, status=500)
+
+
+class ClientAchievementsView(APIView):
+    """Vista para obtener logros del cliente autenticado"""
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        """Obtener logros del cliente"""
+        try:
+            # Autenticar cliente
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
+
+            if not client:
+                logger.error("ClientAchievementsView: Authentication failed")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            from apps.reservation.models import Reservation
+            
+            # Obtener logros del cliente
+            client_achievements = ClientAchievement.objects.filter(
+                client=client,
+                deleted=False
+            ).select_related('achievement').order_by('-earned_at')
+            
+            # Obtener todos los logros disponibles y activos
+            all_achievements = Achievement.objects.filter(
+                is_active=True,
+                deleted=False
+            ).order_by('order', 'required_reservations')
+            
+            # Calcular estadísticas del cliente
+            client_reservations = Reservation.objects.filter(
+                client=client,
+                deleted=False,
+                status='approved'
+            ).count()
+            
+            client_referrals = Clients.objects.filter(
+                referred_by=client,
+                deleted=False
+            ).count()
+            
+            referral_reservations = Reservation.objects.filter(
+                client__referred_by=client,
+                deleted=False,
+                status='approved'
+            ).count()
+            
+            # Verificar logros pendientes automáticamente
+            new_achievements = []
+            for achievement in all_achievements:
+                # Verificar si ya tiene el logro
+                has_achievement = client_achievements.filter(achievement=achievement).exists()
+                
+                if not has_achievement and achievement.check_client_qualifies(client):
+                    # Otorgar nuevo logro
+                    new_client_achievement = ClientAchievement.objects.create(
+                        client=client, 
+                        achievement=achievement
+                    )
+                    new_achievements.append(new_client_achievement)
+                    logger.info(f"Nuevo logro otorgado: {achievement.name} a {client.first_name}")
+            
+            # Actualizar lista de logros si se otorgaron nuevos
+            if new_achievements:
+                client_achievements = ClientAchievement.objects.filter(
+                    client=client,
+                    deleted=False
+                ).select_related('achievement').order_by('-earned_at')
+            
+            # Identificar logros disponibles (no obtenidos)
+            earned_achievement_ids = client_achievements.values_list('achievement_id', flat=True)
+            available_achievements = all_achievements.exclude(id__in=earned_achievement_ids)
+            
+            # Serializar datos
+            achievements_serializer = ClientAchievementSerializer(client_achievements, many=True)
+            available_serializer = AchievementSerializer(available_achievements, many=True)
+            
+            return Response({
+                'success': True,
+                'data': {
+                    'total_achievements': client_achievements.count(),
+                    'earned_achievements': achievements_serializer.data,
+                    'available_achievements': available_serializer.data,
+                    'new_achievements_count': len(new_achievements),
+                    'client_stats': {
+                        'reservations': client_reservations,
+                        'referrals': client_referrals,
+                        'referral_reservations': referral_reservations
+                    }
+                }
+            })
+
+        except Exception as e:
+            logger.error(f"ClientAchievementsView: Error getting achievements: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)

@@ -3,7 +3,7 @@ from django.contrib.auth.hashers import make_password, check_password
 from rest_framework.validators import UniqueTogetherValidator
 from decimal import Decimal
 
-from .models import Clients, MensajeFidelidad, TokenApiClients, ClientPoints, SearchTracking
+from .models import Clients, MensajeFidelidad, TokenApiClients, ClientPoints, SearchTracking, Achievement, ClientAchievement
 
 
 class MensajeFidelidadSerializer(serializers.ModelSerializer):
@@ -197,6 +197,42 @@ class RedeemPointsSerializer(serializers.Serializer):
 
 
 class SearchTrackingSerializer(serializers.ModelSerializer):
+
+
+class AchievementSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Achievement
+        fields = [
+            'id',
+            'name', 
+            'description',
+            'icon',
+            'required_reservations',
+            'required_referrals', 
+            'required_referral_reservations',
+            'order'
+        ]
+
+
+class ClientAchievementSerializer(serializers.ModelSerializer):
+    achievement = AchievementSerializer(read_only=True)
+    
+    class Meta:
+        model = ClientAchievement
+        fields = [
+            'id',
+            'achievement',
+            'earned_at'
+        ]
+
+
+class ClientAchievementStatsSerializer(serializers.Serializer):
+    """Serializer para estadísticas de logros del cliente"""
+    total_achievements = serializers.IntegerField()
+    recent_achievements = ClientAchievementSerializer(many=True)
+    available_achievements = AchievementSerializer(many=True)
+    client_stats = serializers.DictField()
+
     """Serializer para tracking de búsquedas - Versión simplificada para debug"""
     property_name = serializers.CharField(source='property.name', read_only=True)
     

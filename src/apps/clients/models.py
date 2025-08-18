@@ -347,3 +347,77 @@ class SearchTracking(BaseModel):
         logger.info("SearchTracking.save: All validations passed, calling super().save()")
         super().save(*args, **kwargs)
         logger.info("SearchTracking.save: Successfully saved!")
+
+
+class Achievement(BaseModel):
+    """Modelo para definir logros/insignias"""
+    
+    name = models.CharField(max_length=100, help_text="Nombre del logro")
+    description = models.TextField(help_text="Descripción del logro")
+    icon = models.CharField(max_length=50, null=True, blank=True, help_text="Emoji o icono del logro")
+    
+    # Requisitos para obtener el logro
+    required_reservations = models.PositiveIntegerField(default=0, help_text="Número mínimo de reservas requeridas")
+    required_referrals = models.PositiveIntegerField(default=0, help_text="Número mínimo de referidos requeridos")
+    required_referral_reservations = models.PositiveIntegerField(default=0, help_text="Número mínimo de reservas de referidos requeridas")
+    
+    # Configuración
+    is_active = models.BooleanField(default=True, help_text="Activar/desactivar este logro")
+    order = models.PositiveIntegerField(default=0, help_text="Orden de visualización")
+    
+    class Meta:
+        ordering = ['order', 'required_reservations', 'required_referrals']
+        verbose_name = "Logro"
+        verbose_name_plural = "Logros"
+    
+    def __str__(self):
+        return f"{self.name} ({self.required_reservations} reservas, {self.required_referrals} referidos, {self.required_referral_reservations} reservas de referidos)"
+    
+    def check_client_qualifies(self, client):
+        """Verifica si un cliente cumple los requisitos para este logro"""
+        from apps.reservation.models import Reservation
+        
+        # Contar reservas del cliente
+        client_reservations = Reservation.objects.filter(
+            client=client,
+            deleted=False,
+            status='approved'
+        ).count()
+        
+        # Contar referidos del cliente
+        client_referrals = Clients.objects.filter(
+            referred_by=client,
+            deleted=False
+        ).count()
+        
+        # Contar reservas de los referidos
+        referral_reservations = Reservation.objects.filter(
+            client__referred_by=client,
+            deleted=False,
+            status='approved'
+        ).count()
+        
+        # Verificar si cumple todos los requisitos
+        return (
+            client_reservations >= self.required_reservations and
+            client_referrals >= self.required_referrals and
+            referral_reservations >= self.required_referral_reservations
+        )
+
+
+class ClientAchievement(BaseModel):
+    """Modelo para rastrear logros obtenidos por clientes"""
+    
+    client = models.ForeignKey(Clients, on_delete=models.CASCADE, related_name='achievements')
+    achievement = models.ForeignKey(Achievement, on_delete=models.CASCADE)
+    earned_at = models.DateTimeField(auto_now_add=True, help_text="Fecha cuando se obtuvo el logro")
+    
+    class Meta:
+        unique_together = ('client', 'achievement')
+        ordering = ['-earned_at']
+        verbose_name = "Logro de Cliente"
+        verbose_name_plural = "Logros de Clientes"
+    
+    def __str__(self):
+        return f"{self.client.first_name} - {self.achievement.name}"
+
