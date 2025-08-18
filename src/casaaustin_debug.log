@@ -160,3 +160,16 @@ DEBUG 2025-08-18 09:16:47,188 telegram_notifier 4204 140603119625920 Enviando me
 DEBUG 2025-08-18 09:16:47,840 telegram_notifier 4204 140603119625920 Mensaje enviado.
 DEBUG 2025-08-18 09:16:47,840 telegram_notifier 4204 140603119625920 Mensaje enviado a través del executor.
 DEBUG 2025-08-18 09:16:47,840 signals 4204 140603119625920 Notificación enviada para nuevo cliente: e41d3c39-0bc7-4ff1-aa3f-6b0d6926d4e9
+DEBUG 2025-08-18 09:26:14,852 signals 7095 140422624220864 Cliente actualizado: Clients object (e41d3c39-0bc7-4ff1-aa3f-6b0d6926d4e9)
+WARNING 2025-08-18 09:26:15,122 signals 7095 140422624220864 Error al actualizar audiencia de cliente e41d3c39-0bc7-4ff1-aa3f-6b0d6926d4e9. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"Aep2JI-IJBljWdNL4smFGqS"}}
+INFO 2025-08-18 09:26:15,132 signals 7095 140422624220864 Logro automático asignado: Curioso a sdfsdf sdfsdf
+DEBUG 2025-08-18 09:26:15,132 telegram_notifier 7095 140422624220864 Preparando para enviar mensaje: 🎉 **NUEVOS LOGROS ASIGNADOS** 🎉
+👤 Cliente: sdfsdf sdfsdf
+📄 Documento: Documento Nacional de Identidad: 3453454
+🏅 Logros obtenidos:
+🏆 Curioso
+ERROR 2025-08-18 09:26:15,133 telegram_notifier 7095 140422624220864 Error in event loop: There is no current event loop in thread 'Thread-1 (process_request_thread)'.
+DEBUG 2025-08-18 09:26:15,133 telegram_notifier 7095 140422624220864 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-08-18 09:26:15,744 telegram_notifier 7095 140422624220864 Mensaje enviado.
+DEBUG 2025-08-18 09:26:15,745 telegram_notifier 7095 140422624220864 Mensaje enviado a través del executor.
+DEBUG 2025-08-18 09:26:15,745 signals 7095 140422624220864 Notificación enviada para logros asignados a cliente: e41d3c39-0bc7-4ff1-aa3f-6b0d6926d4e9
