@@ -24,6 +24,7 @@ urlpatterns = [
     path("get-ics/", GetICSApiView.as_view()),
     path("update-ics/", UpdateICSApiView.as_view()),
     path("profit/", ProfitApiView.as_view()),
+    path("profit-resume/", ProfitApiView.as_view(), name='profit-resume'),
     path('confirm/<str:uuid>/', confirm_reservation, name='confirm_reservation'),
     path('property/<str:property_id>/calendar-occupancy/', PropertyCalendarOccupancyAPIView.as_view(), name='property-calendar-occupancy'),
 ]
