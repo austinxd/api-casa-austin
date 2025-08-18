@@ -197,6 +197,31 @@ class RedeemPointsSerializer(serializers.Serializer):
 
 
 class SearchTrackingSerializer(serializers.ModelSerializer):
+    """Serializer para tracking de búsquedas - Versión simplificada para debug"""
+    property_name = serializers.CharField(source='property.name', read_only=True)
+
+    class Meta:
+        model = SearchTracking
+        fields = [
+            'check_in_date', 'check_out_date', 'guests', 'property', 
+            'property_name', 'search_timestamp'
+        ]
+        read_only_fields = ['search_timestamp']
+
+    def validate(self, attrs):
+        import logging
+        logger = logging.getLogger(__name__)
+
+        logger.info(f"SearchTrackingSerializer.validate: ENTRADA - attrs recibidos: {attrs}")
+        logger.info(f"SearchTrackingSerializer.validate: ENTRADA - tipo de attrs: {type(attrs)}")
+
+        # Log cada campo individual
+        for key, value in attrs.items():
+            logger.info(f"SearchTrackingSerializer.validate: CAMPO '{key}' = '{value}' (tipo: {type(value)})")
+
+        # NO hacer validaciones complejas por ahora, solo log y retornar
+        logger.info(f"SearchTrackingSerializer.validate: SALIDA - retornando attrs: {attrs}")
+        return attrs
 
 
 class AchievementSerializer(serializers.ModelSerializer):
@@ -216,7 +241,7 @@ class AchievementSerializer(serializers.ModelSerializer):
 
 class ClientAchievementSerializer(serializers.ModelSerializer):
     achievement = AchievementSerializer(read_only=True)
-    
+
     class Meta:
         model = ClientAchievement
         fields = [
@@ -232,29 +257,3 @@ class ClientAchievementStatsSerializer(serializers.Serializer):
     recent_achievements = ClientAchievementSerializer(many=True)
     available_achievements = AchievementSerializer(many=True)
     client_stats = serializers.DictField()
-
-    """Serializer para tracking de búsquedas - Versión simplificada para debug"""
-    property_name = serializers.CharField(source='property.name', read_only=True)
-    
-    class Meta:
-        model = SearchTracking
-        fields = [
-            'check_in_date', 'check_out_date', 'guests', 'property', 
-            'property_name', 'search_timestamp'
-        ]
-        read_only_fields = ['search_timestamp']
-
-    def validate(self, attrs):
-        import logging
-        logger = logging.getLogger(__name__)
-        
-        logger.info(f"SearchTrackingSerializer.validate: ENTRADA - attrs recibidos: {attrs}")
-        logger.info(f"SearchTrackingSerializer.validate: ENTRADA - tipo de attrs: {type(attrs)}")
-        
-        # Log cada campo individual
-        for key, value in attrs.items():
-            logger.info(f"SearchTrackingSerializer.validate: CAMPO '{key}' = '{value}' (tipo: {type(value)})")
-        
-        # NO hacer validaciones complejas por ahora, solo log y retornar
-        logger.info(f"SearchTrackingSerializer.validate: SALIDA - retornando attrs: {attrs}")
-        return attrs
