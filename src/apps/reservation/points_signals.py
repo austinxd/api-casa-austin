@@ -73,29 +73,30 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
 
         # Asignar puntos por referido si aplica
         if instance.client.referred_by:
-            from apps.clients.models import ReferralPointsConfig
-            from decimal import Decimal
+            try:
+                from apps.clients.models import ReferralPointsConfig
+                from decimal import Decimal
 
-            referral_config = ReferralPointsConfig.get_current_config()
-            if referral_config and referral_config.is_active:
-                # Calcular puntos de referido basado en el porcentaje del valor de la reserva
-                referral_points = (Decimal(str(effective_price)) * referral_config.percentage) / Decimal('100')
+                referral_config = ReferralPointsConfig.get_current_config()
+                if referral_config and referral_config.is_active:
+                    # Calcular puntos de referido basado en el porcentaje del valor de la reserva
+                    referral_points = (Decimal(str(effective_price)) * referral_config.percentage) / Decimal('100')
 
-                if referral_points > 0:
-                    # Asignar puntos al cliente que refirió
-                    instance.client.referred_by.add_referral_points(
-                        points=referral_points,
-                        reservation=instance,
-                        referred_client=instance.client,
-                        description=f"Puntos por referido: {instance.client.first_name} {instance.client.last_name} - Reserva #{instance.id} ({referral_config.percentage}% de S/{effective_price:.2f})"
-                    )
+                    if referral_points > 0:
+                        # Asignar puntos al cliente que refirió
+                        instance.client.referred_by.add_referral_points(
+                            points=referral_points,
+                            reservation=instance,
+                            referred_client=instance.client,
+                            description=f"Puntos por referido: {instance.client.first_name} {instance.client.last_name} - Reserva #{instance.id} ({referral_config.percentage}% de S/{effective_price:.2f})"
+                        )
 
-                    print(
-                        f"Puntos de referido asignados: {referral_points} puntos para {instance.client.referred_by.first_name} {instance.client.referred_by.last_name} "
-                        f"(referido: {instance.client.first_name} {instance.client.last_name}) - {referral_config.percentage}% de S/{effective_price:.2f}"
-                    )
+                        print(
+                            f"Puntos de referido asignados: {referral_points} puntos para {instance.client.referred_by.first_name} {instance.client.referred_by.last_name} "
+                            f"(referido: {instance.client.first_name} {instance.client.last_name}) - {referral_config.percentage}% de S/{effective_price:.2f}"
+                        )
 
-                    logger.debug(f"Puntos por referido procesados: {instance.client.referred_by.first_name} recibió {referral_points} puntos por referir a {instance.client.first_name}")
+                        logger.debug(f"Puntos por referido procesados: {instance.client.referred_by.first_name} recibió {referral_points} puntos por referir a {instance.client.first_name}")
 
             except Exception as e:
                 logger.error(f"Error procesando puntos por referido: {str(e)}")
