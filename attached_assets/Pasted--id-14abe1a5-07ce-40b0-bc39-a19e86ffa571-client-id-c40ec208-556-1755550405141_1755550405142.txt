@@ -1,0 +1,107 @@
+   "id": "14abe1a5-07ce-40b0-bc39-a19e86ffa571",
+        "client": {
+            "id": "c40ec208-556e-4e78-b64b-c75a758e52c5",
+            "first_name": "Yareli Nicol",
+            "last_name": "Abad Cueva",
+            "email": "",
+            "tel_number": "51994948361",
+            "document_type": "dni",
+            "number_doc": "75799162"
+        },
+        "seller": {
+            "id": 4,
+            "first_name": "Michael",
+            "last_name": "Narciso"
+        },
+        "property": {
+            "id": "d9d4e844-c38f-4ade-aa5c-5def19652ad0",
+            "photos": [
+                {
+                    "id": "211ea08d-f38d-415d-8721-24d9767fab15",
+                    "image_url_final": "/media/property_photos/d9d4e844-c38f-4ade-aa5c-5def19652ad0/casa-austin-4_0_dsc09918-scaled-2.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "2d5719bb-3135-4a59-9f65-07b6247bbf38",
+                    "image_url_final": "/media/property_photos/d9d4e844-c38f-4ade-aa5c-5def19652ad0/casa-austin-4_0_afbdbc93-839a-4739_IV0Mz86.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "3431f5bf-3884-432c-b4aa-3328a8013296",
+                    "image_url_final": "/media/property_photos/d9d4e844-c38f-4ade-aa5c-5def19652ad0/casa-austin-4_0_salaa.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "48f198ed-3ad6-4ff7-9d69-a2efc2969b30",
+                    "image_url_final": "/media/property_photos/d9d4e844-c38f-4ade-aa5c-5def19652ad0/casa-austin-4_0_dsc_5396_sb-1-1.webp",
+                    "image_thumbnail": "/media/property_photos/d9d4e844-c38f-4ade-aa5c-5def19652ad0/casa-austin-4_0_casa-austin-4_0_ds_17sJbOi.webp",
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": true
+                },
+                {
+                    "id": "4bb39f43-aac7-4ff9-b7c9-1064578480e8",
+                    "image_url_final": "/media/property_photos/d9d4e844-c38f-4ade-aa5c-5def19652ad0/casa-austin-4_0_dedit18-scaled-1.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "6190f282-d1a3-420c-a43e-197cf022b1bb",
+                    "image_url_final": "/media/property_photos/d9d4e844-c38f-4ade-aa5c-5def19652ad0/casa-austin-4_0_medio.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "7b21d0e9-7bea-4a04-a9f9-67181c92c281",
+                    "image_url_final": "/media/property_photos/d9d4e844-c38f-4ade-aa5c-5def19652ad0/casa-austin-4_0_ee8b6b43-5d65-4426_U8LoPNw.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "9189ac92-97ae-424f-80fd-74baf94fbc20",
+                    "image_url_final": "/media/property_photos/d9d4e844-c38f-4ade-aa5c-5def19652ad0/casa-austin-4_0_dsc_5387_sb-1.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "c3081703-79e5-4fcc-8674-d13d020626d4",
+                    "image_url_final": "/media/property_photos/d9d4e844-c38f-4ade-aa5c-5def19652ad0/casa-austin-4_0_cocina.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "ece0ccf4-cedf-4a6a-b29d-34195cb35904",
+                    "image_url_final": "/media/property_photos/d9d4e844-c38f-4ade-aa5c-5def19652ad0/casa-austin-4_0_ambos.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                }
+            ],
+            "main_photo": {
+                "id": "48f198ed-3ad6-4ff7-9d69-a2efc2969b30",
+                "image_url_final": "/media/property_photos/d9d4e844-c38f-4ade-aa5c-5def19652ad0/casa-austin-4_0_dsc_5396_sb-1-1.webp",
+                "image_thumbnail": "/media/property_photos/d9d4e844-c38f-4ade-aa5c-5def19652ad0/casa-austin-4_0_casa-austin-4_0_ds_17sJbOi.webp",
+                "alt_text": "",
+                "order": 0,
+                "is_main": true
+            },
