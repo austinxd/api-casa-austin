@@ -26,16 +26,33 @@ class PropertyPhotoSerializer(serializers.ModelSerializer):
 
 
 class PropertyListSerializer(serializers.ModelSerializer):
-    photos = serializers.SerializerMethodField()
+    """Serializer ligero para listados - solo información básica"""
     main_photo = serializers.SerializerMethodField()
 
-    @extend_schema_field(PropertyPhotoSerializer)
-    def get_photos(self, instance):
-        return PropertyPhotoSerializer(instance.photos.filter(deleted=False), many=True).data
+    class Meta:
+        model = Property
+        fields = [
+            "id", 
+            "name",
+            "slug", 
+            "location", 
+            "capacity_max", 
+            "dormitorios", 
+            "banos", 
+            "hora_ingreso", 
+            "hora_salida", 
+            "caracteristicas",
+            "background_color",
+            "precio_desde",
+            "main_photo"
+        ]
 
-    @extend_schema_field(PropertyPhotoSerializer)
-    def get_main_photo(self, instance):
-        main_photo = instance.photos.filter(deleted=False, is_main=True).first()
+    def get_main_photo(self, obj):
+        """Obtener la foto principal o la primera foto disponible"""
+        main_photo = obj.photos.filter(is_main=True, deleted=False).first()
+        if not main_photo:
+            main_photo = obj.photos.filter(deleted=False).first()
+
         if main_photo:
             return PropertyPhotoSerializer(main_photo).data
         return None
