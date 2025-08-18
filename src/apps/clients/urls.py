@@ -71,12 +71,14 @@ urlpatterns = [
     path('clients/client-auth/referral-stats/',
          views.ReferralStatsView.as_view(),
          name='client-referral-stats'),
-    path('clients/achievements/',
-         views.PublicAchievementsListView.as_view(),
-         name='public-achievements'),
     path('clients/client-auth/achievements/',
          views.ClientAchievementsView.as_view(),
          name='client-achievements'),
+    
+    # Public achievements endpoint (outside clients namespace to avoid router conflicts)
+    path('achievements/',
+         views.PublicAchievementsListView.as_view(),
+         name='public-achievements'),
 
     # Sistema de puntos (Integrated into the original structure)
     path('clients/points/balance/',
