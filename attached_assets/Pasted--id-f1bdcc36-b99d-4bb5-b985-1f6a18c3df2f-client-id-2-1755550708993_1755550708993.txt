@@ -1,0 +1,271 @@
+    {
+        "id": "f1bdcc36-b99d-4bb5-b985-1f6a18c3df2f",
+        "client": {
+            "id": "2a65bcf3-aba4-4928-876a-a1f105501cea",
+            "first_name": "Lucero Del Milagro",
+            "last_name": "Paiva Luna",
+            "email": "lucero_hershey@hotmail.com",
+            "tel_number": "13166707345",
+            "document_type": "dni",
+            "number_doc": "74201680"
+        },
+        "seller": {
+            "id": 1,
+            "first_name": "Augusto",
+            "last_name": "Tantalean"
+        },
+        "property": {
+            "id": "9a04892a-4ba5-4b10-92b5-2a72f6d89d57",
+            "photos": [
+                {
+                    "id": "07469d1a-08eb-47ad-8f4e-980e74ce3c4f",
+                    "image_url_final": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_dsc09925-scaled-1.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "3eead6bb-57cb-453f-8b7f-91cf790478b9",
+                    "image_url_final": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_cuarto-camarotes-2.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "410bb7c0-526e-4922-8dfb-97bf726e41c3",
+                    "image_url_final": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_dsc09827-scaled-1.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "49782078-328c-4446-80a7-65ad91db63df",
+                    "image_url_final": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_dsc09948-scaled-1.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "6c9c4f05-b68a-4ad5-a6f3-19210d2d6333",
+                    "image_url_final": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_dsc09540.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "74e169eb-a031-4e65-861f-85cb1c969c76",
+                    "image_url_final": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_dsc09862-scaled-1.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "7a628d6b-5ad1-4556-beb6-02c4e2312634",
+                    "image_url_final": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_ee8b6b43-5d65-4426_m2zELNK.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "82c00330-1235-488d-8d50-d9929035360f",
+                    "image_url_final": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_foto4-1.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "9cc4631c-2979-4def-9522-e0e3ea9a2327",
+                    "image_url_final": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_dsc_5373_sb.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "a4584752-68b6-40fe-9db9-ea146db32cc1",
+                    "image_url_final": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_dsc_5396_sb-2.webp",
+                    "image_thumbnail": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_casa-austin-2_0_ds_h8DNCme.webp",
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": true
+                },
+                {
+                    "id": "ae53d5b1-7e28-4217-800d-5354a21a8459",
+                    "image_url_final": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_frontis-1.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "cf05d28d-e981-47fb-969d-0153432e3305",
+                    "image_url_final": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_dsc09929-scaled-1.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "df198773-5c19-4ce8-ae64-9a7fee7d7b4b",
+                    "image_url_final": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_dsc_5375_sb.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "e2a2e794-55bf-4a78-8162-d891e9b68e75",
+                    "image_url_final": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_dsc09918-scaled-1.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                },
+                {
+                    "id": "f7b0564e-a431-4162-b6ea-35aa1ddad82f",
+                    "image_url_final": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_dsc_5387_sb-1.webp",
+                    "image_thumbnail": null,
+                    "alt_text": "",
+                    "order": 0,
+                    "is_main": false
+                }
+            ],
+            "main_photo": {
+                "id": "a4584752-68b6-40fe-9db9-ea146db32cc1",
+                "image_url_final": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_dsc_5396_sb-2.webp",
+                "image_thumbnail": "/media/property_photos/9a04892a-4ba5-4b10-92b5-2a72f6d89d57/casa-austin-2_0_casa-austin-2_0_ds_h8DNCme.webp",
+                "alt_text": "",
+                "order": 0,
+                "is_main": true
+            },
+            "name": "Casa Austin 2",
+            "location": "https://maps.app.goo.gl/v7ror4usrPwYxGxJA?g_st=ic",
+            "airbnb_url": "https://www.airbnb.com/calendar/ical/1432585807045396454.ics?s=f9599c486738f09a526fcf9657a8f6af",
+            "capacity_max": 50,
+            "background_color": "#2ecc71",
+            "on_temperature_pool_url": "https://maker.ifttt.com/trigger/2_encender_bomba/with/key/dGRTPyU4_BpRjAHQXCkF2a",
+            "off_temperature_pool_url": "https://maker.ifttt.com/trigger/2_apagar_bomba/with/key/dGRTPyU4_BpRjAHQXCkF2a",
+            "titulo": "Casa Austin 2: «Mejor que Cieneguilla: Piscina en playa»",
+            "descripcion": "¿Planeas una escapada económica para desconectar del estrés diario? Casa Austin 2 es la opción perfecta para disfrutar de un fin de semana increíble sin gastar de más. Ubicada en la exclusiva Playa Los Pulpos, a solo 20 minutos de Lima, esta casa ofrece todo lo que necesitas para unas vacaciones de ensueño a un precio que no creerás.\r\nTu Refugio Económico y Elegante en la Costa\r\nAunque Casa Austin 2 es asequible, está lejos de ser una opción básica. Esta hermosa residencia, situada a solo 4 minutos a pie de la playa, tiene seis amplias habitaciones distribuidas estratégicamente en sus tres niveles para acomodar grupos grandes, familias o amigos. Ya sea que estés buscando un lugar para una reunión familiar, una escapada con amigos o simplemente un respiro del ajetreo diario, Casa Austin 2 te ofrece una experiencia completa de lujo accesible.\r\n\r\nHabitación 1 y 2: Cada una con cama King y baño privado, perfectas para quienes buscan comodidad y privacidad.\r\nHabitación 3 y 4: Equipadas con camas Queen y camas individuales, ideales para acomodar a varios huéspedes sin perder confort.\r\nHabitaciones 5 y 6: Cada una con cuatro camas individuales, brindando flexibilidad y espacio suficiente para grandes grupos.\r\n\r\nDisfruta del Jacuzzi y la Piscina sin Salir de Casa\r\nSi pensabas que tendrías que gastar más para disfrutar de un jacuzzi privado, ¡piénsalo de nuevo! En Casa Austin 2, puedes disfrutar de un jacuzzi de hidromasaje y una piscina temperada disponibles todo el año, ofreciéndote el lugar ideal para relajarte en cualquier temporada. Ya sea que quieras tomar el sol o sumergirte en un jacuzzi después de un día en la playa, este espacio está diseñado para garantizar tu confort y disfrute.\r\nPerfecta para Reuniones, Fiestas y Escapadas Económicas\r\n¿Planeas una celebración especial o simplemente un fin de semana lleno de diversión? Casa Austin 2 es ideal para reuniones y fiestas, ya que cuenta con una amplia parrilla al aire libre, perfecta para disfrutar de cenas con amigos o familiares. Además, la casa cuenta con tecnología avanzada que te permite controlar el sistema de audio desde tu móvil, creando el ambiente perfecto para cada ocasión.\r\n\r\nCon una excelente ubicación cerca de otras playas icónicas como Punta Hermosa y Playa El Silencio, tendrás la libertad de explorar la belleza natural de la costa limeña o simplemente quedarte en la casa y aprovechar sus instalaciones.\r\nUna Experiencia Superior a los Bungalows de Cieneguilla\r\nSi alguna vez has considerado pasar un fin de semana en Cieneguilla, déjame decirte que Casa Austin 2 ofrece una experiencia muy superior. No solo tendrás acceso a la playa, sino también a una casa completa con todas las comodidades que puedas necesitar, desde jacuzzi hasta piscina temperada, sin mencionar la posibilidad de traer a tu mascota y celebrar fiestas sin restricciones. ¡Todo esto a un precio increíblemente accesible!\r\n\r\nAdemás de su espectacular ubicación y sus instalaciones de lujo, Casa Austin 2 cuenta con estacionamiento gratuito, cocina totalmente equipada, wifi, televisores y mucho más, lo que garantiza que cada aspecto de tu estancia sea lo más cómodo posible.\r\nReserva Ahora y Asegura un Fin de Semana Barato en la Playa\r\nNo esperes más para disfrutar de una Casa para un fin de semana barato en Perú. Casa Austin 2 te ofrece todo el lujo, comodidad y diversión que necesitas para desconectar, sin que eso afecte a tu bolsillo. ¡Reserva hoy mismo y empieza a planear el mejor fin de semana de tu vida, con jacuzzi, piscina y la costa de Lima a tus pies!",
+            "dormitorios": 6,
+            "banos": 6,
+            "detalle_dormitorios": {
+                "habitacion_1": {
+                    "camas": {
+                        "queen": 0,
+                        "individual": 0,
+                        "matrimonial": 1
+                    },
+                    "nombre": "Dormitorio Principal",
+                    "descripcion": "Habitación con baño privado y balcón"
+                },
+                "habitacion_2": {
+                    "camas": {
+                        "queen": 0,
+                        "individual": 0,
+                        "matrimonial": 1
+                    },
+                    "nombre": "Dormitorio Secundario",
+                    "descripcion": "Habitación con vista al jardín"
+                },
+                "habitacion_3": {
+                    "camas": {
+                        "queen": 1,
+                        "individual": 2,
+                        "matrimonial": 0
+                    },
+                    "nombre": "Dormitorio de Niños",
+                    "descripcion": "Habitación con literas"
+                },
+                "habitacion_4": {
+                    "camas": {
+                        "queen": 1,
+                        "individual": 2,
+                        "matrimonial": 0
+                    },
+                    "nombre": "Dormitorio Secundario",
+                    "descripcion": "Habitación"
+                },
+                "habitacion_5": {
+                    "camas": {
+                        "queen": 0,
+                        "individual": 4,
+                        "matrimonial": 0
+                    },
+                    "nombre": "Dormitorio Secundario",
+                    "descripcion": "Habitación"
+                },
+                "habitacion_6": {
+                    "camas": {
+                        "queen": 0,
+                        "individual": 4,
+                        "matrimonial": 0
+                    },
+                    "nombre": "Dormitorio Secundario",
+                    "descripcion": "Habitación"
+                }
+            },
+            "hora_ingreso": "15:00:00",
+            "hora_salida": "11:00:00",
+            "precio_extra_persona": "15.00",
+            "precio_desde": "55.00",
+            "caracteristicas": [
+                "Cámaras de seguridad en la propiedad",
+                "Cocina",
+                "Comedor",
+                "Estacionamiento gratuito en las instalaciones",
+                "Piscina ",
+                "Jacuzzi Temperable",
+                "Patio o balcón Privado",
+                "Refrigerador",
+                "Se permiten fiestas",
+                "Se permiten mascotas",
+                "Televisor",
+                "Wifi"
+            ],
+            "slug": "casa-austin-2"
+        },
+        "resta_pagar": "0.00",
+        "number_nights": 3,
+        "is_upcoming": false,
+        "status_display": "Aprobada",
+        "ManychatFecha": 1,
+        "late_checkout": false,
+        "late_check_out_date": null,
+        "comentarios_reservas": "",
+        "check_in_date": "2024-12-30",
+        "check_out_date": "2025-01-02",
+        "guests": 10,
+        "price_usd": "2955.00",
+        "price_sol": "11229.00",
+        "advance_payment": "11229.00",
+        "advance_payment_currency": "sol",
+        "uuid_external": null,
+        "origin": "aus",
+        "status": "approved",
+        "tel_contact_number": "13166707345",
+        "full_payment": true,
+        "temperature_pool": false,
+        "ip_cliente": null,
+        "user_agent": null,
+        "referer": null,
+        "fbclid": null,
+        "utm_source": null,
+        "utm_medium": null,
+        "utm_campaign": null,
+        "fbp": null,
+        "fbc": null,
+        "points_redeemed": "0.00",
+        "discount_code_used": null,
+        "payment_voucher_deadline": null,
+        "payment_voucher_uploaded": false,
+        "payment_confirmed": false
+    },
