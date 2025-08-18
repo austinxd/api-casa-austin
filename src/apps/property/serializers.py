@@ -9,14 +9,21 @@ from .models import Property, ProfitPropertyAirBnb, PropertyPhoto
 class PropertyPhotoSerializer(serializers.ModelSerializer):
     """Serializer para las fotos de propiedades"""
     image_url_final = serializers.SerializerMethodField()
+    image_thumbnail = serializers.SerializerMethodField()
     
     class Meta:
         model = PropertyPhoto
-        fields = ["id", "image_url", "image_file", "image_url_final", "alt_text", "order", "is_main"]
+        fields = ["id", "image_url_final", "image_thumbnail", "alt_text", "order", "is_main"]
         
     def get_image_url_final(self, obj):
         """Get the final image URL (file or external URL)"""
         return obj.get_image_url()
+
+    def get_image_thumbnail(self, obj):
+        """Get thumbnail URL for main photos"""
+        if obj.is_main:
+            return obj.get_thumbnail_url()
+        return None
 
 
 class PropertyListSerializer(serializers.ModelSerializer):

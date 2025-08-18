@@ -1,5 +1,9 @@
 
 from django.db import models
+from PIL import Image
+import os
+from django.core.files.base import ContentFile
+from io import BytesIO
 
 from apps.core.models import BaseModel
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -98,6 +102,13 @@ class PropertyPhoto(BaseModel):
         validators=[validate_image_size],
         help_text="Tamaño máximo: 20MB. Formatos permitidos: JPG, PNG, GIF"
     )
+    thumbnail = models.ImageField(
+        upload_to=property_photo_upload_path,
+        blank=True,
+        null=True,
+        verbose_name="Thumbnail (400x300)",
+        help_text="Imagen optimizada para cards, generada automáticamente"
+    )
     alt_text = models.CharField(max_length=200, blank=True, verbose_name="Texto alternativo")
     order = models.PositiveIntegerField(default=0, verbose_name="Orden", help_text="Orden de visualización (0 = primera)")
     is_main = models.BooleanField(default=False, verbose_name="Imagen principal")
@@ -116,6 +127,66 @@ class PropertyPhoto(BaseModel):
             return self.image_file.url
         return self.image_url or ""
 
+    def get_thumbnail_url(self):
+        """Get the thumbnail URL"""
+        if self.thumbnail:
+            return self.thumbnail.url
+        return None
+
+    def generate_thumbnail(self):
+        """Generate thumbnail from main image (400x300) in WebP format"""
+        if not self.image_file:
+            return
+
+        try:
+            # Abrir la imagen original
+            with Image.open(self.image_file.path) as img:
+                # Convertir a RGB si es necesario (para WebP)
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    img = img.convert('RGB')
+
+                # Calcular dimensiones manteniendo aspect ratio
+                target_width, target_height = 400, 300
+                img_ratio = img.width / img.height
+                target_ratio = target_width / target_height
+
+                if img_ratio > target_ratio:
+                    # Imagen más ancha, ajustar por altura
+                    new_height = target_height
+                    new_width = int(target_height * img_ratio)
+                else:
+                    # Imagen más alta, ajustar por ancho
+                    new_width = target_width
+                    new_height = int(target_width / img_ratio)
+
+                # Redimensionar
+                img_resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+                # Crear thumbnail centrado de 400x300
+                thumbnail = Image.new('RGB', (target_width, target_height), (255, 255, 255))
+                paste_x = (target_width - new_width) // 2
+                paste_y = (target_height - new_height) // 2
+                thumbnail.paste(img_resized, (paste_x, paste_y))
+
+                # Guardar como WebP
+                output = BytesIO()
+                thumbnail.save(output, format='WEBP', quality=85, optimize=True)
+                output.seek(0)
+
+                # Generar nombre del archivo
+                original_name = os.path.splitext(os.path.basename(self.image_file.name))[0]
+                thumbnail_name = f"{original_name}_thumb.webp"
+
+                # Guardar el thumbnail
+                self.thumbnail.save(
+                    thumbnail_name,
+                    ContentFile(output.getvalue()),
+                    save=False
+                )
+
+        except Exception as e:
+            print(f"Error generando thumbnail: {e}")
+
     def clean(self):
         """Validate that either image_file or image_url is provided"""
         from django.core.exceptions import ValidationError
@@ -129,7 +200,14 @@ class PropertyPhoto(BaseModel):
         # Si esta foto se marca como principal, desmarcar las demás de la misma propiedad
         if self.is_main:
             PropertyPhoto.objects.filter(property=self.property, is_main=True).exclude(pk=self.pk).update(is_main=False)
+        
+        # Guardar primero
         super().save(*args, **kwargs)
+        
+        # Generar thumbnail si es foto principal y no tiene thumbnail
+        if self.is_main and self.image_file and not self.thumbnail:
+            self.generate_thumbnail()
+            super().save(update_fields=['thumbnail'])
 
     def delete(self, *args, **kwargs):
         self.deleted = True
