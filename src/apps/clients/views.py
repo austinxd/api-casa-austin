@@ -167,13 +167,14 @@ from datetime import datetime, timedelta
 from django.db.models import Q, Sum, Count
 from django.shortcuts import get_object_or_404
 
-from .models import Clients, MensajeFidelidad, TokenApiClients, ClientPoints, ReferralPointsConfig, SearchTracking
+from .models import Clients, MensajeFidelidad, TokenApiClients, ClientPoints, ReferralPointsConfig, SearchTracking, Achievement, ClientAchievement
 from .serializers import (
     ClientsSerializer, MensajeFidelidadSerializer, TokenApiClienteSerializer,
     ClientAuthVerifySerializer, ClientAuthRequestOTPSerializer,
     ClientAuthSetPasswordSerializer, ClientAuthLoginSerializer,
     ClientProfileSerializer, ClientPointsSerializer,
-    ClientPointsBalanceSerializer, RedeemPointsSerializer, SearchTrackingSerializer)
+    ClientPointsBalanceSerializer, RedeemPointsSerializer, SearchTrackingSerializer,
+    AchievementSerializer, ClientAchievementSerializer)
 from .twilio_service import send_sms
 from apps.core.utils import ExportCsvMixin
 from apps.reservation.models import Reservation
@@ -682,6 +683,38 @@ class SearchTrackingView(APIView):
 
         except Exception as e:
             logger.error(f"SearchTrackingView: Error getting search: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+
+class PublicAchievementsListView(APIView):
+    """Vista pública para obtener todos los logros disponibles"""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        """Obtener lista de todos los logros disponibles"""
+        try:
+            # Obtener todos los logros activos ordenados por requisitos
+            achievements = Achievement.objects.filter(
+                is_active=True,
+                deleted=False
+            ).order_by('order', 'required_reservations', 'required_referrals')
+            
+            # Serializar datos
+            serializer = AchievementSerializer(achievements, many=True)
+            
+            return Response({
+                'success': True,
+                'data': {
+                    'total_achievements': achievements.count(),
+                    'achievements': serializer.data
+                }
+            })
+
+        except Exception as e:
+            logger.error(f"PublicAchievementsListView: Error getting achievements: {str(e)}")
             return Response({
                 'success': False,
                 'message': 'Error interno del servidor'
