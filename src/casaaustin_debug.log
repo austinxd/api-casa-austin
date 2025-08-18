@@ -143,3 +143,20 @@ INFO 2025-08-17 10:03:29,155 pricing_service 1140 140597499262656 Propiedades as
 INFO 2025-08-17 10:03:29,157 pricing_models 1140 140597499262656 Validando fechas - Hoy: 2025-08-17, Check date: 2025-08-17, Start: 2025-08-15, End: 2025-08-22
 INFO 2025-08-17 10:03:29,157 pricing_models 1140 140597499262656 Fechas válidas - Código activo
 INFO 2025-08-17 10:03:29,161 pricing_service 1140 140597499262656 Resultado validación: True - Código válido - Descuento aplicado: 50.00%
+DEBUG 2025-08-18 09:16:46,909 signals 4204 140603119625920 Nuevo cliente creado: Clients object (e41d3c39-0bc7-4ff1-aa3f-6b0d6926d4e9)
+DEBUG 2025-08-18 09:16:46,910 signals 4204 140603119625920 Cliente actualizado: Clients object (e41d3c39-0bc7-4ff1-aa3f-6b0d6926d4e9)
+WARNING 2025-08-18 09:16:47,073 signals 4204 140603119625920 Error al actualizar audiencia de cliente e41d3c39-0bc7-4ff1-aa3f-6b0d6926d4e9. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"A5cski4P8hNYMu_hqpjAaG1"}}
+DEBUG 2025-08-18 09:16:47,075 signals 4204 140603119625920 Código de referido generado para cliente e41d3c39-0bc7-4ff1-aa3f-6b0d6926d4e9: SDF348
+WARNING 2025-08-18 09:16:47,186 signals 4204 140603119625920 Error al actualizar audiencia de cliente e41d3c39-0bc7-4ff1-aa3f-6b0d6926d4e9. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"Ar7Plv6ePReb2HMtopcdd3J"}}
+DEBUG 2025-08-18 09:16:47,188 telegram_notifier 4204 140603119625920 Preparando para enviar mensaje: 🆕 **NUEVO CLIENTE REGISTRADO** 🆕
+👤 Cliente: sdfsdf sdfsdf
+📄 Documento: Documento Nacional de Identidad: 3453454
+📧 Email: No proporcionado
+📱 Teléfono: +986607686
+🔑 Contraseña: ❌ Pendiente
+🔗 Código referido: SDF348
+ERROR 2025-08-18 09:16:47,188 telegram_notifier 4204 140603119625920 Error in event loop: There is no current event loop in thread 'Thread-2 (process_request_thread)'.
+DEBUG 2025-08-18 09:16:47,188 telegram_notifier 4204 140603119625920 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-08-18 09:16:47,840 telegram_notifier 4204 140603119625920 Mensaje enviado.
+DEBUG 2025-08-18 09:16:47,840 telegram_notifier 4204 140603119625920 Mensaje enviado a través del executor.
+DEBUG 2025-08-18 09:16:47,840 signals 4204 140603119625920 Notificación enviada para nuevo cliente: e41d3c39-0bc7-4ff1-aa3f-6b0d6926d4e9
