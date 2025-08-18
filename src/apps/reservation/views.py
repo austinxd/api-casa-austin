@@ -548,7 +548,7 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
         if self.action == 'retrieve':
             return ReservationRetrieveSerializer
         if self.action == 'list':
-            return ReservationListSerializer
+            return CalendarReservationSerializer
 
         return super().get_serializer_class()
 
