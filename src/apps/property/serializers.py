@@ -1,4 +1,3 @@
-
 from rest_framework import serializers
 
 from drf_spectacular.utils import extend_schema_field
@@ -10,11 +9,11 @@ class PropertyPhotoSerializer(serializers.ModelSerializer):
     """Serializer para las fotos de propiedades"""
     image_url_final = serializers.SerializerMethodField()
     image_thumbnail = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = PropertyPhoto
         fields = ["id", "image_url_final", "image_thumbnail", "alt_text", "order", "is_main"]
-        
+
     def get_image_url_final(self, obj):
         """Get the final image URL (file or external URL)"""
         return obj.get_image_url()
@@ -27,33 +26,16 @@ class PropertyPhotoSerializer(serializers.ModelSerializer):
 
 
 class PropertyListSerializer(serializers.ModelSerializer):
-    """Serializer ligero para listados - solo información básica"""
+    photos = serializers.SerializerMethodField()
     main_photo = serializers.SerializerMethodField()
 
-    class Meta:
-        model = Property
-        fields = [
-            "id", 
-            "name",
-            "slug", 
-            "location", 
-            "capacity_max", 
-            "dormitorios", 
-            "banos", 
-            "hora_ingreso", 
-            "hora_salida", 
-            "caracteristicas",
-            "background_color",
-            "precio_desde",
-            "main_photo"
-        ]
+    @extend_schema_field(PropertyPhotoSerializer)
+    def get_photos(self, instance):
+        return PropertyPhotoSerializer(instance.photos.filter(deleted=False), many=True).data
 
-    def get_main_photo(self, obj):
-        """Obtener la foto principal o la primera foto disponible"""
-        main_photo = obj.photos.filter(is_main=True, deleted=False).first()
-        if not main_photo:
-            main_photo = obj.photos.filter(deleted=False).first()
-
+    @extend_schema_field(PropertyPhotoSerializer)
+    def get_main_photo(self, instance):
+        main_photo = instance.photos.filter(deleted=False, is_main=True).first()
         if main_photo:
             return PropertyPhotoSerializer(main_photo).data
         return None
@@ -97,7 +79,7 @@ PropertySerializer = PropertyDetailSerializer
 
 class ProfitPropertyAirBnbSerializer(serializers.ModelSerializer):
     property = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = ProfitPropertyAirBnb
         exclude = ["created", "updated", "deleted"]
@@ -105,3 +87,10 @@ class ProfitPropertyAirBnbSerializer(serializers.ModelSerializer):
     @extend_schema_field(PropertySerializer)
     def get_property(self, instance):
         return PropertySerializer(instance.property).data
+
+class PropertyCalendarSerializer(serializers.ModelSerializer):
+    """Serializer muy ligero para propiedades en el calendario - solo información esencial"""
+
+    class Meta:
+        model = Property
+        fields = ['id', 'name', 'background_color', 'slug']

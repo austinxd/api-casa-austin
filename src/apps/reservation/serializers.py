@@ -10,7 +10,7 @@ from apps.accounts.models import CustomUser
 
 from apps.accounts.serializers import SellerSerializer
 from apps.clients.serializers import ClientShortSerializer
-from apps.property.serializers import PropertySerializer, PropertyListSerializer
+from apps.property.serializers import PropertySerializer, PropertyListSerializer, PropertyCalendarSerializer
 
 from apps.core.functions import check_user_has_rol
 
@@ -326,10 +326,10 @@ class CalendarReservationSerializer(ReservationSerializer):
     def get_seller(self, instance):
         return SellerSerializer(instance.seller).data
 
-    @extend_schema_field(PropertyListSerializer)
+    @extend_schema_field(PropertyCalendarSerializer)
     def get_property(self, instance):
-        # Usar el serializer ligero que NO incluye fotos ni detalles extensos
-        return PropertyListSerializer(instance.property).data
+        # Usar el serializer ultra ligero que solo incluye información básica
+        return PropertyCalendarSerializer(instance.property).data
 
 
 class ClientReservationSerializer(serializers.ModelSerializer):
