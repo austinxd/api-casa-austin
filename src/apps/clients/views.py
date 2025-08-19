@@ -37,24 +37,59 @@ class ClientReservationDetailView(APIView):
                 return Response({'message': 'Token inválido'}, status=401)
 
             # Buscar la reserva por ID o UUID
+            logger.info(f"ClientReservationDetailView: Searching reservation {reservation_id} for client {client.id}")
+            
+            reservation = None
+            
             try:
                 # Intentar buscar por ID numérico primero
                 if reservation_id.isdigit():
+                    logger.info(f"ClientReservationDetailView: Searching by numeric ID: {reservation_id}")
                     reservation = Reservation.objects.get(
                         id=reservation_id,
                         client=client,
                         deleted=False
                     )
                 else:
-                    # Si no es numérico, buscar por UUID (sin guiones)
-                    uuid_clean = reservation_id.replace("-", "")
-                    reservation = Reservation.objects.get(
-                        uuid_external=uuid_clean,
-                        client=client,
-                        deleted=False
-                    )
+                    # Si no es numérico, intentar múltiples formatos de UUID
+                    logger.info(f"ClientReservationDetailView: Searching by UUID: {reservation_id}")
+                    
+                    # Primero intentar con UUID con guiones
+                    try:
+                        reservation = Reservation.objects.get(
+                            uuid_external=reservation_id,
+                            client=client,
+                            deleted=False
+                        )
+                        logger.info(f"ClientReservationDetailView: Found reservation by UUID with dashes")
+                    except Reservation.DoesNotExist:
+                        # Si no existe, intentar sin guiones
+                        uuid_clean = reservation_id.replace("-", "")
+                        logger.info(f"ClientReservationDetailView: Trying UUID without dashes: {uuid_clean}")
+                        reservation = Reservation.objects.get(
+                            uuid_external=uuid_clean,
+                            client=client,
+                            deleted=False
+                        )
+                        logger.info(f"ClientReservationDetailView: Found reservation by UUID without dashes")
+                        
             except Reservation.DoesNotExist:
+                # Debug: Buscar si la reserva existe pero no pertenece al cliente
                 logger.error(f"ClientReservationDetailView: Reservation {reservation_id} not found for client {client.id}")
+                
+                # Verificar si la reserva existe para cualquier cliente
+                debug_reservations = Reservation.objects.filter(
+                    Q(id=reservation_id if reservation_id.isdigit() else None) |
+                    Q(uuid_external=reservation_id) |
+                    Q(uuid_external=reservation_id.replace("-", ""))
+                ).filter(deleted=False)
+                
+                if debug_reservations.exists():
+                    debug_reservation = debug_reservations.first()
+                    logger.error(f"ClientReservationDetailView: Reservation exists but belongs to different client. Found client: {debug_reservation.client_id if debug_reservation.client else 'None'}")
+                else:
+                    logger.error(f"ClientReservationDetailView: Reservation {reservation_id} does not exist in database")
+                
                 return Response({
                     'success': False,
                     'message': 'Reserva no encontrada'
