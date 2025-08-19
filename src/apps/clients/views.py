@@ -22,7 +22,7 @@ class ClientReservationDetailView(APIView):
         logger.info(f"ClientReservationDetailView: Request for reservation {reservation_id}")
 
         try:
-            # Autenticar cliente
+            # Usar la misma lógica de autenticación que ClientProfileView
             authenticator = ClientJWTAuthentication()
             auth_result = authenticator.authenticate(request)
 
@@ -30,7 +30,7 @@ class ClientReservationDetailView(APIView):
                 logger.error("ClientReservationDetailView: Authentication failed - no result")
                 return Response({'message': 'Token inválido'}, status=401)
 
-            client, validated_token = auth_result
+            client, validated_token = auth_result  # Unpack the result
 
             if not client:
                 logger.error("ClientReservationDetailView: Authentication failed - no client")
