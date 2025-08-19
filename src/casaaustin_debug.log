@@ -3305,3 +3305,5 @@ DEBUG 2025-08-19 21:26:53,421 telegram_notifier 14222 140208616150720 Mensaje en
 DEBUG 2025-08-19 21:26:53,421 telegram_notifier 14222 140208616150720 Mensaje enviado a través del executor.
 INFO 2025-08-19 21:27:29,215 views 14222 140208527894208 ClientReservationDetailView: Request for reservation 9f6e5b6d-3162-4bee-b95a-391a84370d68
 ERROR 2025-08-19 21:27:29,215 views 14222 140208527894208 ClientReservationDetailView: Error getting reservation detail: cannot unpack non-iterable NoneType object
+INFO 2025-08-19 21:29:09,569 views 16165 140459921897152 ClientReservationDetailView: Request for reservation 9f6e5b6d-3162-4bee-b95a-391a84370d68
+ERROR 2025-08-19 21:29:09,569 views 16165 140459921897152 ClientReservationDetailView: Authentication failed - no result
