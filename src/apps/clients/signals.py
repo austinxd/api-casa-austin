@@ -128,9 +128,28 @@ def check_and_assign_achievements(client):
 def notify_new_achievements(client, achievements):
     """Envía notificación cuando se asignan nuevos logros automáticamente"""
     try:
+        # Filtrar logros para excluir el más bajo
+        # El logro más bajo es el que tiene los requisitos mínimos (ordenado por order, required_reservations, etc.)
+        lowest_achievement = Achievement.objects.filter(
+            is_active=True,
+            deleted=False
+        ).order_by('order', 'required_reservations', 'required_referrals', 'required_referral_reservations').first()
+        
+        # Filtrar achievements para excluir el logro más bajo
+        filtered_achievements = []
+        if lowest_achievement:
+            filtered_achievements = [ach for ach in achievements if ach.achievement.id != lowest_achievement.id]
+        else:
+            filtered_achievements = achievements
+        
+        # Solo enviar notificación si hay logros después de filtrar
+        if not filtered_achievements:
+            logger.debug(f"No se envía notificación para cliente {client.id} - solo se asignó el logro más bajo")
+            return
+        
         client_name = f"{client.first_name} {client.last_name}" if client.last_name else client.first_name
         
-        achievements_list = "\n".join([f"🏆 {ach.achievement.name}" for ach in achievements])
+        achievements_list = "\n".join([f"🏆 {ach.achievement.name}" for ach in filtered_achievements])
         
         message = (
             f"🎉 **NUEVOS LOGROS ASIGNADOS** 🎉\n"
