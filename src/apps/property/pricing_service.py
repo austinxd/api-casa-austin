@@ -68,6 +68,23 @@ class PricingCalculationService:
             )
             results.append(property_pricing)
 
+        # Ordenar los resultados por nombre de propiedad de forma numérica
+        def sort_key(prop):
+            name = prop['property_name'].lower()
+            # Extraer el número al final del nombre si existe
+            import re
+            match = re.search(r'(\d+)$', name)
+            if match:
+                # Si tiene número al final, usar ese número para ordenar
+                base_name = re.sub(r'\s*\d+$', '', name)
+                number = int(match.group(1))
+                return (base_name, number)
+            else:
+                # Si no tiene número, ordenar alfabéticamente
+                return (name, 0)
+        
+        results.sort(key=sort_key)
+
         # Generar mensajes contextuales para chatbot
         chatbot_messages = self._generate_chatbot_messages(
             results, check_in_date, check_out_date, guests, nights, client, property_id
@@ -773,7 +790,21 @@ class PricingCalculationService:
         if not property_id and available_properties:
             # Mostrar lista de casas disponibles ordenadas por nombre
             # Ordenar propiedades por nombre para mostrar Casa Austin 1, 2, 3, 4
-            sorted_properties = sorted(available_properties, key=lambda x: x['property_name'])
+            def sort_key(prop):
+                name = prop['property_name'].lower()
+                # Extraer el número al final del nombre si existe
+                import re
+                match = re.search(r'(\d+)$', name)
+                if match:
+                    # Si tiene número al final, usar ese número para ordenar
+                    base_name = re.sub(r'\s*\d+$', '', name)
+                    number = int(match.group(1))
+                    return (base_name, number)
+                else:
+                    # Si no tiene número, ordenar alfabéticamente
+                    return (name, 0)
+            
+            sorted_properties = sorted(available_properties, key=sort_key)
             casas_disponibles = []
             for prop in sorted_properties:
                 casas_disponibles.append(
