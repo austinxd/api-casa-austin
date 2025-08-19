@@ -610,35 +610,13 @@ class PricingCalculationService:
             if special_pricing:
                 required_nights = special_pricing.minimum_consecutive_nights
                 
-                # Verificar si la estadía incluye las noches requeridas
+                # Si la estadía total es menor a las noches requeridas, error inmediato
                 if nights < required_nights:
                     raise ValueError(
                         f"La fecha {current_date.strftime('%d/%m')} ({special_pricing.description}) "
                         f"requiere un mínimo de {required_nights} noches consecutivas. "
-                        f"Su estadía es de {nights} noches."
-                    )
-                
-                # Verificar que las noches consecutivas incluyan esta fecha
-                special_date_in_range = False
-                check_date = check_in_date
-                consecutive_count = 0
-                
-                while check_date < check_out_date:
-                    if (check_date.month == special_pricing.month and 
-                        check_date.day == special_pricing.day):
-                        special_date_in_range = True
-                        break
-                    check_date += timedelta(days=1)
-                    consecutive_count += 1
-                    
-                    if consecutive_count >= required_nights:
-                        break
-                
-                if special_date_in_range and nights < required_nights:
-                    raise ValueError(
-                        f"Para reservar en {special_pricing.description} "
-                        f"({current_date.strftime('%d/%m')}) debe incluir al menos "
-                        f"{required_nights} noches consecutivas."
+                        f"Su estadía actual es de {nights} noche{'s' if nights != 1 else ''}. "
+                        f"Por favor extienda su reserva para cumplir con este requisito."
                     )
             
             current_date += timedelta(days=1)
