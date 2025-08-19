@@ -19,7 +19,7 @@ from apps.reservation.models import Reservation
 from apps.clients.models import Clients as Client
 
 from .serializers import PropertyListSerializer, PropertyDetailSerializer, PropertySerializer, ProfitPropertyAirBnbSerializer, PropertyPhotoSerializer
-from .pricing_serializers import PricingCalculationSerializer
+from .pricing_serializers import PricingCalculationSerializer, AutomaticDiscountSerializer
 
 # Importar el servicio de cálculo de precios del archivo correspondiente
 from .pricing_service import PricingCalculationService
@@ -724,5 +724,65 @@ class GenerateDynamicDiscountAPIView(APIView):
             'data': list(configs),
             'message': f'{len(configs)} configuraciones disponibles'
         }, status=status.HTTP_200_OK)
+
+
+class AutomaticDiscountDetailAPIView(APIView):
+    """
+    Endpoint para obtener los detalles de un descuento automático específico
+    GET /api/v1/property/automaticdiscount/{discount_id}/
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        responses={
+            200: AutomaticDiscountSerializer,
+            404: 'Not Found - Descuento automático no encontrado'
+        },
+        description='Obtiene los detalles de un descuento automático específico por su ID'
+    )
+    def get(self, request, discount_id):
+        try:
+            # Validar que el ID sea un UUID válido
+            try:
+                from uuid import UUID
+                UUID(discount_id)
+            except ValueError:
+                return Response({
+                    'success': False,
+                    'error': 1,
+                    'message': 'ID debe ser un UUID válido'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Buscar el descuento automático
+            try:
+                from .pricing_models import AutomaticDiscount
+                automatic_discount = AutomaticDiscount.objects.get(
+                    id=discount_id,
+                    deleted=False
+                )
+            except AutomaticDiscount.DoesNotExist:
+                return Response({
+                    'success': False,
+                    'error': 2,
+                    'message': 'Descuento automático no encontrado'
+                }, status=status.HTTP_404_NOT_FOUND)
+
+            # Serializar y retornar
+            serializer = AutomaticDiscountSerializer(automatic_discount)
+            
+            return Response({
+                'success': True,
+                'is_active': automatic_discount.is_active,
+                'data': serializer.data,
+                'message': 'Descuento automático obtenido exitosamente'
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': 3,
+                'message': 'Error interno del servidor',
+                'detail': str(e) if settings.DEBUG else None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
                 

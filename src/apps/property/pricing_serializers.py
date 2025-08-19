@@ -1,14 +1,15 @@
-
 from rest_framework import serializers
-from decimal import Decimal
-from .pricing_models import ExchangeRate, AdditionalService, CancellationPolicy
+from .pricing_models import (
+    AutomaticDiscount,
+    ExchangeRate, AdditionalService, CancellationPolicy
+)
 
 
 class AdditionalServiceSerializer(serializers.ModelSerializer):
     price_sol = serializers.SerializerMethodField()
     total_price_usd = serializers.SerializerMethodField()
     total_price_sol = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = AdditionalService
         fields = [
@@ -16,17 +17,17 @@ class AdditionalServiceSerializer(serializers.ModelSerializer):
             'service_type', 'is_per_night', 'is_per_person',
             'total_price_usd', 'total_price_sol'
         ]
-    
+
     def get_price_sol(self, obj):
         exchange_rate = ExchangeRate.get_current_rate()
         return float(obj.price_usd * exchange_rate)
-    
+
     def get_total_price_usd(self, obj):
         context = self.context
         nights = context.get('nights', 1)
         guests = context.get('guests', 1)
         return float(obj.calculate_price(nights, guests))
-    
+
     def get_total_price_sol(self, obj):
         context = self.context
         nights = context.get('nights', 1)
@@ -67,6 +68,17 @@ class PropertyPricingSerializer(serializers.Serializer):
     client_benefits = serializers.DictField(required=False)
     recommendations = serializers.ListField()
 
+# New serializer for Automatic Discount
+class AutomaticDiscountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AutomaticDiscount
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['is_active'] = instance.is_active # Adding the active status
+        return data
+
 
 class PricingCalculationSerializer(serializers.Serializer):
     check_in_date = serializers.DateField()
@@ -81,7 +93,7 @@ class PricingCalculationSerializer(serializers.Serializer):
     estado_disponibilidad = serializers.IntegerField(help_text="Cantidad de propiedades disponibles (0=sin disponibilidad, >0=número de propiedades disponibles)")
     message1 = serializers.CharField(help_text="Mensaje contextual de encabezado para chatbot")
     message2 = serializers.CharField(help_text="Mensaje de detalles y precios para chatbot")
-    
+
     def validate(self, data):
         if data['check_in_date'] >= data['check_out_date']:
             raise serializers.ValidationError("La fecha de salida debe ser posterior a la fecha de entrada")
