@@ -740,6 +740,14 @@ class PricingCalculationService:
             # Tip para grupos pequeños en fin de semana sobre costos
             if guests < 5:
                 # Verificar si alguna de las fechas es viernes o sábado
+                # Convertir strings de fecha a objetos date para la comparación
+                from datetime import datetime
+                fecha_inicio = datetime.strptime(fecha_inicio_str.split(' de ')[0] + '/' + 
+                                               str(['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                                                   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'].index(
+                                                   fecha_inicio_str.split(' de ')[1]) + 1) + '/' + 
+                                               fecha_inicio_str.split(' de ')[2], '%d/%m/%Y').date()
+                
                 current_date = check_in_date
                 has_friday_or_saturday = False
                 while current_date < check_out_date:
