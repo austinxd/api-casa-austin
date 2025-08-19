@@ -714,6 +714,7 @@ class PricingCalculationService:
 
     def _generate_message1(self, estado_disponibilidad, fecha_inicio_str, fecha_fin_str, available_properties, guests, nights, client, discount_info):
         """Genera mensaje1 según el estado de disponibilidad"""
+        from datetime import timedelta
         
         if estado_disponibilidad > 0:
             # Hay propiedades disponibles
@@ -736,9 +737,19 @@ class PricingCalculationService:
                     percentage = discount_info.get('discount_percentage', 0)
                     message1 += f"\n✨ Descuento automático del {percentage}% aplicado por ser cliente registrado"
             
-            # Recomendación para grupos pequeños en fin de semana
-            if guests <= 4 and nights <= 3:
-                message1 += "\n💡 Perfecto para una escapada de fin de semana"
+            # Tip para grupos pequeños en fin de semana sobre costos
+            if guests < 5:
+                # Verificar si alguna de las fechas es viernes o sábado
+                current_date = check_in_date
+                has_friday_or_saturday = False
+                while current_date < check_out_date:
+                    if current_date.weekday() in [4, 5]:  # 4=Viernes, 5=Sábado
+                        has_friday_or_saturday = True
+                        break
+                    current_date += timedelta(days=1)
+                
+                if has_friday_or_saturday:
+                    message1 += "\n💡 Tip: Los días de semana son más recomendables para reservas de 5 personas o menos, ya que el costo es menor."
                 
         else:
             # Sin disponibilidad
