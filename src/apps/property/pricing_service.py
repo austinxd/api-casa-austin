@@ -599,6 +599,7 @@ class PricingCalculationService:
     def _validate_special_date_requirements(self, property, check_in_date, check_out_date, nights):
         """Valida que las fechas especiales cumplan con los requisitos de noches mínimas"""
         from datetime import timedelta
+        from django.db.models import Q
         import logging
         
         logger = logging.getLogger(__name__)
@@ -625,16 +626,31 @@ class PricingCalculationService:
                 
                 required_nights = special_pricing.minimum_consecutive_nights
                 
-                # Si la estadía total es menor a las noches requeridas, error inmediato
+                # Si la estadía total es menor a las noches requeridas, verificar si la fecha ya está ocupada
                 if nights < required_nights:
-                    error_msg = (
-                        f"La fecha {current_date.strftime('%d/%m')} ({special_pricing.description}) "
-                        f"requiere un mínimo de {required_nights} noches consecutivas. "
-                        f"Su estadía actual es de {nights} noche{'s' if nights != 1 else ''}. "
-                        f"Por favor extienda su reserva para cumplir con este requisito."
+                    # Verificar si esta fecha especial ya está ocupada por otra reserva
+                    existing_reservations = Reservation.objects.filter(
+                        property=property,
+                        deleted=False,
+                        status__in=['approved', 'pending', 'incomplete']
+                    ).filter(
+                        Q(check_in_date__lte=current_date) & Q(check_out_date__gt=current_date)
                     )
-                    logger.error(f"Validación fallida: {error_msg}")
-                    raise ValueError(error_msg)
+                    
+                    if existing_reservations.exists():
+                        logger.info(f"Fecha especial {current_date.strftime('%d/%m')} ya está ocupada, permitiendo reserva parcial")
+                        # La fecha especial ya está ocupada, no aplicar restricción
+                        continue
+                    else:
+                        # La fecha especial está libre, aplicar restricción
+                        error_msg = (
+                            f"La fecha {current_date.strftime('%d/%m')} ({special_pricing.description}) "
+                            f"requiere un mínimo de {required_nights} noches consecutivas. "
+                            f"Su estadía actual es de {nights} noche{'s' if nights != 1 else ''}. "
+                            f"Por favor extienda su reserva para cumplir con este requisito."
+                        )
+                        logger.error(f"Validación fallida: {error_msg}")
+                        raise ValueError(error_msg)
                 else:
                     logger.info(f"Validación exitosa para fecha especial {special_pricing.description}")
             else:
