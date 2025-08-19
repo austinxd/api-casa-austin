@@ -770,9 +770,11 @@ class PricingCalculationService:
             return f"🏠 {property_info['property_name']}: ${property_info['final_price_usd']} Dólares ó S/.{property_info['final_price_sol']} Soles"
         
         if not property_id and available_properties:
-            # Mostrar lista de casas disponibles
+            # Mostrar lista de casas disponibles ordenadas por nombre
+            # Ordenar propiedades por nombre para mostrar Casa Austin 1, 2, 3, 4
+            sorted_properties = sorted(available_properties, key=lambda x: x['property_name'])
             casas_disponibles = []
-            for prop in available_properties:
+            for prop in sorted_properties:
                 casas_disponibles.append(
                     f"🏠 {prop['property_name']}: ${prop['final_price_usd']} USD ó S/.{prop['final_price_sol']} SOL"
                 )
