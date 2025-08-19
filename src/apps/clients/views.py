@@ -38,9 +38,9 @@ class ClientReservationDetailView(APIView):
 
             # Buscar la reserva por ID o UUID
             logger.info(f"ClientReservationDetailView: Searching reservation {reservation_id} for client {client.id}")
-            
+
             reservation = None
-            
+
             try:
                 # Intentar buscar por ID numérico primero
                 if reservation_id.isdigit():
@@ -53,7 +53,7 @@ class ClientReservationDetailView(APIView):
                 else:
                     # Si no es numérico, intentar múltiples formatos de UUID
                     logger.info(f"ClientReservationDetailView: Searching by UUID: {reservation_id}")
-                    
+
                     # Primero intentar con UUID con guiones
                     try:
                         reservation = Reservation.objects.get(
@@ -72,24 +72,44 @@ class ClientReservationDetailView(APIView):
                             deleted=False
                         )
                         logger.info(f"ClientReservationDetailView: Found reservation by UUID without dashes")
-                        
+
             except Reservation.DoesNotExist:
                 # Debug: Buscar si la reserva existe pero no pertenece al cliente
                 logger.error(f"ClientReservationDetailView: Reservation {reservation_id} not found for client {client.id}")
-                
-                # Verificar si la reserva existe para cualquier cliente
-                debug_reservations = Reservation.objects.filter(
-                    Q(id=reservation_id if reservation_id.isdigit() else None) |
+
+                # Verificar si la reserva existe para cualquier cliente (incluyendo deleted)
+                debug_reservations_all = Reservation.objects.filter(
                     Q(uuid_external=reservation_id) |
                     Q(uuid_external=reservation_id.replace("-", ""))
-                ).filter(deleted=False)
-                
-                if debug_reservations.exists():
-                    debug_reservation = debug_reservations.first()
-                    logger.error(f"ClientReservationDetailView: Reservation exists but belongs to different client. Found client: {debug_reservation.client_id if debug_reservation.client else 'None'}")
+                )
+
+                debug_reservations_active = debug_reservations_all.filter(deleted=False)
+
+                logger.error(f"ClientReservationDetailView: Debug - Total reservations found: {debug_reservations_all.count()}")
+                logger.error(f"ClientReservationDetailView: Debug - Active reservations found: {debug_reservations_active.count()}")
+
+                if debug_reservations_all.exists():
+                    for debug_reservation in debug_reservations_all:
+                        logger.error(f"ClientReservationDetailView: Found reservation ID: {debug_reservation.id}, "
+                                   f"UUID: {debug_reservation.uuid_external}, "
+                                   f"Client: {debug_reservation.client_id if debug_reservation.client else 'None'}, "
+                                   f"Client Expected: {client.id}, "
+                                   f"Status: {debug_reservation.status}, "
+                                   f"Deleted: {debug_reservation.deleted}")
+
+                    if debug_reservations_active.exists():
+                        debug_reservation = debug_reservations_active.first()
+                        if debug_reservation.client_id == client.id:
+                            logger.error(f"ClientReservationDetailView: ENCONTRADA! La reserva SÍ pertenece al cliente {client.id}. "
+                                       f"Status: {debug_reservation.status}. Revisar lógica de búsqueda.")
+                        else:
+                            logger.error(f"ClientReservationDetailView: Reservation exists but belongs to different client. "
+                                       f"Expected client: {client.id}, Found client: {debug_reservation.client_id if debug_reservation.client else 'None'}")
+                    else:
+                        logger.error(f"ClientReservationDetailView: Reservation exists but is deleted")
                 else:
-                    logger.error(f"ClientReservationDetailView: Reservation {reservation_id} does not exist in database")
-                
+                    logger.error(f"ClientReservationDetailView: Reservation {reservation_id} does not exist in database at all")
+
                 return Response({
                     'success': False,
                     'message': 'Reserva no encontrada'
