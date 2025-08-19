@@ -90,11 +90,12 @@ def notify_new_reservation(reservation):
         full_image_url = f"http://api.casaaustin.pe{image_url}"
 
     logger.debug(f"Enviando mensaje de Telegram: {message} con imagen: {full_image_url}")
-    
+
     # Si es una reserva desde el panel del cliente, enviar solo al canal de clientes
     if reservation.origin == 'client':
         client_message = (
-            f"💻 **RESERVA DESDE PANEL WEB** 💻\n"
+            f"*************************************************\n"
+            f"💻 RESERVA DESDE PANEL WEB 💻\n"
             f"Cliente: {client_name}\n"
             f"Propiedad: {reservation.property.name}\n"
             f"Check-in : {check_in_date}\n"
@@ -102,7 +103,8 @@ def notify_new_reservation(reservation):
             f"Invitados : {reservation.guests}\n"
             f"Temperado : {temperature_pool_status}\n"
             f"💰 Total: {price_sol} soles\n"
-            f"📱 Teléfono: +{reservation.client.tel_number}"
+            f"📱 Teléfono: +{reservation.client.tel_number}\n"
+            f"*************************************************"
         )
         send_telegram_message(client_message, settings.CLIENTS_CHAT_ID, full_image_url)
     else:
@@ -130,11 +132,11 @@ def notify_new_reservation(reservation):
 def notify_voucher_uploaded(reservation):
     """Notifica cuando un cliente sube su voucher de pago"""
     client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
-    
+
     check_in_date = format_date_es(reservation.check_in_date)
     check_out_date = format_date_es(reservation.check_out_date)
     price_sol = f"{reservation.price_sol:.2f} soles"
-    
+
     voucher_message = (
         f"📄 **VOUCHER RECIBIDO** 📄\n"
         f"Cliente: {client_name}\n"
@@ -146,14 +148,14 @@ def notify_voucher_uploaded(reservation):
         f"⏰ Estado: Pendiente de validación\n"
         f"🆔 Reserva ID: {reservation.id}"
     )
-    
+
     # Obtener la imagen del voucher de pago
     voucher_image_url = None
     rental_receipt = RentalReceipt.objects.filter(reservation=reservation).first()
     if rental_receipt and rental_receipt.file and rental_receipt.file.name:
         image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
         voucher_image_url = f"http://api.casaaustin.pe{image_url}"
-    
+
     logger.debug(f"Enviando notificación de voucher subido para reserva: {reservation.id} con imagen: {voucher_image_url}")
     send_telegram_message(voucher_message, settings.CLIENTS_CHAT_ID, voucher_image_url)
 
@@ -207,7 +209,7 @@ def send_purchase_event_to_meta(
     if birthday:
         try:
             # Asegurar formato correcto MMDDYYYY
-            
+
             bday = datetime.strptime(birthday, "%Y-%m-%d").strftime("%m%d%Y")
             logger.debug(f"Fecha de nacimiento sin hash: {bday}")
             user_data["db"] = [hash_data(bday)]
