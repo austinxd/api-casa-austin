@@ -597,8 +597,8 @@ class PricingCalculationService:
         }
 
     def _validate_special_date_requirements(self, property, check_in_date, check_out_date, nights):
-        """Valida que las fechas especiales cumplan con los requisitos de noches mínimas"""
-        from datetime import timedelta
+        """Valida que las fechas especiales cumplan con los requisitos de noches mínimas y protege rangos de fechas"""
+        from datetime import timedelta, date
         from django.db.models import Q
         import logging
         
@@ -614,65 +614,94 @@ class PricingCalculationService:
             logger.info(f"Propiedad {property.name} no tiene fechas especiales configuradas - omitiendo validación")
             return
         
-        logger.info(f"Validando fechas especiales para {property.name}")
-        logger.info(f"Check-in: {check_in_date}, Check-out: {check_out_date}, Noches: {nights}")
+        logger.info(f"🔍 Validando protección de fechas especiales para {property.name}")
+        logger.info(f"📅 Check-in: {check_in_date}, Check-out: {check_out_date}, Noches: {nights}")
         
-        current_date = check_in_date
-        found_special_dates = []
+        # Obtener todas las fechas especiales de esta propiedad para el año actual y siguiente
+        current_year = check_in_date.year
+        years_to_check = [current_year, current_year + 1]
         
-        while current_date < check_out_date:
-            # Verificar si esta fecha tiene requisitos especiales
-            special_pricing = SpecialDatePricing.objects.filter(
+        for year in years_to_check:
+            special_pricings = SpecialDatePricing.objects.filter(
                 property=property,
-                month=current_date.month,
-                day=current_date.day,
                 is_active=True
-            ).first()
+            )
             
-            if special_pricing:
-                found_special_dates.append((current_date, special_pricing))
-                logger.info(f"✨ FECHA ESPECIAL ENCONTRADA: {current_date.strftime('%d/%m/%Y')} - {special_pricing.description}")
-                logger.info(f"   Noches mínimas requeridas: {special_pricing.minimum_consecutive_nights}")
-                logger.info(f"   Noches de la reserva: {nights}")
-                
-                required_nights = special_pricing.minimum_consecutive_nights
-                
-                # Si la estadía total es menor a las noches requeridas, verificar si la fecha ya está ocupada
-                if nights < required_nights:
-                    # Verificar si esta fecha especial ya está ocupada por otra reserva
-                    existing_reservations = Reservation.objects.filter(
-                        property=property,
-                        deleted=False,
-                        status__in=['approved', 'pending', 'incomplete']
-                    ).filter(
-                        Q(check_in_date__lte=current_date) & Q(check_out_date__gt=current_date)
-                    )
+            for special_pricing in special_pricings:
+                try:
+                    special_date = date(year, special_pricing.month, special_pricing.day)
+                    required_nights = special_pricing.minimum_consecutive_nights
                     
-                    if existing_reservations.exists():
-                        logger.info(f"✅ Fecha especial {current_date.strftime('%d/%m')} ya está ocupada, permitiendo reserva parcial")
-                        # La fecha especial ya está ocupada, no aplicar restricción
-                        continue
-                    else:
-                        # La fecha especial está libre, aplicar restricción
-                        error_msg = (
-                            f"❌ La fecha {current_date.strftime('%d/%m')} ({special_pricing.description}) "
-                            f"requiere un mínimo de {required_nights} noches consecutivas. "
-                            f"Su estadía actual es de {nights} noche{'s' if nights != 1 else ''}. "
-                            f"Por favor extienda su reserva para cumplir con este requisito."
+                    # Calcular el rango protegido alrededor de la fecha especial
+                    # Ejemplo: Si 31/12 requiere 3 noches, proteger del 29/12 al 2/01
+                    protected_start = special_date - timedelta(days=required_nights - 1)
+                    protected_end = special_date + timedelta(days=required_nights - 1)
+                    
+                    logger.info(f"🎯 Fecha especial: {special_date.strftime('%d/%m/%Y')} ({special_pricing.description})")
+                    logger.info(f"🛡️  Rango protegido: {protected_start.strftime('%d/%m/%Y')} a {protected_end.strftime('%d/%m/%Y')}")
+                    logger.info(f"📏 Noches mínimas requeridas: {required_nights}")
+                    
+                    # Verificar si la reserva propuesta interfiere con el rango protegido
+                    reservation_start = check_in_date
+                    reservation_end = check_out_date - timedelta(days=1)  # Última noche ocupada
+                    
+                    # ¿La reserva interfiere con el rango protegido?
+                    interferes = not (reservation_end < protected_start or reservation_start > protected_end)
+                    
+                    if interferes:
+                        logger.info(f"⚠️  La reserva interfiere con el rango protegido de {special_pricing.description}")
+                        
+                        # Verificar si la fecha especial ya está ocupada
+                        existing_reservations = Reservation.objects.filter(
+                            property=property,
+                            deleted=False,
+                            status__in=['approved', 'pending', 'incomplete']
+                        ).filter(
+                            Q(check_in_date__lte=special_date) & Q(check_out_date__gt=special_date)
                         )
-                        logger.error(f"VALIDACIÓN FALLIDA: {error_msg}")
-                        raise ValueError(error_msg)
-                else:
-                    logger.info(f"✅ Validación exitosa para fecha especial {special_pricing.description}")
-            
-            current_date += timedelta(days=1)
+                        
+                        if existing_reservations.exists():
+                            logger.info(f"✅ Fecha especial {special_date.strftime('%d/%m/%Y')} ya está ocupada, permitiendo reserva")
+                            continue
+                        
+                        # La fecha especial está libre, verificar si esta reserva cumple el mínimo
+                        if nights < required_nights:
+                            error_msg = (
+                                f"❌ No se puede realizar esta reserva del {check_in_date.strftime('%d/%m/%Y')} "
+                                f"al {check_out_date.strftime('%d/%m/%Y')} ({nights} noche{'s' if nights != 1 else ''}) "
+                                f"porque interfiere con la fecha especial {special_date.strftime('%d/%m/%Y')} "
+                                f"({special_pricing.description}) que requiere un mínimo de {required_nights} noches consecutivas. "
+                                f"\n\n💡 Para incluir esta fecha especial, su reserva debe ser de al menos "
+                                f"{required_nights} noches consecutivas que incluyan el {special_date.strftime('%d/%m/%Y')}."
+                            )
+                            logger.error(f"🚫 VALIDACIÓN FALLIDA: {error_msg}")
+                            raise ValueError(error_msg)
+                        
+                        # Si llega aquí, la reserva incluye la fecha especial y cumple el mínimo
+                        # Verificar que efectivamente incluya la fecha especial
+                        if not (check_in_date <= special_date < check_out_date):
+                            error_msg = (
+                                f"❌ No se puede realizar esta reserva del {check_in_date.strftime('%d/%m/%Y')} "
+                                f"al {check_out_date.strftime('%d/%m/%Y')} porque interfiere con el rango protegido "
+                                f"de la fecha especial {special_date.strftime('%d/%m/%Y')} ({special_pricing.description}) "
+                                f"pero no la incluye en la reserva. "
+                                f"\n\n💡 Para reservar en estas fechas, debe incluir la fecha especial "
+                                f"{special_date.strftime('%d/%m/%Y')} en su estadía de mínimo {required_nights} noches."
+                            )
+                            logger.error(f"🚫 VALIDACIÓN FALLIDA: {error_msg}")
+                            raise ValueError(error_msg)
+                        
+                        logger.info(f"✅ Reserva válida: incluye fecha especial {special_date.strftime('%d/%m/%Y')} con {nights} noches")
+                    
+                except ValueError as ve:
+                    # Re-lanzar errores de validación
+                    raise ve
+                except Exception as e:
+                    # Fecha inválida (ej: 29/02 en año no bisiesto)
+                    logger.warning(f"Fecha especial inválida: {special_pricing.day}/{special_pricing.month}/{year} - {e}")
+                    continue
         
-        if found_special_dates:
-            logger.info(f"✨ Procesadas {len(found_special_dates)} fechas especiales para {property.name}")
-        else:
-            logger.info(f"✅ No hay fechas especiales en el rango para {property.name}")
-        
-        logger.info("Validación de fechas especiales completada exitosamente")
+        logger.info("✅ Validación de protección de fechas especiales completada exitosamente")
 
     def _get_month_name_spanish(self, month):
         """Convierte número de mes a nombre en español"""
