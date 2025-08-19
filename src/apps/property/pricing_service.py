@@ -35,11 +35,16 @@ class PricingCalculationService:
 
         nights = (check_out_date - check_in_date).days
 
-        # Validar requisitos de fechas especiales
+        # Validar requisitos de fechas especiales ANTES de cualquier cálculo
         if property_id:
             property_obj = Property.objects.filter(id=property_id, deleted=False).first()
             if property_obj:
                 self._validate_special_date_requirements(property_obj, check_in_date, check_out_date, nights)
+        else:
+            # Si no hay property_id específico, validar para todas las propiedades disponibles
+            properties_to_validate = Property.objects.filter(deleted=False)
+            for prop in properties_to_validate:
+                self._validate_special_date_requirements(prop, check_in_date, check_out_date, nights)
 
         # Obtener cliente si se proporciona
         client = None
@@ -594,32 +599,50 @@ class PricingCalculationService:
     def _validate_special_date_requirements(self, property, check_in_date, check_out_date, nights):
         """Valida que las fechas especiales cumplan con los requisitos de noches mínimas"""
         from datetime import timedelta
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        logger.info(f"Validando fechas especiales para {property.name}")
+        logger.info(f"Check-in: {check_in_date}, Check-out: {check_out_date}, Noches: {nights}")
         
         current_date = check_in_date
         
         while current_date < check_out_date:
+            logger.info(f"Verificando fecha: {current_date.strftime('%d/%m/%Y')}")
+            
             # Verificar si esta fecha tiene requisitos especiales
             special_pricing = SpecialDatePricing.objects.filter(
                 property=property,
                 month=current_date.month,
                 day=current_date.day,
-                is_active=True,
-                minimum_consecutive_nights__gt=1
+                is_active=True
             ).first()
             
             if special_pricing:
+                logger.info(f"Fecha especial encontrada: {special_pricing.description}")
+                logger.info(f"Noches mínimas requeridas: {special_pricing.minimum_consecutive_nights}")
+                logger.info(f"Noches de la reserva: {nights}")
+                
                 required_nights = special_pricing.minimum_consecutive_nights
                 
                 # Si la estadía total es menor a las noches requeridas, error inmediato
                 if nights < required_nights:
-                    raise ValueError(
+                    error_msg = (
                         f"La fecha {current_date.strftime('%d/%m')} ({special_pricing.description}) "
                         f"requiere un mínimo de {required_nights} noches consecutivas. "
                         f"Su estadía actual es de {nights} noche{'s' if nights != 1 else ''}. "
                         f"Por favor extienda su reserva para cumplir con este requisito."
                     )
+                    logger.error(f"Validación fallida: {error_msg}")
+                    raise ValueError(error_msg)
+                else:
+                    logger.info(f"Validación exitosa para fecha especial {special_pricing.description}")
+            else:
+                logger.info(f"No hay fecha especial para {current_date.strftime('%d/%m')}")
             
             current_date += timedelta(days=1)
+        
+        logger.info("Validación de fechas especiales completada exitosamente")
 
     def _get_month_name_spanish(self, month):
         """Convierte número de mes a nombre en español"""
