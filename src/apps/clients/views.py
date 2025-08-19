@@ -3,6 +3,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
+from django.db.models import Q
 
 from apps.reservation.models import Reservation
 from apps.reservation.serializers import ClientReservationSerializer, ReservationListSerializer, ReservationRetrieveSerializer
@@ -78,10 +79,13 @@ class ClientReservationDetailView(APIView):
                 logger.error(f"ClientReservationDetailView: Reservation {reservation_id} not found for client {client.id}")
 
                 # Verificar si la reserva existe para cualquier cliente (incluyendo deleted)
-                debug_reservations_all = Reservation.objects.filter(
-                    Q(uuid_external=reservation_id) |
-                    Q(uuid_external=reservation_id.replace("-", ""))
-                )
+                debug_filters = Q(uuid_external=reservation_id) | Q(uuid_external=reservation_id.replace("-", ""))
+                
+                # Si es numérico, también buscar por ID
+                if reservation_id.isdigit():
+                    debug_filters |= Q(id=reservation_id)
+                
+                debug_reservations_all = Reservation.objects.filter(debug_filters)
 
                 debug_reservations_active = debug_reservations_all.filter(deleted=False)
 
