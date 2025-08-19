@@ -603,14 +603,24 @@ class PricingCalculationService:
         import logging
         
         logger = logging.getLogger(__name__)
+        
+        # OPTIMIZACIÓN: Verificar primero si esta propiedad tiene fechas especiales configuradas
+        has_special_dates = SpecialDatePricing.objects.filter(
+            property=property,
+            is_active=True
+        ).exists()
+        
+        if not has_special_dates:
+            logger.info(f"Propiedad {property.name} no tiene fechas especiales configuradas - omitiendo validación")
+            return
+        
         logger.info(f"Validando fechas especiales para {property.name}")
         logger.info(f"Check-in: {check_in_date}, Check-out: {check_out_date}, Noches: {nights}")
         
         current_date = check_in_date
+        found_special_dates = []
         
         while current_date < check_out_date:
-            logger.info(f"Verificando fecha: {current_date.strftime('%d/%m/%Y')}")
-            
             # Verificar si esta fecha tiene requisitos especiales
             special_pricing = SpecialDatePricing.objects.filter(
                 property=property,
@@ -620,9 +630,10 @@ class PricingCalculationService:
             ).first()
             
             if special_pricing:
-                logger.info(f"Fecha especial encontrada: {special_pricing.description}")
-                logger.info(f"Noches mínimas requeridas: {special_pricing.minimum_consecutive_nights}")
-                logger.info(f"Noches de la reserva: {nights}")
+                found_special_dates.append((current_date, special_pricing))
+                logger.info(f"✨ FECHA ESPECIAL ENCONTRADA: {current_date.strftime('%d/%m/%Y')} - {special_pricing.description}")
+                logger.info(f"   Noches mínimas requeridas: {special_pricing.minimum_consecutive_nights}")
+                logger.info(f"   Noches de la reserva: {nights}")
                 
                 required_nights = special_pricing.minimum_consecutive_nights
                 
@@ -638,25 +649,28 @@ class PricingCalculationService:
                     )
                     
                     if existing_reservations.exists():
-                        logger.info(f"Fecha especial {current_date.strftime('%d/%m')} ya está ocupada, permitiendo reserva parcial")
+                        logger.info(f"✅ Fecha especial {current_date.strftime('%d/%m')} ya está ocupada, permitiendo reserva parcial")
                         # La fecha especial ya está ocupada, no aplicar restricción
                         continue
                     else:
                         # La fecha especial está libre, aplicar restricción
                         error_msg = (
-                            f"La fecha {current_date.strftime('%d/%m')} ({special_pricing.description}) "
+                            f"❌ La fecha {current_date.strftime('%d/%m')} ({special_pricing.description}) "
                             f"requiere un mínimo de {required_nights} noches consecutivas. "
                             f"Su estadía actual es de {nights} noche{'s' if nights != 1 else ''}. "
                             f"Por favor extienda su reserva para cumplir con este requisito."
                         )
-                        logger.error(f"Validación fallida: {error_msg}")
+                        logger.error(f"VALIDACIÓN FALLIDA: {error_msg}")
                         raise ValueError(error_msg)
                 else:
-                    logger.info(f"Validación exitosa para fecha especial {special_pricing.description}")
-            else:
-                logger.info(f"No hay fecha especial para {current_date.strftime('%d/%m')}")
+                    logger.info(f"✅ Validación exitosa para fecha especial {special_pricing.description}")
             
             current_date += timedelta(days=1)
+        
+        if found_special_dates:
+            logger.info(f"✨ Procesadas {len(found_special_dates)} fechas especiales para {property.name}")
+        else:
+            logger.info(f"✅ No hay fechas especiales en el rango para {property.name}")
         
         logger.info("Validación de fechas especiales completada exitosamente")
 
