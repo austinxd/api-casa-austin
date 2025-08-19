@@ -354,8 +354,9 @@ class AutomaticDiscountAdmin(admin.ModelAdmin):
 @admin.register(DynamicDiscountConfig)
 class DynamicDiscountConfigAdmin(admin.ModelAdmin):
     list_display = ('name', 'prefix', 'discount_percentage', 'validity_days', 'min_amount_usd', 'usage_limit', 'is_active')
-    list_filter = ('is_active', 'validity_days')
+    list_filter = ('is_active', 'validity_days', 'properties')
     search_fields = ('name', 'prefix')
+    filter_horizontal = ('properties',)
     
     fieldsets = (
         ('Información General', {
@@ -363,6 +364,10 @@ class DynamicDiscountConfigAdmin(admin.ModelAdmin):
         }),
         ('Configuración del Descuento', {
             'fields': ('discount_percentage', 'min_amount_usd', 'max_discount_usd', 'usage_limit')
+        }),
+        ('Propiedades Aplicables', {
+            'fields': ('properties',),
+            'description': 'Selecciona las propiedades donde serán válidos los códigos generados. Si no seleccionas ninguna, los códigos no serán válidos para ninguna propiedad.'
         }),
         ('Validez', {
             'fields': ('validity_days',),

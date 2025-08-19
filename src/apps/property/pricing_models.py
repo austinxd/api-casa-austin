@@ -656,6 +656,11 @@ class DynamicDiscountConfig(BaseModel):
         default=1,
         help_text="Límite de usos por código generado"
     )
+    properties = models.ManyToManyField(
+        Property,
+        blank=True,
+        help_text="Propiedades donde serán válidos los códigos generados (vacío = todas)"
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -697,5 +702,9 @@ class DynamicDiscountConfig(BaseModel):
             usage_limit=self.usage_limit,
             is_active=True
         )
+
+        # Asignar las propiedades del generador al código
+        if self.properties.exists():
+            discount_code.properties.set(self.properties.all())
 
         return discount_code
