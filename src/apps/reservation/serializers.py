@@ -260,6 +260,7 @@ class ReservationListSerializer(ReservationSerializer):
     seller = serializers.SerializerMethodField()
     property = serializers.SerializerMethodField()
     resta_pagar = serializers.SerializerMethodField()
+    resta_pagar_usd = serializers.SerializerMethodField()
     number_nights = serializers.SerializerMethodField()
     is_upcoming = serializers.SerializerMethodField()
     status_display = serializers.SerializerMethodField()
@@ -285,6 +286,31 @@ class ReservationListSerializer(ReservationSerializer):
         # Todos los valores están en SOL, se pueden restar directamente
         resta = price_total - adelanto_normalizado - puntos_canjeados
         return '%.2f' % round(resta, 2)
+
+    @extend_schema_field(serializers.FloatField())
+    def get_resta_pagar_usd(self, instance):
+        price_total_usd = float(instance.price_usd or 0)
+        
+        # Calcular adelanto en USD
+        if instance.advance_payment_currency == 'usd':
+            adelanto_usd = float(instance.advance_payment or 0)
+        else:
+            # Si el adelanto está en soles, convertir a USD usando la tasa de cambio de la reserva
+            if instance.price_usd and instance.price_sol and float(instance.price_usd) > 0 and float(instance.price_sol) > 0:
+                exchange_rate = float(instance.price_sol) / float(instance.price_usd)
+                adelanto_usd = float(instance.advance_payment or 0) / exchange_rate
+            else:
+                adelanto_usd = 0
+        
+        # Convertir puntos canjeados a USD (1 punto = 1 sol)
+        puntos_canjeados_usd = 0
+        if instance.points_redeemed and instance.price_usd and instance.price_sol and float(instance.price_usd) > 0 and float(instance.price_sol) > 0:
+            exchange_rate = float(instance.price_sol) / float(instance.price_usd)
+            puntos_canjeados_usd = float(instance.points_redeemed) / exchange_rate
+        
+        # Calcular resta en USD
+        resta_usd = price_total_usd - adelanto_usd - puntos_canjeados_usd
+        return '%.2f' % round(resta_usd, 2)
 
     @extend_schema_field(serializers.IntegerField())
     def get_number_nights(self, instance):
