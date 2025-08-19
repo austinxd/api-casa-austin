@@ -98,6 +98,11 @@ urlpatterns = [
     path('clients/reservations/list/',
          views.ClientReservationsListView.as_view(),
          name='client-reservations-list'),
+    
+    # Endpoint para detalle de reserva específica
+    path('clients/client-auth/reservations/<str:reservation_id>/',
+         views.ClientReservationDetailView.as_view(),
+         name='client-reservation-detail'),
 
     # Voucher upload
     path('clients/voucher/upload/<uuid:reservation_id>/',
