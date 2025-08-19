@@ -3252,3 +3252,56 @@ INFO 2025-08-19 17:38:27,741 pricing_service 11093 140093891450560 🎯 Fecha es
 INFO 2025-08-19 17:38:27,741 pricing_service 11093 140093891450560 🛡️  Rango protegido: 29/12/2026 a 02/01/2027
 INFO 2025-08-19 17:38:27,741 pricing_service 11093 140093891450560 📏 Noches mínimas requeridas: 3
 INFO 2025-08-19 17:38:27,741 pricing_service 11093 140093891450560 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-19 21:16:21,527 views 13566 140089546151616 ClientReservationDetailView: Request for reservation 35e15b5c-7070-43d4-b3f2-5c128d5f94e2
+ERROR 2025-08-19 21:16:21,528 views 13566 140089546151616 ClientReservationDetailView: Error getting reservation detail: cannot unpack non-iterable NoneType object
+INFO 2025-08-19 21:24:25,373 views 14222 140208616150720 ClientReservationDetailView: Request for reservation 35e15b5c-7070-43d4-b3f2-5c128d5f94e2
+ERROR 2025-08-19 21:24:25,373 views 14222 140208616150720 ClientReservationDetailView: Error getting reservation detail: cannot unpack non-iterable NoneType object
+DEBUG 2025-08-19 21:26:52,238 signals 14222 140208616150720 Nueva reserva creada: 9f6e5b6d-3162-4bee-b95a-391a84370d68 - Origen: aus
+DEBUG 2025-08-19 21:26:52,240 signals 14222 140208616150720 Enviando mensaje de Telegram: 📞 **AUSTIN** - Reserva en casa 1
+Cliente: Mantenimiento Mantenimiento
+Check-in : Martes 19 de agosto
+Check-out : Miércoles 20 de agosto
+Invitados : 1
+Temperado : No
+Precio (USD) : 0.00 dólares
+Precio (Soles) : 0.00 soles
+Adelanto : 0.00 SOL
+Teléfono : +0 con imagen: None
+DEBUG 2025-08-19 21:26:52,240 telegram_notifier 14222 140208616150720 Preparando para enviar mensaje: 📞 **AUSTIN** - Reserva en casa 1
+Cliente: Mantenimiento Mantenimiento
+Check-in : Martes 19 de agosto
+Check-out : Miércoles 20 de agosto
+Invitados : 1
+Temperado : No
+Precio (USD) : 0.00 dólares
+Precio (Soles) : 0.00 soles
+Adelanto : 0.00 SOL
+Teléfono : +0
+ERROR 2025-08-19 21:26:52,240 telegram_notifier 14222 140208616150720 Error in event loop: There is no current event loop in thread 'Thread-5 (process_request_thread)'.
+DEBUG 2025-08-19 21:26:52,240 telegram_notifier 14222 140208616150720 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-08-19 21:26:52,863 telegram_notifier 14222 140208616150720 Mensaje enviado.
+DEBUG 2025-08-19 21:26:52,863 telegram_notifier 14222 140208616150720 Mensaje enviado a través del executor.
+DEBUG 2025-08-19 21:26:52,864 signals 14222 140208616150720 Reserva para el mismo día detectada, enviando al segundo canal.
+DEBUG 2025-08-19 21:26:52,864 telegram_notifier 14222 140208616150720 Preparando para enviar mensaje: ******PARA HOYYYY******
+Cliente: Mantenimiento Mantenimiento
+Check-in : Martes 19 de agosto
+Check-out : Miércoles 20 de agosto
+Invitados : 1
+Temperado : No
+
+DEBUG 2025-08-19 21:26:52,864 telegram_notifier 14222 140208616150720 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-08-19 21:26:53,150 telegram_notifier 14222 140208616150720 Mensaje enviado.
+DEBUG 2025-08-19 21:26:53,150 telegram_notifier 14222 140208616150720 Mensaje enviado a través del executor.
+DEBUG 2025-08-19 21:26:53,151 telegram_notifier 14222 140208616150720 Preparando para enviar mensaje: ******Reserva en casa 1******
+Cliente: Mantenimiento Mantenimiento
+Cumpleaños: Viernes 15 de agosto (Cumple 1 años)
+Check-in : Martes 19 de agosto
+Check-out : Miércoles 20 de agosto
+Invitados : 1
+Temperado : No
+Teléfono : https://wa.me/0
+DEBUG 2025-08-19 21:26:53,151 telegram_notifier 14222 140208616150720 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-08-19 21:26:53,421 telegram_notifier 14222 140208616150720 Mensaje enviado.
+DEBUG 2025-08-19 21:26:53,421 telegram_notifier 14222 140208616150720 Mensaje enviado a través del executor.
+INFO 2025-08-19 21:27:29,215 views 14222 140208527894208 ClientReservationDetailView: Request for reservation 9f6e5b6d-3162-4bee-b95a-391a84370d68
+ERROR 2025-08-19 21:27:29,215 views 14222 140208527894208 ClientReservationDetailView: Error getting reservation detail: cannot unpack non-iterable NoneType object
