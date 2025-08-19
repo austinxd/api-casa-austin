@@ -582,7 +582,8 @@ class PricingCalculationService:
         # Generar MESSAGE1 (mensaje de encabezado/contexto)
         message1 = self._generate_message1(
             estado_disponibilidad, fecha_inicio_str, fecha_fin_str, 
-            available_properties, guests, nights, client, discount_info
+            available_properties, guests, nights, client, discount_info,
+            check_in_date, check_out_date
         )
 
         # Generar MESSAGE2 (mensaje de detalles/precios)
@@ -712,7 +713,7 @@ class PricingCalculationService:
         }
         return months.get(month, 'mes')
 
-    def _generate_message1(self, estado_disponibilidad, fecha_inicio_str, fecha_fin_str, available_properties, guests, nights, client, discount_info):
+    def _generate_message1(self, estado_disponibilidad, fecha_inicio_str, fecha_fin_str, available_properties, guests, nights, client, discount_info, check_in_date, check_out_date):
         """Genera mensaje1 según el estado de disponibilidad"""
         from datetime import timedelta
         
