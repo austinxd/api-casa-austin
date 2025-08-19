@@ -315,7 +315,7 @@ class CalendarReservationSerializer(ReservationSerializer):
         fields = [
             'id', 'check_in_date', 'check_out_date', 'guests',
             'price_sol', 'price_usd', 'advance_payment_currency',
-            'adelanto_normalizado', 'status', 'client', 'seller', 'property'
+            'adelanto_normalizado', 'status', 'client', 'seller', 'property', 'origin'
         ]
 
     @extend_schema_field(ClientShortSerializer)
