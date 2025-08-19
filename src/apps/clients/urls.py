@@ -8,7 +8,7 @@ from .voucher_views import ClientVoucherUploadView, ClientReservationStatusView
 from .views import (
     MensajeFidelidadApiView, TokenApiClientApiView, ClientsApiView,
     ReferralConfigView, ReferralStatsView, SearchTrackingView, SearchTrackingTestView,
-    ClientCreateReservationView, ClientReservationsListView
+    ClientCreateReservationView, ClientReservationsListView, ClientReservationDetailView
 )
 
 router = DefaultRouter()
@@ -74,7 +74,7 @@ urlpatterns = [
     path('clients/client-auth/achievements/',
          views.ClientAchievementsView.as_view(),
          name='client-achievements'),
-    
+
     # Public achievements endpoint (outside clients namespace to avoid router conflicts)
     path('achievements/',
          views.PublicAchievementsListView.as_view(),

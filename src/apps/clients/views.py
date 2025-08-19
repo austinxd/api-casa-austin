@@ -5,12 +5,71 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 
 from apps.reservation.models import Reservation
-from apps.reservation.serializers import ClientReservationSerializer, ReservationListSerializer
+from apps.reservation.serializers import ClientReservationSerializer, ReservationListSerializer, ReservationRetrieveSerializer
 from .auth_views import ClientJWTAuthentication
 
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class ClientReservationDetailView(APIView):
+    """Vista para obtener el detalle de una reserva específica del cliente autenticado"""
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request, reservation_id):
+        logger.info(f"ClientReservationDetailView: Request for reservation {reservation_id}")
+
+        try:
+            # Autenticar cliente
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
+
+            if not client:
+                logger.error("ClientReservationDetailView: Authentication failed")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            # Buscar la reserva por ID o UUID
+            try:
+                # Intentar buscar por ID numérico primero
+                if reservation_id.isdigit():
+                    reservation = Reservation.objects.get(
+                        id=reservation_id,
+                        client=client,
+                        deleted=False
+                    )
+                else:
+                    # Si no es numérico, buscar por UUID (sin guiones)
+                    uuid_clean = reservation_id.replace("-", "")
+                    reservation = Reservation.objects.get(
+                        uuid_external=uuid_clean,
+                        client=client,
+                        deleted=False
+                    )
+            except Reservation.DoesNotExist:
+                logger.error(f"ClientReservationDetailView: Reservation {reservation_id} not found for client {client.id}")
+                return Response({
+                    'success': False,
+                    'message': 'Reserva no encontrada'
+                }, status=404)
+
+            # Serializar la reserva con todos los detalles
+            serializer = ReservationRetrieveSerializer(reservation, context={'request': request})
+
+            logger.info(f"ClientReservationDetailView: Reservation {reservation_id} retrieved successfully")
+
+            return Response({
+                'success': True,
+                'reservation': serializer.data
+            })
+
+        except Exception as e:
+            logger.error(f"ClientReservationDetailView: Error getting reservation detail: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
 
 
 class ClientCreateReservationView(APIView):
@@ -159,7 +218,6 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, viewsets, status, permissions
 from rest_framework.views import APIView
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.response import Response
 from rest_framework.generics import CreateAPIView, ListAPIView
 from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
@@ -536,7 +594,7 @@ class SearchTrackingView(APIView):
             try:
                 from datetime import datetime
                 from django.utils import timezone
-                
+
                 # Procesar check_in_date
                 check_in_date = None
                 if 'check_in_date' in raw_data and raw_data['check_in_date']:
@@ -579,7 +637,7 @@ class SearchTrackingView(APIView):
                 if not check_in_date:
                     raise ValueError("check_in_date es requerido")
                 if not check_out_date:
-                    raise ValueError("check_out_date es requerido") 
+                    raise ValueError("check_out_date es requerido")
                 if guests is None:
                     raise ValueError("guests es requerido")
 
@@ -608,12 +666,12 @@ class SearchTrackingView(APIView):
                         deleted=False
                     )
                     created = True
-                
+
                 logger.info(f"SearchTrackingView: ¡ÉXITO! Búsqueda guardada correctamente (created: {created})")
 
                 # Serializar respuesta
                 serializer = SearchTrackingSerializer(search_tracking)
-                
+
                 return Response({
                     'success': True,
                     'message': 'Búsqueda registrada exitosamente',
@@ -627,7 +685,7 @@ class SearchTrackingView(APIView):
                     'message': 'Error en formato de datos',
                     'errors': str(ve)
                 }, status=400)
-            
+
             except Exception as e:
                 logger.error(f"SearchTrackingView: Error al actualizar directamente: {str(e)}")
                 return Response({
@@ -701,10 +759,10 @@ class PublicAchievementsListView(APIView):
                 is_active=True,
                 deleted=False
             ).order_by('order', 'required_reservations', 'required_referrals')
-            
+
             # Serializar datos
             serializer = AchievementSerializer(achievements, many=True)
-            
+
             return Response({
                 'success': True,
                 'data': {
@@ -738,67 +796,67 @@ class ClientAchievementsView(APIView):
                 return Response({'message': 'Token inválido'}, status=401)
 
             from apps.reservation.models import Reservation
-            
+
             # Obtener logros del cliente
             client_achievements = ClientAchievement.objects.filter(
                 client=client,
                 deleted=False
             ).select_related('achievement').order_by('-earned_at')
-            
+
             # Obtener todos los logros disponibles y activos
             all_achievements = Achievement.objects.filter(
                 is_active=True,
                 deleted=False
             ).order_by('order', 'required_reservations')
-            
+
             # Calcular estadísticas del cliente
             client_reservations = Reservation.objects.filter(
                 client=client,
                 deleted=False,
                 status='approved'
             ).count()
-            
+
             client_referrals = Clients.objects.filter(
                 referred_by=client,
                 deleted=False
             ).count()
-            
+
             referral_reservations = Reservation.objects.filter(
                 client__referred_by=client,
                 deleted=False,
                 status='approved'
             ).count()
-            
+
             # Verificar logros pendientes automáticamente
             new_achievements = []
             for achievement in all_achievements:
                 # Verificar si ya tiene el logro
                 has_achievement = client_achievements.filter(achievement=achievement).exists()
-                
+
                 if not has_achievement and achievement.check_client_qualifies(client):
                     # Otorgar nuevo logro
                     new_client_achievement = ClientAchievement.objects.create(
-                        client=client, 
+                        client=client,
                         achievement=achievement
                     )
                     new_achievements.append(new_client_achievement)
                     logger.info(f"Nuevo logro otorgado: {achievement.name} a {client.first_name}")
-            
+
             # Actualizar lista de logros si se otorgaron nuevos
             if new_achievements:
                 client_achievements = ClientAchievement.objects.filter(
                     client=client,
                     deleted=False
                 ).select_related('achievement').order_by('-earned_at')
-            
+
             # Identificar logros disponibles (no obtenidos)
             earned_achievement_ids = client_achievements.values_list('achievement_id', flat=True)
             available_achievements = all_achievements.exclude(id__in=earned_achievement_ids)
-            
+
             # Serializar datos
             achievements_serializer = ClientAchievementSerializer(client_achievements, many=True)
             available_serializer = AchievementSerializer(available_achievements, many=True)
-            
+
             return Response({
                 'success': True,
                 'data': {
