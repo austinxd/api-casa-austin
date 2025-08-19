@@ -173,3 +173,1497 @@ DEBUG 2025-08-18 09:26:15,133 telegram_notifier 7095 140422624220864 Enviando me
 DEBUG 2025-08-18 09:26:15,744 telegram_notifier 7095 140422624220864 Mensaje enviado.
 DEBUG 2025-08-18 09:26:15,745 telegram_notifier 7095 140422624220864 Mensaje enviado a través del executor.
 DEBUG 2025-08-18 09:26:15,745 signals 7095 140422624220864 Notificación enviada para logros asignados a cliente: e41d3c39-0bc7-4ff1-aa3f-6b0d6926d4e9
+INFO 2025-08-19 11:00:43,422 pricing_service 13578 139882220656320 Validando fechas especiales para casa 1
+INFO 2025-08-19 11:00:43,422 pricing_service 13578 139882220656320 Check-in: 2025-12-31, Check-out: 2026-01-01, Noches: 1
+INFO 2025-08-19 11:00:43,422 pricing_service 13578 139882220656320 Verificando fecha: 31/12/2025
+INFO 2025-08-19 11:00:43,425 pricing_service 13578 139882220656320 Fecha especial encontrada: None
+INFO 2025-08-19 11:00:43,425 pricing_service 13578 139882220656320 Noches mínimas requeridas: 1
+INFO 2025-08-19 11:00:43,425 pricing_service 13578 139882220656320 Noches de la reserva: 1
+INFO 2025-08-19 11:00:43,425 pricing_service 13578 139882220656320 Validación exitosa para fecha especial None
+INFO 2025-08-19 11:00:43,425 pricing_service 13578 139882220656320 Validación de fechas especiales completada exitosamente
+INFO 2025-08-19 11:00:43,425 pricing_service 13578 139882220656320 Validando fechas especiales para casa 2
+INFO 2025-08-19 11:00:43,425 pricing_service 13578 139882220656320 Check-in: 2025-12-31, Check-out: 2026-01-01, Noches: 1
+INFO 2025-08-19 11:00:43,425 pricing_service 13578 139882220656320 Verificando fecha: 31/12/2025
+INFO 2025-08-19 11:00:43,427 pricing_service 13578 139882220656320 Fecha especial encontrada: Año nuevo
+INFO 2025-08-19 11:00:43,427 pricing_service 13578 139882220656320 Noches mínimas requeridas: 3
+INFO 2025-08-19 11:00:43,427 pricing_service 13578 139882220656320 Noches de la reserva: 1
+ERROR 2025-08-19 11:00:43,427 pricing_service 13578 139882220656320 Validación fallida: La fecha 31/12 (Año nuevo) requiere un mínimo de 3 noches consecutivas. Su estadía actual es de 1 noche. Por favor extienda su reserva para cumplir con este requisito.
+INFO 2025-08-19 11:01:14,778 pricing_service 13578 139882220656320 Validando fechas especiales para casa 1
+INFO 2025-08-19 11:01:14,779 pricing_service 13578 139882220656320 Check-in: 2025-12-30, Check-out: 2026-12-31, Noches: 366
+INFO 2025-08-19 11:01:14,779 pricing_service 13578 139882220656320 Verificando fecha: 30/12/2025
+INFO 2025-08-19 11:01:14,780 pricing_service 13578 139882220656320 No hay fecha especial para 30/12
+INFO 2025-08-19 11:01:14,780 pricing_service 13578 139882220656320 Verificando fecha: 31/12/2025
+INFO 2025-08-19 11:01:14,781 pricing_service 13578 139882220656320 Fecha especial encontrada: None
+INFO 2025-08-19 11:01:14,781 pricing_service 13578 139882220656320 Noches mínimas requeridas: 1
+INFO 2025-08-19 11:01:14,781 pricing_service 13578 139882220656320 Noches de la reserva: 366
+INFO 2025-08-19 11:01:14,782 pricing_service 13578 139882220656320 Validación exitosa para fecha especial None
+INFO 2025-08-19 11:01:14,782 pricing_service 13578 139882220656320 Verificando fecha: 01/01/2026
+INFO 2025-08-19 11:01:14,783 pricing_service 13578 139882220656320 No hay fecha especial para 01/01
+INFO 2025-08-19 11:01:14,783 pricing_service 13578 139882220656320 Verificando fecha: 02/01/2026
+INFO 2025-08-19 11:01:14,784 pricing_service 13578 139882220656320 No hay fecha especial para 02/01
+INFO 2025-08-19 11:01:14,784 pricing_service 13578 139882220656320 Verificando fecha: 03/01/2026
+INFO 2025-08-19 11:01:14,785 pricing_service 13578 139882220656320 No hay fecha especial para 03/01
+INFO 2025-08-19 11:01:14,785 pricing_service 13578 139882220656320 Verificando fecha: 04/01/2026
+INFO 2025-08-19 11:01:14,786 pricing_service 13578 139882220656320 No hay fecha especial para 04/01
+INFO 2025-08-19 11:01:14,787 pricing_service 13578 139882220656320 Verificando fecha: 05/01/2026
+INFO 2025-08-19 11:01:14,788 pricing_service 13578 139882220656320 No hay fecha especial para 05/01
+INFO 2025-08-19 11:01:14,788 pricing_service 13578 139882220656320 Verificando fecha: 06/01/2026
+INFO 2025-08-19 11:01:14,789 pricing_service 13578 139882220656320 No hay fecha especial para 06/01
+INFO 2025-08-19 11:01:14,789 pricing_service 13578 139882220656320 Verificando fecha: 07/01/2026
+INFO 2025-08-19 11:01:14,791 pricing_service 13578 139882220656320 No hay fecha especial para 07/01
+INFO 2025-08-19 11:01:14,791 pricing_service 13578 139882220656320 Verificando fecha: 08/01/2026
+INFO 2025-08-19 11:01:14,792 pricing_service 13578 139882220656320 No hay fecha especial para 08/01
+INFO 2025-08-19 11:01:14,792 pricing_service 13578 139882220656320 Verificando fecha: 09/01/2026
+INFO 2025-08-19 11:01:14,793 pricing_service 13578 139882220656320 No hay fecha especial para 09/01
+INFO 2025-08-19 11:01:14,794 pricing_service 13578 139882220656320 Verificando fecha: 10/01/2026
+INFO 2025-08-19 11:01:14,795 pricing_service 13578 139882220656320 No hay fecha especial para 10/01
+INFO 2025-08-19 11:01:14,795 pricing_service 13578 139882220656320 Verificando fecha: 11/01/2026
+INFO 2025-08-19 11:01:14,796 pricing_service 13578 139882220656320 No hay fecha especial para 11/01
+INFO 2025-08-19 11:01:14,797 pricing_service 13578 139882220656320 Verificando fecha: 12/01/2026
+INFO 2025-08-19 11:01:14,798 pricing_service 13578 139882220656320 No hay fecha especial para 12/01
+INFO 2025-08-19 11:01:14,798 pricing_service 13578 139882220656320 Verificando fecha: 13/01/2026
+INFO 2025-08-19 11:01:14,799 pricing_service 13578 139882220656320 No hay fecha especial para 13/01
+INFO 2025-08-19 11:01:14,799 pricing_service 13578 139882220656320 Verificando fecha: 14/01/2026
+INFO 2025-08-19 11:01:14,801 pricing_service 13578 139882220656320 No hay fecha especial para 14/01
+INFO 2025-08-19 11:01:14,801 pricing_service 13578 139882220656320 Verificando fecha: 15/01/2026
+INFO 2025-08-19 11:01:14,803 pricing_service 13578 139882220656320 No hay fecha especial para 15/01
+INFO 2025-08-19 11:01:14,803 pricing_service 13578 139882220656320 Verificando fecha: 16/01/2026
+INFO 2025-08-19 11:01:14,804 pricing_service 13578 139882220656320 No hay fecha especial para 16/01
+INFO 2025-08-19 11:01:14,804 pricing_service 13578 139882220656320 Verificando fecha: 17/01/2026
+INFO 2025-08-19 11:01:14,805 pricing_service 13578 139882220656320 No hay fecha especial para 17/01
+INFO 2025-08-19 11:01:14,806 pricing_service 13578 139882220656320 Verificando fecha: 18/01/2026
+INFO 2025-08-19 11:01:14,807 pricing_service 13578 139882220656320 No hay fecha especial para 18/01
+INFO 2025-08-19 11:01:14,807 pricing_service 13578 139882220656320 Verificando fecha: 19/01/2026
+INFO 2025-08-19 11:01:14,808 pricing_service 13578 139882220656320 No hay fecha especial para 19/01
+INFO 2025-08-19 11:01:14,808 pricing_service 13578 139882220656320 Verificando fecha: 20/01/2026
+INFO 2025-08-19 11:01:14,810 pricing_service 13578 139882220656320 No hay fecha especial para 20/01
+INFO 2025-08-19 11:01:14,810 pricing_service 13578 139882220656320 Verificando fecha: 21/01/2026
+INFO 2025-08-19 11:01:14,811 pricing_service 13578 139882220656320 No hay fecha especial para 21/01
+INFO 2025-08-19 11:01:14,811 pricing_service 13578 139882220656320 Verificando fecha: 22/01/2026
+INFO 2025-08-19 11:01:14,812 pricing_service 13578 139882220656320 No hay fecha especial para 22/01
+INFO 2025-08-19 11:01:14,812 pricing_service 13578 139882220656320 Verificando fecha: 23/01/2026
+INFO 2025-08-19 11:01:14,813 pricing_service 13578 139882220656320 No hay fecha especial para 23/01
+INFO 2025-08-19 11:01:14,813 pricing_service 13578 139882220656320 Verificando fecha: 24/01/2026
+INFO 2025-08-19 11:01:14,814 pricing_service 13578 139882220656320 No hay fecha especial para 24/01
+INFO 2025-08-19 11:01:14,814 pricing_service 13578 139882220656320 Verificando fecha: 25/01/2026
+INFO 2025-08-19 11:01:14,815 pricing_service 13578 139882220656320 No hay fecha especial para 25/01
+INFO 2025-08-19 11:01:14,815 pricing_service 13578 139882220656320 Verificando fecha: 26/01/2026
+INFO 2025-08-19 11:01:14,816 pricing_service 13578 139882220656320 No hay fecha especial para 26/01
+INFO 2025-08-19 11:01:14,816 pricing_service 13578 139882220656320 Verificando fecha: 27/01/2026
+INFO 2025-08-19 11:01:14,817 pricing_service 13578 139882220656320 No hay fecha especial para 27/01
+INFO 2025-08-19 11:01:14,817 pricing_service 13578 139882220656320 Verificando fecha: 28/01/2026
+INFO 2025-08-19 11:01:14,818 pricing_service 13578 139882220656320 No hay fecha especial para 28/01
+INFO 2025-08-19 11:01:14,819 pricing_service 13578 139882220656320 Verificando fecha: 29/01/2026
+INFO 2025-08-19 11:01:14,820 pricing_service 13578 139882220656320 No hay fecha especial para 29/01
+INFO 2025-08-19 11:01:14,820 pricing_service 13578 139882220656320 Verificando fecha: 30/01/2026
+INFO 2025-08-19 11:01:14,821 pricing_service 13578 139882220656320 No hay fecha especial para 30/01
+INFO 2025-08-19 11:01:14,821 pricing_service 13578 139882220656320 Verificando fecha: 31/01/2026
+INFO 2025-08-19 11:01:14,822 pricing_service 13578 139882220656320 No hay fecha especial para 31/01
+INFO 2025-08-19 11:01:14,822 pricing_service 13578 139882220656320 Verificando fecha: 01/02/2026
+INFO 2025-08-19 11:01:14,823 pricing_service 13578 139882220656320 No hay fecha especial para 01/02
+INFO 2025-08-19 11:01:14,823 pricing_service 13578 139882220656320 Verificando fecha: 02/02/2026
+INFO 2025-08-19 11:01:14,824 pricing_service 13578 139882220656320 No hay fecha especial para 02/02
+INFO 2025-08-19 11:01:14,824 pricing_service 13578 139882220656320 Verificando fecha: 03/02/2026
+INFO 2025-08-19 11:01:14,825 pricing_service 13578 139882220656320 No hay fecha especial para 03/02
+INFO 2025-08-19 11:01:14,825 pricing_service 13578 139882220656320 Verificando fecha: 04/02/2026
+INFO 2025-08-19 11:01:14,826 pricing_service 13578 139882220656320 No hay fecha especial para 04/02
+INFO 2025-08-19 11:01:14,826 pricing_service 13578 139882220656320 Verificando fecha: 05/02/2026
+INFO 2025-08-19 11:01:14,827 pricing_service 13578 139882220656320 No hay fecha especial para 05/02
+INFO 2025-08-19 11:01:14,827 pricing_service 13578 139882220656320 Verificando fecha: 06/02/2026
+INFO 2025-08-19 11:01:14,828 pricing_service 13578 139882220656320 No hay fecha especial para 06/02
+INFO 2025-08-19 11:01:14,829 pricing_service 13578 139882220656320 Verificando fecha: 07/02/2026
+INFO 2025-08-19 11:01:14,830 pricing_service 13578 139882220656320 No hay fecha especial para 07/02
+INFO 2025-08-19 11:01:14,830 pricing_service 13578 139882220656320 Verificando fecha: 08/02/2026
+INFO 2025-08-19 11:01:14,831 pricing_service 13578 139882220656320 No hay fecha especial para 08/02
+INFO 2025-08-19 11:01:14,831 pricing_service 13578 139882220656320 Verificando fecha: 09/02/2026
+INFO 2025-08-19 11:01:14,832 pricing_service 13578 139882220656320 No hay fecha especial para 09/02
+INFO 2025-08-19 11:01:14,832 pricing_service 13578 139882220656320 Verificando fecha: 10/02/2026
+INFO 2025-08-19 11:01:14,833 pricing_service 13578 139882220656320 No hay fecha especial para 10/02
+INFO 2025-08-19 11:01:14,833 pricing_service 13578 139882220656320 Verificando fecha: 11/02/2026
+INFO 2025-08-19 11:01:14,834 pricing_service 13578 139882220656320 No hay fecha especial para 11/02
+INFO 2025-08-19 11:01:14,834 pricing_service 13578 139882220656320 Verificando fecha: 12/02/2026
+INFO 2025-08-19 11:01:14,835 pricing_service 13578 139882220656320 No hay fecha especial para 12/02
+INFO 2025-08-19 11:01:14,835 pricing_service 13578 139882220656320 Verificando fecha: 13/02/2026
+INFO 2025-08-19 11:01:14,836 pricing_service 13578 139882220656320 No hay fecha especial para 13/02
+INFO 2025-08-19 11:01:14,836 pricing_service 13578 139882220656320 Verificando fecha: 14/02/2026
+INFO 2025-08-19 11:01:14,837 pricing_service 13578 139882220656320 No hay fecha especial para 14/02
+INFO 2025-08-19 11:01:14,838 pricing_service 13578 139882220656320 Verificando fecha: 15/02/2026
+INFO 2025-08-19 11:01:14,839 pricing_service 13578 139882220656320 No hay fecha especial para 15/02
+INFO 2025-08-19 11:01:14,839 pricing_service 13578 139882220656320 Verificando fecha: 16/02/2026
+INFO 2025-08-19 11:01:14,840 pricing_service 13578 139882220656320 No hay fecha especial para 16/02
+INFO 2025-08-19 11:01:14,840 pricing_service 13578 139882220656320 Verificando fecha: 17/02/2026
+INFO 2025-08-19 11:01:14,841 pricing_service 13578 139882220656320 No hay fecha especial para 17/02
+INFO 2025-08-19 11:01:14,841 pricing_service 13578 139882220656320 Verificando fecha: 18/02/2026
+INFO 2025-08-19 11:01:14,842 pricing_service 13578 139882220656320 No hay fecha especial para 18/02
+INFO 2025-08-19 11:01:14,842 pricing_service 13578 139882220656320 Verificando fecha: 19/02/2026
+INFO 2025-08-19 11:01:14,843 pricing_service 13578 139882220656320 No hay fecha especial para 19/02
+INFO 2025-08-19 11:01:14,844 pricing_service 13578 139882220656320 Verificando fecha: 20/02/2026
+INFO 2025-08-19 11:01:14,845 pricing_service 13578 139882220656320 No hay fecha especial para 20/02
+INFO 2025-08-19 11:01:14,845 pricing_service 13578 139882220656320 Verificando fecha: 21/02/2026
+INFO 2025-08-19 11:01:14,846 pricing_service 13578 139882220656320 No hay fecha especial para 21/02
+INFO 2025-08-19 11:01:14,846 pricing_service 13578 139882220656320 Verificando fecha: 22/02/2026
+INFO 2025-08-19 11:01:14,847 pricing_service 13578 139882220656320 No hay fecha especial para 22/02
+INFO 2025-08-19 11:01:14,847 pricing_service 13578 139882220656320 Verificando fecha: 23/02/2026
+INFO 2025-08-19 11:01:14,848 pricing_service 13578 139882220656320 No hay fecha especial para 23/02
+INFO 2025-08-19 11:01:14,848 pricing_service 13578 139882220656320 Verificando fecha: 24/02/2026
+INFO 2025-08-19 11:01:14,849 pricing_service 13578 139882220656320 No hay fecha especial para 24/02
+INFO 2025-08-19 11:01:14,849 pricing_service 13578 139882220656320 Verificando fecha: 25/02/2026
+INFO 2025-08-19 11:01:14,850 pricing_service 13578 139882220656320 No hay fecha especial para 25/02
+INFO 2025-08-19 11:01:14,850 pricing_service 13578 139882220656320 Verificando fecha: 26/02/2026
+INFO 2025-08-19 11:01:14,851 pricing_service 13578 139882220656320 No hay fecha especial para 26/02
+INFO 2025-08-19 11:01:14,851 pricing_service 13578 139882220656320 Verificando fecha: 27/02/2026
+INFO 2025-08-19 11:01:14,852 pricing_service 13578 139882220656320 No hay fecha especial para 27/02
+INFO 2025-08-19 11:01:14,853 pricing_service 13578 139882220656320 Verificando fecha: 28/02/2026
+INFO 2025-08-19 11:01:14,853 pricing_service 13578 139882220656320 No hay fecha especial para 28/02
+INFO 2025-08-19 11:01:14,854 pricing_service 13578 139882220656320 Verificando fecha: 01/03/2026
+INFO 2025-08-19 11:01:14,855 pricing_service 13578 139882220656320 No hay fecha especial para 01/03
+INFO 2025-08-19 11:01:14,855 pricing_service 13578 139882220656320 Verificando fecha: 02/03/2026
+INFO 2025-08-19 11:01:14,856 pricing_service 13578 139882220656320 No hay fecha especial para 02/03
+INFO 2025-08-19 11:01:14,856 pricing_service 13578 139882220656320 Verificando fecha: 03/03/2026
+INFO 2025-08-19 11:01:14,857 pricing_service 13578 139882220656320 No hay fecha especial para 03/03
+INFO 2025-08-19 11:01:14,857 pricing_service 13578 139882220656320 Verificando fecha: 04/03/2026
+INFO 2025-08-19 11:01:14,858 pricing_service 13578 139882220656320 No hay fecha especial para 04/03
+INFO 2025-08-19 11:01:14,858 pricing_service 13578 139882220656320 Verificando fecha: 05/03/2026
+INFO 2025-08-19 11:01:14,859 pricing_service 13578 139882220656320 No hay fecha especial para 05/03
+INFO 2025-08-19 11:01:14,859 pricing_service 13578 139882220656320 Verificando fecha: 06/03/2026
+INFO 2025-08-19 11:01:14,860 pricing_service 13578 139882220656320 No hay fecha especial para 06/03
+INFO 2025-08-19 11:01:14,860 pricing_service 13578 139882220656320 Verificando fecha: 07/03/2026
+INFO 2025-08-19 11:01:14,862 pricing_service 13578 139882220656320 No hay fecha especial para 07/03
+INFO 2025-08-19 11:01:14,862 pricing_service 13578 139882220656320 Verificando fecha: 08/03/2026
+INFO 2025-08-19 11:01:14,863 pricing_service 13578 139882220656320 No hay fecha especial para 08/03
+INFO 2025-08-19 11:01:14,863 pricing_service 13578 139882220656320 Verificando fecha: 09/03/2026
+INFO 2025-08-19 11:01:14,866 pricing_service 13578 139882220656320 No hay fecha especial para 09/03
+INFO 2025-08-19 11:01:14,867 pricing_service 13578 139882220656320 Verificando fecha: 10/03/2026
+INFO 2025-08-19 11:01:14,868 pricing_service 13578 139882220656320 No hay fecha especial para 10/03
+INFO 2025-08-19 11:01:14,868 pricing_service 13578 139882220656320 Verificando fecha: 11/03/2026
+INFO 2025-08-19 11:01:14,869 pricing_service 13578 139882220656320 No hay fecha especial para 11/03
+INFO 2025-08-19 11:01:14,869 pricing_service 13578 139882220656320 Verificando fecha: 12/03/2026
+INFO 2025-08-19 11:01:14,870 pricing_service 13578 139882220656320 No hay fecha especial para 12/03
+INFO 2025-08-19 11:01:14,870 pricing_service 13578 139882220656320 Verificando fecha: 13/03/2026
+INFO 2025-08-19 11:01:14,871 pricing_service 13578 139882220656320 No hay fecha especial para 13/03
+INFO 2025-08-19 11:01:14,871 pricing_service 13578 139882220656320 Verificando fecha: 14/03/2026
+INFO 2025-08-19 11:01:14,872 pricing_service 13578 139882220656320 No hay fecha especial para 14/03
+INFO 2025-08-19 11:01:14,873 pricing_service 13578 139882220656320 Verificando fecha: 15/03/2026
+INFO 2025-08-19 11:01:14,874 pricing_service 13578 139882220656320 No hay fecha especial para 15/03
+INFO 2025-08-19 11:01:14,874 pricing_service 13578 139882220656320 Verificando fecha: 16/03/2026
+INFO 2025-08-19 11:01:14,875 pricing_service 13578 139882220656320 No hay fecha especial para 16/03
+INFO 2025-08-19 11:01:14,875 pricing_service 13578 139882220656320 Verificando fecha: 17/03/2026
+INFO 2025-08-19 11:01:14,876 pricing_service 13578 139882220656320 No hay fecha especial para 17/03
+INFO 2025-08-19 11:01:14,877 pricing_service 13578 139882220656320 Verificando fecha: 18/03/2026
+INFO 2025-08-19 11:01:14,877 pricing_service 13578 139882220656320 No hay fecha especial para 18/03
+INFO 2025-08-19 11:01:14,878 pricing_service 13578 139882220656320 Verificando fecha: 19/03/2026
+INFO 2025-08-19 11:01:14,878 pricing_service 13578 139882220656320 No hay fecha especial para 19/03
+INFO 2025-08-19 11:01:14,879 pricing_service 13578 139882220656320 Verificando fecha: 20/03/2026
+INFO 2025-08-19 11:01:14,880 pricing_service 13578 139882220656320 No hay fecha especial para 20/03
+INFO 2025-08-19 11:01:14,880 pricing_service 13578 139882220656320 Verificando fecha: 21/03/2026
+INFO 2025-08-19 11:01:14,881 pricing_service 13578 139882220656320 No hay fecha especial para 21/03
+INFO 2025-08-19 11:01:14,881 pricing_service 13578 139882220656320 Verificando fecha: 22/03/2026
+INFO 2025-08-19 11:01:14,882 pricing_service 13578 139882220656320 No hay fecha especial para 22/03
+INFO 2025-08-19 11:01:14,882 pricing_service 13578 139882220656320 Verificando fecha: 23/03/2026
+INFO 2025-08-19 11:01:14,883 pricing_service 13578 139882220656320 No hay fecha especial para 23/03
+INFO 2025-08-19 11:01:14,883 pricing_service 13578 139882220656320 Verificando fecha: 24/03/2026
+INFO 2025-08-19 11:01:14,884 pricing_service 13578 139882220656320 No hay fecha especial para 24/03
+INFO 2025-08-19 11:01:14,884 pricing_service 13578 139882220656320 Verificando fecha: 25/03/2026
+INFO 2025-08-19 11:01:14,885 pricing_service 13578 139882220656320 No hay fecha especial para 25/03
+INFO 2025-08-19 11:01:14,885 pricing_service 13578 139882220656320 Verificando fecha: 26/03/2026
+INFO 2025-08-19 11:01:14,886 pricing_service 13578 139882220656320 No hay fecha especial para 26/03
+INFO 2025-08-19 11:01:14,886 pricing_service 13578 139882220656320 Verificando fecha: 27/03/2026
+INFO 2025-08-19 11:01:14,887 pricing_service 13578 139882220656320 No hay fecha especial para 27/03
+INFO 2025-08-19 11:01:14,887 pricing_service 13578 139882220656320 Verificando fecha: 28/03/2026
+INFO 2025-08-19 11:01:14,888 pricing_service 13578 139882220656320 No hay fecha especial para 28/03
+INFO 2025-08-19 11:01:14,888 pricing_service 13578 139882220656320 Verificando fecha: 29/03/2026
+INFO 2025-08-19 11:01:14,889 pricing_service 13578 139882220656320 No hay fecha especial para 29/03
+INFO 2025-08-19 11:01:14,890 pricing_service 13578 139882220656320 Verificando fecha: 30/03/2026
+INFO 2025-08-19 11:01:14,890 pricing_service 13578 139882220656320 No hay fecha especial para 30/03
+INFO 2025-08-19 11:01:14,891 pricing_service 13578 139882220656320 Verificando fecha: 31/03/2026
+INFO 2025-08-19 11:01:14,892 pricing_service 13578 139882220656320 No hay fecha especial para 31/03
+INFO 2025-08-19 11:01:14,892 pricing_service 13578 139882220656320 Verificando fecha: 01/04/2026
+INFO 2025-08-19 11:01:14,893 pricing_service 13578 139882220656320 No hay fecha especial para 01/04
+INFO 2025-08-19 11:01:14,893 pricing_service 13578 139882220656320 Verificando fecha: 02/04/2026
+INFO 2025-08-19 11:01:14,894 pricing_service 13578 139882220656320 No hay fecha especial para 02/04
+INFO 2025-08-19 11:01:14,894 pricing_service 13578 139882220656320 Verificando fecha: 03/04/2026
+INFO 2025-08-19 11:01:14,895 pricing_service 13578 139882220656320 No hay fecha especial para 03/04
+INFO 2025-08-19 11:01:14,895 pricing_service 13578 139882220656320 Verificando fecha: 04/04/2026
+INFO 2025-08-19 11:01:14,896 pricing_service 13578 139882220656320 No hay fecha especial para 04/04
+INFO 2025-08-19 11:01:14,896 pricing_service 13578 139882220656320 Verificando fecha: 05/04/2026
+INFO 2025-08-19 11:01:14,897 pricing_service 13578 139882220656320 No hay fecha especial para 05/04
+INFO 2025-08-19 11:01:14,897 pricing_service 13578 139882220656320 Verificando fecha: 06/04/2026
+INFO 2025-08-19 11:01:14,898 pricing_service 13578 139882220656320 No hay fecha especial para 06/04
+INFO 2025-08-19 11:01:14,898 pricing_service 13578 139882220656320 Verificando fecha: 07/04/2026
+INFO 2025-08-19 11:01:14,899 pricing_service 13578 139882220656320 No hay fecha especial para 07/04
+INFO 2025-08-19 11:01:14,899 pricing_service 13578 139882220656320 Verificando fecha: 08/04/2026
+INFO 2025-08-19 11:01:14,900 pricing_service 13578 139882220656320 No hay fecha especial para 08/04
+INFO 2025-08-19 11:01:14,900 pricing_service 13578 139882220656320 Verificando fecha: 09/04/2026
+INFO 2025-08-19 11:01:14,901 pricing_service 13578 139882220656320 No hay fecha especial para 09/04
+INFO 2025-08-19 11:01:14,902 pricing_service 13578 139882220656320 Verificando fecha: 10/04/2026
+INFO 2025-08-19 11:01:14,902 pricing_service 13578 139882220656320 No hay fecha especial para 10/04
+INFO 2025-08-19 11:01:14,903 pricing_service 13578 139882220656320 Verificando fecha: 11/04/2026
+INFO 2025-08-19 11:01:14,904 pricing_service 13578 139882220656320 No hay fecha especial para 11/04
+INFO 2025-08-19 11:01:14,904 pricing_service 13578 139882220656320 Verificando fecha: 12/04/2026
+INFO 2025-08-19 11:01:14,905 pricing_service 13578 139882220656320 No hay fecha especial para 12/04
+INFO 2025-08-19 11:01:14,905 pricing_service 13578 139882220656320 Verificando fecha: 13/04/2026
+INFO 2025-08-19 11:01:14,906 pricing_service 13578 139882220656320 No hay fecha especial para 13/04
+INFO 2025-08-19 11:01:14,906 pricing_service 13578 139882220656320 Verificando fecha: 14/04/2026
+INFO 2025-08-19 11:01:14,907 pricing_service 13578 139882220656320 No hay fecha especial para 14/04
+INFO 2025-08-19 11:01:14,907 pricing_service 13578 139882220656320 Verificando fecha: 15/04/2026
+INFO 2025-08-19 11:01:14,908 pricing_service 13578 139882220656320 No hay fecha especial para 15/04
+INFO 2025-08-19 11:01:14,908 pricing_service 13578 139882220656320 Verificando fecha: 16/04/2026
+INFO 2025-08-19 11:01:14,909 pricing_service 13578 139882220656320 No hay fecha especial para 16/04
+INFO 2025-08-19 11:01:14,909 pricing_service 13578 139882220656320 Verificando fecha: 17/04/2026
+INFO 2025-08-19 11:01:14,910 pricing_service 13578 139882220656320 No hay fecha especial para 17/04
+INFO 2025-08-19 11:01:14,910 pricing_service 13578 139882220656320 Verificando fecha: 18/04/2026
+INFO 2025-08-19 11:01:14,911 pricing_service 13578 139882220656320 No hay fecha especial para 18/04
+INFO 2025-08-19 11:01:14,912 pricing_service 13578 139882220656320 Verificando fecha: 19/04/2026
+INFO 2025-08-19 11:01:14,912 pricing_service 13578 139882220656320 No hay fecha especial para 19/04
+INFO 2025-08-19 11:01:14,913 pricing_service 13578 139882220656320 Verificando fecha: 20/04/2026
+INFO 2025-08-19 11:01:14,913 pricing_service 13578 139882220656320 No hay fecha especial para 20/04
+INFO 2025-08-19 11:01:14,914 pricing_service 13578 139882220656320 Verificando fecha: 21/04/2026
+INFO 2025-08-19 11:01:14,915 pricing_service 13578 139882220656320 No hay fecha especial para 21/04
+INFO 2025-08-19 11:01:14,915 pricing_service 13578 139882220656320 Verificando fecha: 22/04/2026
+INFO 2025-08-19 11:01:14,916 pricing_service 13578 139882220656320 No hay fecha especial para 22/04
+INFO 2025-08-19 11:01:14,916 pricing_service 13578 139882220656320 Verificando fecha: 23/04/2026
+INFO 2025-08-19 11:01:14,917 pricing_service 13578 139882220656320 No hay fecha especial para 23/04
+INFO 2025-08-19 11:01:14,917 pricing_service 13578 139882220656320 Verificando fecha: 24/04/2026
+INFO 2025-08-19 11:01:14,918 pricing_service 13578 139882220656320 No hay fecha especial para 24/04
+INFO 2025-08-19 11:01:14,918 pricing_service 13578 139882220656320 Verificando fecha: 25/04/2026
+INFO 2025-08-19 11:01:14,920 pricing_service 13578 139882220656320 No hay fecha especial para 25/04
+INFO 2025-08-19 11:01:14,920 pricing_service 13578 139882220656320 Verificando fecha: 26/04/2026
+INFO 2025-08-19 11:01:14,921 pricing_service 13578 139882220656320 No hay fecha especial para 26/04
+INFO 2025-08-19 11:01:14,921 pricing_service 13578 139882220656320 Verificando fecha: 27/04/2026
+INFO 2025-08-19 11:01:14,922 pricing_service 13578 139882220656320 No hay fecha especial para 27/04
+INFO 2025-08-19 11:01:14,922 pricing_service 13578 139882220656320 Verificando fecha: 28/04/2026
+INFO 2025-08-19 11:01:14,924 pricing_service 13578 139882220656320 No hay fecha especial para 28/04
+INFO 2025-08-19 11:01:14,924 pricing_service 13578 139882220656320 Verificando fecha: 29/04/2026
+INFO 2025-08-19 11:01:14,925 pricing_service 13578 139882220656320 No hay fecha especial para 29/04
+INFO 2025-08-19 11:01:14,925 pricing_service 13578 139882220656320 Verificando fecha: 30/04/2026
+INFO 2025-08-19 11:01:14,926 pricing_service 13578 139882220656320 No hay fecha especial para 30/04
+INFO 2025-08-19 11:01:14,926 pricing_service 13578 139882220656320 Verificando fecha: 01/05/2026
+INFO 2025-08-19 11:01:14,927 pricing_service 13578 139882220656320 No hay fecha especial para 01/05
+INFO 2025-08-19 11:01:14,927 pricing_service 13578 139882220656320 Verificando fecha: 02/05/2026
+INFO 2025-08-19 11:01:14,928 pricing_service 13578 139882220656320 No hay fecha especial para 02/05
+INFO 2025-08-19 11:01:14,928 pricing_service 13578 139882220656320 Verificando fecha: 03/05/2026
+INFO 2025-08-19 11:01:14,929 pricing_service 13578 139882220656320 No hay fecha especial para 03/05
+INFO 2025-08-19 11:01:14,929 pricing_service 13578 139882220656320 Verificando fecha: 04/05/2026
+INFO 2025-08-19 11:01:14,930 pricing_service 13578 139882220656320 No hay fecha especial para 04/05
+INFO 2025-08-19 11:01:14,930 pricing_service 13578 139882220656320 Verificando fecha: 05/05/2026
+INFO 2025-08-19 11:01:14,931 pricing_service 13578 139882220656320 No hay fecha especial para 05/05
+INFO 2025-08-19 11:01:14,931 pricing_service 13578 139882220656320 Verificando fecha: 06/05/2026
+INFO 2025-08-19 11:01:14,932 pricing_service 13578 139882220656320 No hay fecha especial para 06/05
+INFO 2025-08-19 11:01:14,932 pricing_service 13578 139882220656320 Verificando fecha: 07/05/2026
+INFO 2025-08-19 11:01:14,933 pricing_service 13578 139882220656320 No hay fecha especial para 07/05
+INFO 2025-08-19 11:01:14,933 pricing_service 13578 139882220656320 Verificando fecha: 08/05/2026
+INFO 2025-08-19 11:01:14,935 pricing_service 13578 139882220656320 No hay fecha especial para 08/05
+INFO 2025-08-19 11:01:14,935 pricing_service 13578 139882220656320 Verificando fecha: 09/05/2026
+INFO 2025-08-19 11:01:14,936 pricing_service 13578 139882220656320 No hay fecha especial para 09/05
+INFO 2025-08-19 11:01:14,936 pricing_service 13578 139882220656320 Verificando fecha: 10/05/2026
+INFO 2025-08-19 11:01:14,937 pricing_service 13578 139882220656320 No hay fecha especial para 10/05
+INFO 2025-08-19 11:01:14,937 pricing_service 13578 139882220656320 Verificando fecha: 11/05/2026
+INFO 2025-08-19 11:01:14,938 pricing_service 13578 139882220656320 No hay fecha especial para 11/05
+INFO 2025-08-19 11:01:14,938 pricing_service 13578 139882220656320 Verificando fecha: 12/05/2026
+INFO 2025-08-19 11:01:14,940 pricing_service 13578 139882220656320 No hay fecha especial para 12/05
+INFO 2025-08-19 11:01:14,940 pricing_service 13578 139882220656320 Verificando fecha: 13/05/2026
+INFO 2025-08-19 11:01:14,941 pricing_service 13578 139882220656320 No hay fecha especial para 13/05
+INFO 2025-08-19 11:01:14,941 pricing_service 13578 139882220656320 Verificando fecha: 14/05/2026
+INFO 2025-08-19 11:01:14,942 pricing_service 13578 139882220656320 No hay fecha especial para 14/05
+INFO 2025-08-19 11:01:14,942 pricing_service 13578 139882220656320 Verificando fecha: 15/05/2026
+INFO 2025-08-19 11:01:14,943 pricing_service 13578 139882220656320 No hay fecha especial para 15/05
+INFO 2025-08-19 11:01:14,943 pricing_service 13578 139882220656320 Verificando fecha: 16/05/2026
+INFO 2025-08-19 11:01:14,944 pricing_service 13578 139882220656320 No hay fecha especial para 16/05
+INFO 2025-08-19 11:01:14,945 pricing_service 13578 139882220656320 Verificando fecha: 17/05/2026
+INFO 2025-08-19 11:01:14,946 pricing_service 13578 139882220656320 No hay fecha especial para 17/05
+INFO 2025-08-19 11:01:14,946 pricing_service 13578 139882220656320 Verificando fecha: 18/05/2026
+INFO 2025-08-19 11:01:14,947 pricing_service 13578 139882220656320 No hay fecha especial para 18/05
+INFO 2025-08-19 11:01:14,947 pricing_service 13578 139882220656320 Verificando fecha: 19/05/2026
+INFO 2025-08-19 11:01:14,948 pricing_service 13578 139882220656320 No hay fecha especial para 19/05
+INFO 2025-08-19 11:01:14,948 pricing_service 13578 139882220656320 Verificando fecha: 20/05/2026
+INFO 2025-08-19 11:01:14,949 pricing_service 13578 139882220656320 No hay fecha especial para 20/05
+INFO 2025-08-19 11:01:14,950 pricing_service 13578 139882220656320 Verificando fecha: 21/05/2026
+INFO 2025-08-19 11:01:14,951 pricing_service 13578 139882220656320 No hay fecha especial para 21/05
+INFO 2025-08-19 11:01:14,951 pricing_service 13578 139882220656320 Verificando fecha: 22/05/2026
+INFO 2025-08-19 11:01:14,952 pricing_service 13578 139882220656320 No hay fecha especial para 22/05
+INFO 2025-08-19 11:01:14,952 pricing_service 13578 139882220656320 Verificando fecha: 23/05/2026
+INFO 2025-08-19 11:01:14,953 pricing_service 13578 139882220656320 No hay fecha especial para 23/05
+INFO 2025-08-19 11:01:14,953 pricing_service 13578 139882220656320 Verificando fecha: 24/05/2026
+INFO 2025-08-19 11:01:14,954 pricing_service 13578 139882220656320 No hay fecha especial para 24/05
+INFO 2025-08-19 11:01:14,954 pricing_service 13578 139882220656320 Verificando fecha: 25/05/2026
+INFO 2025-08-19 11:01:14,955 pricing_service 13578 139882220656320 No hay fecha especial para 25/05
+INFO 2025-08-19 11:01:14,955 pricing_service 13578 139882220656320 Verificando fecha: 26/05/2026
+INFO 2025-08-19 11:01:14,956 pricing_service 13578 139882220656320 No hay fecha especial para 26/05
+INFO 2025-08-19 11:01:14,956 pricing_service 13578 139882220656320 Verificando fecha: 27/05/2026
+INFO 2025-08-19 11:01:14,957 pricing_service 13578 139882220656320 No hay fecha especial para 27/05
+INFO 2025-08-19 11:01:14,957 pricing_service 13578 139882220656320 Verificando fecha: 28/05/2026
+INFO 2025-08-19 11:01:14,958 pricing_service 13578 139882220656320 No hay fecha especial para 28/05
+INFO 2025-08-19 11:01:14,958 pricing_service 13578 139882220656320 Verificando fecha: 29/05/2026
+INFO 2025-08-19 11:01:14,959 pricing_service 13578 139882220656320 No hay fecha especial para 29/05
+INFO 2025-08-19 11:01:14,959 pricing_service 13578 139882220656320 Verificando fecha: 30/05/2026
+INFO 2025-08-19 11:01:14,960 pricing_service 13578 139882220656320 No hay fecha especial para 30/05
+INFO 2025-08-19 11:01:14,960 pricing_service 13578 139882220656320 Verificando fecha: 31/05/2026
+INFO 2025-08-19 11:01:14,961 pricing_service 13578 139882220656320 No hay fecha especial para 31/05
+INFO 2025-08-19 11:01:14,962 pricing_service 13578 139882220656320 Verificando fecha: 01/06/2026
+INFO 2025-08-19 11:01:14,963 pricing_service 13578 139882220656320 No hay fecha especial para 01/06
+INFO 2025-08-19 11:01:14,963 pricing_service 13578 139882220656320 Verificando fecha: 02/06/2026
+INFO 2025-08-19 11:01:14,964 pricing_service 13578 139882220656320 No hay fecha especial para 02/06
+INFO 2025-08-19 11:01:14,964 pricing_service 13578 139882220656320 Verificando fecha: 03/06/2026
+INFO 2025-08-19 11:01:14,965 pricing_service 13578 139882220656320 No hay fecha especial para 03/06
+INFO 2025-08-19 11:01:14,965 pricing_service 13578 139882220656320 Verificando fecha: 04/06/2026
+INFO 2025-08-19 11:01:14,966 pricing_service 13578 139882220656320 No hay fecha especial para 04/06
+INFO 2025-08-19 11:01:14,966 pricing_service 13578 139882220656320 Verificando fecha: 05/06/2026
+INFO 2025-08-19 11:01:14,967 pricing_service 13578 139882220656320 No hay fecha especial para 05/06
+INFO 2025-08-19 11:01:14,967 pricing_service 13578 139882220656320 Verificando fecha: 06/06/2026
+INFO 2025-08-19 11:01:14,968 pricing_service 13578 139882220656320 No hay fecha especial para 06/06
+INFO 2025-08-19 11:01:14,968 pricing_service 13578 139882220656320 Verificando fecha: 07/06/2026
+INFO 2025-08-19 11:01:14,969 pricing_service 13578 139882220656320 No hay fecha especial para 07/06
+INFO 2025-08-19 11:01:14,969 pricing_service 13578 139882220656320 Verificando fecha: 08/06/2026
+INFO 2025-08-19 11:01:14,970 pricing_service 13578 139882220656320 No hay fecha especial para 08/06
+INFO 2025-08-19 11:01:14,970 pricing_service 13578 139882220656320 Verificando fecha: 09/06/2026
+INFO 2025-08-19 11:01:14,971 pricing_service 13578 139882220656320 No hay fecha especial para 09/06
+INFO 2025-08-19 11:01:14,971 pricing_service 13578 139882220656320 Verificando fecha: 10/06/2026
+INFO 2025-08-19 11:01:14,972 pricing_service 13578 139882220656320 No hay fecha especial para 10/06
+INFO 2025-08-19 11:01:14,972 pricing_service 13578 139882220656320 Verificando fecha: 11/06/2026
+INFO 2025-08-19 11:01:14,973 pricing_service 13578 139882220656320 No hay fecha especial para 11/06
+INFO 2025-08-19 11:01:14,973 pricing_service 13578 139882220656320 Verificando fecha: 12/06/2026
+INFO 2025-08-19 11:01:14,974 pricing_service 13578 139882220656320 No hay fecha especial para 12/06
+INFO 2025-08-19 11:01:14,974 pricing_service 13578 139882220656320 Verificando fecha: 13/06/2026
+INFO 2025-08-19 11:01:14,975 pricing_service 13578 139882220656320 No hay fecha especial para 13/06
+INFO 2025-08-19 11:01:14,975 pricing_service 13578 139882220656320 Verificando fecha: 14/06/2026
+INFO 2025-08-19 11:01:14,976 pricing_service 13578 139882220656320 No hay fecha especial para 14/06
+INFO 2025-08-19 11:01:14,976 pricing_service 13578 139882220656320 Verificando fecha: 15/06/2026
+INFO 2025-08-19 11:01:14,977 pricing_service 13578 139882220656320 No hay fecha especial para 15/06
+INFO 2025-08-19 11:01:14,977 pricing_service 13578 139882220656320 Verificando fecha: 16/06/2026
+INFO 2025-08-19 11:01:14,978 pricing_service 13578 139882220656320 No hay fecha especial para 16/06
+INFO 2025-08-19 11:01:14,979 pricing_service 13578 139882220656320 Verificando fecha: 17/06/2026
+INFO 2025-08-19 11:01:14,980 pricing_service 13578 139882220656320 No hay fecha especial para 17/06
+INFO 2025-08-19 11:01:14,980 pricing_service 13578 139882220656320 Verificando fecha: 18/06/2026
+INFO 2025-08-19 11:01:14,981 pricing_service 13578 139882220656320 No hay fecha especial para 18/06
+INFO 2025-08-19 11:01:14,981 pricing_service 13578 139882220656320 Verificando fecha: 19/06/2026
+INFO 2025-08-19 11:01:14,982 pricing_service 13578 139882220656320 No hay fecha especial para 19/06
+INFO 2025-08-19 11:01:14,982 pricing_service 13578 139882220656320 Verificando fecha: 20/06/2026
+INFO 2025-08-19 11:01:14,983 pricing_service 13578 139882220656320 No hay fecha especial para 20/06
+INFO 2025-08-19 11:01:14,983 pricing_service 13578 139882220656320 Verificando fecha: 21/06/2026
+INFO 2025-08-19 11:01:14,984 pricing_service 13578 139882220656320 No hay fecha especial para 21/06
+INFO 2025-08-19 11:01:14,984 pricing_service 13578 139882220656320 Verificando fecha: 22/06/2026
+INFO 2025-08-19 11:01:14,985 pricing_service 13578 139882220656320 No hay fecha especial para 22/06
+INFO 2025-08-19 11:01:14,985 pricing_service 13578 139882220656320 Verificando fecha: 23/06/2026
+INFO 2025-08-19 11:01:14,986 pricing_service 13578 139882220656320 No hay fecha especial para 23/06
+INFO 2025-08-19 11:01:14,986 pricing_service 13578 139882220656320 Verificando fecha: 24/06/2026
+INFO 2025-08-19 11:01:14,987 pricing_service 13578 139882220656320 No hay fecha especial para 24/06
+INFO 2025-08-19 11:01:14,987 pricing_service 13578 139882220656320 Verificando fecha: 25/06/2026
+INFO 2025-08-19 11:01:14,988 pricing_service 13578 139882220656320 No hay fecha especial para 25/06
+INFO 2025-08-19 11:01:14,988 pricing_service 13578 139882220656320 Verificando fecha: 26/06/2026
+INFO 2025-08-19 11:01:14,989 pricing_service 13578 139882220656320 No hay fecha especial para 26/06
+INFO 2025-08-19 11:01:14,990 pricing_service 13578 139882220656320 Verificando fecha: 27/06/2026
+INFO 2025-08-19 11:01:14,991 pricing_service 13578 139882220656320 No hay fecha especial para 27/06
+INFO 2025-08-19 11:01:14,991 pricing_service 13578 139882220656320 Verificando fecha: 28/06/2026
+INFO 2025-08-19 11:01:14,992 pricing_service 13578 139882220656320 No hay fecha especial para 28/06
+INFO 2025-08-19 11:01:14,992 pricing_service 13578 139882220656320 Verificando fecha: 29/06/2026
+INFO 2025-08-19 11:01:14,993 pricing_service 13578 139882220656320 No hay fecha especial para 29/06
+INFO 2025-08-19 11:01:14,993 pricing_service 13578 139882220656320 Verificando fecha: 30/06/2026
+INFO 2025-08-19 11:01:14,994 pricing_service 13578 139882220656320 No hay fecha especial para 30/06
+INFO 2025-08-19 11:01:14,994 pricing_service 13578 139882220656320 Verificando fecha: 01/07/2026
+INFO 2025-08-19 11:01:14,995 pricing_service 13578 139882220656320 No hay fecha especial para 01/07
+INFO 2025-08-19 11:01:14,995 pricing_service 13578 139882220656320 Verificando fecha: 02/07/2026
+INFO 2025-08-19 11:01:14,996 pricing_service 13578 139882220656320 No hay fecha especial para 02/07
+INFO 2025-08-19 11:01:14,996 pricing_service 13578 139882220656320 Verificando fecha: 03/07/2026
+INFO 2025-08-19 11:01:14,997 pricing_service 13578 139882220656320 No hay fecha especial para 03/07
+INFO 2025-08-19 11:01:14,997 pricing_service 13578 139882220656320 Verificando fecha: 04/07/2026
+INFO 2025-08-19 11:01:14,998 pricing_service 13578 139882220656320 No hay fecha especial para 04/07
+INFO 2025-08-19 11:01:14,998 pricing_service 13578 139882220656320 Verificando fecha: 05/07/2026
+INFO 2025-08-19 11:01:15,000 pricing_service 13578 139882220656320 No hay fecha especial para 05/07
+INFO 2025-08-19 11:01:15,000 pricing_service 13578 139882220656320 Verificando fecha: 06/07/2026
+INFO 2025-08-19 11:01:15,001 pricing_service 13578 139882220656320 No hay fecha especial para 06/07
+INFO 2025-08-19 11:01:15,001 pricing_service 13578 139882220656320 Verificando fecha: 07/07/2026
+INFO 2025-08-19 11:01:15,002 pricing_service 13578 139882220656320 No hay fecha especial para 07/07
+INFO 2025-08-19 11:01:15,002 pricing_service 13578 139882220656320 Verificando fecha: 08/07/2026
+INFO 2025-08-19 11:01:15,003 pricing_service 13578 139882220656320 No hay fecha especial para 08/07
+INFO 2025-08-19 11:01:15,004 pricing_service 13578 139882220656320 Verificando fecha: 09/07/2026
+INFO 2025-08-19 11:01:15,005 pricing_service 13578 139882220656320 No hay fecha especial para 09/07
+INFO 2025-08-19 11:01:15,005 pricing_service 13578 139882220656320 Verificando fecha: 10/07/2026
+INFO 2025-08-19 11:01:15,006 pricing_service 13578 139882220656320 No hay fecha especial para 10/07
+INFO 2025-08-19 11:01:15,006 pricing_service 13578 139882220656320 Verificando fecha: 11/07/2026
+INFO 2025-08-19 11:01:15,007 pricing_service 13578 139882220656320 No hay fecha especial para 11/07
+INFO 2025-08-19 11:01:15,007 pricing_service 13578 139882220656320 Verificando fecha: 12/07/2026
+INFO 2025-08-19 11:01:15,008 pricing_service 13578 139882220656320 No hay fecha especial para 12/07
+INFO 2025-08-19 11:01:15,009 pricing_service 13578 139882220656320 Verificando fecha: 13/07/2026
+INFO 2025-08-19 11:01:15,010 pricing_service 13578 139882220656320 No hay fecha especial para 13/07
+INFO 2025-08-19 11:01:15,010 pricing_service 13578 139882220656320 Verificando fecha: 14/07/2026
+INFO 2025-08-19 11:01:15,011 pricing_service 13578 139882220656320 No hay fecha especial para 14/07
+INFO 2025-08-19 11:01:15,011 pricing_service 13578 139882220656320 Verificando fecha: 15/07/2026
+INFO 2025-08-19 11:01:15,012 pricing_service 13578 139882220656320 No hay fecha especial para 15/07
+INFO 2025-08-19 11:01:15,012 pricing_service 13578 139882220656320 Verificando fecha: 16/07/2026
+INFO 2025-08-19 11:01:15,013 pricing_service 13578 139882220656320 No hay fecha especial para 16/07
+INFO 2025-08-19 11:01:15,013 pricing_service 13578 139882220656320 Verificando fecha: 17/07/2026
+INFO 2025-08-19 11:01:15,014 pricing_service 13578 139882220656320 No hay fecha especial para 17/07
+INFO 2025-08-19 11:01:15,014 pricing_service 13578 139882220656320 Verificando fecha: 18/07/2026
+INFO 2025-08-19 11:01:15,015 pricing_service 13578 139882220656320 No hay fecha especial para 18/07
+INFO 2025-08-19 11:01:15,015 pricing_service 13578 139882220656320 Verificando fecha: 19/07/2026
+INFO 2025-08-19 11:01:15,016 pricing_service 13578 139882220656320 No hay fecha especial para 19/07
+INFO 2025-08-19 11:01:15,016 pricing_service 13578 139882220656320 Verificando fecha: 20/07/2026
+INFO 2025-08-19 11:01:15,017 pricing_service 13578 139882220656320 No hay fecha especial para 20/07
+INFO 2025-08-19 11:01:15,017 pricing_service 13578 139882220656320 Verificando fecha: 21/07/2026
+INFO 2025-08-19 11:01:15,018 pricing_service 13578 139882220656320 No hay fecha especial para 21/07
+INFO 2025-08-19 11:01:15,018 pricing_service 13578 139882220656320 Verificando fecha: 22/07/2026
+INFO 2025-08-19 11:01:15,019 pricing_service 13578 139882220656320 No hay fecha especial para 22/07
+INFO 2025-08-19 11:01:15,019 pricing_service 13578 139882220656320 Verificando fecha: 23/07/2026
+INFO 2025-08-19 11:01:15,020 pricing_service 13578 139882220656320 No hay fecha especial para 23/07
+INFO 2025-08-19 11:01:15,021 pricing_service 13578 139882220656320 Verificando fecha: 24/07/2026
+INFO 2025-08-19 11:01:15,022 pricing_service 13578 139882220656320 No hay fecha especial para 24/07
+INFO 2025-08-19 11:01:15,022 pricing_service 13578 139882220656320 Verificando fecha: 25/07/2026
+INFO 2025-08-19 11:01:15,023 pricing_service 13578 139882220656320 No hay fecha especial para 25/07
+INFO 2025-08-19 11:01:15,023 pricing_service 13578 139882220656320 Verificando fecha: 26/07/2026
+INFO 2025-08-19 11:01:15,024 pricing_service 13578 139882220656320 No hay fecha especial para 26/07
+INFO 2025-08-19 11:01:15,024 pricing_service 13578 139882220656320 Verificando fecha: 27/07/2026
+INFO 2025-08-19 11:01:15,025 pricing_service 13578 139882220656320 No hay fecha especial para 27/07
+INFO 2025-08-19 11:01:15,025 pricing_service 13578 139882220656320 Verificando fecha: 28/07/2026
+INFO 2025-08-19 11:01:15,026 pricing_service 13578 139882220656320 No hay fecha especial para 28/07
+INFO 2025-08-19 11:01:15,026 pricing_service 13578 139882220656320 Verificando fecha: 29/07/2026
+INFO 2025-08-19 11:01:15,027 pricing_service 13578 139882220656320 No hay fecha especial para 29/07
+INFO 2025-08-19 11:01:15,027 pricing_service 13578 139882220656320 Verificando fecha: 30/07/2026
+INFO 2025-08-19 11:01:15,028 pricing_service 13578 139882220656320 No hay fecha especial para 30/07
+INFO 2025-08-19 11:01:15,029 pricing_service 13578 139882220656320 Verificando fecha: 31/07/2026
+INFO 2025-08-19 11:01:15,030 pricing_service 13578 139882220656320 No hay fecha especial para 31/07
+INFO 2025-08-19 11:01:15,030 pricing_service 13578 139882220656320 Verificando fecha: 01/08/2026
+INFO 2025-08-19 11:01:15,031 pricing_service 13578 139882220656320 No hay fecha especial para 01/08
+INFO 2025-08-19 11:01:15,031 pricing_service 13578 139882220656320 Verificando fecha: 02/08/2026
+INFO 2025-08-19 11:01:15,032 pricing_service 13578 139882220656320 No hay fecha especial para 02/08
+INFO 2025-08-19 11:01:15,032 pricing_service 13578 139882220656320 Verificando fecha: 03/08/2026
+INFO 2025-08-19 11:01:15,033 pricing_service 13578 139882220656320 No hay fecha especial para 03/08
+INFO 2025-08-19 11:01:15,033 pricing_service 13578 139882220656320 Verificando fecha: 04/08/2026
+INFO 2025-08-19 11:01:15,034 pricing_service 13578 139882220656320 No hay fecha especial para 04/08
+INFO 2025-08-19 11:01:15,034 pricing_service 13578 139882220656320 Verificando fecha: 05/08/2026
+INFO 2025-08-19 11:01:15,035 pricing_service 13578 139882220656320 No hay fecha especial para 05/08
+INFO 2025-08-19 11:01:15,036 pricing_service 13578 139882220656320 Verificando fecha: 06/08/2026
+INFO 2025-08-19 11:01:15,036 pricing_service 13578 139882220656320 No hay fecha especial para 06/08
+INFO 2025-08-19 11:01:15,037 pricing_service 13578 139882220656320 Verificando fecha: 07/08/2026
+INFO 2025-08-19 11:01:15,037 pricing_service 13578 139882220656320 No hay fecha especial para 07/08
+INFO 2025-08-19 11:01:15,038 pricing_service 13578 139882220656320 Verificando fecha: 08/08/2026
+INFO 2025-08-19 11:01:15,039 pricing_service 13578 139882220656320 No hay fecha especial para 08/08
+INFO 2025-08-19 11:01:15,039 pricing_service 13578 139882220656320 Verificando fecha: 09/08/2026
+INFO 2025-08-19 11:01:15,040 pricing_service 13578 139882220656320 No hay fecha especial para 09/08
+INFO 2025-08-19 11:01:15,040 pricing_service 13578 139882220656320 Verificando fecha: 10/08/2026
+INFO 2025-08-19 11:01:15,041 pricing_service 13578 139882220656320 No hay fecha especial para 10/08
+INFO 2025-08-19 11:01:15,041 pricing_service 13578 139882220656320 Verificando fecha: 11/08/2026
+INFO 2025-08-19 11:01:15,042 pricing_service 13578 139882220656320 No hay fecha especial para 11/08
+INFO 2025-08-19 11:01:15,042 pricing_service 13578 139882220656320 Verificando fecha: 12/08/2026
+INFO 2025-08-19 11:01:15,043 pricing_service 13578 139882220656320 No hay fecha especial para 12/08
+INFO 2025-08-19 11:01:15,043 pricing_service 13578 139882220656320 Verificando fecha: 13/08/2026
+INFO 2025-08-19 11:01:15,044 pricing_service 13578 139882220656320 No hay fecha especial para 13/08
+INFO 2025-08-19 11:01:15,044 pricing_service 13578 139882220656320 Verificando fecha: 14/08/2026
+INFO 2025-08-19 11:01:15,045 pricing_service 13578 139882220656320 No hay fecha especial para 14/08
+INFO 2025-08-19 11:01:15,045 pricing_service 13578 139882220656320 Verificando fecha: 15/08/2026
+INFO 2025-08-19 11:01:15,046 pricing_service 13578 139882220656320 No hay fecha especial para 15/08
+INFO 2025-08-19 11:01:15,046 pricing_service 13578 139882220656320 Verificando fecha: 16/08/2026
+INFO 2025-08-19 11:01:15,047 pricing_service 13578 139882220656320 No hay fecha especial para 16/08
+INFO 2025-08-19 11:01:15,047 pricing_service 13578 139882220656320 Verificando fecha: 17/08/2026
+INFO 2025-08-19 11:01:15,048 pricing_service 13578 139882220656320 No hay fecha especial para 17/08
+INFO 2025-08-19 11:01:15,049 pricing_service 13578 139882220656320 Verificando fecha: 18/08/2026
+INFO 2025-08-19 11:01:15,050 pricing_service 13578 139882220656320 No hay fecha especial para 18/08
+INFO 2025-08-19 11:01:15,050 pricing_service 13578 139882220656320 Verificando fecha: 19/08/2026
+INFO 2025-08-19 11:01:15,051 pricing_service 13578 139882220656320 No hay fecha especial para 19/08
+INFO 2025-08-19 11:01:15,051 pricing_service 13578 139882220656320 Verificando fecha: 20/08/2026
+INFO 2025-08-19 11:01:15,052 pricing_service 13578 139882220656320 No hay fecha especial para 20/08
+INFO 2025-08-19 11:01:15,052 pricing_service 13578 139882220656320 Verificando fecha: 21/08/2026
+INFO 2025-08-19 11:01:15,053 pricing_service 13578 139882220656320 No hay fecha especial para 21/08
+INFO 2025-08-19 11:01:15,053 pricing_service 13578 139882220656320 Verificando fecha: 22/08/2026
+INFO 2025-08-19 11:01:15,054 pricing_service 13578 139882220656320 No hay fecha especial para 22/08
+INFO 2025-08-19 11:01:15,054 pricing_service 13578 139882220656320 Verificando fecha: 23/08/2026
+INFO 2025-08-19 11:01:15,055 pricing_service 13578 139882220656320 No hay fecha especial para 23/08
+INFO 2025-08-19 11:01:15,055 pricing_service 13578 139882220656320 Verificando fecha: 24/08/2026
+INFO 2025-08-19 11:01:15,056 pricing_service 13578 139882220656320 No hay fecha especial para 24/08
+INFO 2025-08-19 11:01:15,056 pricing_service 13578 139882220656320 Verificando fecha: 25/08/2026
+INFO 2025-08-19 11:01:15,057 pricing_service 13578 139882220656320 No hay fecha especial para 25/08
+INFO 2025-08-19 11:01:15,058 pricing_service 13578 139882220656320 Verificando fecha: 26/08/2026
+INFO 2025-08-19 11:01:15,059 pricing_service 13578 139882220656320 No hay fecha especial para 26/08
+INFO 2025-08-19 11:01:15,059 pricing_service 13578 139882220656320 Verificando fecha: 27/08/2026
+INFO 2025-08-19 11:01:15,060 pricing_service 13578 139882220656320 No hay fecha especial para 27/08
+INFO 2025-08-19 11:01:15,060 pricing_service 13578 139882220656320 Verificando fecha: 28/08/2026
+INFO 2025-08-19 11:01:15,061 pricing_service 13578 139882220656320 No hay fecha especial para 28/08
+INFO 2025-08-19 11:01:15,062 pricing_service 13578 139882220656320 Verificando fecha: 29/08/2026
+INFO 2025-08-19 11:01:15,063 pricing_service 13578 139882220656320 No hay fecha especial para 29/08
+INFO 2025-08-19 11:01:15,063 pricing_service 13578 139882220656320 Verificando fecha: 30/08/2026
+INFO 2025-08-19 11:01:15,064 pricing_service 13578 139882220656320 No hay fecha especial para 30/08
+INFO 2025-08-19 11:01:15,064 pricing_service 13578 139882220656320 Verificando fecha: 31/08/2026
+INFO 2025-08-19 11:01:15,065 pricing_service 13578 139882220656320 No hay fecha especial para 31/08
+INFO 2025-08-19 11:01:15,065 pricing_service 13578 139882220656320 Verificando fecha: 01/09/2026
+INFO 2025-08-19 11:01:15,066 pricing_service 13578 139882220656320 No hay fecha especial para 01/09
+INFO 2025-08-19 11:01:15,066 pricing_service 13578 139882220656320 Verificando fecha: 02/09/2026
+INFO 2025-08-19 11:01:15,067 pricing_service 13578 139882220656320 No hay fecha especial para 02/09
+INFO 2025-08-19 11:01:15,067 pricing_service 13578 139882220656320 Verificando fecha: 03/09/2026
+INFO 2025-08-19 11:01:15,068 pricing_service 13578 139882220656320 No hay fecha especial para 03/09
+INFO 2025-08-19 11:01:15,068 pricing_service 13578 139882220656320 Verificando fecha: 04/09/2026
+INFO 2025-08-19 11:01:15,069 pricing_service 13578 139882220656320 No hay fecha especial para 04/09
+INFO 2025-08-19 11:01:15,069 pricing_service 13578 139882220656320 Verificando fecha: 05/09/2026
+INFO 2025-08-19 11:01:15,070 pricing_service 13578 139882220656320 No hay fecha especial para 05/09
+INFO 2025-08-19 11:01:15,070 pricing_service 13578 139882220656320 Verificando fecha: 06/09/2026
+INFO 2025-08-19 11:01:15,071 pricing_service 13578 139882220656320 No hay fecha especial para 06/09
+INFO 2025-08-19 11:01:15,071 pricing_service 13578 139882220656320 Verificando fecha: 07/09/2026
+INFO 2025-08-19 11:01:15,072 pricing_service 13578 139882220656320 No hay fecha especial para 07/09
+INFO 2025-08-19 11:01:15,072 pricing_service 13578 139882220656320 Verificando fecha: 08/09/2026
+INFO 2025-08-19 11:01:15,073 pricing_service 13578 139882220656320 No hay fecha especial para 08/09
+INFO 2025-08-19 11:01:15,073 pricing_service 13578 139882220656320 Verificando fecha: 09/09/2026
+INFO 2025-08-19 11:01:15,074 pricing_service 13578 139882220656320 No hay fecha especial para 09/09
+INFO 2025-08-19 11:01:15,074 pricing_service 13578 139882220656320 Verificando fecha: 10/09/2026
+INFO 2025-08-19 11:01:15,075 pricing_service 13578 139882220656320 No hay fecha especial para 10/09
+INFO 2025-08-19 11:01:15,075 pricing_service 13578 139882220656320 Verificando fecha: 11/09/2026
+INFO 2025-08-19 11:01:15,076 pricing_service 13578 139882220656320 No hay fecha especial para 11/09
+INFO 2025-08-19 11:01:15,076 pricing_service 13578 139882220656320 Verificando fecha: 12/09/2026
+INFO 2025-08-19 11:01:15,077 pricing_service 13578 139882220656320 No hay fecha especial para 12/09
+INFO 2025-08-19 11:01:15,077 pricing_service 13578 139882220656320 Verificando fecha: 13/09/2026
+INFO 2025-08-19 11:01:15,078 pricing_service 13578 139882220656320 No hay fecha especial para 13/09
+INFO 2025-08-19 11:01:15,078 pricing_service 13578 139882220656320 Verificando fecha: 14/09/2026
+INFO 2025-08-19 11:01:15,079 pricing_service 13578 139882220656320 No hay fecha especial para 14/09
+INFO 2025-08-19 11:01:15,079 pricing_service 13578 139882220656320 Verificando fecha: 15/09/2026
+INFO 2025-08-19 11:01:15,080 pricing_service 13578 139882220656320 No hay fecha especial para 15/09
+INFO 2025-08-19 11:01:15,080 pricing_service 13578 139882220656320 Verificando fecha: 16/09/2026
+INFO 2025-08-19 11:01:15,081 pricing_service 13578 139882220656320 No hay fecha especial para 16/09
+INFO 2025-08-19 11:01:15,081 pricing_service 13578 139882220656320 Verificando fecha: 17/09/2026
+INFO 2025-08-19 11:01:15,082 pricing_service 13578 139882220656320 No hay fecha especial para 17/09
+INFO 2025-08-19 11:01:15,082 pricing_service 13578 139882220656320 Verificando fecha: 18/09/2026
+INFO 2025-08-19 11:01:15,083 pricing_service 13578 139882220656320 No hay fecha especial para 18/09
+INFO 2025-08-19 11:01:15,084 pricing_service 13578 139882220656320 Verificando fecha: 19/09/2026
+INFO 2025-08-19 11:01:15,085 pricing_service 13578 139882220656320 No hay fecha especial para 19/09
+INFO 2025-08-19 11:01:15,085 pricing_service 13578 139882220656320 Verificando fecha: 20/09/2026
+INFO 2025-08-19 11:01:15,086 pricing_service 13578 139882220656320 No hay fecha especial para 20/09
+INFO 2025-08-19 11:01:15,086 pricing_service 13578 139882220656320 Verificando fecha: 21/09/2026
+INFO 2025-08-19 11:01:15,087 pricing_service 13578 139882220656320 No hay fecha especial para 21/09
+INFO 2025-08-19 11:01:15,087 pricing_service 13578 139882220656320 Verificando fecha: 22/09/2026
+INFO 2025-08-19 11:01:15,088 pricing_service 13578 139882220656320 No hay fecha especial para 22/09
+INFO 2025-08-19 11:01:15,089 pricing_service 13578 139882220656320 Verificando fecha: 23/09/2026
+INFO 2025-08-19 11:01:15,090 pricing_service 13578 139882220656320 No hay fecha especial para 23/09
+INFO 2025-08-19 11:01:15,090 pricing_service 13578 139882220656320 Verificando fecha: 24/09/2026
+INFO 2025-08-19 11:01:15,091 pricing_service 13578 139882220656320 No hay fecha especial para 24/09
+INFO 2025-08-19 11:01:15,091 pricing_service 13578 139882220656320 Verificando fecha: 25/09/2026
+INFO 2025-08-19 11:01:15,092 pricing_service 13578 139882220656320 No hay fecha especial para 25/09
+INFO 2025-08-19 11:01:15,092 pricing_service 13578 139882220656320 Verificando fecha: 26/09/2026
+INFO 2025-08-19 11:01:15,094 pricing_service 13578 139882220656320 No hay fecha especial para 26/09
+INFO 2025-08-19 11:01:15,094 pricing_service 13578 139882220656320 Verificando fecha: 27/09/2026
+INFO 2025-08-19 11:01:15,095 pricing_service 13578 139882220656320 No hay fecha especial para 27/09
+INFO 2025-08-19 11:01:15,095 pricing_service 13578 139882220656320 Verificando fecha: 28/09/2026
+INFO 2025-08-19 11:01:15,096 pricing_service 13578 139882220656320 No hay fecha especial para 28/09
+INFO 2025-08-19 11:01:15,096 pricing_service 13578 139882220656320 Verificando fecha: 29/09/2026
+INFO 2025-08-19 11:01:15,097 pricing_service 13578 139882220656320 No hay fecha especial para 29/09
+INFO 2025-08-19 11:01:15,097 pricing_service 13578 139882220656320 Verificando fecha: 30/09/2026
+INFO 2025-08-19 11:01:15,098 pricing_service 13578 139882220656320 No hay fecha especial para 30/09
+INFO 2025-08-19 11:01:15,098 pricing_service 13578 139882220656320 Verificando fecha: 01/10/2026
+INFO 2025-08-19 11:01:15,099 pricing_service 13578 139882220656320 No hay fecha especial para 01/10
+INFO 2025-08-19 11:01:15,099 pricing_service 13578 139882220656320 Verificando fecha: 02/10/2026
+INFO 2025-08-19 11:01:15,100 pricing_service 13578 139882220656320 No hay fecha especial para 02/10
+INFO 2025-08-19 11:01:15,100 pricing_service 13578 139882220656320 Verificando fecha: 03/10/2026
+INFO 2025-08-19 11:01:15,101 pricing_service 13578 139882220656320 No hay fecha especial para 03/10
+INFO 2025-08-19 11:01:15,101 pricing_service 13578 139882220656320 Verificando fecha: 04/10/2026
+INFO 2025-08-19 11:01:15,103 pricing_service 13578 139882220656320 No hay fecha especial para 04/10
+INFO 2025-08-19 11:01:15,103 pricing_service 13578 139882220656320 Verificando fecha: 05/10/2026
+INFO 2025-08-19 11:01:15,104 pricing_service 13578 139882220656320 No hay fecha especial para 05/10
+INFO 2025-08-19 11:01:15,104 pricing_service 13578 139882220656320 Verificando fecha: 06/10/2026
+INFO 2025-08-19 11:01:15,105 pricing_service 13578 139882220656320 No hay fecha especial para 06/10
+INFO 2025-08-19 11:01:15,105 pricing_service 13578 139882220656320 Verificando fecha: 07/10/2026
+INFO 2025-08-19 11:01:15,106 pricing_service 13578 139882220656320 No hay fecha especial para 07/10
+INFO 2025-08-19 11:01:15,106 pricing_service 13578 139882220656320 Verificando fecha: 08/10/2026
+INFO 2025-08-19 11:01:15,107 pricing_service 13578 139882220656320 No hay fecha especial para 08/10
+INFO 2025-08-19 11:01:15,108 pricing_service 13578 139882220656320 Verificando fecha: 09/10/2026
+INFO 2025-08-19 11:01:15,108 pricing_service 13578 139882220656320 No hay fecha especial para 09/10
+INFO 2025-08-19 11:01:15,109 pricing_service 13578 139882220656320 Verificando fecha: 10/10/2026
+INFO 2025-08-19 11:01:15,110 pricing_service 13578 139882220656320 No hay fecha especial para 10/10
+INFO 2025-08-19 11:01:15,110 pricing_service 13578 139882220656320 Verificando fecha: 11/10/2026
+INFO 2025-08-19 11:01:15,111 pricing_service 13578 139882220656320 No hay fecha especial para 11/10
+INFO 2025-08-19 11:01:15,111 pricing_service 13578 139882220656320 Verificando fecha: 12/10/2026
+INFO 2025-08-19 11:01:15,112 pricing_service 13578 139882220656320 No hay fecha especial para 12/10
+INFO 2025-08-19 11:01:15,112 pricing_service 13578 139882220656320 Verificando fecha: 13/10/2026
+INFO 2025-08-19 11:01:15,113 pricing_service 13578 139882220656320 No hay fecha especial para 13/10
+INFO 2025-08-19 11:01:15,113 pricing_service 13578 139882220656320 Verificando fecha: 14/10/2026
+INFO 2025-08-19 11:01:15,114 pricing_service 13578 139882220656320 No hay fecha especial para 14/10
+INFO 2025-08-19 11:01:15,114 pricing_service 13578 139882220656320 Verificando fecha: 15/10/2026
+INFO 2025-08-19 11:01:15,115 pricing_service 13578 139882220656320 No hay fecha especial para 15/10
+INFO 2025-08-19 11:01:15,115 pricing_service 13578 139882220656320 Verificando fecha: 16/10/2026
+INFO 2025-08-19 11:01:15,116 pricing_service 13578 139882220656320 No hay fecha especial para 16/10
+INFO 2025-08-19 11:01:15,117 pricing_service 13578 139882220656320 Verificando fecha: 17/10/2026
+INFO 2025-08-19 11:01:15,118 pricing_service 13578 139882220656320 No hay fecha especial para 17/10
+INFO 2025-08-19 11:01:15,118 pricing_service 13578 139882220656320 Verificando fecha: 18/10/2026
+INFO 2025-08-19 11:01:15,119 pricing_service 13578 139882220656320 No hay fecha especial para 18/10
+INFO 2025-08-19 11:01:15,119 pricing_service 13578 139882220656320 Verificando fecha: 19/10/2026
+INFO 2025-08-19 11:01:15,120 pricing_service 13578 139882220656320 No hay fecha especial para 19/10
+INFO 2025-08-19 11:01:15,120 pricing_service 13578 139882220656320 Verificando fecha: 20/10/2026
+INFO 2025-08-19 11:01:15,121 pricing_service 13578 139882220656320 No hay fecha especial para 20/10
+INFO 2025-08-19 11:01:15,121 pricing_service 13578 139882220656320 Verificando fecha: 21/10/2026
+INFO 2025-08-19 11:01:15,122 pricing_service 13578 139882220656320 No hay fecha especial para 21/10
+INFO 2025-08-19 11:01:15,122 pricing_service 13578 139882220656320 Verificando fecha: 22/10/2026
+INFO 2025-08-19 11:01:15,123 pricing_service 13578 139882220656320 No hay fecha especial para 22/10
+INFO 2025-08-19 11:01:15,123 pricing_service 13578 139882220656320 Verificando fecha: 23/10/2026
+INFO 2025-08-19 11:01:15,124 pricing_service 13578 139882220656320 No hay fecha especial para 23/10
+INFO 2025-08-19 11:01:15,124 pricing_service 13578 139882220656320 Verificando fecha: 24/10/2026
+INFO 2025-08-19 11:01:15,125 pricing_service 13578 139882220656320 No hay fecha especial para 24/10
+INFO 2025-08-19 11:01:15,126 pricing_service 13578 139882220656320 Verificando fecha: 25/10/2026
+INFO 2025-08-19 11:01:15,127 pricing_service 13578 139882220656320 No hay fecha especial para 25/10
+INFO 2025-08-19 11:01:15,127 pricing_service 13578 139882220656320 Verificando fecha: 26/10/2026
+INFO 2025-08-19 11:01:15,128 pricing_service 13578 139882220656320 No hay fecha especial para 26/10
+INFO 2025-08-19 11:01:15,128 pricing_service 13578 139882220656320 Verificando fecha: 27/10/2026
+INFO 2025-08-19 11:01:15,129 pricing_service 13578 139882220656320 No hay fecha especial para 27/10
+INFO 2025-08-19 11:01:15,129 pricing_service 13578 139882220656320 Verificando fecha: 28/10/2026
+INFO 2025-08-19 11:01:15,130 pricing_service 13578 139882220656320 No hay fecha especial para 28/10
+INFO 2025-08-19 11:01:15,130 pricing_service 13578 139882220656320 Verificando fecha: 29/10/2026
+INFO 2025-08-19 11:01:15,132 pricing_service 13578 139882220656320 No hay fecha especial para 29/10
+INFO 2025-08-19 11:01:15,132 pricing_service 13578 139882220656320 Verificando fecha: 30/10/2026
+INFO 2025-08-19 11:01:15,133 pricing_service 13578 139882220656320 No hay fecha especial para 30/10
+INFO 2025-08-19 11:01:15,133 pricing_service 13578 139882220656320 Verificando fecha: 31/10/2026
+INFO 2025-08-19 11:01:15,134 pricing_service 13578 139882220656320 No hay fecha especial para 31/10
+INFO 2025-08-19 11:01:15,134 pricing_service 13578 139882220656320 Verificando fecha: 01/11/2026
+INFO 2025-08-19 11:01:15,135 pricing_service 13578 139882220656320 No hay fecha especial para 01/11
+INFO 2025-08-19 11:01:15,135 pricing_service 13578 139882220656320 Verificando fecha: 02/11/2026
+INFO 2025-08-19 11:01:15,136 pricing_service 13578 139882220656320 No hay fecha especial para 02/11
+INFO 2025-08-19 11:01:15,137 pricing_service 13578 139882220656320 Verificando fecha: 03/11/2026
+INFO 2025-08-19 11:01:15,138 pricing_service 13578 139882220656320 No hay fecha especial para 03/11
+INFO 2025-08-19 11:01:15,138 pricing_service 13578 139882220656320 Verificando fecha: 04/11/2026
+INFO 2025-08-19 11:01:15,139 pricing_service 13578 139882220656320 No hay fecha especial para 04/11
+INFO 2025-08-19 11:01:15,139 pricing_service 13578 139882220656320 Verificando fecha: 05/11/2026
+INFO 2025-08-19 11:01:15,140 pricing_service 13578 139882220656320 No hay fecha especial para 05/11
+INFO 2025-08-19 11:01:15,140 pricing_service 13578 139882220656320 Verificando fecha: 06/11/2026
+INFO 2025-08-19 11:01:15,141 pricing_service 13578 139882220656320 No hay fecha especial para 06/11
+INFO 2025-08-19 11:01:15,141 pricing_service 13578 139882220656320 Verificando fecha: 07/11/2026
+INFO 2025-08-19 11:01:15,142 pricing_service 13578 139882220656320 No hay fecha especial para 07/11
+INFO 2025-08-19 11:01:15,142 pricing_service 13578 139882220656320 Verificando fecha: 08/11/2026
+INFO 2025-08-19 11:01:15,143 pricing_service 13578 139882220656320 No hay fecha especial para 08/11
+INFO 2025-08-19 11:01:15,143 pricing_service 13578 139882220656320 Verificando fecha: 09/11/2026
+INFO 2025-08-19 11:01:15,144 pricing_service 13578 139882220656320 No hay fecha especial para 09/11
+INFO 2025-08-19 11:01:15,144 pricing_service 13578 139882220656320 Verificando fecha: 10/11/2026
+INFO 2025-08-19 11:01:15,145 pricing_service 13578 139882220656320 No hay fecha especial para 10/11
+INFO 2025-08-19 11:01:15,145 pricing_service 13578 139882220656320 Verificando fecha: 11/11/2026
+INFO 2025-08-19 11:01:15,146 pricing_service 13578 139882220656320 No hay fecha especial para 11/11
+INFO 2025-08-19 11:01:15,146 pricing_service 13578 139882220656320 Verificando fecha: 12/11/2026
+INFO 2025-08-19 11:01:15,147 pricing_service 13578 139882220656320 No hay fecha especial para 12/11
+INFO 2025-08-19 11:01:15,148 pricing_service 13578 139882220656320 Verificando fecha: 13/11/2026
+INFO 2025-08-19 11:01:15,149 pricing_service 13578 139882220656320 No hay fecha especial para 13/11
+INFO 2025-08-19 11:01:15,149 pricing_service 13578 139882220656320 Verificando fecha: 14/11/2026
+INFO 2025-08-19 11:01:15,150 pricing_service 13578 139882220656320 No hay fecha especial para 14/11
+INFO 2025-08-19 11:01:15,150 pricing_service 13578 139882220656320 Verificando fecha: 15/11/2026
+INFO 2025-08-19 11:01:15,151 pricing_service 13578 139882220656320 No hay fecha especial para 15/11
+INFO 2025-08-19 11:01:15,152 pricing_service 13578 139882220656320 Verificando fecha: 16/11/2026
+INFO 2025-08-19 11:01:15,153 pricing_service 13578 139882220656320 No hay fecha especial para 16/11
+INFO 2025-08-19 11:01:15,153 pricing_service 13578 139882220656320 Verificando fecha: 17/11/2026
+INFO 2025-08-19 11:01:15,154 pricing_service 13578 139882220656320 No hay fecha especial para 17/11
+INFO 2025-08-19 11:01:15,154 pricing_service 13578 139882220656320 Verificando fecha: 18/11/2026
+INFO 2025-08-19 11:01:15,155 pricing_service 13578 139882220656320 No hay fecha especial para 18/11
+INFO 2025-08-19 11:01:15,155 pricing_service 13578 139882220656320 Verificando fecha: 19/11/2026
+INFO 2025-08-19 11:01:15,156 pricing_service 13578 139882220656320 No hay fecha especial para 19/11
+INFO 2025-08-19 11:01:15,157 pricing_service 13578 139882220656320 Verificando fecha: 20/11/2026
+INFO 2025-08-19 11:01:15,158 pricing_service 13578 139882220656320 No hay fecha especial para 20/11
+INFO 2025-08-19 11:01:15,158 pricing_service 13578 139882220656320 Verificando fecha: 21/11/2026
+INFO 2025-08-19 11:01:15,159 pricing_service 13578 139882220656320 No hay fecha especial para 21/11
+INFO 2025-08-19 11:01:15,159 pricing_service 13578 139882220656320 Verificando fecha: 22/11/2026
+INFO 2025-08-19 11:01:15,161 pricing_service 13578 139882220656320 No hay fecha especial para 22/11
+INFO 2025-08-19 11:01:15,161 pricing_service 13578 139882220656320 Verificando fecha: 23/11/2026
+INFO 2025-08-19 11:01:15,162 pricing_service 13578 139882220656320 No hay fecha especial para 23/11
+INFO 2025-08-19 11:01:15,162 pricing_service 13578 139882220656320 Verificando fecha: 24/11/2026
+INFO 2025-08-19 11:01:15,163 pricing_service 13578 139882220656320 No hay fecha especial para 24/11
+INFO 2025-08-19 11:01:15,163 pricing_service 13578 139882220656320 Verificando fecha: 25/11/2026
+INFO 2025-08-19 11:01:15,164 pricing_service 13578 139882220656320 No hay fecha especial para 25/11
+INFO 2025-08-19 11:01:15,164 pricing_service 13578 139882220656320 Verificando fecha: 26/11/2026
+INFO 2025-08-19 11:01:15,165 pricing_service 13578 139882220656320 No hay fecha especial para 26/11
+INFO 2025-08-19 11:01:15,165 pricing_service 13578 139882220656320 Verificando fecha: 27/11/2026
+INFO 2025-08-19 11:01:15,166 pricing_service 13578 139882220656320 No hay fecha especial para 27/11
+INFO 2025-08-19 11:01:15,166 pricing_service 13578 139882220656320 Verificando fecha: 28/11/2026
+INFO 2025-08-19 11:01:15,167 pricing_service 13578 139882220656320 No hay fecha especial para 28/11
+INFO 2025-08-19 11:01:15,167 pricing_service 13578 139882220656320 Verificando fecha: 29/11/2026
+INFO 2025-08-19 11:01:15,169 pricing_service 13578 139882220656320 No hay fecha especial para 29/11
+INFO 2025-08-19 11:01:15,183 pricing_service 13578 139882220656320 Verificando fecha: 30/11/2026
+INFO 2025-08-19 11:01:15,185 pricing_service 13578 139882220656320 No hay fecha especial para 30/11
+INFO 2025-08-19 11:01:15,186 pricing_service 13578 139882220656320 Verificando fecha: 01/12/2026
+INFO 2025-08-19 11:01:15,188 pricing_service 13578 139882220656320 No hay fecha especial para 01/12
+INFO 2025-08-19 11:01:15,194 pricing_service 13578 139882220656320 Verificando fecha: 02/12/2026
+INFO 2025-08-19 11:01:15,196 pricing_service 13578 139882220656320 No hay fecha especial para 02/12
+INFO 2025-08-19 11:01:15,196 pricing_service 13578 139882220656320 Verificando fecha: 03/12/2026
+INFO 2025-08-19 11:01:15,197 pricing_service 13578 139882220656320 No hay fecha especial para 03/12
+INFO 2025-08-19 11:01:15,198 pricing_service 13578 139882220656320 Verificando fecha: 04/12/2026
+INFO 2025-08-19 11:01:15,199 pricing_service 13578 139882220656320 No hay fecha especial para 04/12
+INFO 2025-08-19 11:01:15,201 pricing_service 13578 139882220656320 Verificando fecha: 05/12/2026
+INFO 2025-08-19 11:01:15,202 pricing_service 13578 139882220656320 No hay fecha especial para 05/12
+INFO 2025-08-19 11:01:15,203 pricing_service 13578 139882220656320 Verificando fecha: 06/12/2026
+INFO 2025-08-19 11:01:15,205 pricing_service 13578 139882220656320 No hay fecha especial para 06/12
+INFO 2025-08-19 11:01:15,205 pricing_service 13578 139882220656320 Verificando fecha: 07/12/2026
+INFO 2025-08-19 11:01:15,206 pricing_service 13578 139882220656320 No hay fecha especial para 07/12
+INFO 2025-08-19 11:01:15,207 pricing_service 13578 139882220656320 Verificando fecha: 08/12/2026
+INFO 2025-08-19 11:01:15,208 pricing_service 13578 139882220656320 No hay fecha especial para 08/12
+INFO 2025-08-19 11:01:15,208 pricing_service 13578 139882220656320 Verificando fecha: 09/12/2026
+INFO 2025-08-19 11:01:15,210 pricing_service 13578 139882220656320 No hay fecha especial para 09/12
+INFO 2025-08-19 11:01:15,210 pricing_service 13578 139882220656320 Verificando fecha: 10/12/2026
+INFO 2025-08-19 11:01:15,211 pricing_service 13578 139882220656320 No hay fecha especial para 10/12
+INFO 2025-08-19 11:01:15,212 pricing_service 13578 139882220656320 Verificando fecha: 11/12/2026
+INFO 2025-08-19 11:01:15,213 pricing_service 13578 139882220656320 No hay fecha especial para 11/12
+INFO 2025-08-19 11:01:15,213 pricing_service 13578 139882220656320 Verificando fecha: 12/12/2026
+INFO 2025-08-19 11:01:15,215 pricing_service 13578 139882220656320 No hay fecha especial para 12/12
+INFO 2025-08-19 11:01:15,215 pricing_service 13578 139882220656320 Verificando fecha: 13/12/2026
+INFO 2025-08-19 11:01:15,216 pricing_service 13578 139882220656320 No hay fecha especial para 13/12
+INFO 2025-08-19 11:01:15,217 pricing_service 13578 139882220656320 Verificando fecha: 14/12/2026
+INFO 2025-08-19 11:01:15,218 pricing_service 13578 139882220656320 No hay fecha especial para 14/12
+INFO 2025-08-19 11:01:15,218 pricing_service 13578 139882220656320 Verificando fecha: 15/12/2026
+INFO 2025-08-19 11:01:15,219 pricing_service 13578 139882220656320 No hay fecha especial para 15/12
+INFO 2025-08-19 11:01:15,219 pricing_service 13578 139882220656320 Verificando fecha: 16/12/2026
+INFO 2025-08-19 11:01:15,220 pricing_service 13578 139882220656320 No hay fecha especial para 16/12
+INFO 2025-08-19 11:01:15,221 pricing_service 13578 139882220656320 Verificando fecha: 17/12/2026
+INFO 2025-08-19 11:01:15,222 pricing_service 13578 139882220656320 No hay fecha especial para 17/12
+INFO 2025-08-19 11:01:15,222 pricing_service 13578 139882220656320 Verificando fecha: 18/12/2026
+INFO 2025-08-19 11:01:15,224 pricing_service 13578 139882220656320 No hay fecha especial para 18/12
+INFO 2025-08-19 11:01:15,224 pricing_service 13578 139882220656320 Verificando fecha: 19/12/2026
+INFO 2025-08-19 11:01:15,225 pricing_service 13578 139882220656320 No hay fecha especial para 19/12
+INFO 2025-08-19 11:01:15,225 pricing_service 13578 139882220656320 Verificando fecha: 20/12/2026
+INFO 2025-08-19 11:01:15,226 pricing_service 13578 139882220656320 No hay fecha especial para 20/12
+INFO 2025-08-19 11:01:15,227 pricing_service 13578 139882220656320 Verificando fecha: 21/12/2026
+INFO 2025-08-19 11:01:15,228 pricing_service 13578 139882220656320 No hay fecha especial para 21/12
+INFO 2025-08-19 11:01:15,228 pricing_service 13578 139882220656320 Verificando fecha: 22/12/2026
+INFO 2025-08-19 11:01:15,229 pricing_service 13578 139882220656320 No hay fecha especial para 22/12
+INFO 2025-08-19 11:01:15,231 pricing_service 13578 139882220656320 Verificando fecha: 23/12/2026
+INFO 2025-08-19 11:01:15,233 pricing_service 13578 139882220656320 No hay fecha especial para 23/12
+INFO 2025-08-19 11:01:15,234 pricing_service 13578 139882220656320 Verificando fecha: 24/12/2026
+INFO 2025-08-19 11:01:15,244 pricing_service 13578 139882220656320 No hay fecha especial para 24/12
+INFO 2025-08-19 11:01:15,244 pricing_service 13578 139882220656320 Verificando fecha: 25/12/2026
+INFO 2025-08-19 11:01:15,245 pricing_service 13578 139882220656320 No hay fecha especial para 25/12
+INFO 2025-08-19 11:01:15,245 pricing_service 13578 139882220656320 Verificando fecha: 26/12/2026
+INFO 2025-08-19 11:01:15,247 pricing_service 13578 139882220656320 No hay fecha especial para 26/12
+INFO 2025-08-19 11:01:15,248 pricing_service 13578 139882220656320 Verificando fecha: 27/12/2026
+INFO 2025-08-19 11:01:15,249 pricing_service 13578 139882220656320 No hay fecha especial para 27/12
+INFO 2025-08-19 11:01:15,249 pricing_service 13578 139882220656320 Verificando fecha: 28/12/2026
+INFO 2025-08-19 11:01:15,250 pricing_service 13578 139882220656320 No hay fecha especial para 28/12
+INFO 2025-08-19 11:01:15,250 pricing_service 13578 139882220656320 Verificando fecha: 29/12/2026
+INFO 2025-08-19 11:01:15,252 pricing_service 13578 139882220656320 No hay fecha especial para 29/12
+INFO 2025-08-19 11:01:15,252 pricing_service 13578 139882220656320 Verificando fecha: 30/12/2026
+INFO 2025-08-19 11:01:15,253 pricing_service 13578 139882220656320 No hay fecha especial para 30/12
+INFO 2025-08-19 11:01:15,253 pricing_service 13578 139882220656320 Validación de fechas especiales completada exitosamente
+INFO 2025-08-19 11:01:15,253 pricing_service 13578 139882220656320 Validando fechas especiales para casa 2
+INFO 2025-08-19 11:01:15,253 pricing_service 13578 139882220656320 Check-in: 2025-12-30, Check-out: 2026-12-31, Noches: 366
+INFO 2025-08-19 11:01:15,253 pricing_service 13578 139882220656320 Verificando fecha: 30/12/2025
+INFO 2025-08-19 11:01:15,255 pricing_service 13578 139882220656320 No hay fecha especial para 30/12
+INFO 2025-08-19 11:01:15,255 pricing_service 13578 139882220656320 Verificando fecha: 31/12/2025
+INFO 2025-08-19 11:01:15,256 pricing_service 13578 139882220656320 Fecha especial encontrada: Año nuevo
+INFO 2025-08-19 11:01:15,257 pricing_service 13578 139882220656320 Noches mínimas requeridas: 3
+INFO 2025-08-19 11:01:15,257 pricing_service 13578 139882220656320 Noches de la reserva: 366
+INFO 2025-08-19 11:01:15,257 pricing_service 13578 139882220656320 Validación exitosa para fecha especial Año nuevo
+INFO 2025-08-19 11:01:15,257 pricing_service 13578 139882220656320 Verificando fecha: 01/01/2026
+INFO 2025-08-19 11:01:15,258 pricing_service 13578 139882220656320 No hay fecha especial para 01/01
+INFO 2025-08-19 11:01:15,258 pricing_service 13578 139882220656320 Verificando fecha: 02/01/2026
+INFO 2025-08-19 11:01:15,259 pricing_service 13578 139882220656320 No hay fecha especial para 02/01
+INFO 2025-08-19 11:01:15,260 pricing_service 13578 139882220656320 Verificando fecha: 03/01/2026
+INFO 2025-08-19 11:01:15,261 pricing_service 13578 139882220656320 No hay fecha especial para 03/01
+INFO 2025-08-19 11:01:15,261 pricing_service 13578 139882220656320 Verificando fecha: 04/01/2026
+INFO 2025-08-19 11:01:15,262 pricing_service 13578 139882220656320 No hay fecha especial para 04/01
+INFO 2025-08-19 11:01:15,262 pricing_service 13578 139882220656320 Verificando fecha: 05/01/2026
+INFO 2025-08-19 11:01:15,263 pricing_service 13578 139882220656320 No hay fecha especial para 05/01
+INFO 2025-08-19 11:01:15,263 pricing_service 13578 139882220656320 Verificando fecha: 06/01/2026
+INFO 2025-08-19 11:01:15,265 pricing_service 13578 139882220656320 No hay fecha especial para 06/01
+INFO 2025-08-19 11:01:15,265 pricing_service 13578 139882220656320 Verificando fecha: 07/01/2026
+INFO 2025-08-19 11:01:15,266 pricing_service 13578 139882220656320 No hay fecha especial para 07/01
+INFO 2025-08-19 11:01:15,266 pricing_service 13578 139882220656320 Verificando fecha: 08/01/2026
+INFO 2025-08-19 11:01:15,267 pricing_service 13578 139882220656320 No hay fecha especial para 08/01
+INFO 2025-08-19 11:01:15,267 pricing_service 13578 139882220656320 Verificando fecha: 09/01/2026
+INFO 2025-08-19 11:01:15,269 pricing_service 13578 139882220656320 No hay fecha especial para 09/01
+INFO 2025-08-19 11:01:15,269 pricing_service 13578 139882220656320 Verificando fecha: 10/01/2026
+INFO 2025-08-19 11:01:15,270 pricing_service 13578 139882220656320 No hay fecha especial para 10/01
+INFO 2025-08-19 11:01:15,270 pricing_service 13578 139882220656320 Verificando fecha: 11/01/2026
+INFO 2025-08-19 11:01:15,272 pricing_service 13578 139882220656320 No hay fecha especial para 11/01
+INFO 2025-08-19 11:01:15,272 pricing_service 13578 139882220656320 Verificando fecha: 12/01/2026
+INFO 2025-08-19 11:01:15,273 pricing_service 13578 139882220656320 No hay fecha especial para 12/01
+INFO 2025-08-19 11:01:15,274 pricing_service 13578 139882220656320 Verificando fecha: 13/01/2026
+INFO 2025-08-19 11:01:15,274 pricing_service 13578 139882220656320 No hay fecha especial para 13/01
+INFO 2025-08-19 11:01:15,275 pricing_service 13578 139882220656320 Verificando fecha: 14/01/2026
+INFO 2025-08-19 11:01:15,276 pricing_service 13578 139882220656320 No hay fecha especial para 14/01
+INFO 2025-08-19 11:01:15,276 pricing_service 13578 139882220656320 Verificando fecha: 15/01/2026
+INFO 2025-08-19 11:01:15,277 pricing_service 13578 139882220656320 No hay fecha especial para 15/01
+INFO 2025-08-19 11:01:15,277 pricing_service 13578 139882220656320 Verificando fecha: 16/01/2026
+INFO 2025-08-19 11:01:15,278 pricing_service 13578 139882220656320 No hay fecha especial para 16/01
+INFO 2025-08-19 11:01:15,278 pricing_service 13578 139882220656320 Verificando fecha: 17/01/2026
+INFO 2025-08-19 11:01:15,279 pricing_service 13578 139882220656320 No hay fecha especial para 17/01
+INFO 2025-08-19 11:01:15,279 pricing_service 13578 139882220656320 Verificando fecha: 18/01/2026
+INFO 2025-08-19 11:01:15,280 pricing_service 13578 139882220656320 No hay fecha especial para 18/01
+INFO 2025-08-19 11:01:15,280 pricing_service 13578 139882220656320 Verificando fecha: 19/01/2026
+INFO 2025-08-19 11:01:15,281 pricing_service 13578 139882220656320 No hay fecha especial para 19/01
+INFO 2025-08-19 11:01:15,281 pricing_service 13578 139882220656320 Verificando fecha: 20/01/2026
+INFO 2025-08-19 11:01:15,282 pricing_service 13578 139882220656320 No hay fecha especial para 20/01
+INFO 2025-08-19 11:01:15,283 pricing_service 13578 139882220656320 Verificando fecha: 21/01/2026
+INFO 2025-08-19 11:01:15,284 pricing_service 13578 139882220656320 No hay fecha especial para 21/01
+INFO 2025-08-19 11:01:15,284 pricing_service 13578 139882220656320 Verificando fecha: 22/01/2026
+INFO 2025-08-19 11:01:15,285 pricing_service 13578 139882220656320 No hay fecha especial para 22/01
+INFO 2025-08-19 11:01:15,285 pricing_service 13578 139882220656320 Verificando fecha: 23/01/2026
+INFO 2025-08-19 11:01:15,286 pricing_service 13578 139882220656320 No hay fecha especial para 23/01
+INFO 2025-08-19 11:01:15,287 pricing_service 13578 139882220656320 Verificando fecha: 24/01/2026
+INFO 2025-08-19 11:01:15,288 pricing_service 13578 139882220656320 No hay fecha especial para 24/01
+INFO 2025-08-19 11:01:15,288 pricing_service 13578 139882220656320 Verificando fecha: 25/01/2026
+INFO 2025-08-19 11:01:15,290 pricing_service 13578 139882220656320 No hay fecha especial para 25/01
+INFO 2025-08-19 11:01:15,290 pricing_service 13578 139882220656320 Verificando fecha: 26/01/2026
+INFO 2025-08-19 11:01:15,291 pricing_service 13578 139882220656320 No hay fecha especial para 26/01
+INFO 2025-08-19 11:01:15,291 pricing_service 13578 139882220656320 Verificando fecha: 27/01/2026
+INFO 2025-08-19 11:01:15,292 pricing_service 13578 139882220656320 No hay fecha especial para 27/01
+INFO 2025-08-19 11:01:15,293 pricing_service 13578 139882220656320 Verificando fecha: 28/01/2026
+INFO 2025-08-19 11:01:15,294 pricing_service 13578 139882220656320 No hay fecha especial para 28/01
+INFO 2025-08-19 11:01:15,294 pricing_service 13578 139882220656320 Verificando fecha: 29/01/2026
+INFO 2025-08-19 11:01:15,295 pricing_service 13578 139882220656320 No hay fecha especial para 29/01
+INFO 2025-08-19 11:01:15,295 pricing_service 13578 139882220656320 Verificando fecha: 30/01/2026
+INFO 2025-08-19 11:01:15,297 pricing_service 13578 139882220656320 No hay fecha especial para 30/01
+INFO 2025-08-19 11:01:15,297 pricing_service 13578 139882220656320 Verificando fecha: 31/01/2026
+INFO 2025-08-19 11:01:15,298 pricing_service 13578 139882220656320 No hay fecha especial para 31/01
+INFO 2025-08-19 11:01:15,298 pricing_service 13578 139882220656320 Verificando fecha: 01/02/2026
+INFO 2025-08-19 11:01:15,299 pricing_service 13578 139882220656320 No hay fecha especial para 01/02
+INFO 2025-08-19 11:01:15,299 pricing_service 13578 139882220656320 Verificando fecha: 02/02/2026
+INFO 2025-08-19 11:01:15,301 pricing_service 13578 139882220656320 No hay fecha especial para 02/02
+INFO 2025-08-19 11:01:15,301 pricing_service 13578 139882220656320 Verificando fecha: 03/02/2026
+INFO 2025-08-19 11:01:15,302 pricing_service 13578 139882220656320 No hay fecha especial para 03/02
+INFO 2025-08-19 11:01:15,303 pricing_service 13578 139882220656320 Verificando fecha: 04/02/2026
+INFO 2025-08-19 11:01:15,304 pricing_service 13578 139882220656320 No hay fecha especial para 04/02
+INFO 2025-08-19 11:01:15,304 pricing_service 13578 139882220656320 Verificando fecha: 05/02/2026
+INFO 2025-08-19 11:01:15,305 pricing_service 13578 139882220656320 No hay fecha especial para 05/02
+INFO 2025-08-19 11:01:15,305 pricing_service 13578 139882220656320 Verificando fecha: 06/02/2026
+INFO 2025-08-19 11:01:15,306 pricing_service 13578 139882220656320 No hay fecha especial para 06/02
+INFO 2025-08-19 11:01:15,307 pricing_service 13578 139882220656320 Verificando fecha: 07/02/2026
+INFO 2025-08-19 11:01:15,308 pricing_service 13578 139882220656320 No hay fecha especial para 07/02
+INFO 2025-08-19 11:01:15,308 pricing_service 13578 139882220656320 Verificando fecha: 08/02/2026
+INFO 2025-08-19 11:01:15,309 pricing_service 13578 139882220656320 No hay fecha especial para 08/02
+INFO 2025-08-19 11:01:15,309 pricing_service 13578 139882220656320 Verificando fecha: 09/02/2026
+INFO 2025-08-19 11:01:15,310 pricing_service 13578 139882220656320 No hay fecha especial para 09/02
+INFO 2025-08-19 11:01:15,310 pricing_service 13578 139882220656320 Verificando fecha: 10/02/2026
+INFO 2025-08-19 11:01:15,311 pricing_service 13578 139882220656320 No hay fecha especial para 10/02
+INFO 2025-08-19 11:01:15,311 pricing_service 13578 139882220656320 Verificando fecha: 11/02/2026
+INFO 2025-08-19 11:01:15,313 pricing_service 13578 139882220656320 No hay fecha especial para 11/02
+INFO 2025-08-19 11:01:15,313 pricing_service 13578 139882220656320 Verificando fecha: 12/02/2026
+INFO 2025-08-19 11:01:15,314 pricing_service 13578 139882220656320 No hay fecha especial para 12/02
+INFO 2025-08-19 11:01:15,314 pricing_service 13578 139882220656320 Verificando fecha: 13/02/2026
+INFO 2025-08-19 11:01:15,316 pricing_service 13578 139882220656320 No hay fecha especial para 13/02
+INFO 2025-08-19 11:01:15,316 pricing_service 13578 139882220656320 Verificando fecha: 14/02/2026
+INFO 2025-08-19 11:01:15,317 pricing_service 13578 139882220656320 No hay fecha especial para 14/02
+INFO 2025-08-19 11:01:15,317 pricing_service 13578 139882220656320 Verificando fecha: 15/02/2026
+INFO 2025-08-19 11:01:15,318 pricing_service 13578 139882220656320 No hay fecha especial para 15/02
+INFO 2025-08-19 11:01:15,318 pricing_service 13578 139882220656320 Verificando fecha: 16/02/2026
+INFO 2025-08-19 11:01:15,320 pricing_service 13578 139882220656320 No hay fecha especial para 16/02
+INFO 2025-08-19 11:01:15,320 pricing_service 13578 139882220656320 Verificando fecha: 17/02/2026
+INFO 2025-08-19 11:01:15,321 pricing_service 13578 139882220656320 No hay fecha especial para 17/02
+INFO 2025-08-19 11:01:15,321 pricing_service 13578 139882220656320 Verificando fecha: 18/02/2026
+INFO 2025-08-19 11:01:15,323 pricing_service 13578 139882220656320 No hay fecha especial para 18/02
+INFO 2025-08-19 11:01:15,323 pricing_service 13578 139882220656320 Verificando fecha: 19/02/2026
+INFO 2025-08-19 11:01:15,325 pricing_service 13578 139882220656320 No hay fecha especial para 19/02
+INFO 2025-08-19 11:01:15,325 pricing_service 13578 139882220656320 Verificando fecha: 20/02/2026
+INFO 2025-08-19 11:01:15,326 pricing_service 13578 139882220656320 No hay fecha especial para 20/02
+INFO 2025-08-19 11:01:15,326 pricing_service 13578 139882220656320 Verificando fecha: 21/02/2026
+INFO 2025-08-19 11:01:15,328 pricing_service 13578 139882220656320 No hay fecha especial para 21/02
+INFO 2025-08-19 11:01:15,328 pricing_service 13578 139882220656320 Verificando fecha: 22/02/2026
+INFO 2025-08-19 11:01:15,329 pricing_service 13578 139882220656320 No hay fecha especial para 22/02
+INFO 2025-08-19 11:01:15,330 pricing_service 13578 139882220656320 Verificando fecha: 23/02/2026
+INFO 2025-08-19 11:01:15,331 pricing_service 13578 139882220656320 No hay fecha especial para 23/02
+INFO 2025-08-19 11:01:15,331 pricing_service 13578 139882220656320 Verificando fecha: 24/02/2026
+INFO 2025-08-19 11:01:15,332 pricing_service 13578 139882220656320 No hay fecha especial para 24/02
+INFO 2025-08-19 11:01:15,333 pricing_service 13578 139882220656320 Verificando fecha: 25/02/2026
+INFO 2025-08-19 11:01:15,334 pricing_service 13578 139882220656320 No hay fecha especial para 25/02
+INFO 2025-08-19 11:01:15,334 pricing_service 13578 139882220656320 Verificando fecha: 26/02/2026
+INFO 2025-08-19 11:01:15,335 pricing_service 13578 139882220656320 No hay fecha especial para 26/02
+INFO 2025-08-19 11:01:15,336 pricing_service 13578 139882220656320 Verificando fecha: 27/02/2026
+INFO 2025-08-19 11:01:15,337 pricing_service 13578 139882220656320 No hay fecha especial para 27/02
+INFO 2025-08-19 11:01:15,337 pricing_service 13578 139882220656320 Verificando fecha: 28/02/2026
+INFO 2025-08-19 11:01:15,339 pricing_service 13578 139882220656320 No hay fecha especial para 28/02
+INFO 2025-08-19 11:01:15,339 pricing_service 13578 139882220656320 Verificando fecha: 01/03/2026
+INFO 2025-08-19 11:01:15,340 pricing_service 13578 139882220656320 No hay fecha especial para 01/03
+INFO 2025-08-19 11:01:15,340 pricing_service 13578 139882220656320 Verificando fecha: 02/03/2026
+INFO 2025-08-19 11:01:15,342 pricing_service 13578 139882220656320 No hay fecha especial para 02/03
+INFO 2025-08-19 11:01:15,342 pricing_service 13578 139882220656320 Verificando fecha: 03/03/2026
+INFO 2025-08-19 11:01:15,343 pricing_service 13578 139882220656320 No hay fecha especial para 03/03
+INFO 2025-08-19 11:01:15,343 pricing_service 13578 139882220656320 Verificando fecha: 04/03/2026
+INFO 2025-08-19 11:01:15,344 pricing_service 13578 139882220656320 No hay fecha especial para 04/03
+INFO 2025-08-19 11:01:15,345 pricing_service 13578 139882220656320 Verificando fecha: 05/03/2026
+INFO 2025-08-19 11:01:15,346 pricing_service 13578 139882220656320 No hay fecha especial para 05/03
+INFO 2025-08-19 11:01:15,346 pricing_service 13578 139882220656320 Verificando fecha: 06/03/2026
+INFO 2025-08-19 11:01:15,347 pricing_service 13578 139882220656320 No hay fecha especial para 06/03
+INFO 2025-08-19 11:01:15,347 pricing_service 13578 139882220656320 Verificando fecha: 07/03/2026
+INFO 2025-08-19 11:01:15,349 pricing_service 13578 139882220656320 No hay fecha especial para 07/03
+INFO 2025-08-19 11:01:15,349 pricing_service 13578 139882220656320 Verificando fecha: 08/03/2026
+INFO 2025-08-19 11:01:15,350 pricing_service 13578 139882220656320 No hay fecha especial para 08/03
+INFO 2025-08-19 11:01:15,350 pricing_service 13578 139882220656320 Verificando fecha: 09/03/2026
+INFO 2025-08-19 11:01:15,351 pricing_service 13578 139882220656320 No hay fecha especial para 09/03
+INFO 2025-08-19 11:01:15,352 pricing_service 13578 139882220656320 Verificando fecha: 10/03/2026
+INFO 2025-08-19 11:01:15,353 pricing_service 13578 139882220656320 No hay fecha especial para 10/03
+INFO 2025-08-19 11:01:15,353 pricing_service 13578 139882220656320 Verificando fecha: 11/03/2026
+INFO 2025-08-19 11:01:15,354 pricing_service 13578 139882220656320 No hay fecha especial para 11/03
+INFO 2025-08-19 11:01:15,354 pricing_service 13578 139882220656320 Verificando fecha: 12/03/2026
+INFO 2025-08-19 11:01:15,356 pricing_service 13578 139882220656320 No hay fecha especial para 12/03
+INFO 2025-08-19 11:01:15,356 pricing_service 13578 139882220656320 Verificando fecha: 13/03/2026
+INFO 2025-08-19 11:01:15,357 pricing_service 13578 139882220656320 No hay fecha especial para 13/03
+INFO 2025-08-19 11:01:15,358 pricing_service 13578 139882220656320 Verificando fecha: 14/03/2026
+INFO 2025-08-19 11:01:15,359 pricing_service 13578 139882220656320 No hay fecha especial para 14/03
+INFO 2025-08-19 11:01:15,359 pricing_service 13578 139882220656320 Verificando fecha: 15/03/2026
+INFO 2025-08-19 11:01:15,360 pricing_service 13578 139882220656320 No hay fecha especial para 15/03
+INFO 2025-08-19 11:01:15,360 pricing_service 13578 139882220656320 Verificando fecha: 16/03/2026
+INFO 2025-08-19 11:01:15,361 pricing_service 13578 139882220656320 No hay fecha especial para 16/03
+INFO 2025-08-19 11:01:15,361 pricing_service 13578 139882220656320 Verificando fecha: 17/03/2026
+INFO 2025-08-19 11:01:15,363 pricing_service 13578 139882220656320 No hay fecha especial para 17/03
+INFO 2025-08-19 11:01:15,363 pricing_service 13578 139882220656320 Verificando fecha: 18/03/2026
+INFO 2025-08-19 11:01:15,364 pricing_service 13578 139882220656320 No hay fecha especial para 18/03
+INFO 2025-08-19 11:01:15,364 pricing_service 13578 139882220656320 Verificando fecha: 19/03/2026
+INFO 2025-08-19 11:01:15,365 pricing_service 13578 139882220656320 No hay fecha especial para 19/03
+INFO 2025-08-19 11:01:15,365 pricing_service 13578 139882220656320 Verificando fecha: 20/03/2026
+INFO 2025-08-19 11:01:15,366 pricing_service 13578 139882220656320 No hay fecha especial para 20/03
+INFO 2025-08-19 11:01:15,367 pricing_service 13578 139882220656320 Verificando fecha: 21/03/2026
+INFO 2025-08-19 11:01:15,368 pricing_service 13578 139882220656320 No hay fecha especial para 21/03
+INFO 2025-08-19 11:01:15,368 pricing_service 13578 139882220656320 Verificando fecha: 22/03/2026
+INFO 2025-08-19 11:01:15,369 pricing_service 13578 139882220656320 No hay fecha especial para 22/03
+INFO 2025-08-19 11:01:15,369 pricing_service 13578 139882220656320 Verificando fecha: 23/03/2026
+INFO 2025-08-19 11:01:15,370 pricing_service 13578 139882220656320 No hay fecha especial para 23/03
+INFO 2025-08-19 11:01:15,371 pricing_service 13578 139882220656320 Verificando fecha: 24/03/2026
+INFO 2025-08-19 11:01:15,372 pricing_service 13578 139882220656320 No hay fecha especial para 24/03
+INFO 2025-08-19 11:01:15,372 pricing_service 13578 139882220656320 Verificando fecha: 25/03/2026
+INFO 2025-08-19 11:01:15,373 pricing_service 13578 139882220656320 No hay fecha especial para 25/03
+INFO 2025-08-19 11:01:15,373 pricing_service 13578 139882220656320 Verificando fecha: 26/03/2026
+INFO 2025-08-19 11:01:15,374 pricing_service 13578 139882220656320 No hay fecha especial para 26/03
+INFO 2025-08-19 11:01:15,374 pricing_service 13578 139882220656320 Verificando fecha: 27/03/2026
+INFO 2025-08-19 11:01:15,376 pricing_service 13578 139882220656320 No hay fecha especial para 27/03
+INFO 2025-08-19 11:01:15,376 pricing_service 13578 139882220656320 Verificando fecha: 28/03/2026
+INFO 2025-08-19 11:01:15,377 pricing_service 13578 139882220656320 No hay fecha especial para 28/03
+INFO 2025-08-19 11:01:15,377 pricing_service 13578 139882220656320 Verificando fecha: 29/03/2026
+INFO 2025-08-19 11:01:15,379 pricing_service 13578 139882220656320 No hay fecha especial para 29/03
+INFO 2025-08-19 11:01:15,379 pricing_service 13578 139882220656320 Verificando fecha: 30/03/2026
+INFO 2025-08-19 11:01:15,380 pricing_service 13578 139882220656320 No hay fecha especial para 30/03
+INFO 2025-08-19 11:01:15,381 pricing_service 13578 139882220656320 Verificando fecha: 31/03/2026
+INFO 2025-08-19 11:01:15,382 pricing_service 13578 139882220656320 No hay fecha especial para 31/03
+INFO 2025-08-19 11:01:15,382 pricing_service 13578 139882220656320 Verificando fecha: 01/04/2026
+INFO 2025-08-19 11:01:15,383 pricing_service 13578 139882220656320 No hay fecha especial para 01/04
+INFO 2025-08-19 11:01:15,383 pricing_service 13578 139882220656320 Verificando fecha: 02/04/2026
+INFO 2025-08-19 11:01:15,385 pricing_service 13578 139882220656320 No hay fecha especial para 02/04
+INFO 2025-08-19 11:01:15,385 pricing_service 13578 139882220656320 Verificando fecha: 03/04/2026
+INFO 2025-08-19 11:01:15,386 pricing_service 13578 139882220656320 No hay fecha especial para 03/04
+INFO 2025-08-19 11:01:15,387 pricing_service 13578 139882220656320 Verificando fecha: 04/04/2026
+INFO 2025-08-19 11:01:15,388 pricing_service 13578 139882220656320 No hay fecha especial para 04/04
+INFO 2025-08-19 11:01:15,388 pricing_service 13578 139882220656320 Verificando fecha: 05/04/2026
+INFO 2025-08-19 11:01:15,390 pricing_service 13578 139882220656320 No hay fecha especial para 05/04
+INFO 2025-08-19 11:01:15,390 pricing_service 13578 139882220656320 Verificando fecha: 06/04/2026
+INFO 2025-08-19 11:01:15,391 pricing_service 13578 139882220656320 No hay fecha especial para 06/04
+INFO 2025-08-19 11:01:15,391 pricing_service 13578 139882220656320 Verificando fecha: 07/04/2026
+INFO 2025-08-19 11:01:15,393 pricing_service 13578 139882220656320 No hay fecha especial para 07/04
+INFO 2025-08-19 11:01:15,393 pricing_service 13578 139882220656320 Verificando fecha: 08/04/2026
+INFO 2025-08-19 11:01:15,395 pricing_service 13578 139882220656320 No hay fecha especial para 08/04
+INFO 2025-08-19 11:01:15,395 pricing_service 13578 139882220656320 Verificando fecha: 09/04/2026
+INFO 2025-08-19 11:01:15,396 pricing_service 13578 139882220656320 No hay fecha especial para 09/04
+INFO 2025-08-19 11:01:15,396 pricing_service 13578 139882220656320 Verificando fecha: 10/04/2026
+INFO 2025-08-19 11:01:15,398 pricing_service 13578 139882220656320 No hay fecha especial para 10/04
+INFO 2025-08-19 11:01:15,398 pricing_service 13578 139882220656320 Verificando fecha: 11/04/2026
+INFO 2025-08-19 11:01:15,399 pricing_service 13578 139882220656320 No hay fecha especial para 11/04
+INFO 2025-08-19 11:01:15,399 pricing_service 13578 139882220656320 Verificando fecha: 12/04/2026
+INFO 2025-08-19 11:01:15,401 pricing_service 13578 139882220656320 No hay fecha especial para 12/04
+INFO 2025-08-19 11:01:15,401 pricing_service 13578 139882220656320 Verificando fecha: 13/04/2026
+INFO 2025-08-19 11:01:15,402 pricing_service 13578 139882220656320 No hay fecha especial para 13/04
+INFO 2025-08-19 11:01:15,402 pricing_service 13578 139882220656320 Verificando fecha: 14/04/2026
+INFO 2025-08-19 11:01:15,408 pricing_service 13578 139882220656320 No hay fecha especial para 14/04
+INFO 2025-08-19 11:01:15,408 pricing_service 13578 139882220656320 Verificando fecha: 15/04/2026
+INFO 2025-08-19 11:01:15,410 pricing_service 13578 139882220656320 No hay fecha especial para 15/04
+INFO 2025-08-19 11:01:15,410 pricing_service 13578 139882220656320 Verificando fecha: 16/04/2026
+INFO 2025-08-19 11:01:15,411 pricing_service 13578 139882220656320 No hay fecha especial para 16/04
+INFO 2025-08-19 11:01:15,411 pricing_service 13578 139882220656320 Verificando fecha: 17/04/2026
+INFO 2025-08-19 11:01:15,412 pricing_service 13578 139882220656320 No hay fecha especial para 17/04
+INFO 2025-08-19 11:01:15,413 pricing_service 13578 139882220656320 Verificando fecha: 18/04/2026
+INFO 2025-08-19 11:01:15,414 pricing_service 13578 139882220656320 No hay fecha especial para 18/04
+INFO 2025-08-19 11:01:15,414 pricing_service 13578 139882220656320 Verificando fecha: 19/04/2026
+INFO 2025-08-19 11:01:15,415 pricing_service 13578 139882220656320 No hay fecha especial para 19/04
+INFO 2025-08-19 11:01:15,416 pricing_service 13578 139882220656320 Verificando fecha: 20/04/2026
+INFO 2025-08-19 11:01:15,417 pricing_service 13578 139882220656320 No hay fecha especial para 20/04
+INFO 2025-08-19 11:01:15,417 pricing_service 13578 139882220656320 Verificando fecha: 21/04/2026
+INFO 2025-08-19 11:01:15,419 pricing_service 13578 139882220656320 No hay fecha especial para 21/04
+INFO 2025-08-19 11:01:15,419 pricing_service 13578 139882220656320 Verificando fecha: 22/04/2026
+INFO 2025-08-19 11:01:15,420 pricing_service 13578 139882220656320 No hay fecha especial para 22/04
+INFO 2025-08-19 11:01:15,420 pricing_service 13578 139882220656320 Verificando fecha: 23/04/2026
+INFO 2025-08-19 11:01:15,421 pricing_service 13578 139882220656320 No hay fecha especial para 23/04
+INFO 2025-08-19 11:01:15,421 pricing_service 13578 139882220656320 Verificando fecha: 24/04/2026
+INFO 2025-08-19 11:01:15,423 pricing_service 13578 139882220656320 No hay fecha especial para 24/04
+INFO 2025-08-19 11:01:15,423 pricing_service 13578 139882220656320 Verificando fecha: 25/04/2026
+INFO 2025-08-19 11:01:15,425 pricing_service 13578 139882220656320 No hay fecha especial para 25/04
+INFO 2025-08-19 11:01:15,425 pricing_service 13578 139882220656320 Verificando fecha: 26/04/2026
+INFO 2025-08-19 11:01:15,426 pricing_service 13578 139882220656320 No hay fecha especial para 26/04
+INFO 2025-08-19 11:01:15,426 pricing_service 13578 139882220656320 Verificando fecha: 27/04/2026
+INFO 2025-08-19 11:01:15,428 pricing_service 13578 139882220656320 No hay fecha especial para 27/04
+INFO 2025-08-19 11:01:15,428 pricing_service 13578 139882220656320 Verificando fecha: 28/04/2026
+INFO 2025-08-19 11:01:15,429 pricing_service 13578 139882220656320 No hay fecha especial para 28/04
+INFO 2025-08-19 11:01:15,429 pricing_service 13578 139882220656320 Verificando fecha: 29/04/2026
+INFO 2025-08-19 11:01:15,430 pricing_service 13578 139882220656320 No hay fecha especial para 29/04
+INFO 2025-08-19 11:01:15,430 pricing_service 13578 139882220656320 Verificando fecha: 30/04/2026
+INFO 2025-08-19 11:01:15,432 pricing_service 13578 139882220656320 No hay fecha especial para 30/04
+INFO 2025-08-19 11:01:15,432 pricing_service 13578 139882220656320 Verificando fecha: 01/05/2026
+INFO 2025-08-19 11:01:15,433 pricing_service 13578 139882220656320 No hay fecha especial para 01/05
+INFO 2025-08-19 11:01:15,433 pricing_service 13578 139882220656320 Verificando fecha: 02/05/2026
+INFO 2025-08-19 11:01:15,438 pricing_service 13578 139882220656320 No hay fecha especial para 02/05
+INFO 2025-08-19 11:01:15,438 pricing_service 13578 139882220656320 Verificando fecha: 03/05/2026
+INFO 2025-08-19 11:01:15,439 pricing_service 13578 139882220656320 No hay fecha especial para 03/05
+INFO 2025-08-19 11:01:15,439 pricing_service 13578 139882220656320 Verificando fecha: 04/05/2026
+INFO 2025-08-19 11:01:15,441 pricing_service 13578 139882220656320 No hay fecha especial para 04/05
+INFO 2025-08-19 11:01:15,441 pricing_service 13578 139882220656320 Verificando fecha: 05/05/2026
+INFO 2025-08-19 11:01:15,442 pricing_service 13578 139882220656320 No hay fecha especial para 05/05
+INFO 2025-08-19 11:01:15,442 pricing_service 13578 139882220656320 Verificando fecha: 06/05/2026
+INFO 2025-08-19 11:01:15,443 pricing_service 13578 139882220656320 No hay fecha especial para 06/05
+INFO 2025-08-19 11:01:15,443 pricing_service 13578 139882220656320 Verificando fecha: 07/05/2026
+INFO 2025-08-19 11:01:15,444 pricing_service 13578 139882220656320 No hay fecha especial para 07/05
+INFO 2025-08-19 11:01:15,444 pricing_service 13578 139882220656320 Verificando fecha: 08/05/2026
+INFO 2025-08-19 11:01:15,446 pricing_service 13578 139882220656320 No hay fecha especial para 08/05
+INFO 2025-08-19 11:01:15,446 pricing_service 13578 139882220656320 Verificando fecha: 09/05/2026
+INFO 2025-08-19 11:01:15,447 pricing_service 13578 139882220656320 No hay fecha especial para 09/05
+INFO 2025-08-19 11:01:15,447 pricing_service 13578 139882220656320 Verificando fecha: 10/05/2026
+INFO 2025-08-19 11:01:15,449 pricing_service 13578 139882220656320 No hay fecha especial para 10/05
+INFO 2025-08-19 11:01:15,449 pricing_service 13578 139882220656320 Verificando fecha: 11/05/2026
+INFO 2025-08-19 11:01:15,450 pricing_service 13578 139882220656320 No hay fecha especial para 11/05
+INFO 2025-08-19 11:01:15,451 pricing_service 13578 139882220656320 Verificando fecha: 12/05/2026
+INFO 2025-08-19 11:01:15,452 pricing_service 13578 139882220656320 No hay fecha especial para 12/05
+INFO 2025-08-19 11:01:15,453 pricing_service 13578 139882220656320 Verificando fecha: 13/05/2026
+INFO 2025-08-19 11:01:15,454 pricing_service 13578 139882220656320 No hay fecha especial para 13/05
+INFO 2025-08-19 11:01:15,454 pricing_service 13578 139882220656320 Verificando fecha: 14/05/2026
+INFO 2025-08-19 11:01:15,455 pricing_service 13578 139882220656320 No hay fecha especial para 14/05
+INFO 2025-08-19 11:01:15,456 pricing_service 13578 139882220656320 Verificando fecha: 15/05/2026
+INFO 2025-08-19 11:01:15,457 pricing_service 13578 139882220656320 No hay fecha especial para 15/05
+INFO 2025-08-19 11:01:15,457 pricing_service 13578 139882220656320 Verificando fecha: 16/05/2026
+INFO 2025-08-19 11:01:15,458 pricing_service 13578 139882220656320 No hay fecha especial para 16/05
+INFO 2025-08-19 11:01:15,459 pricing_service 13578 139882220656320 Verificando fecha: 17/05/2026
+INFO 2025-08-19 11:01:15,460 pricing_service 13578 139882220656320 No hay fecha especial para 17/05
+INFO 2025-08-19 11:01:15,460 pricing_service 13578 139882220656320 Verificando fecha: 18/05/2026
+INFO 2025-08-19 11:01:15,461 pricing_service 13578 139882220656320 No hay fecha especial para 18/05
+INFO 2025-08-19 11:01:15,461 pricing_service 13578 139882220656320 Verificando fecha: 19/05/2026
+INFO 2025-08-19 11:01:15,463 pricing_service 13578 139882220656320 No hay fecha especial para 19/05
+INFO 2025-08-19 11:01:15,463 pricing_service 13578 139882220656320 Verificando fecha: 20/05/2026
+INFO 2025-08-19 11:01:15,464 pricing_service 13578 139882220656320 No hay fecha especial para 20/05
+INFO 2025-08-19 11:01:15,464 pricing_service 13578 139882220656320 Verificando fecha: 21/05/2026
+INFO 2025-08-19 11:01:15,466 pricing_service 13578 139882220656320 No hay fecha especial para 21/05
+INFO 2025-08-19 11:01:15,466 pricing_service 13578 139882220656320 Verificando fecha: 22/05/2026
+INFO 2025-08-19 11:01:15,467 pricing_service 13578 139882220656320 No hay fecha especial para 22/05
+INFO 2025-08-19 11:01:15,467 pricing_service 13578 139882220656320 Verificando fecha: 23/05/2026
+INFO 2025-08-19 11:01:15,469 pricing_service 13578 139882220656320 No hay fecha especial para 23/05
+INFO 2025-08-19 11:01:15,469 pricing_service 13578 139882220656320 Verificando fecha: 24/05/2026
+INFO 2025-08-19 11:01:15,470 pricing_service 13578 139882220656320 No hay fecha especial para 24/05
+INFO 2025-08-19 11:01:15,470 pricing_service 13578 139882220656320 Verificando fecha: 25/05/2026
+INFO 2025-08-19 11:01:15,471 pricing_service 13578 139882220656320 No hay fecha especial para 25/05
+INFO 2025-08-19 11:01:15,471 pricing_service 13578 139882220656320 Verificando fecha: 26/05/2026
+INFO 2025-08-19 11:01:15,473 pricing_service 13578 139882220656320 No hay fecha especial para 26/05
+INFO 2025-08-19 11:01:15,473 pricing_service 13578 139882220656320 Verificando fecha: 27/05/2026
+INFO 2025-08-19 11:01:15,474 pricing_service 13578 139882220656320 No hay fecha especial para 27/05
+INFO 2025-08-19 11:01:15,474 pricing_service 13578 139882220656320 Verificando fecha: 28/05/2026
+INFO 2025-08-19 11:01:15,476 pricing_service 13578 139882220656320 No hay fecha especial para 28/05
+INFO 2025-08-19 11:01:15,476 pricing_service 13578 139882220656320 Verificando fecha: 29/05/2026
+INFO 2025-08-19 11:01:15,477 pricing_service 13578 139882220656320 No hay fecha especial para 29/05
+INFO 2025-08-19 11:01:15,477 pricing_service 13578 139882220656320 Verificando fecha: 30/05/2026
+INFO 2025-08-19 11:01:15,478 pricing_service 13578 139882220656320 No hay fecha especial para 30/05
+INFO 2025-08-19 11:01:15,478 pricing_service 13578 139882220656320 Verificando fecha: 31/05/2026
+INFO 2025-08-19 11:01:15,480 pricing_service 13578 139882220656320 No hay fecha especial para 31/05
+INFO 2025-08-19 11:01:15,480 pricing_service 13578 139882220656320 Verificando fecha: 01/06/2026
+INFO 2025-08-19 11:01:15,482 pricing_service 13578 139882220656320 No hay fecha especial para 01/06
+INFO 2025-08-19 11:01:15,482 pricing_service 13578 139882220656320 Verificando fecha: 02/06/2026
+INFO 2025-08-19 11:01:15,483 pricing_service 13578 139882220656320 No hay fecha especial para 02/06
+INFO 2025-08-19 11:01:15,483 pricing_service 13578 139882220656320 Verificando fecha: 03/06/2026
+INFO 2025-08-19 11:01:15,485 pricing_service 13578 139882220656320 No hay fecha especial para 03/06
+INFO 2025-08-19 11:01:15,485 pricing_service 13578 139882220656320 Verificando fecha: 04/06/2026
+INFO 2025-08-19 11:01:15,486 pricing_service 13578 139882220656320 No hay fecha especial para 04/06
+INFO 2025-08-19 11:01:15,486 pricing_service 13578 139882220656320 Verificando fecha: 05/06/2026
+INFO 2025-08-19 11:01:15,488 pricing_service 13578 139882220656320 No hay fecha especial para 05/06
+INFO 2025-08-19 11:01:15,488 pricing_service 13578 139882220656320 Verificando fecha: 06/06/2026
+INFO 2025-08-19 11:01:15,489 pricing_service 13578 139882220656320 No hay fecha especial para 06/06
+INFO 2025-08-19 11:01:15,489 pricing_service 13578 139882220656320 Verificando fecha: 07/06/2026
+INFO 2025-08-19 11:01:15,491 pricing_service 13578 139882220656320 No hay fecha especial para 07/06
+INFO 2025-08-19 11:01:15,491 pricing_service 13578 139882220656320 Verificando fecha: 08/06/2026
+INFO 2025-08-19 11:01:15,492 pricing_service 13578 139882220656320 No hay fecha especial para 08/06
+INFO 2025-08-19 11:01:15,492 pricing_service 13578 139882220656320 Verificando fecha: 09/06/2026
+INFO 2025-08-19 11:01:15,494 pricing_service 13578 139882220656320 No hay fecha especial para 09/06
+INFO 2025-08-19 11:01:15,494 pricing_service 13578 139882220656320 Verificando fecha: 10/06/2026
+INFO 2025-08-19 11:01:15,495 pricing_service 13578 139882220656320 No hay fecha especial para 10/06
+INFO 2025-08-19 11:01:15,496 pricing_service 13578 139882220656320 Verificando fecha: 11/06/2026
+INFO 2025-08-19 11:01:15,497 pricing_service 13578 139882220656320 No hay fecha especial para 11/06
+INFO 2025-08-19 11:01:15,497 pricing_service 13578 139882220656320 Verificando fecha: 12/06/2026
+INFO 2025-08-19 11:01:15,498 pricing_service 13578 139882220656320 No hay fecha especial para 12/06
+INFO 2025-08-19 11:01:15,499 pricing_service 13578 139882220656320 Verificando fecha: 13/06/2026
+INFO 2025-08-19 11:01:15,500 pricing_service 13578 139882220656320 No hay fecha especial para 13/06
+INFO 2025-08-19 11:01:15,500 pricing_service 13578 139882220656320 Verificando fecha: 14/06/2026
+INFO 2025-08-19 11:01:15,501 pricing_service 13578 139882220656320 No hay fecha especial para 14/06
+INFO 2025-08-19 11:01:15,501 pricing_service 13578 139882220656320 Verificando fecha: 15/06/2026
+INFO 2025-08-19 11:01:15,503 pricing_service 13578 139882220656320 No hay fecha especial para 15/06
+INFO 2025-08-19 11:01:15,503 pricing_service 13578 139882220656320 Verificando fecha: 16/06/2026
+INFO 2025-08-19 11:01:15,504 pricing_service 13578 139882220656320 No hay fecha especial para 16/06
+INFO 2025-08-19 11:01:15,505 pricing_service 13578 139882220656320 Verificando fecha: 17/06/2026
+INFO 2025-08-19 11:01:15,506 pricing_service 13578 139882220656320 No hay fecha especial para 17/06
+INFO 2025-08-19 11:01:15,506 pricing_service 13578 139882220656320 Verificando fecha: 18/06/2026
+INFO 2025-08-19 11:01:15,508 pricing_service 13578 139882220656320 No hay fecha especial para 18/06
+INFO 2025-08-19 11:01:15,508 pricing_service 13578 139882220656320 Verificando fecha: 19/06/2026
+INFO 2025-08-19 11:01:15,509 pricing_service 13578 139882220656320 No hay fecha especial para 19/06
+INFO 2025-08-19 11:01:15,509 pricing_service 13578 139882220656320 Verificando fecha: 20/06/2026
+INFO 2025-08-19 11:01:15,510 pricing_service 13578 139882220656320 No hay fecha especial para 20/06
+INFO 2025-08-19 11:01:15,511 pricing_service 13578 139882220656320 Verificando fecha: 21/06/2026
+INFO 2025-08-19 11:01:15,512 pricing_service 13578 139882220656320 No hay fecha especial para 21/06
+INFO 2025-08-19 11:01:15,512 pricing_service 13578 139882220656320 Verificando fecha: 22/06/2026
+INFO 2025-08-19 11:01:15,513 pricing_service 13578 139882220656320 No hay fecha especial para 22/06
+INFO 2025-08-19 11:01:15,513 pricing_service 13578 139882220656320 Verificando fecha: 23/06/2026
+INFO 2025-08-19 11:01:15,514 pricing_service 13578 139882220656320 No hay fecha especial para 23/06
+INFO 2025-08-19 11:01:15,515 pricing_service 13578 139882220656320 Verificando fecha: 24/06/2026
+INFO 2025-08-19 11:01:15,516 pricing_service 13578 139882220656320 No hay fecha especial para 24/06
+INFO 2025-08-19 11:01:15,516 pricing_service 13578 139882220656320 Verificando fecha: 25/06/2026
+INFO 2025-08-19 11:01:15,517 pricing_service 13578 139882220656320 No hay fecha especial para 25/06
+INFO 2025-08-19 11:01:15,517 pricing_service 13578 139882220656320 Verificando fecha: 26/06/2026
+INFO 2025-08-19 11:01:15,518 pricing_service 13578 139882220656320 No hay fecha especial para 26/06
+INFO 2025-08-19 11:01:15,519 pricing_service 13578 139882220656320 Verificando fecha: 27/06/2026
+INFO 2025-08-19 11:01:15,520 pricing_service 13578 139882220656320 No hay fecha especial para 27/06
+INFO 2025-08-19 11:01:15,520 pricing_service 13578 139882220656320 Verificando fecha: 28/06/2026
+INFO 2025-08-19 11:01:15,521 pricing_service 13578 139882220656320 No hay fecha especial para 28/06
+INFO 2025-08-19 11:01:15,521 pricing_service 13578 139882220656320 Verificando fecha: 29/06/2026
+INFO 2025-08-19 11:01:15,522 pricing_service 13578 139882220656320 No hay fecha especial para 29/06
+INFO 2025-08-19 11:01:15,522 pricing_service 13578 139882220656320 Verificando fecha: 30/06/2026
+INFO 2025-08-19 11:01:15,523 pricing_service 13578 139882220656320 No hay fecha especial para 30/06
+INFO 2025-08-19 11:01:15,524 pricing_service 13578 139882220656320 Verificando fecha: 01/07/2026
+INFO 2025-08-19 11:01:15,525 pricing_service 13578 139882220656320 No hay fecha especial para 01/07
+INFO 2025-08-19 11:01:15,525 pricing_service 13578 139882220656320 Verificando fecha: 02/07/2026
+INFO 2025-08-19 11:01:15,527 pricing_service 13578 139882220656320 No hay fecha especial para 02/07
+INFO 2025-08-19 11:01:15,527 pricing_service 13578 139882220656320 Verificando fecha: 03/07/2026
+INFO 2025-08-19 11:01:15,528 pricing_service 13578 139882220656320 No hay fecha especial para 03/07
+INFO 2025-08-19 11:01:15,528 pricing_service 13578 139882220656320 Verificando fecha: 04/07/2026
+INFO 2025-08-19 11:01:15,529 pricing_service 13578 139882220656320 No hay fecha especial para 04/07
+INFO 2025-08-19 11:01:15,529 pricing_service 13578 139882220656320 Verificando fecha: 05/07/2026
+INFO 2025-08-19 11:01:15,531 pricing_service 13578 139882220656320 No hay fecha especial para 05/07
+INFO 2025-08-19 11:01:15,531 pricing_service 13578 139882220656320 Verificando fecha: 06/07/2026
+INFO 2025-08-19 11:01:15,532 pricing_service 13578 139882220656320 No hay fecha especial para 06/07
+INFO 2025-08-19 11:01:15,532 pricing_service 13578 139882220656320 Verificando fecha: 07/07/2026
+INFO 2025-08-19 11:01:15,533 pricing_service 13578 139882220656320 No hay fecha especial para 07/07
+INFO 2025-08-19 11:01:15,533 pricing_service 13578 139882220656320 Verificando fecha: 08/07/2026
+INFO 2025-08-19 11:01:15,534 pricing_service 13578 139882220656320 No hay fecha especial para 08/07
+INFO 2025-08-19 11:01:15,534 pricing_service 13578 139882220656320 Verificando fecha: 09/07/2026
+INFO 2025-08-19 11:01:15,535 pricing_service 13578 139882220656320 No hay fecha especial para 09/07
+INFO 2025-08-19 11:01:15,535 pricing_service 13578 139882220656320 Verificando fecha: 10/07/2026
+INFO 2025-08-19 11:01:15,537 pricing_service 13578 139882220656320 No hay fecha especial para 10/07
+INFO 2025-08-19 11:01:15,537 pricing_service 13578 139882220656320 Verificando fecha: 11/07/2026
+INFO 2025-08-19 11:01:15,538 pricing_service 13578 139882220656320 No hay fecha especial para 11/07
+INFO 2025-08-19 11:01:15,538 pricing_service 13578 139882220656320 Verificando fecha: 12/07/2026
+INFO 2025-08-19 11:01:15,539 pricing_service 13578 139882220656320 No hay fecha especial para 12/07
+INFO 2025-08-19 11:01:15,539 pricing_service 13578 139882220656320 Verificando fecha: 13/07/2026
+INFO 2025-08-19 11:01:15,541 pricing_service 13578 139882220656320 No hay fecha especial para 13/07
+INFO 2025-08-19 11:01:15,541 pricing_service 13578 139882220656320 Verificando fecha: 14/07/2026
+INFO 2025-08-19 11:01:15,542 pricing_service 13578 139882220656320 No hay fecha especial para 14/07
+INFO 2025-08-19 11:01:15,542 pricing_service 13578 139882220656320 Verificando fecha: 15/07/2026
+INFO 2025-08-19 11:01:15,544 pricing_service 13578 139882220656320 No hay fecha especial para 15/07
+INFO 2025-08-19 11:01:15,544 pricing_service 13578 139882220656320 Verificando fecha: 16/07/2026
+INFO 2025-08-19 11:01:15,545 pricing_service 13578 139882220656320 No hay fecha especial para 16/07
+INFO 2025-08-19 11:01:15,545 pricing_service 13578 139882220656320 Verificando fecha: 17/07/2026
+INFO 2025-08-19 11:01:15,546 pricing_service 13578 139882220656320 No hay fecha especial para 17/07
+INFO 2025-08-19 11:01:15,546 pricing_service 13578 139882220656320 Verificando fecha: 18/07/2026
+INFO 2025-08-19 11:01:15,548 pricing_service 13578 139882220656320 No hay fecha especial para 18/07
+INFO 2025-08-19 11:01:15,548 pricing_service 13578 139882220656320 Verificando fecha: 19/07/2026
+INFO 2025-08-19 11:01:15,549 pricing_service 13578 139882220656320 No hay fecha especial para 19/07
+INFO 2025-08-19 11:01:15,549 pricing_service 13578 139882220656320 Verificando fecha: 20/07/2026
+INFO 2025-08-19 11:01:15,551 pricing_service 13578 139882220656320 No hay fecha especial para 20/07
+INFO 2025-08-19 11:01:15,551 pricing_service 13578 139882220656320 Verificando fecha: 21/07/2026
+INFO 2025-08-19 11:01:15,552 pricing_service 13578 139882220656320 No hay fecha especial para 21/07
+INFO 2025-08-19 11:01:15,552 pricing_service 13578 139882220656320 Verificando fecha: 22/07/2026
+INFO 2025-08-19 11:01:15,553 pricing_service 13578 139882220656320 No hay fecha especial para 22/07
+INFO 2025-08-19 11:01:15,553 pricing_service 13578 139882220656320 Verificando fecha: 23/07/2026
+INFO 2025-08-19 11:01:15,555 pricing_service 13578 139882220656320 No hay fecha especial para 23/07
+INFO 2025-08-19 11:01:15,555 pricing_service 13578 139882220656320 Verificando fecha: 24/07/2026
+INFO 2025-08-19 11:01:15,556 pricing_service 13578 139882220656320 No hay fecha especial para 24/07
+INFO 2025-08-19 11:01:15,556 pricing_service 13578 139882220656320 Verificando fecha: 25/07/2026
+INFO 2025-08-19 11:01:15,558 pricing_service 13578 139882220656320 No hay fecha especial para 25/07
+INFO 2025-08-19 11:01:15,558 pricing_service 13578 139882220656320 Verificando fecha: 26/07/2026
+INFO 2025-08-19 11:01:15,559 pricing_service 13578 139882220656320 No hay fecha especial para 26/07
+INFO 2025-08-19 11:01:15,559 pricing_service 13578 139882220656320 Verificando fecha: 27/07/2026
+INFO 2025-08-19 11:01:15,560 pricing_service 13578 139882220656320 No hay fecha especial para 27/07
+INFO 2025-08-19 11:01:15,560 pricing_service 13578 139882220656320 Verificando fecha: 28/07/2026
+INFO 2025-08-19 11:01:15,562 pricing_service 13578 139882220656320 Fecha especial encontrada: Fiestas patrias
+INFO 2025-08-19 11:01:15,562 pricing_service 13578 139882220656320 Noches mínimas requeridas: 1
+INFO 2025-08-19 11:01:15,562 pricing_service 13578 139882220656320 Noches de la reserva: 366
+INFO 2025-08-19 11:01:15,562 pricing_service 13578 139882220656320 Validación exitosa para fecha especial Fiestas patrias
+INFO 2025-08-19 11:01:15,562 pricing_service 13578 139882220656320 Verificando fecha: 29/07/2026
+INFO 2025-08-19 11:01:15,563 pricing_service 13578 139882220656320 No hay fecha especial para 29/07
+INFO 2025-08-19 11:01:15,564 pricing_service 13578 139882220656320 Verificando fecha: 30/07/2026
+INFO 2025-08-19 11:01:15,565 pricing_service 13578 139882220656320 No hay fecha especial para 30/07
+INFO 2025-08-19 11:01:15,565 pricing_service 13578 139882220656320 Verificando fecha: 31/07/2026
+INFO 2025-08-19 11:01:15,567 pricing_service 13578 139882220656320 No hay fecha especial para 31/07
+INFO 2025-08-19 11:01:15,567 pricing_service 13578 139882220656320 Verificando fecha: 01/08/2026
+INFO 2025-08-19 11:01:15,568 pricing_service 13578 139882220656320 No hay fecha especial para 01/08
+INFO 2025-08-19 11:01:15,568 pricing_service 13578 139882220656320 Verificando fecha: 02/08/2026
+INFO 2025-08-19 11:01:15,575 pricing_service 13578 139882220656320 No hay fecha especial para 02/08
+INFO 2025-08-19 11:01:15,575 pricing_service 13578 139882220656320 Verificando fecha: 03/08/2026
+INFO 2025-08-19 11:01:15,576 pricing_service 13578 139882220656320 No hay fecha especial para 03/08
+INFO 2025-08-19 11:01:15,577 pricing_service 13578 139882220656320 Verificando fecha: 04/08/2026
+INFO 2025-08-19 11:01:15,578 pricing_service 13578 139882220656320 No hay fecha especial para 04/08
+INFO 2025-08-19 11:01:15,578 pricing_service 13578 139882220656320 Verificando fecha: 05/08/2026
+INFO 2025-08-19 11:01:15,579 pricing_service 13578 139882220656320 No hay fecha especial para 05/08
+INFO 2025-08-19 11:01:15,579 pricing_service 13578 139882220656320 Verificando fecha: 06/08/2026
+INFO 2025-08-19 11:01:15,581 pricing_service 13578 139882220656320 No hay fecha especial para 06/08
+INFO 2025-08-19 11:01:15,581 pricing_service 13578 139882220656320 Verificando fecha: 07/08/2026
+INFO 2025-08-19 11:01:15,582 pricing_service 13578 139882220656320 No hay fecha especial para 07/08
+INFO 2025-08-19 11:01:15,582 pricing_service 13578 139882220656320 Verificando fecha: 08/08/2026
+INFO 2025-08-19 11:01:15,584 pricing_service 13578 139882220656320 No hay fecha especial para 08/08
+INFO 2025-08-19 11:01:15,584 pricing_service 13578 139882220656320 Verificando fecha: 09/08/2026
+INFO 2025-08-19 11:01:15,585 pricing_service 13578 139882220656320 No hay fecha especial para 09/08
+INFO 2025-08-19 11:01:15,585 pricing_service 13578 139882220656320 Verificando fecha: 10/08/2026
+INFO 2025-08-19 11:01:15,586 pricing_service 13578 139882220656320 No hay fecha especial para 10/08
+INFO 2025-08-19 11:01:15,586 pricing_service 13578 139882220656320 Verificando fecha: 11/08/2026
+INFO 2025-08-19 11:01:15,588 pricing_service 13578 139882220656320 No hay fecha especial para 11/08
+INFO 2025-08-19 11:01:15,588 pricing_service 13578 139882220656320 Verificando fecha: 12/08/2026
+INFO 2025-08-19 11:01:15,590 pricing_service 13578 139882220656320 No hay fecha especial para 12/08
+INFO 2025-08-19 11:01:15,590 pricing_service 13578 139882220656320 Verificando fecha: 13/08/2026
+INFO 2025-08-19 11:01:15,591 pricing_service 13578 139882220656320 No hay fecha especial para 13/08
+INFO 2025-08-19 11:01:15,591 pricing_service 13578 139882220656320 Verificando fecha: 14/08/2026
+INFO 2025-08-19 11:01:15,593 pricing_service 13578 139882220656320 No hay fecha especial para 14/08
+INFO 2025-08-19 11:01:15,593 pricing_service 13578 139882220656320 Verificando fecha: 15/08/2026
+INFO 2025-08-19 11:01:15,594 pricing_service 13578 139882220656320 No hay fecha especial para 15/08
+INFO 2025-08-19 11:01:15,595 pricing_service 13578 139882220656320 Verificando fecha: 16/08/2026
+INFO 2025-08-19 11:01:15,596 pricing_service 13578 139882220656320 No hay fecha especial para 16/08
+INFO 2025-08-19 11:01:15,596 pricing_service 13578 139882220656320 Verificando fecha: 17/08/2026
+INFO 2025-08-19 11:01:15,598 pricing_service 13578 139882220656320 No hay fecha especial para 17/08
+INFO 2025-08-19 11:01:15,598 pricing_service 13578 139882220656320 Verificando fecha: 18/08/2026
+INFO 2025-08-19 11:01:15,599 pricing_service 13578 139882220656320 No hay fecha especial para 18/08
+INFO 2025-08-19 11:01:15,599 pricing_service 13578 139882220656320 Verificando fecha: 19/08/2026
+INFO 2025-08-19 11:01:15,601 pricing_service 13578 139882220656320 No hay fecha especial para 19/08
+INFO 2025-08-19 11:01:15,601 pricing_service 13578 139882220656320 Verificando fecha: 20/08/2026
+INFO 2025-08-19 11:01:15,602 pricing_service 13578 139882220656320 No hay fecha especial para 20/08
+INFO 2025-08-19 11:01:15,602 pricing_service 13578 139882220656320 Verificando fecha: 21/08/2026
+INFO 2025-08-19 11:01:15,603 pricing_service 13578 139882220656320 No hay fecha especial para 21/08
+INFO 2025-08-19 11:01:15,603 pricing_service 13578 139882220656320 Verificando fecha: 22/08/2026
+INFO 2025-08-19 11:01:15,604 pricing_service 13578 139882220656320 No hay fecha especial para 22/08
+INFO 2025-08-19 11:01:15,604 pricing_service 13578 139882220656320 Verificando fecha: 23/08/2026
+INFO 2025-08-19 11:01:15,605 pricing_service 13578 139882220656320 No hay fecha especial para 23/08
+INFO 2025-08-19 11:01:15,605 pricing_service 13578 139882220656320 Verificando fecha: 24/08/2026
+INFO 2025-08-19 11:01:15,606 pricing_service 13578 139882220656320 No hay fecha especial para 24/08
+INFO 2025-08-19 11:01:15,606 pricing_service 13578 139882220656320 Verificando fecha: 25/08/2026
+INFO 2025-08-19 11:01:15,607 pricing_service 13578 139882220656320 No hay fecha especial para 25/08
+INFO 2025-08-19 11:01:15,608 pricing_service 13578 139882220656320 Verificando fecha: 26/08/2026
+INFO 2025-08-19 11:01:15,609 pricing_service 13578 139882220656320 No hay fecha especial para 26/08
+INFO 2025-08-19 11:01:15,609 pricing_service 13578 139882220656320 Verificando fecha: 27/08/2026
+INFO 2025-08-19 11:01:15,610 pricing_service 13578 139882220656320 No hay fecha especial para 27/08
+INFO 2025-08-19 11:01:15,610 pricing_service 13578 139882220656320 Verificando fecha: 28/08/2026
+INFO 2025-08-19 11:01:15,611 pricing_service 13578 139882220656320 No hay fecha especial para 28/08
+INFO 2025-08-19 11:01:15,612 pricing_service 13578 139882220656320 Verificando fecha: 29/08/2026
+INFO 2025-08-19 11:01:15,613 pricing_service 13578 139882220656320 No hay fecha especial para 29/08
+INFO 2025-08-19 11:01:15,613 pricing_service 13578 139882220656320 Verificando fecha: 30/08/2026
+INFO 2025-08-19 11:01:15,614 pricing_service 13578 139882220656320 No hay fecha especial para 30/08
+INFO 2025-08-19 11:01:15,614 pricing_service 13578 139882220656320 Verificando fecha: 31/08/2026
+INFO 2025-08-19 11:01:15,615 pricing_service 13578 139882220656320 No hay fecha especial para 31/08
+INFO 2025-08-19 11:01:15,615 pricing_service 13578 139882220656320 Verificando fecha: 01/09/2026
+INFO 2025-08-19 11:01:15,617 pricing_service 13578 139882220656320 No hay fecha especial para 01/09
+INFO 2025-08-19 11:01:15,617 pricing_service 13578 139882220656320 Verificando fecha: 02/09/2026
+INFO 2025-08-19 11:01:15,618 pricing_service 13578 139882220656320 No hay fecha especial para 02/09
+INFO 2025-08-19 11:01:15,618 pricing_service 13578 139882220656320 Verificando fecha: 03/09/2026
+INFO 2025-08-19 11:01:15,620 pricing_service 13578 139882220656320 No hay fecha especial para 03/09
+INFO 2025-08-19 11:01:15,620 pricing_service 13578 139882220656320 Verificando fecha: 04/09/2026
+INFO 2025-08-19 11:01:15,622 pricing_service 13578 139882220656320 No hay fecha especial para 04/09
+INFO 2025-08-19 11:01:15,622 pricing_service 13578 139882220656320 Verificando fecha: 05/09/2026
+INFO 2025-08-19 11:01:15,623 pricing_service 13578 139882220656320 No hay fecha especial para 05/09
+INFO 2025-08-19 11:01:15,623 pricing_service 13578 139882220656320 Verificando fecha: 06/09/2026
+INFO 2025-08-19 11:01:15,624 pricing_service 13578 139882220656320 No hay fecha especial para 06/09
+INFO 2025-08-19 11:01:15,624 pricing_service 13578 139882220656320 Verificando fecha: 07/09/2026
+INFO 2025-08-19 11:01:15,625 pricing_service 13578 139882220656320 No hay fecha especial para 07/09
+INFO 2025-08-19 11:01:15,625 pricing_service 13578 139882220656320 Verificando fecha: 08/09/2026
+INFO 2025-08-19 11:01:15,626 pricing_service 13578 139882220656320 No hay fecha especial para 08/09
+INFO 2025-08-19 11:01:15,626 pricing_service 13578 139882220656320 Verificando fecha: 09/09/2026
+INFO 2025-08-19 11:01:15,627 pricing_service 13578 139882220656320 No hay fecha especial para 09/09
+INFO 2025-08-19 11:01:15,627 pricing_service 13578 139882220656320 Verificando fecha: 10/09/2026
+INFO 2025-08-19 11:01:15,629 pricing_service 13578 139882220656320 No hay fecha especial para 10/09
+INFO 2025-08-19 11:01:15,629 pricing_service 13578 139882220656320 Verificando fecha: 11/09/2026
+INFO 2025-08-19 11:01:15,630 pricing_service 13578 139882220656320 No hay fecha especial para 11/09
+INFO 2025-08-19 11:01:15,630 pricing_service 13578 139882220656320 Verificando fecha: 12/09/2026
+INFO 2025-08-19 11:01:15,631 pricing_service 13578 139882220656320 No hay fecha especial para 12/09
+INFO 2025-08-19 11:01:15,631 pricing_service 13578 139882220656320 Verificando fecha: 13/09/2026
+INFO 2025-08-19 11:01:15,632 pricing_service 13578 139882220656320 No hay fecha especial para 13/09
+INFO 2025-08-19 11:01:15,632 pricing_service 13578 139882220656320 Verificando fecha: 14/09/2026
+INFO 2025-08-19 11:01:15,633 pricing_service 13578 139882220656320 No hay fecha especial para 14/09
+INFO 2025-08-19 11:01:15,633 pricing_service 13578 139882220656320 Verificando fecha: 15/09/2026
+INFO 2025-08-19 11:01:15,634 pricing_service 13578 139882220656320 No hay fecha especial para 15/09
+INFO 2025-08-19 11:01:15,634 pricing_service 13578 139882220656320 Verificando fecha: 16/09/2026
+INFO 2025-08-19 11:01:15,635 pricing_service 13578 139882220656320 No hay fecha especial para 16/09
+INFO 2025-08-19 11:01:15,635 pricing_service 13578 139882220656320 Verificando fecha: 17/09/2026
+INFO 2025-08-19 11:01:15,636 pricing_service 13578 139882220656320 No hay fecha especial para 17/09
+INFO 2025-08-19 11:01:15,636 pricing_service 13578 139882220656320 Verificando fecha: 18/09/2026
+INFO 2025-08-19 11:01:15,637 pricing_service 13578 139882220656320 No hay fecha especial para 18/09
+INFO 2025-08-19 11:01:15,638 pricing_service 13578 139882220656320 Verificando fecha: 19/09/2026
+INFO 2025-08-19 11:01:15,639 pricing_service 13578 139882220656320 No hay fecha especial para 19/09
+INFO 2025-08-19 11:01:15,639 pricing_service 13578 139882220656320 Verificando fecha: 20/09/2026
+INFO 2025-08-19 11:01:15,640 pricing_service 13578 139882220656320 No hay fecha especial para 20/09
+INFO 2025-08-19 11:01:15,641 pricing_service 13578 139882220656320 Verificando fecha: 21/09/2026
+INFO 2025-08-19 11:01:15,642 pricing_service 13578 139882220656320 No hay fecha especial para 21/09
+INFO 2025-08-19 11:01:15,642 pricing_service 13578 139882220656320 Verificando fecha: 22/09/2026
+INFO 2025-08-19 11:01:15,644 pricing_service 13578 139882220656320 No hay fecha especial para 22/09
+INFO 2025-08-19 11:01:15,644 pricing_service 13578 139882220656320 Verificando fecha: 23/09/2026
+INFO 2025-08-19 11:01:15,645 pricing_service 13578 139882220656320 No hay fecha especial para 23/09
+INFO 2025-08-19 11:01:15,645 pricing_service 13578 139882220656320 Verificando fecha: 24/09/2026
+INFO 2025-08-19 11:01:15,646 pricing_service 13578 139882220656320 No hay fecha especial para 24/09
+INFO 2025-08-19 11:01:15,647 pricing_service 13578 139882220656320 Verificando fecha: 25/09/2026
+INFO 2025-08-19 11:01:15,648 pricing_service 13578 139882220656320 No hay fecha especial para 25/09
+INFO 2025-08-19 11:01:15,648 pricing_service 13578 139882220656320 Verificando fecha: 26/09/2026
+INFO 2025-08-19 11:01:15,650 pricing_service 13578 139882220656320 No hay fecha especial para 26/09
+INFO 2025-08-19 11:01:15,650 pricing_service 13578 139882220656320 Verificando fecha: 27/09/2026
+INFO 2025-08-19 11:01:15,651 pricing_service 13578 139882220656320 No hay fecha especial para 27/09
+INFO 2025-08-19 11:01:15,651 pricing_service 13578 139882220656320 Verificando fecha: 28/09/2026
+INFO 2025-08-19 11:01:15,652 pricing_service 13578 139882220656320 No hay fecha especial para 28/09
+INFO 2025-08-19 11:01:15,653 pricing_service 13578 139882220656320 Verificando fecha: 29/09/2026
+INFO 2025-08-19 11:01:15,654 pricing_service 13578 139882220656320 No hay fecha especial para 29/09
+INFO 2025-08-19 11:01:15,654 pricing_service 13578 139882220656320 Verificando fecha: 30/09/2026
+INFO 2025-08-19 11:01:15,655 pricing_service 13578 139882220656320 No hay fecha especial para 30/09
+INFO 2025-08-19 11:01:15,655 pricing_service 13578 139882220656320 Verificando fecha: 01/10/2026
+INFO 2025-08-19 11:01:15,656 pricing_service 13578 139882220656320 No hay fecha especial para 01/10
+INFO 2025-08-19 11:01:15,656 pricing_service 13578 139882220656320 Verificando fecha: 02/10/2026
+INFO 2025-08-19 11:01:15,657 pricing_service 13578 139882220656320 No hay fecha especial para 02/10
+INFO 2025-08-19 11:01:15,657 pricing_service 13578 139882220656320 Verificando fecha: 03/10/2026
+INFO 2025-08-19 11:01:15,659 pricing_service 13578 139882220656320 No hay fecha especial para 03/10
+INFO 2025-08-19 11:01:15,659 pricing_service 13578 139882220656320 Verificando fecha: 04/10/2026
+INFO 2025-08-19 11:01:15,660 pricing_service 13578 139882220656320 No hay fecha especial para 04/10
+INFO 2025-08-19 11:01:15,660 pricing_service 13578 139882220656320 Verificando fecha: 05/10/2026
+INFO 2025-08-19 11:01:15,662 pricing_service 13578 139882220656320 No hay fecha especial para 05/10
+INFO 2025-08-19 11:01:15,662 pricing_service 13578 139882220656320 Verificando fecha: 06/10/2026
+INFO 2025-08-19 11:01:15,663 pricing_service 13578 139882220656320 No hay fecha especial para 06/10
+INFO 2025-08-19 11:01:15,663 pricing_service 13578 139882220656320 Verificando fecha: 07/10/2026
+INFO 2025-08-19 11:01:15,664 pricing_service 13578 139882220656320 No hay fecha especial para 07/10
+INFO 2025-08-19 11:01:15,664 pricing_service 13578 139882220656320 Verificando fecha: 08/10/2026
+INFO 2025-08-19 11:01:15,665 pricing_service 13578 139882220656320 No hay fecha especial para 08/10
+INFO 2025-08-19 11:01:15,665 pricing_service 13578 139882220656320 Verificando fecha: 09/10/2026
+INFO 2025-08-19 11:01:15,666 pricing_service 13578 139882220656320 No hay fecha especial para 09/10
+INFO 2025-08-19 11:01:15,666 pricing_service 13578 139882220656320 Verificando fecha: 10/10/2026
+INFO 2025-08-19 11:01:15,667 pricing_service 13578 139882220656320 No hay fecha especial para 10/10
+INFO 2025-08-19 11:01:15,668 pricing_service 13578 139882220656320 Verificando fecha: 11/10/2026
+INFO 2025-08-19 11:01:15,669 pricing_service 13578 139882220656320 No hay fecha especial para 11/10
+INFO 2025-08-19 11:01:15,669 pricing_service 13578 139882220656320 Verificando fecha: 12/10/2026
+INFO 2025-08-19 11:01:15,671 pricing_service 13578 139882220656320 No hay fecha especial para 12/10
+INFO 2025-08-19 11:01:15,671 pricing_service 13578 139882220656320 Verificando fecha: 13/10/2026
+INFO 2025-08-19 11:01:15,673 pricing_service 13578 139882220656320 No hay fecha especial para 13/10
+INFO 2025-08-19 11:01:15,673 pricing_service 13578 139882220656320 Verificando fecha: 14/10/2026
+INFO 2025-08-19 11:01:15,674 pricing_service 13578 139882220656320 No hay fecha especial para 14/10
+INFO 2025-08-19 11:01:15,674 pricing_service 13578 139882220656320 Verificando fecha: 15/10/2026
+INFO 2025-08-19 11:01:15,676 pricing_service 13578 139882220656320 No hay fecha especial para 15/10
+INFO 2025-08-19 11:01:15,676 pricing_service 13578 139882220656320 Verificando fecha: 16/10/2026
+INFO 2025-08-19 11:01:15,677 pricing_service 13578 139882220656320 No hay fecha especial para 16/10
+INFO 2025-08-19 11:01:15,677 pricing_service 13578 139882220656320 Verificando fecha: 17/10/2026
+INFO 2025-08-19 11:01:15,678 pricing_service 13578 139882220656320 No hay fecha especial para 17/10
+INFO 2025-08-19 11:01:15,679 pricing_service 13578 139882220656320 Verificando fecha: 18/10/2026
+INFO 2025-08-19 11:01:15,680 pricing_service 13578 139882220656320 No hay fecha especial para 18/10
+INFO 2025-08-19 11:01:15,680 pricing_service 13578 139882220656320 Verificando fecha: 19/10/2026
+INFO 2025-08-19 11:01:15,681 pricing_service 13578 139882220656320 No hay fecha especial para 19/10
+INFO 2025-08-19 11:01:15,681 pricing_service 13578 139882220656320 Verificando fecha: 20/10/2026
+INFO 2025-08-19 11:01:15,682 pricing_service 13578 139882220656320 No hay fecha especial para 20/10
+INFO 2025-08-19 11:01:15,683 pricing_service 13578 139882220656320 Verificando fecha: 21/10/2026
+INFO 2025-08-19 11:01:15,684 pricing_service 13578 139882220656320 No hay fecha especial para 21/10
+INFO 2025-08-19 11:01:15,684 pricing_service 13578 139882220656320 Verificando fecha: 22/10/2026
+INFO 2025-08-19 11:01:15,685 pricing_service 13578 139882220656320 No hay fecha especial para 22/10
+INFO 2025-08-19 11:01:15,685 pricing_service 13578 139882220656320 Verificando fecha: 23/10/2026
+INFO 2025-08-19 11:01:15,686 pricing_service 13578 139882220656320 No hay fecha especial para 23/10
+INFO 2025-08-19 11:01:15,686 pricing_service 13578 139882220656320 Verificando fecha: 24/10/2026
+INFO 2025-08-19 11:01:15,687 pricing_service 13578 139882220656320 No hay fecha especial para 24/10
+INFO 2025-08-19 11:01:15,687 pricing_service 13578 139882220656320 Verificando fecha: 25/10/2026
+INFO 2025-08-19 11:01:15,688 pricing_service 13578 139882220656320 No hay fecha especial para 25/10
+INFO 2025-08-19 11:01:15,689 pricing_service 13578 139882220656320 Verificando fecha: 26/10/2026
+INFO 2025-08-19 11:01:15,690 pricing_service 13578 139882220656320 No hay fecha especial para 26/10
+INFO 2025-08-19 11:01:15,690 pricing_service 13578 139882220656320 Verificando fecha: 27/10/2026
+INFO 2025-08-19 11:01:15,691 pricing_service 13578 139882220656320 No hay fecha especial para 27/10
+INFO 2025-08-19 11:01:15,691 pricing_service 13578 139882220656320 Verificando fecha: 28/10/2026
+INFO 2025-08-19 11:01:15,692 pricing_service 13578 139882220656320 No hay fecha especial para 28/10
+INFO 2025-08-19 11:01:15,692 pricing_service 13578 139882220656320 Verificando fecha: 29/10/2026
+INFO 2025-08-19 11:01:15,693 pricing_service 13578 139882220656320 No hay fecha especial para 29/10
+INFO 2025-08-19 11:01:15,693 pricing_service 13578 139882220656320 Verificando fecha: 30/10/2026
+INFO 2025-08-19 11:01:15,695 pricing_service 13578 139882220656320 No hay fecha especial para 30/10
+INFO 2025-08-19 11:01:15,695 pricing_service 13578 139882220656320 Verificando fecha: 31/10/2026
+INFO 2025-08-19 11:01:15,696 pricing_service 13578 139882220656320 No hay fecha especial para 31/10
+INFO 2025-08-19 11:01:15,696 pricing_service 13578 139882220656320 Verificando fecha: 01/11/2026
+INFO 2025-08-19 11:01:15,697 pricing_service 13578 139882220656320 No hay fecha especial para 01/11
+INFO 2025-08-19 11:01:15,697 pricing_service 13578 139882220656320 Verificando fecha: 02/11/2026
+INFO 2025-08-19 11:01:15,698 pricing_service 13578 139882220656320 No hay fecha especial para 02/11
+INFO 2025-08-19 11:01:15,698 pricing_service 13578 139882220656320 Verificando fecha: 03/11/2026
+INFO 2025-08-19 11:01:15,700 pricing_service 13578 139882220656320 No hay fecha especial para 03/11
+INFO 2025-08-19 11:01:15,700 pricing_service 13578 139882220656320 Verificando fecha: 04/11/2026
+INFO 2025-08-19 11:01:15,701 pricing_service 13578 139882220656320 No hay fecha especial para 04/11
+INFO 2025-08-19 11:01:15,701 pricing_service 13578 139882220656320 Verificando fecha: 05/11/2026
+INFO 2025-08-19 11:01:15,703 pricing_service 13578 139882220656320 No hay fecha especial para 05/11
+INFO 2025-08-19 11:01:15,703 pricing_service 13578 139882220656320 Verificando fecha: 06/11/2026
+INFO 2025-08-19 11:01:15,705 pricing_service 13578 139882220656320 No hay fecha especial para 06/11
+INFO 2025-08-19 11:01:15,705 pricing_service 13578 139882220656320 Verificando fecha: 07/11/2026
+INFO 2025-08-19 11:01:15,706 pricing_service 13578 139882220656320 No hay fecha especial para 07/11
+INFO 2025-08-19 11:01:15,706 pricing_service 13578 139882220656320 Verificando fecha: 08/11/2026
+INFO 2025-08-19 11:01:15,707 pricing_service 13578 139882220656320 No hay fecha especial para 08/11
+INFO 2025-08-19 11:01:15,708 pricing_service 13578 139882220656320 Verificando fecha: 09/11/2026
+INFO 2025-08-19 11:01:15,709 pricing_service 13578 139882220656320 No hay fecha especial para 09/11
+INFO 2025-08-19 11:01:15,709 pricing_service 13578 139882220656320 Verificando fecha: 10/11/2026
+INFO 2025-08-19 11:01:15,710 pricing_service 13578 139882220656320 No hay fecha especial para 10/11
+INFO 2025-08-19 11:01:15,710 pricing_service 13578 139882220656320 Verificando fecha: 11/11/2026
+INFO 2025-08-19 11:01:15,711 pricing_service 13578 139882220656320 No hay fecha especial para 11/11
+INFO 2025-08-19 11:01:15,712 pricing_service 13578 139882220656320 Verificando fecha: 12/11/2026
+INFO 2025-08-19 11:01:15,713 pricing_service 13578 139882220656320 No hay fecha especial para 12/11
+INFO 2025-08-19 11:01:15,713 pricing_service 13578 139882220656320 Verificando fecha: 13/11/2026
+INFO 2025-08-19 11:01:15,714 pricing_service 13578 139882220656320 No hay fecha especial para 13/11
+INFO 2025-08-19 11:01:15,714 pricing_service 13578 139882220656320 Verificando fecha: 14/11/2026
+INFO 2025-08-19 11:01:15,716 pricing_service 13578 139882220656320 No hay fecha especial para 14/11
+INFO 2025-08-19 11:01:15,716 pricing_service 13578 139882220656320 Verificando fecha: 15/11/2026
+INFO 2025-08-19 11:01:15,717 pricing_service 13578 139882220656320 No hay fecha especial para 15/11
+INFO 2025-08-19 11:01:15,717 pricing_service 13578 139882220656320 Verificando fecha: 16/11/2026
+INFO 2025-08-19 11:01:15,718 pricing_service 13578 139882220656320 No hay fecha especial para 16/11
+INFO 2025-08-19 11:01:15,718 pricing_service 13578 139882220656320 Verificando fecha: 17/11/2026
+INFO 2025-08-19 11:01:15,720 pricing_service 13578 139882220656320 No hay fecha especial para 17/11
+INFO 2025-08-19 11:01:15,720 pricing_service 13578 139882220656320 Verificando fecha: 18/11/2026
+INFO 2025-08-19 11:01:15,722 pricing_service 13578 139882220656320 No hay fecha especial para 18/11
+INFO 2025-08-19 11:01:15,722 pricing_service 13578 139882220656320 Verificando fecha: 19/11/2026
+INFO 2025-08-19 11:01:15,723 pricing_service 13578 139882220656320 No hay fecha especial para 19/11
+INFO 2025-08-19 11:01:15,723 pricing_service 13578 139882220656320 Verificando fecha: 20/11/2026
+INFO 2025-08-19 11:01:15,724 pricing_service 13578 139882220656320 No hay fecha especial para 20/11
+INFO 2025-08-19 11:01:15,725 pricing_service 13578 139882220656320 Verificando fecha: 21/11/2026
+INFO 2025-08-19 11:01:15,726 pricing_service 13578 139882220656320 No hay fecha especial para 21/11
+INFO 2025-08-19 11:01:15,726 pricing_service 13578 139882220656320 Verificando fecha: 22/11/2026
+INFO 2025-08-19 11:01:15,727 pricing_service 13578 139882220656320 No hay fecha especial para 22/11
+INFO 2025-08-19 11:01:15,727 pricing_service 13578 139882220656320 Verificando fecha: 23/11/2026
+INFO 2025-08-19 11:01:15,729 pricing_service 13578 139882220656320 No hay fecha especial para 23/11
+INFO 2025-08-19 11:01:15,729 pricing_service 13578 139882220656320 Verificando fecha: 24/11/2026
+INFO 2025-08-19 11:01:15,731 pricing_service 13578 139882220656320 No hay fecha especial para 24/11
+INFO 2025-08-19 11:01:15,731 pricing_service 13578 139882220656320 Verificando fecha: 25/11/2026
+INFO 2025-08-19 11:01:15,732 pricing_service 13578 139882220656320 No hay fecha especial para 25/11
+INFO 2025-08-19 11:01:15,732 pricing_service 13578 139882220656320 Verificando fecha: 26/11/2026
+INFO 2025-08-19 11:01:15,734 pricing_service 13578 139882220656320 No hay fecha especial para 26/11
+INFO 2025-08-19 11:01:15,734 pricing_service 13578 139882220656320 Verificando fecha: 27/11/2026
+INFO 2025-08-19 11:01:15,735 pricing_service 13578 139882220656320 No hay fecha especial para 27/11
+INFO 2025-08-19 11:01:15,735 pricing_service 13578 139882220656320 Verificando fecha: 28/11/2026
+INFO 2025-08-19 11:01:15,736 pricing_service 13578 139882220656320 No hay fecha especial para 28/11
+INFO 2025-08-19 11:01:15,736 pricing_service 13578 139882220656320 Verificando fecha: 29/11/2026
+INFO 2025-08-19 11:01:15,738 pricing_service 13578 139882220656320 No hay fecha especial para 29/11
+INFO 2025-08-19 11:01:15,738 pricing_service 13578 139882220656320 Verificando fecha: 30/11/2026
+INFO 2025-08-19 11:01:15,739 pricing_service 13578 139882220656320 No hay fecha especial para 30/11
+INFO 2025-08-19 11:01:15,739 pricing_service 13578 139882220656320 Verificando fecha: 01/12/2026
+INFO 2025-08-19 11:01:15,740 pricing_service 13578 139882220656320 No hay fecha especial para 01/12
+INFO 2025-08-19 11:01:15,740 pricing_service 13578 139882220656320 Verificando fecha: 02/12/2026
+INFO 2025-08-19 11:01:15,742 pricing_service 13578 139882220656320 No hay fecha especial para 02/12
+INFO 2025-08-19 11:01:15,742 pricing_service 13578 139882220656320 Verificando fecha: 03/12/2026
+INFO 2025-08-19 11:01:15,743 pricing_service 13578 139882220656320 No hay fecha especial para 03/12
+INFO 2025-08-19 11:01:15,743 pricing_service 13578 139882220656320 Verificando fecha: 04/12/2026
+INFO 2025-08-19 11:01:15,744 pricing_service 13578 139882220656320 No hay fecha especial para 04/12
+INFO 2025-08-19 11:01:15,744 pricing_service 13578 139882220656320 Verificando fecha: 05/12/2026
+INFO 2025-08-19 11:01:15,746 pricing_service 13578 139882220656320 No hay fecha especial para 05/12
+INFO 2025-08-19 11:01:15,746 pricing_service 13578 139882220656320 Verificando fecha: 06/12/2026
+INFO 2025-08-19 11:01:15,747 pricing_service 13578 139882220656320 No hay fecha especial para 06/12
+INFO 2025-08-19 11:01:15,747 pricing_service 13578 139882220656320 Verificando fecha: 07/12/2026
+INFO 2025-08-19 11:01:15,748 pricing_service 13578 139882220656320 No hay fecha especial para 07/12
+INFO 2025-08-19 11:01:15,748 pricing_service 13578 139882220656320 Verificando fecha: 08/12/2026
+INFO 2025-08-19 11:01:15,750 pricing_service 13578 139882220656320 No hay fecha especial para 08/12
+INFO 2025-08-19 11:01:15,750 pricing_service 13578 139882220656320 Verificando fecha: 09/12/2026
+INFO 2025-08-19 11:01:15,751 pricing_service 13578 139882220656320 No hay fecha especial para 09/12
+INFO 2025-08-19 11:01:15,752 pricing_service 13578 139882220656320 Verificando fecha: 10/12/2026
+INFO 2025-08-19 11:01:15,753 pricing_service 13578 139882220656320 No hay fecha especial para 10/12
+INFO 2025-08-19 11:01:15,753 pricing_service 13578 139882220656320 Verificando fecha: 11/12/2026
+INFO 2025-08-19 11:01:15,756 pricing_service 13578 139882220656320 No hay fecha especial para 11/12
+INFO 2025-08-19 11:01:15,756 pricing_service 13578 139882220656320 Verificando fecha: 12/12/2026
+INFO 2025-08-19 11:01:15,757 pricing_service 13578 139882220656320 No hay fecha especial para 12/12
+INFO 2025-08-19 11:01:15,757 pricing_service 13578 139882220656320 Verificando fecha: 13/12/2026
+INFO 2025-08-19 11:01:15,759 pricing_service 13578 139882220656320 No hay fecha especial para 13/12
+INFO 2025-08-19 11:01:15,759 pricing_service 13578 139882220656320 Verificando fecha: 14/12/2026
+INFO 2025-08-19 11:01:15,760 pricing_service 13578 139882220656320 No hay fecha especial para 14/12
+INFO 2025-08-19 11:01:15,761 pricing_service 13578 139882220656320 Verificando fecha: 15/12/2026
+INFO 2025-08-19 11:01:15,762 pricing_service 13578 139882220656320 No hay fecha especial para 15/12
+INFO 2025-08-19 11:01:15,762 pricing_service 13578 139882220656320 Verificando fecha: 16/12/2026
+INFO 2025-08-19 11:01:15,764 pricing_service 13578 139882220656320 No hay fecha especial para 16/12
+INFO 2025-08-19 11:01:15,764 pricing_service 13578 139882220656320 Verificando fecha: 17/12/2026
+INFO 2025-08-19 11:01:15,765 pricing_service 13578 139882220656320 No hay fecha especial para 17/12
+INFO 2025-08-19 11:01:15,765 pricing_service 13578 139882220656320 Verificando fecha: 18/12/2026
+INFO 2025-08-19 11:01:15,766 pricing_service 13578 139882220656320 No hay fecha especial para 18/12
+INFO 2025-08-19 11:01:15,767 pricing_service 13578 139882220656320 Verificando fecha: 19/12/2026
+INFO 2025-08-19 11:01:15,768 pricing_service 13578 139882220656320 No hay fecha especial para 19/12
+INFO 2025-08-19 11:01:15,768 pricing_service 13578 139882220656320 Verificando fecha: 20/12/2026
+INFO 2025-08-19 11:01:15,770 pricing_service 13578 139882220656320 No hay fecha especial para 20/12
+INFO 2025-08-19 11:01:15,770 pricing_service 13578 139882220656320 Verificando fecha: 21/12/2026
+INFO 2025-08-19 11:01:15,771 pricing_service 13578 139882220656320 No hay fecha especial para 21/12
+INFO 2025-08-19 11:01:15,771 pricing_service 13578 139882220656320 Verificando fecha: 22/12/2026
+INFO 2025-08-19 11:01:15,772 pricing_service 13578 139882220656320 No hay fecha especial para 22/12
+INFO 2025-08-19 11:01:15,773 pricing_service 13578 139882220656320 Verificando fecha: 23/12/2026
+INFO 2025-08-19 11:01:15,773 pricing_service 13578 139882220656320 No hay fecha especial para 23/12
+INFO 2025-08-19 11:01:15,774 pricing_service 13578 139882220656320 Verificando fecha: 24/12/2026
+INFO 2025-08-19 11:01:15,775 pricing_service 13578 139882220656320 No hay fecha especial para 24/12
+INFO 2025-08-19 11:01:15,775 pricing_service 13578 139882220656320 Verificando fecha: 25/12/2026
+INFO 2025-08-19 11:01:15,776 pricing_service 13578 139882220656320 No hay fecha especial para 25/12
+INFO 2025-08-19 11:01:15,776 pricing_service 13578 139882220656320 Verificando fecha: 26/12/2026
+INFO 2025-08-19 11:01:15,777 pricing_service 13578 139882220656320 No hay fecha especial para 26/12
+INFO 2025-08-19 11:01:15,777 pricing_service 13578 139882220656320 Verificando fecha: 27/12/2026
+INFO 2025-08-19 11:01:15,778 pricing_service 13578 139882220656320 No hay fecha especial para 27/12
+INFO 2025-08-19 11:01:15,778 pricing_service 13578 139882220656320 Verificando fecha: 28/12/2026
+INFO 2025-08-19 11:01:15,779 pricing_service 13578 139882220656320 No hay fecha especial para 28/12
+INFO 2025-08-19 11:01:15,779 pricing_service 13578 139882220656320 Verificando fecha: 29/12/2026
+INFO 2025-08-19 11:01:15,780 pricing_service 13578 139882220656320 No hay fecha especial para 29/12
+INFO 2025-08-19 11:01:15,780 pricing_service 13578 139882220656320 Verificando fecha: 30/12/2026
+INFO 2025-08-19 11:01:15,781 pricing_service 13578 139882220656320 No hay fecha especial para 30/12
+INFO 2025-08-19 11:01:15,781 pricing_service 13578 139882220656320 Validación de fechas especiales completada exitosamente
