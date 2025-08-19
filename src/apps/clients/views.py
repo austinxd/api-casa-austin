@@ -24,10 +24,16 @@ class ClientReservationDetailView(APIView):
         try:
             # Autenticar cliente
             authenticator = ClientJWTAuthentication()
-            client, validated_token = authenticator.authenticate(request)
+            auth_result = authenticator.authenticate(request)
+
+            if auth_result is None:
+                logger.error("ClientReservationDetailView: Authentication failed - no result")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            client, validated_token = auth_result
 
             if not client:
-                logger.error("ClientReservationDetailView: Authentication failed")
+                logger.error("ClientReservationDetailView: Authentication failed - no client")
                 return Response({'message': 'Token inválido'}, status=401)
 
             # Buscar la reserva por ID o UUID
