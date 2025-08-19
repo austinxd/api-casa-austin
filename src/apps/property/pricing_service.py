@@ -35,6 +35,12 @@ class PricingCalculationService:
 
         nights = (check_out_date - check_in_date).days
 
+        # Validar requisitos de fechas especiales
+        if property_id:
+            property_obj = Property.objects.filter(id=property_id, deleted=False).first()
+            if property_obj:
+                self._validate_special_date_requirements(property_obj, check_in_date, check_out_date, nights)
+
         # Obtener cliente si se proporciona
         client = None
         if client_id:
@@ -584,6 +590,58 @@ class PricingCalculationService:
             'message1': message1,
             'message2': message2
         }
+
+    def _validate_special_date_requirements(self, property, check_in_date, check_out_date, nights):
+        """Valida que las fechas especiales cumplan con los requisitos de noches mínimas"""
+        from datetime import timedelta
+        
+        current_date = check_in_date
+        
+        while current_date < check_out_date:
+            # Verificar si esta fecha tiene requisitos especiales
+            special_pricing = SpecialDatePricing.objects.filter(
+                property=property,
+                month=current_date.month,
+                day=current_date.day,
+                is_active=True,
+                minimum_consecutive_nights__gt=1
+            ).first()
+            
+            if special_pricing:
+                required_nights = special_pricing.minimum_consecutive_nights
+                
+                # Verificar si la estadía incluye las noches requeridas
+                if nights < required_nights:
+                    raise ValueError(
+                        f"La fecha {current_date.strftime('%d/%m')} ({special_pricing.description}) "
+                        f"requiere un mínimo de {required_nights} noches consecutivas. "
+                        f"Su estadía es de {nights} noches."
+                    )
+                
+                # Verificar que las noches consecutivas incluyan esta fecha
+                special_date_in_range = False
+                check_date = check_in_date
+                consecutive_count = 0
+                
+                while check_date < check_out_date:
+                    if (check_date.month == special_pricing.month and 
+                        check_date.day == special_pricing.day):
+                        special_date_in_range = True
+                        break
+                    check_date += timedelta(days=1)
+                    consecutive_count += 1
+                    
+                    if consecutive_count >= required_nights:
+                        break
+                
+                if special_date_in_range and nights < required_nights:
+                    raise ValueError(
+                        f"Para reservar en {special_pricing.description} "
+                        f"({current_date.strftime('%d/%m')}) debe incluir al menos "
+                        f"{required_nights} noches consecutivas."
+                    )
+            
+            current_date += timedelta(days=1)
 
     def _get_month_name_spanish(self, month):
         """Convierte número de mes a nombre en español"""

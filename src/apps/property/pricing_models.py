@@ -228,6 +228,11 @@ class SpecialDatePricing(BaseModel):
         decimal_places=2,
         help_text="Precio base especial por noche en USD para 1 persona"
     )
+    minimum_consecutive_nights = models.PositiveIntegerField(
+        default=1,
+        validators=[MinValueValidator(1)],
+        help_text="Número mínimo de noches consecutivas requeridas para esta fecha especial"
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
