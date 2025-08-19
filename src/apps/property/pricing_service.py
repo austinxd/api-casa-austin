@@ -582,7 +582,8 @@ class PricingCalculationService:
         # Generar MESSAGE1 (mensaje de encabezado/contexto)
         message1 = self._generate_message1(
             estado_disponibilidad, fecha_inicio_str, fecha_fin_str, 
-            available_properties, guests, nights, client, discount_info
+            available_properties, guests, nights, client, discount_info,
+            check_in_date, check_out_date
         )
 
         # Generar MESSAGE2 (mensaje de detalles/precios)
@@ -712,7 +713,7 @@ class PricingCalculationService:
         }
         return months.get(month, 'mes')
 
-    def _generate_message1(self, estado_disponibilidad, fecha_inicio_str, fecha_fin_str, available_properties, guests, nights, client, discount_info):
+    def _generate_message1(self, estado_disponibilidad, fecha_inicio_str, fecha_fin_str, available_properties, guests, nights, client, discount_info, check_in_date, check_out_date):
         """Genera mensaje1 según el estado de disponibilidad"""
         from datetime import timedelta
         
@@ -737,17 +738,9 @@ class PricingCalculationService:
                     percentage = discount_info.get('discount_percentage', 0)
                     message1 += f"\n✨ Descuento automático del {percentage}% aplicado por ser cliente registrado"
             
-            # Tip para grupos pequeños en fin de semana sobre costos
+            # Tip para grupos pequeños cuando buscan fin de semana
             if guests < 5:
                 # Verificar si alguna de las fechas es viernes o sábado
-                # Convertir strings de fecha a objetos date para la comparación
-                from datetime import datetime
-                fecha_inicio = datetime.strptime(fecha_inicio_str.split(' de ')[0] + '/' + 
-                                               str(['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-                                                   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'].index(
-                                                   fecha_inicio_str.split(' de ')[1]) + 1) + '/' + 
-                                               fecha_inicio_str.split(' de ')[2], '%d/%m/%Y').date()
-                
                 current_date = check_in_date
                 has_friday_or_saturday = False
                 while current_date < check_out_date:
