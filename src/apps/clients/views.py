@@ -21,6 +21,7 @@ class ClientReservationDetailView(APIView):
 
     def get(self, request, reservation_id):
         logger.info(f"ClientReservationDetailView: Request for reservation {reservation_id}")
+        logger.info(f"ClientReservationDetailView: reservation_id type: {type(reservation_id)}, content: '{reservation_id}', is_digit: {reservation_id.isdigit()}")
 
         try:
             # Usar la misma lógica de autenticación que ClientProfileView
@@ -39,6 +40,7 @@ class ClientReservationDetailView(APIView):
 
             # Buscar la reserva por ID o UUID
             logger.info(f"ClientReservationDetailView: Searching reservation {reservation_id} for client {client.id}")
+            logger.info(f"ClientReservationDetailView: Client object details - ID: {client.id}, Name: {client.first_name} {client.last_name}, Email: {client.email}")
 
             reservation = None
 
@@ -46,6 +48,7 @@ class ClientReservationDetailView(APIView):
                 # Intentar buscar por ID numérico primero
                 if reservation_id.isdigit():
                     logger.info(f"ClientReservationDetailView: Searching by numeric ID: {reservation_id}")
+                    logger.info(f"ClientReservationDetailView: Query will be: Reservation.objects.get(id={reservation_id}, client={client.id}, deleted=False)")
                     reservation = Reservation.objects.get(
                         id=reservation_id,
                         client=client,
@@ -57,6 +60,7 @@ class ClientReservationDetailView(APIView):
 
                     # Primero intentar con UUID con guiones
                     try:
+                        logger.info(f"ClientReservationDetailView: Query will be: Reservation.objects.get(uuid_external='{reservation_id}', client={client.id}, deleted=False)")
                         reservation = Reservation.objects.get(
                             uuid_external=reservation_id,
                             client=client,
@@ -67,6 +71,7 @@ class ClientReservationDetailView(APIView):
                         # Si no existe, intentar sin guiones
                         uuid_clean = reservation_id.replace("-", "")
                         logger.info(f"ClientReservationDetailView: Trying UUID without dashes: {uuid_clean}")
+                        logger.info(f"ClientReservationDetailView: Query will be: Reservation.objects.get(uuid_external='{uuid_clean}', client={client.id}, deleted=False)")
                         reservation = Reservation.objects.get(
                             uuid_external=uuid_clean,
                             client=client,
