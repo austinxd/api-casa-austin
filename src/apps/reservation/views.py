@@ -940,7 +940,8 @@ class PropertyCalendarOccupancyAPIView(APIView):
                     "end_date": reservation.check_out_date.strftime('%Y-%m-%d'),
                     "guest_name": guest_name,
                     "status": status,
-                    "reservation_id": str(reservation.id)
+                    "reservation_id": str(reservation.id),
+                    "origin": reservation.origin
                 })
 
             return Response({
