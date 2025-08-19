@@ -83,6 +83,27 @@ class ClientReservationDetailView(APIView):
                 # Debug: Buscar si la reserva existe pero no pertenece al cliente
                 logger.error(f"ClientReservationDetailView: Reservation {reservation_id} not found for client {client.id}")
 
+                # NUEVO DEBUG: Buscar la reserva por ID directamente (como se muestra en el endpoint que SÍ funciona)
+                logger.error(f"ClientReservationDetailView: === BÚSQUEDA DIRECTA POR ID ===")
+                direct_search = Reservation.objects.filter(id=reservation_id, deleted=False)
+                logger.error(f"ClientReservationDetailView: Direct search by ID results: {direct_search.count()}")
+                if direct_search.exists():
+                    direct_reservation = direct_search.first()
+                    logger.error(f"ClientReservationDetailView: ENCONTRADO! Reserva ID {direct_reservation.id} pertenece al cliente {direct_reservation.client_id}, esperado: {client.id}")
+                    logger.error(f"ClientReservationDetailView: Status: {direct_reservation.status}, UUID: {direct_reservation.uuid_external}")
+                    
+                    # Verificar si es el mismo cliente
+                    if direct_reservation.client_id == client.id:
+                        logger.error(f"ClientReservationDetailView: ¡ES EL MISMO CLIENTE! Hay un problema con la query original.")
+                        # Intentar retornar esta reserva
+                        from apps.reservation.serializers import ReservationRetrieveSerializer
+                        serializer = ReservationRetrieveSerializer(direct_reservation, context={'request': request})
+                        return Response({
+                            'success': True,
+                            'reservation': serializer.data,
+                            'debug_note': 'Encontrada con búsqueda directa - revisar lógica original'
+                        })
+
                 # Verificar si la reserva existe para cualquier cliente (incluyendo deleted)
                 debug_filters = Q(uuid_external=reservation_id) | Q(uuid_external=reservation_id.replace("-", ""))
                 
