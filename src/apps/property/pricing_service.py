@@ -721,7 +721,7 @@ class PricingCalculationService:
             if estado_disponibilidad == 1:
                 message1 = f"📅 Disponibilidad del {fecha_inicio_str} al {fecha_fin_str}"
             else:
-                message1 = f"📅 Del {fecha_inicio_str} al {fecha_fin_str} ✨ Encontramos {estado_disponibilidad} casa(s) disponibles"
+                message1 = f"📅 Del {fecha_inicio_str} al {fecha_fin_str}\n✨ Encontramos {estado_disponibilidad} casa(s) disponibles"
             
             # Agregar información de descuento si aplica
             if discount_info and discount_info.get('type') not in ['none', 'error']:
