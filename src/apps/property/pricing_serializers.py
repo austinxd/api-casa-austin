@@ -70,9 +70,23 @@ class PropertyPricingSerializer(serializers.Serializer):
 
 # New serializer for Automatic Discount
 class AutomaticDiscountSerializer(serializers.ModelSerializer):
+    trigger_display = serializers.CharField(source='get_trigger_display', read_only=True)
+
     class Meta:
         model = AutomaticDiscount
-        fields = '__all__'
+        fields = [
+            'id',
+            'name',
+            'description',
+            'trigger',
+            'trigger_display',
+            'discount_percentage',
+            'max_discount_usd',
+            'min_reservations',
+            'is_active',
+            'created',
+            'updated'
+        ]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

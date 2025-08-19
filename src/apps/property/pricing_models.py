@@ -554,6 +554,11 @@ class AutomaticDiscount(BaseModel):
         LOYALTY = "loyalty", ("Programa de Lealtad")
 
     name = models.CharField(max_length=100, help_text="Nombre del descuento automático")
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Descripción detallada del descuento automático y sus condiciones"
+    )
     trigger = models.CharField(max_length=10, choices=DiscountTrigger.choices)
     discount_percentage = models.DecimalField(
         max_digits=5,

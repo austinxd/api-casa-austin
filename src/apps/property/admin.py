@@ -339,7 +339,16 @@ class CancellationPolicyAdmin(admin.ModelAdmin):
 class AutomaticDiscountAdmin(admin.ModelAdmin):
     list_display = ('name', 'trigger', 'discount_percentage', 'max_discount_usd', 'min_reservations', 'is_active')
     list_filter = ('trigger', 'is_active')
-    search_fields = ('name',)
+    search_fields = ('name', 'description')
+    
+    fieldsets = (
+        ('Información General', {
+            'fields': ('name', 'description', 'is_active')
+        }),
+        ('Configuración del Descuento', {
+            'fields': ('trigger', 'discount_percentage', 'max_discount_usd', 'min_reservations')
+        }),
+    )
 
 
 @admin.register(DynamicDiscountConfig)
