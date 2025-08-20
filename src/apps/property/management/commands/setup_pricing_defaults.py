@@ -47,12 +47,11 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('Descuento por cumpleaños creado'))
         
         if not AutomaticDiscount.objects.filter(trigger='returning').exists():
-            AutomaticDiscount.objects.create(
+            returning_discount = AutomaticDiscount.objects.create(
                 name="Cliente Recurrente",
                 trigger="returning",
                 discount_percentage=Decimal('5.00'),
                 max_discount_usd=Decimal('30.00'),
-                min_reservations=1,
                 is_active=True
             )
             self.stdout.write(self.style.SUCCESS('Descuento cliente recurrente creado'))

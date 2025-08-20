@@ -71,6 +71,7 @@ class PropertyPricingSerializer(serializers.Serializer):
 # New serializer for Automatic Discount
 class AutomaticDiscountSerializer(serializers.ModelSerializer):
     trigger_display = serializers.CharField(source='get_trigger_display', read_only=True)
+    required_achievements_detail = serializers.SerializerMethodField()
 
     class Meta:
         model = AutomaticDiscount
@@ -82,12 +83,26 @@ class AutomaticDiscountSerializer(serializers.ModelSerializer):
             'trigger_display',
             'discount_percentage',
             'max_discount_usd',
-            'min_reservations',
+            'required_achievements',
+            'required_achievements_detail',
             'restrict_weekdays',
             'restrict_weekends',
             'is_active',
             'created',
             'updated'
+        ]
+
+    def get_required_achievements_detail(self, obj):
+        """Obtiene detalles de los logros requeridos"""
+        achievements = obj.required_achievements.all()
+        return [
+            {
+                'id': achievement.id,
+                'name': achievement.name,
+                'description': achievement.description,
+                'icon': achievement.icon
+            }
+            for achievement in achievements
         ]
 
     def to_representation(self, instance):

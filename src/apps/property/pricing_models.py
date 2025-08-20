@@ -578,9 +578,10 @@ class AutomaticDiscount(BaseModel):
         blank=True,
         help_text="Descuento máximo en USD"
     )
-    min_reservations = models.PositiveIntegerField(
-        default=1,
-        help_text="Mínimo de reservas previas (para cliente recurrente)"
+    required_achievements = models.ManyToManyField(
+        'clients.Achievement',
+        blank=True,
+        help_text="Logros requeridos para aplicar este descuento automático"
     )
     restrict_weekdays = models.BooleanField(
         default=False,
@@ -602,6 +603,7 @@ class AutomaticDiscount(BaseModel):
     def applies_to_client(self, client, booking_date):
         """Verifica si el descuento automático aplica al cliente"""
         from apps.reservation.models import Reservation
+        from apps.clients.models import ClientAchievement
         from datetime import date
 
         if not self.is_active:
@@ -617,6 +619,22 @@ class AutomaticDiscount(BaseModel):
         if self.restrict_weekends and not is_weekend:
             return False, "Descuento solo válido para fines de semana"
 
+        # Verificar si el cliente tiene los logros requeridos
+        if self.required_achievements.exists():
+            client_achievements = ClientAchievement.objects.filter(
+                client=client,
+                achievement__in=self.required_achievements.all()
+            ).values_list('achievement_id', flat=True)
+            
+            required_achievement_ids = set(self.required_achievements.values_list('id', flat=True))
+            client_achievement_ids = set(client_achievements)
+            
+            if not required_achievement_ids.issubset(client_achievement_ids):
+                missing_achievements = self.required_achievements.exclude(
+                    id__in=client_achievement_ids
+                ).values_list('name', flat=True)
+                return False, f"Requiere logros: {', '.join(missing_achievements)}"
+
         if self.trigger == self.DiscountTrigger.BIRTHDAY:
             if client.date and client.date.month == booking_date.month:
                 return True, f"¡Feliz cumpleaños! {self.discount_percentage}% de descuento"
@@ -626,7 +644,7 @@ class AutomaticDiscount(BaseModel):
                 client=client,
                 deleted=False
             ).count()
-            if reservations_count >= self.min_reservations:
+            if reservations_count >= 1:  # Al menos una reserva previa
                 return True, f"Cliente frecuente: {self.discount_percentage}% de descuento"
 
         elif self.trigger == self.DiscountTrigger.FIRST_TIME:
@@ -636,6 +654,11 @@ class AutomaticDiscount(BaseModel):
             ).count()
             if reservations_count == 0:
                 return True, f"Bienvenido! {self.discount_percentage}% de descuento en tu primera reserva"
+
+        elif self.trigger == self.DiscountTrigger.LOYALTY:
+            # Para programa de lealtad, verificar que tenga al menos los logros requeridos
+            if self.required_achievements.exists():
+                return True, f"Programa de lealtad: {self.discount_percentage}% de descuento"
 
         return False, "No aplica"
 

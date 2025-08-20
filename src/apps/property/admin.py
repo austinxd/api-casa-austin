@@ -343,22 +343,35 @@ class CancellationPolicyAdmin(admin.ModelAdmin):
 
 
 class AutomaticDiscountAdmin(admin.ModelAdmin):
-    list_display = ('name', 'trigger', 'discount_percentage', 'max_discount_usd', 'min_reservations', 'restrict_weekdays', 'restrict_weekends', 'is_active')
+    list_display = ('name', 'trigger', 'discount_percentage', 'max_discount_usd', 'get_required_achievements', 'restrict_weekdays', 'restrict_weekends', 'is_active')
     list_filter = ('trigger', 'restrict_weekdays', 'restrict_weekends', 'is_active')
     search_fields = ('name', 'description')
+    filter_horizontal = ('required_achievements',)
 
     fieldsets = (
         ('Información General', {
             'fields': ('name', 'description', 'is_active')
         }),
         ('Configuración del Descuento', {
-            'fields': ('trigger', 'discount_percentage', 'max_discount_usd', 'min_reservations')
+            'fields': ('trigger', 'discount_percentage', 'max_discount_usd')
+        }),
+        ('Logros Requeridos', {
+            'fields': ('required_achievements',),
+            'description': 'Selecciona los logros que debe tener el cliente para aplicar este descuento'
         }),
         ('Restricciones de Días', {
             'fields': ('restrict_weekdays', 'restrict_weekends'),
             'description': 'Configurar si el descuento aplica solo para días específicos de la semana'
         }),
     )
+
+    def get_required_achievements(self, obj):
+        """Muestra los logros requeridos de forma legible"""
+        achievements = obj.required_achievements.all()
+        if not achievements:
+            return "Sin restricciones de logros"
+        return ", ".join([achievement.name for achievement in achievements])
+    get_required_achievements.short_description = "Logros Requeridos"
 
 
 @admin.register(DynamicDiscountConfig)
