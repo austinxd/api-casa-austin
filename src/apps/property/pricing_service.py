@@ -14,10 +14,8 @@ from .pricing_models import (
     AutomaticDiscount,
     PropertyPricing
 )
-from apps.clients.models import Clients
+from apps.clients.models import Clients, ClientAchievement
 from apps.reservation.models import Reservation
-# Importar ClientAchievement para la verificación de logros
-from apps.achievements.models import ClientAchievement
 
 
 class PricingCalculationService:
