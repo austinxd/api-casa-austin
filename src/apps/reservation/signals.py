@@ -159,6 +159,48 @@ def notify_voucher_uploaded(reservation):
     logger.debug(f"Enviando notificación de voucher subido para reserva: {reservation.id} con imagen: {voucher_image_url}")
     send_telegram_message(voucher_message, settings.CLIENTS_CHAT_ID, voucher_image_url)
 
+
+def notify_payment_approved(reservation):
+    """Notifica al cliente por WhatsApp cuando su pago es aprobado"""
+    from ..clients.whatsapp_service import send_whatsapp_payment_approved
+    
+    if not reservation.client or not reservation.client.tel_number:
+        logger.warning(f"No se puede enviar WhatsApp para reserva {reservation.id}: cliente o teléfono no disponible")
+        return
+    
+    try:
+        # Preparar datos para el template
+        client_name = f"{reservation.client.first_name} {reservation.client.last_name}".strip()
+        
+        # Formatear información del pago
+        if reservation.advance_payment_currency == 'usd':
+            payment_info = f"${reservation.advance_payment:.2f}"
+        else:
+            payment_info = f"S/{reservation.advance_payment:.2f}"
+        
+        # Formatear fecha de check-in (formato dd/mm/yyyy)
+        check_in_formatted = reservation.check_in_date.strftime("%d/%m/%Y")
+        check_in_text = f"Para la reserva del {check_in_formatted}"
+        
+        logger.info(f"Enviando WhatsApp de pago aprobado a {reservation.client.tel_number} para reserva {reservation.id}")
+        logger.info(f"Datos: Nombre: {client_name}, Pago: {payment_info}, Check-in: {check_in_text}")
+        
+        # Enviar WhatsApp
+        success = send_whatsapp_payment_approved(
+            phone_number=reservation.client.tel_number,
+            client_name=client_name,
+            payment_info=payment_info,
+            check_in_date=check_in_text
+        )
+        
+        if success:
+            logger.info(f"WhatsApp de pago aprobado enviado exitosamente para reserva {reservation.id}")
+        else:
+            logger.error(f"Error al enviar WhatsApp de pago aprobado para reserva {reservation.id}")
+            
+    except Exception as e:
+        logger.error(f"Error al procesar notificación de pago aprobado para reserva {reservation.id}: {str(e)}")
+
 def hash_data(data):
     if data:
         return hashlib.sha256(data.strip().lower().encode()).hexdigest()
@@ -175,6 +217,11 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
         if instance.status == 'pending' and instance.origin == 'client':
             logger.debug(f"Reserva {instance.id} cambió a estado pending - Voucher subido")
             notify_voucher_uploaded(instance)
+        
+        # Verificar si cambió a estado approved (pago aprobado)
+        elif instance.status == 'approved' and instance.origin == 'client':
+            logger.debug(f"Reserva {instance.id} cambió a estado approved - Pago aprobado")
+            notify_payment_approved(instance)
 
 def send_purchase_event_to_meta(
     phone,

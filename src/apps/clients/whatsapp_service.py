@@ -196,6 +196,88 @@ class WhatsAppOTPService:
         
         return False
 
+    def send_payment_approved_template(self, phone_number, client_name, payment_info, check_in_date):
+        """
+        Envía mensaje de pago aprobado por WhatsApp usando template
+        
+        Args:
+            phone_number (str): Número de teléfono destino
+            client_name (str): Nombre completo del cliente
+            payment_info (str): Información del pago (monto y divisa)
+            check_in_date (str): Fecha de check-in formateada
+            
+        Returns:
+            bool: True si se envió exitosamente, False en caso contrario
+        """
+        if not self.enabled:
+            logger.error("Servicio WhatsApp no configurado correctamente")
+            return False
+        
+        try:
+            # Formatear número de teléfono
+            formatted_phone = self.format_phone_number(phone_number)
+            logger.info(f"Enviando mensaje de pago aprobado por WhatsApp a: {formatted_phone}")
+            
+            headers = {
+                'Authorization': f'Bearer {self.access_token}',
+                'Content-Type': 'application/json'
+            }
+            
+            # Template de pago aprobado
+            template_name = os.getenv('WHATSAPP_PAYMENT_APPROVED_TEMPLATE', 'pago_aprobado_ca')
+            
+            payload = {
+                "messaging_product": "whatsapp",
+                "to": formatted_phone,
+                "type": "template",
+                "template": {
+                    "name": template_name,
+                    "language": {
+                        "code": "es"
+                    },
+                    "components": [
+                        {
+                            "type": "body",
+                            "parameters": [
+                                {
+                                    "type": "text",
+                                    "text": client_name
+                                },
+                                {
+                                    "type": "text",
+                                    "text": payment_info
+                                },
+                                {
+                                    "type": "text",
+                                    "text": check_in_date
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+            
+            # Log detallado para debug
+            logger.info(f"WhatsApp Payment Approved Template: {template_name}")
+            logger.info(f"Payload: {payload}")
+            
+            response = requests.post(self.api_url, json=payload, headers=headers)
+            
+            logger.info(f"WhatsApp API Response Status: {response.status_code}")
+            logger.info(f"WhatsApp API Response Body: {response.text}")
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                logger.info(f"WhatsApp pago aprobado enviado exitosamente a {formatted_phone}. Response: {response_data}")
+                return True
+            else:
+                logger.error(f"Error al enviar WhatsApp pago aprobado a {formatted_phone}. Status: {response.status_code}, Response: {response.text}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error al enviar WhatsApp pago aprobado a {phone_number}: {str(e)}")
+            return False
+
     def send_otp_text_message(self, phone_number, otp_code):
         """
         Método mantenido por compatibilidad pero redirige al template
@@ -229,3 +311,20 @@ def send_whatsapp_otp(phone_number, otp_code, use_template=True):
     
     # Siempre usar template ya que Meta tiene el mensaje configurado
     return service.send_otp_template(phone_number, otp_code)
+
+
+def send_whatsapp_payment_approved(phone_number, client_name, payment_info, check_in_date):
+    """
+    Función auxiliar para enviar mensaje de pago aprobado por WhatsApp
+    
+    Args:
+        phone_number (str): Número de teléfono destino
+        client_name (str): Nombre completo del cliente
+        payment_info (str): Información del pago (monto y divisa)
+        check_in_date (str): Fecha de check-in formateada
+        
+    Returns:
+        bool: True si se envió exitosamente
+    """
+    service = WhatsAppOTPService()
+    return service.send_payment_approved_template(phone_number, client_name, payment_info, check_in_date)
