@@ -657,17 +657,17 @@ class AutomaticDiscount(BaseModel):
             logger.info(f"🏆 Logros requeridos: {required_names}")
             logger.info(f"🏆 Logros del cliente: {client_names}")
             
-            # Verificar si el cliente tiene TODOS los logros requeridos
-            if not required_achievement_ids.issubset(client_achievement_ids):
-                missing_achievement_ids = required_achievement_ids - client_achievement_ids
-                missing_achievements = self.required_achievements.filter(
-                    id__in=missing_achievement_ids
-                ).values_list('name', flat=True)
-                
-                logger.info(f"❌ Le faltan logros: {list(missing_achievements)}")
-                return False, f"Requiere logros: {', '.join(missing_achievements)}"
+            # Verificar si el cliente tiene AL MENOS UNO de los logros requeridos
+            if not required_achievement_ids.intersection(client_achievement_ids):
+                missing_achievements = list(self.required_achievements.values_list('name', flat=True))
+                logger.info(f"❌ No tiene ninguno de los logros requeridos: {missing_achievements}")
+                return False, f"Requiere al menos uno de estos logros: {', '.join(missing_achievements)}"
             
-            logger.info(f"✅ Cliente tiene todos los logros requeridos")
+            # Mostrar qué logros tiene el cliente de los requeridos
+            matching_achievements = self.required_achievements.filter(
+                id__in=client_achievement_ids
+            ).values_list('name', flat=True)
+            logger.info(f"✅ Cliente tiene estos logros requeridos: {list(matching_achievements)}")
 
         # Evaluar triggers específicos
         logger.info(f"🎯 Evaluando trigger: {self.trigger}")
