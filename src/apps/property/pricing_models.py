@@ -668,6 +668,8 @@ class AutomaticDiscount(BaseModel):
                 id__in=client_achievement_ids
             ).values_list('name', flat=True)
             logger.info(f"✅ Cliente tiene estos logros requeridos: {list(matching_achievements)}")
+        else:
+            logger.info(f"🏆 Sin logros requeridos - descuento disponible para todos los clientes")
 
         # Evaluar triggers específicos
         logger.info(f"🎯 Evaluando trigger: {self.trigger}")
