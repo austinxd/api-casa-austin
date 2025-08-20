@@ -357,7 +357,6 @@ class AutomaticDiscountAdmin(admin.ModelAdmin):
         ('Restricciones de Días', {
             'fields': ('restrict_weekdays', 'restrict_weekends'),
             'description': 'Configurar si el descuento aplica solo para días específicos de la semana'
-        }),ations')
         }),
     )
 
