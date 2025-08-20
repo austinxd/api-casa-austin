@@ -420,8 +420,8 @@ class PricingCalculationService:
                     logger.info(f"🎯 '{auto_discount.name}' no requiere logros específicos")
                 
                 try:
-                    # Aquí es donde se llama a applies_to_client que ahora incluye la verificación de logros.
-                    applies, message = auto_discount.applies_to_client(client, check_in_date)
+                    # Aquí es donde se llama a applies_to_client que ahora incluye la verificación de logros y fechas especiales.
+                    applies, message = auto_discount.applies_to_client(client, check_in_date, property.id)
                     logger.info(f"✅ Resultado para '{auto_discount.name}': {applies} - '{message}'")
 
                     if applies:

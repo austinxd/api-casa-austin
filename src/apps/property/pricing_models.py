@@ -434,6 +434,19 @@ class DiscountCode(BaseModel):
         if self.min_amount_usd and total_amount_usd and total_amount_usd < self.min_amount_usd:
             return False, f"Monto mínimo requerido: ${self.min_amount_usd:.2f} (actual: ${total_amount_usd:.2f})"
 
+        # NUEVA VALIDACIÓN: Verificar que no sea fecha especial
+        if booking_check_date and property_id:
+            # Verificar si la fecha de reserva es una fecha especial
+            special_date = SpecialDatePricing.objects.filter(
+                property_id=property_id,
+                month=booking_check_date.month,
+                day=booking_check_date.day,
+                is_active=True
+            ).first()
+            
+            if special_date:
+                return False, f"Los códigos de descuento no son válidos para fechas especiales como {special_date.description} ({booking_check_date.strftime('%d/%m')})"
+
         return True, f"Código válido - Descuento aplicado: {self.discount_value}{'%' if self.discount_type == 'percentage' else ' USD'}"
 
     def calculate_discount(self, total_amount_usd):
@@ -601,7 +614,7 @@ class AutomaticDiscount(BaseModel):
     def __str__(self):
         return f"{self.name} ({self.get_trigger_display()})"
 
-    def applies_to_client(self, client, booking_date):
+    def applies_to_client(self, client, booking_date, property_id=None):
         """Verifica si el descuento automático aplica al cliente"""
         from apps.reservation.models import Reservation
         from apps.clients.models import ClientAchievement, Achievement
@@ -627,6 +640,32 @@ class AutomaticDiscount(BaseModel):
         if self.restrict_weekends and not is_weekend:
             logger.info(f"❌ Restringido a fines de semana pero es día de semana")
             return False, "Descuento solo válido para fines de semana"
+
+        # NUEVA VALIDACIÓN: Verificar que no sea fecha especial
+        if property_id:
+            # Verificar si la fecha de reserva es una fecha especial para esta propiedad específica
+            special_date = SpecialDatePricing.objects.filter(
+                property_id=property_id,
+                month=booking_date.month,
+                day=booking_date.day,
+                is_active=True
+            ).first()
+            
+            if special_date:
+                logger.info(f"❌ Fecha especial detectada: {special_date.description}")
+                return False, f"Los descuentos automáticos no aplican en fechas especiales como {special_date.description} ({booking_date.strftime('%d/%m')})"
+        else:
+            # Si no hay property_id específico, verificar si es fecha especial para CUALQUIER propiedad
+            special_dates = SpecialDatePricing.objects.filter(
+                month=booking_date.month,
+                day=booking_date.day,
+                is_active=True
+            )
+            
+            if special_dates.exists():
+                special_descriptions = list(special_dates.values_list('description', flat=True).distinct())
+                logger.info(f"❌ Fecha especial detectada: {special_descriptions}")
+                return False, f"Los descuentos automáticos no aplican en fechas especiales como {', '.join(special_descriptions)} ({booking_date.strftime('%d/%m')})"
 
         # Verificar si el cliente tiene los logros requeridos
         if self.required_achievements.exists():
