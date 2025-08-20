@@ -386,6 +386,7 @@ class PricingCalculationService:
         # Aplicar descuentos automáticos si: no hay código, código inválido, o no hay descuento aplicado
         if client and discount_info['type'] in ['none', 'error']:
             from .pricing_models import AutomaticDiscount
+            from apps.clients.models import ClientAchievement
             import logging
             logger = logging.getLogger(__name__)
 
@@ -394,6 +395,14 @@ class PricingCalculationService:
             logger.info(f"📅 Fecha de nacimiento: {client.date}")
             logger.info(f"📅 Mes de check-in: {check_in_date.month}")
             logger.info(f"📅 Fecha de check-in: {check_in_date}")
+            
+            # Mostrar logros del cliente
+            client_achievements = ClientAchievement.objects.filter(client=client)
+            if client_achievements.exists():
+                achievement_names = list(client_achievements.values_list('achievement__name', flat=True))
+                logger.info(f"🏆 Logros del cliente: {achievement_names}")
+            else:
+                logger.info(f"🏆 Cliente no tiene logros registrados")
 
             # Buscar descuentos automáticos aplicables al cliente
             automatic_discounts = AutomaticDiscount.objects.filter(is_active=True, deleted=False)
@@ -404,14 +413,22 @@ class PricingCalculationService:
 
             for auto_discount in automatic_discounts:
                 logger.info(f"🔍 Evaluando: '{auto_discount.name}' - Trigger: '{auto_discount.trigger}'")
+                
+                # Mostrar logros requeridos
+                if auto_discount.required_achievements.exists():
+                    required_names = list(auto_discount.required_achievements.values_list('name', flat=True))
+                    logger.info(f"🎯 Logros requeridos para '{auto_discount.name}': {required_names}")
+                else:
+                    logger.info(f"🎯 '{auto_discount.name}' no requiere logros específicos")
+                
                 try:
                     # Aquí es donde se llama a applies_to_client que ahora incluye la verificación de logros.
                     applies, message = auto_discount.applies_to_client(client, check_in_date)
-                    logger.info(f"✅ Resultado: {applies} - '{message}'")
+                    logger.info(f"✅ Resultado para '{auto_discount.name}': {applies} - '{message}'")
 
                     if applies:
                         discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
-                        logger.info(f"💰 Descuento calculado: ${discount_amount_usd} USD ({auto_discount.discount_percentage}%)")
+                        logger.info(f"💰 Descuento calculado para '{auto_discount.name}': ${discount_amount_usd} USD ({auto_discount.discount_percentage}%)")
                         applicable_discounts.append({
                             'discount': auto_discount,
                             'message': message,
@@ -426,7 +443,7 @@ class PricingCalculationService:
                 # Ordenar por monto de descuento (de mayor a menor)
                 best_discount = max(applicable_discounts, key=lambda x: x['amount_usd'])
 
-                logger.info(f"🏆 MEJOR DESCUENTO: {best_discount['discount'].name} - ${best_discount['amount_usd']} USD")
+                logger.info(f"🏆 MEJOR DESCUENTO SELECCIONADO: {best_discount['discount'].name} - ${best_discount['amount_usd']} USD")
 
                 # Actualizar discount_info con el descuento automático
                 discount_info = {

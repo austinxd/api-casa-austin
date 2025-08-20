@@ -631,6 +631,11 @@ class AutomaticDiscount(BaseModel):
         # Verificar si el cliente tiene los logros requeridos
         if self.required_achievements.exists():
             logger.info(f"🏆 Verificando logros requeridos...")
+            
+            # Importar aquí para evitar import circular
+            from apps.clients.models import ClientAchievement
+            
+            # Obtener los logros que tiene el cliente
             client_achievements = ClientAchievement.objects.filter(
                 client=client,
                 achievement__in=self.required_achievements.all()
@@ -639,15 +644,30 @@ class AutomaticDiscount(BaseModel):
             required_achievement_ids = set(self.required_achievements.values_list('id', flat=True))
             client_achievement_ids = set(client_achievements)
             
-            logger.info(f"🏆 Logros requeridos: {required_achievement_ids}")
-            logger.info(f"🏆 Logros del cliente: {client_achievement_ids}")
+            logger.info(f"🏆 Logros requeridos IDs: {required_achievement_ids}")
+            logger.info(f"🏆 Logros del cliente IDs: {client_achievement_ids}")
             
+            # Obtener nombres para logging más claro
+            required_names = list(self.required_achievements.values_list('name', flat=True))
+            client_names = list(ClientAchievement.objects.filter(
+                client=client,
+                achievement__in=self.required_achievements.all()
+            ).values_list('achievement__name', flat=True))
+            
+            logger.info(f"🏆 Logros requeridos: {required_names}")
+            logger.info(f"🏆 Logros del cliente: {client_names}")
+            
+            # Verificar si el cliente tiene TODOS los logros requeridos
             if not required_achievement_ids.issubset(client_achievement_ids):
-                missing_achievements = self.required_achievements.exclude(
-                    id__in=client_achievement_ids
+                missing_achievement_ids = required_achievement_ids - client_achievement_ids
+                missing_achievements = self.required_achievements.filter(
+                    id__in=missing_achievement_ids
                 ).values_list('name', flat=True)
+                
                 logger.info(f"❌ Le faltan logros: {list(missing_achievements)}")
                 return False, f"Requiere logros: {', '.join(missing_achievements)}"
+            
+            logger.info(f"✅ Cliente tiene todos los logros requeridos")
 
         # Evaluar triggers específicos
         logger.info(f"🎯 Evaluando trigger: {self.trigger}")
