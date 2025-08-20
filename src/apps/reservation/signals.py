@@ -226,10 +226,13 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
             logger.debug(f"Reserva {instance.id} cambió a estado pending - Voucher subido")
             notify_voucher_uploaded(instance)
         
-        # Verificar si cambió a estado approved (pago aprobado)
-        elif instance.status == 'approved' and instance.origin == 'client':
+        # Verificar si cambió a estado approved (pago aprobado) y no se ha enviado la notificación
+        elif instance.status == 'approved' and instance.origin == 'client' and not instance.payment_approved_notification_sent:
             logger.debug(f"Reserva {instance.id} cambió a estado approved - Pago aprobado")
             notify_payment_approved(instance)
+            # Marcar como enviado para evitar duplicados
+            instance.payment_approved_notification_sent = True
+            instance.save(update_fields=['payment_approved_notification_sent'])
 
 def send_purchase_event_to_meta(
     phone,

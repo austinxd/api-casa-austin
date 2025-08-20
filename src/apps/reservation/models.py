@@ -106,6 +106,10 @@ class Reservation(BaseModel):
         default=False,
         help_text="Indica si el cliente confirmó que realizó el pago"
     )
+    payment_approved_notification_sent = models.BooleanField(
+        default=False,
+        help_text="Indica si ya se envió la notificación de pago aprobado por WhatsApp"
+    )
 
     def __str__(self):
         if self.client:
