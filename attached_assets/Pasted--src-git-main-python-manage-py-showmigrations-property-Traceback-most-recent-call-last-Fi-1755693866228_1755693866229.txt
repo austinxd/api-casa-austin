@@ -1,0 +1,29 @@
+➜  src git:(main) ✗ python manage.py showmigrations property
+Traceback (most recent call last):
+  File "/srv/casaaustin/api-casa-austin/src/manage.py", line 22, in <module>
+    main()
+  File "/srv/casaaustin/api-casa-austin/src/manage.py", line 18, in main
+    execute_from_command_line(sys.argv)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/management/__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/management/__init__.py", line 436, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/management/base.py", line 412, in run_from_argv
+    self.execute(*args, **cmd_options)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/management/base.py", line 458, in execute
+    output = self.handle(*args, **options)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/management/commands/showmigrations.py", line 66, in handle
+    return self.show_list(connection, options["app_label"])
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/management/commands/showmigrations.py", line 85, in show_list
+    loader = MigrationLoader(connection, ignore_no_migrations=True)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/migrations/loader.py", line 58, in __init__
+    self.build_graph()
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/migrations/loader.py", line 276, in build_graph
+    self.graph.validate_consistency()
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/migrations/graph.py", line 198, in validate_consistency
+    [n.raise_error() for n in self.node_map.values() if isinstance(n, DummyNode)]
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/migrations/graph.py", line 198, in <listcomp>
+    [n.raise_error() for n in self.node_map.values() if isinstance(n, DummyNode)]
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/migrations/graph.py", line 60, in raise_error
+    raise NodeNotFoundError(self.error_message, self.key, origin=self.origin)
+django.db.migrations.exceptions.NodeNotFoundError: Migration property.0038_merge_20250820_0551 dependencies reference nonexistent parent node ('property', '0032_increase_trigger_max_length')

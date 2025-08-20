@@ -1,0 +1,50 @@
+➜  src git:(main) ✗ git checkout ec66b7296692360edbcad99ca7ba2b3d7259f257
+D	src/apps/property/migrations/0002_profitpropertyairbnb.py
+D	src/apps/property/migrations/0003_alter_profitpropertyairbnb_unique_together.py
+D	src/apps/property/migrations/0004_property_background_color.py
+D	src/apps/property/migrations/0005_property_off_temperature_pool_url_and_more.py
+D	src/apps/property/migrations/0006_fix_utf8mb4_encoding.py
+D	src/apps/property/migrations/0007_mark_slug_as_existing.py
+D	src/apps/property/migrations/0008_add_slug_field_safely.py
+D	src/apps/property/migrations/0010_fix_property_photo_foreign_key.py
+D	src/apps/property/migrations/0011_property_banos_property_caracteristicas_and_more.py
+D	src/apps/property/migrations/0012_automaticdiscount_exchangerate_seasonpricing_and_more.py
+D	src/apps/property/migrations/0013_remove_additionalservice_properties_and_more.py
+D	src/apps/property/migrations/0014_automaticdiscount_exchangerate_seasonpricing_and_more.py
+D	src/apps/property/migrations/0015_alter_seasonpricing_options_and_more.py
+D	src/apps/property/migrations/0016_add_name_field_with_default.py
+D	src/apps/property/migrations/0016_auto_20250815_1744.py
+D	src/apps/property/migrations/0017_merge_20250815_1745.py
+D	src/apps/property/migrations/0018_alter_seasonpricing_options_and_more.py
+D	src/apps/property/migrations/0019_seasonpricing_recurrent_dates.py
+D	src/apps/property/migrations/0020_alter_seasonpricing_end_day_and_more.py
+D	src/apps/property/migrations/0021_convert_special_dates_to_recurrent.py
+D	src/apps/property/migrations/0022_alter_specialdatepricing_day_and_more.py
+D	src/apps/property/migrations/0023_alter_specialdatepricing_description.py
+D	src/apps/property/migrations/0024_discountcode_restrict_weekdays_and_more.py
+D	src/apps/property/migrations/0025_dynamicdiscountconfig_and_more.py
+D	src/apps/property/migrations/0026_propertyphoto_thumbnail.py
+D	src/apps/property/migrations/0027_add_description_to_automaticdiscount.py
+D	src/apps/property/migrations/0028_add_properties_to_dynamicdiscountconfig.py
+D	src/apps/property/migrations/0029_add_minimum_consecutive_nights.py
+D	src/apps/property/migrations/0030_automaticdiscount_restrict_weekdays_and_more.py
+D	src/apps/property/migrations/0031_replace_min_reservations_with_achievements.py
+M	src/casaaustin_debug.log
+Note: switching to 'ec66b7296692360edbcad99ca7ba2b3d7259f257'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+HEAD is now at ec66b72 Checkpoint before assistant change: Add automatic discounts for last-minute bookings
