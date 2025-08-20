@@ -3623,3 +3623,633 @@ INFO 2025-08-20 14:03:06,742 pricing_models 13331 140559313270464 🏆 Logros de
 INFO 2025-08-20 14:03:06,744 pricing_models 13331 140559313270464 ❌ Le faltan logros: ['Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
 INFO 2025-08-20 14:03:06,746 pricing_service 13331 140559313270464 ✅ Resultado: False - 'Requiere logros: Cliente Casa Austin, Huésped Frecuente, VIP Casa Austin, Embajador Casa Austin'
 INFO 2025-08-20 14:03:06,746 pricing_service 13331 140559313270464 ❌ No se encontraron descuentos automáticos aplicables para este cliente
+INFO 2025-08-20 14:26:15,058 pricing_service 2526 139932582540992 🔍 Validando protección de fechas especiales para casa 1
+INFO 2025-08-20 14:26:15,058 pricing_service 2526 139932582540992 📅 Check-in: 2025-08-26, Check-out: 2025-08-27, Noches: 1
+INFO 2025-08-20 14:26:15,060 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2025 (None)
+INFO 2025-08-20 14:26:15,060 pricing_service 2526 139932582540992 🛡️  Rango protegido: 31/12/2025 a 31/12/2025
+INFO 2025-08-20 14:26:15,060 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:26:15,061 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2026 (None)
+INFO 2025-08-20 14:26:15,061 pricing_service 2526 139932582540992 🛡️  Rango protegido: 31/12/2026 a 31/12/2026
+INFO 2025-08-20 14:26:15,061 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:26:15,062 pricing_service 2526 139932582540992 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-20 14:26:15,062 pricing_service 2526 139932582540992 🔍 Validando protección de fechas especiales para casa 2
+INFO 2025-08-20 14:26:15,062 pricing_service 2526 139932582540992 📅 Check-in: 2025-08-26, Check-out: 2025-08-27, Noches: 1
+INFO 2025-08-20 14:26:15,063 pricing_service 2526 139932582540992 🎯 Fecha especial: 28/07/2025 (Fiestas patrias)
+INFO 2025-08-20 14:26:15,063 pricing_service 2526 139932582540992 🛡️  Rango protegido: 28/07/2025 a 28/07/2025
+INFO 2025-08-20 14:26:15,063 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:26:15,064 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2025 (Año nuevo)
+INFO 2025-08-20 14:26:15,064 pricing_service 2526 139932582540992 🛡️  Rango protegido: 29/12/2025 a 02/01/2026
+INFO 2025-08-20 14:26:15,064 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 3
+INFO 2025-08-20 14:26:15,065 pricing_service 2526 139932582540992 🎯 Fecha especial: 28/07/2026 (Fiestas patrias)
+INFO 2025-08-20 14:26:15,065 pricing_service 2526 139932582540992 🛡️  Rango protegido: 28/07/2026 a 28/07/2026
+INFO 2025-08-20 14:26:15,065 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:26:15,065 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2026 (Año nuevo)
+INFO 2025-08-20 14:26:15,065 pricing_service 2526 139932582540992 🛡️  Rango protegido: 29/12/2026 a 02/01/2027
+INFO 2025-08-20 14:26:15,066 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 3
+INFO 2025-08-20 14:26:15,066 pricing_service 2526 139932582540992 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-20 14:26:15,081 pricing_service 2526 139932582540992 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-08-20 14:26:15,081 pricing_service 2526 139932582540992 👤 Cliente: AirBnB * (ID: 14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+INFO 2025-08-20 14:26:15,081 pricing_service 2526 139932582540992 📅 Fecha de nacimiento: 2025-08-15
+INFO 2025-08-20 14:26:15,081 pricing_service 2526 139932582540992 📅 Mes de check-in: 8
+INFO 2025-08-20 14:26:15,081 pricing_service 2526 139932582540992 📅 Fecha de check-in: 2025-08-26
+INFO 2025-08-20 14:26:15,082 pricing_service 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:26:15,083 pricing_service 2526 139932582540992 📋 Descuentos automáticos disponibles: 3
+INFO 2025-08-20 14:26:15,084 pricing_service 2526 139932582540992 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-08-20 14:26:15,085 pricing_service 2526 139932582540992 🎯 'Cumpleaños' no requiere logros específicos
+INFO 2025-08-20 14:26:15,085 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'Cumpleaños' con trigger 'birthday'
+INFO 2025-08-20 14:26:15,085 pricing_models 2526 139932582540992 📅 Día de la semana: 1 (día de semana)
+INFO 2025-08-20 14:26:15,086 pricing_models 2526 139932582540992 🎯 Evaluando trigger: birthday
+INFO 2025-08-20 14:26:15,086 pricing_models 2526 139932582540992 🎂 Verificando cumpleaños - Mes cliente: 8, Mes booking: 8
+INFO 2025-08-20 14:26:15,086 pricing_service 2526 139932582540992 ✅ Resultado para 'Cumpleaños': True - '¡Feliz cumpleaños! 15.00% de descuento'
+INFO 2025-08-20 14:26:15,086 pricing_service 2526 139932582540992 💰 Descuento calculado para 'Cumpleaños': $23.2500 USD (15.00%)
+INFO 2025-08-20 14:26:15,086 pricing_service 2526 139932582540992 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-08-20 14:26:15,087 pricing_service 2526 139932582540992 🎯 'clientefrecuente' no requiere logros específicos
+INFO 2025-08-20 14:26:15,087 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'clientefrecuente' con trigger 'returning'
+INFO 2025-08-20 14:26:15,087 pricing_models 2526 139932582540992 📅 Día de la semana: 1 (día de semana)
+INFO 2025-08-20 14:26:15,088 pricing_models 2526 139932582540992 🎯 Evaluando trigger: returning
+INFO 2025-08-20 14:26:15,089 pricing_models 2526 139932582540992 🔄 Cliente recurrente - Reservas previas: 0
+INFO 2025-08-20 14:26:15,089 pricing_service 2526 139932582540992 ✅ Resultado para 'clientefrecuente': False - 'No tiene reservas previas (tiene 0)'
+INFO 2025-08-20 14:26:15,089 pricing_service 2526 139932582540992 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-08-20 14:26:15,090 pricing_service 2526 139932582540992 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:26:15,090 pricing_models 2526 139932582540992 🔍 Evaluando descuento '50off ultimo minuto' con trigger 'last_minute'
+INFO 2025-08-20 14:26:15,091 pricing_models 2526 139932582540992 📅 Día de la semana: 1 (día de semana)
+INFO 2025-08-20 14:26:15,091 pricing_models 2526 139932582540992 🏆 Verificando logros requeridos...
+INFO 2025-08-20 14:26:15,094 pricing_models 2526 139932582540992 🏆 Logros requeridos IDs: {UUID('d105ec64-fce9-4290-9722-7899966694b0'), UUID('f5cc25db-e6bf-4e61-ba85-44dd1a2f0321'), UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab'), UUID('828b1b18-ef7b-4637-87ea-c32838639514'), UUID('41cd0f7a-24db-4eb1-bb00-8a03de06b8b9')}
+INFO 2025-08-20 14:26:15,094 pricing_models 2526 139932582540992 🏆 Logros del cliente IDs: {UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab')}
+INFO 2025-08-20 14:26:15,096 pricing_models 2526 139932582540992 🏆 Logros requeridos: ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:26:15,096 pricing_models 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:26:15,097 pricing_models 2526 139932582540992 ❌ Le faltan logros: ['Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:26:15,097 pricing_service 2526 139932582540992 ✅ Resultado para '50off ultimo minuto': False - 'Requiere logros: Cliente Casa Austin, Huésped Frecuente, VIP Casa Austin, Embajador Casa Austin'
+INFO 2025-08-20 14:26:15,097 pricing_service 2526 139932582540992 🏆 MEJOR DESCUENTO SELECCIONADO: Cumpleaños - $23.2500 USD
+INFO 2025-08-20 14:26:15,115 pricing_service 2526 139932582540992 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-08-20 14:26:15,115 pricing_service 2526 139932582540992 👤 Cliente: AirBnB * (ID: 14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+INFO 2025-08-20 14:26:15,115 pricing_service 2526 139932582540992 📅 Fecha de nacimiento: 2025-08-15
+INFO 2025-08-20 14:26:15,115 pricing_service 2526 139932582540992 📅 Mes de check-in: 8
+INFO 2025-08-20 14:26:15,115 pricing_service 2526 139932582540992 📅 Fecha de check-in: 2025-08-26
+INFO 2025-08-20 14:26:15,116 pricing_service 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:26:15,117 pricing_service 2526 139932582540992 📋 Descuentos automáticos disponibles: 3
+INFO 2025-08-20 14:26:15,118 pricing_service 2526 139932582540992 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-08-20 14:26:15,119 pricing_service 2526 139932582540992 🎯 'Cumpleaños' no requiere logros específicos
+INFO 2025-08-20 14:26:15,119 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'Cumpleaños' con trigger 'birthday'
+INFO 2025-08-20 14:26:15,119 pricing_models 2526 139932582540992 📅 Día de la semana: 1 (día de semana)
+INFO 2025-08-20 14:26:15,120 pricing_models 2526 139932582540992 🎯 Evaluando trigger: birthday
+INFO 2025-08-20 14:26:15,120 pricing_models 2526 139932582540992 🎂 Verificando cumpleaños - Mes cliente: 8, Mes booking: 8
+INFO 2025-08-20 14:26:15,120 pricing_service 2526 139932582540992 ✅ Resultado para 'Cumpleaños': True - '¡Feliz cumpleaños! 15.00% de descuento'
+INFO 2025-08-20 14:26:15,121 pricing_service 2526 139932582540992 💰 Descuento calculado para 'Cumpleaños': $8.2500 USD (15.00%)
+INFO 2025-08-20 14:26:15,121 pricing_service 2526 139932582540992 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-08-20 14:26:15,122 pricing_service 2526 139932582540992 🎯 'clientefrecuente' no requiere logros específicos
+INFO 2025-08-20 14:26:15,122 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'clientefrecuente' con trigger 'returning'
+INFO 2025-08-20 14:26:15,122 pricing_models 2526 139932582540992 📅 Día de la semana: 1 (día de semana)
+INFO 2025-08-20 14:26:15,122 pricing_models 2526 139932582540992 🎯 Evaluando trigger: returning
+INFO 2025-08-20 14:26:15,124 pricing_models 2526 139932582540992 🔄 Cliente recurrente - Reservas previas: 0
+INFO 2025-08-20 14:26:15,124 pricing_service 2526 139932582540992 ✅ Resultado para 'clientefrecuente': False - 'No tiene reservas previas (tiene 0)'
+INFO 2025-08-20 14:26:15,124 pricing_service 2526 139932582540992 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-08-20 14:26:15,126 pricing_service 2526 139932582540992 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:26:15,126 pricing_models 2526 139932582540992 🔍 Evaluando descuento '50off ultimo minuto' con trigger 'last_minute'
+INFO 2025-08-20 14:26:15,126 pricing_models 2526 139932582540992 📅 Día de la semana: 1 (día de semana)
+INFO 2025-08-20 14:26:15,127 pricing_models 2526 139932582540992 🏆 Verificando logros requeridos...
+INFO 2025-08-20 14:26:15,129 pricing_models 2526 139932582540992 🏆 Logros requeridos IDs: {UUID('d105ec64-fce9-4290-9722-7899966694b0'), UUID('f5cc25db-e6bf-4e61-ba85-44dd1a2f0321'), UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab'), UUID('828b1b18-ef7b-4637-87ea-c32838639514'), UUID('41cd0f7a-24db-4eb1-bb00-8a03de06b8b9')}
+INFO 2025-08-20 14:26:15,129 pricing_models 2526 139932582540992 🏆 Logros del cliente IDs: {UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab')}
+INFO 2025-08-20 14:26:15,131 pricing_models 2526 139932582540992 🏆 Logros requeridos: ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:26:15,131 pricing_models 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:26:15,132 pricing_models 2526 139932582540992 ❌ Le faltan logros: ['Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:26:15,133 pricing_service 2526 139932582540992 ✅ Resultado para '50off ultimo minuto': False - 'Requiere logros: Cliente Casa Austin, Huésped Frecuente, VIP Casa Austin, Embajador Casa Austin'
+INFO 2025-08-20 14:26:15,133 pricing_service 2526 139932582540992 🏆 MEJOR DESCUENTO SELECCIONADO: Cumpleaños - $8.2500 USD
+INFO 2025-08-20 14:26:36,698 pricing_service 2526 139932582540992 🔍 Validando protección de fechas especiales para casa 1
+INFO 2025-08-20 14:26:36,699 pricing_service 2526 139932582540992 📅 Check-in: 2025-08-20, Check-out: 2025-08-21, Noches: 1
+INFO 2025-08-20 14:26:36,700 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2025 (None)
+INFO 2025-08-20 14:26:36,700 pricing_service 2526 139932582540992 🛡️  Rango protegido: 31/12/2025 a 31/12/2025
+INFO 2025-08-20 14:26:36,700 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:26:36,701 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2026 (None)
+INFO 2025-08-20 14:26:36,701 pricing_service 2526 139932582540992 🛡️  Rango protegido: 31/12/2026 a 31/12/2026
+INFO 2025-08-20 14:26:36,701 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:26:36,701 pricing_service 2526 139932582540992 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-20 14:26:36,702 pricing_service 2526 139932582540992 🔍 Validando protección de fechas especiales para casa 2
+INFO 2025-08-20 14:26:36,702 pricing_service 2526 139932582540992 📅 Check-in: 2025-08-20, Check-out: 2025-08-21, Noches: 1
+INFO 2025-08-20 14:26:36,703 pricing_service 2526 139932582540992 🎯 Fecha especial: 28/07/2025 (Fiestas patrias)
+INFO 2025-08-20 14:26:36,703 pricing_service 2526 139932582540992 🛡️  Rango protegido: 28/07/2025 a 28/07/2025
+INFO 2025-08-20 14:26:36,703 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:26:36,703 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2025 (Año nuevo)
+INFO 2025-08-20 14:26:36,704 pricing_service 2526 139932582540992 🛡️  Rango protegido: 29/12/2025 a 02/01/2026
+INFO 2025-08-20 14:26:36,704 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 3
+INFO 2025-08-20 14:26:36,705 pricing_service 2526 139932582540992 🎯 Fecha especial: 28/07/2026 (Fiestas patrias)
+INFO 2025-08-20 14:26:36,705 pricing_service 2526 139932582540992 🛡️  Rango protegido: 28/07/2026 a 28/07/2026
+INFO 2025-08-20 14:26:36,705 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:26:36,705 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2026 (Año nuevo)
+INFO 2025-08-20 14:26:36,705 pricing_service 2526 139932582540992 🛡️  Rango protegido: 29/12/2026 a 02/01/2027
+INFO 2025-08-20 14:26:36,705 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 3
+INFO 2025-08-20 14:26:36,705 pricing_service 2526 139932582540992 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-20 14:26:36,718 pricing_service 2526 139932582540992 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-08-20 14:26:36,718 pricing_service 2526 139932582540992 👤 Cliente: AirBnB * (ID: 14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+INFO 2025-08-20 14:26:36,718 pricing_service 2526 139932582540992 📅 Fecha de nacimiento: 2025-08-15
+INFO 2025-08-20 14:26:36,719 pricing_service 2526 139932582540992 📅 Mes de check-in: 8
+INFO 2025-08-20 14:26:36,719 pricing_service 2526 139932582540992 📅 Fecha de check-in: 2025-08-20
+INFO 2025-08-20 14:26:36,720 pricing_service 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:26:36,720 pricing_service 2526 139932582540992 📋 Descuentos automáticos disponibles: 3
+INFO 2025-08-20 14:26:36,721 pricing_service 2526 139932582540992 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-08-20 14:26:36,722 pricing_service 2526 139932582540992 🎯 'Cumpleaños' no requiere logros específicos
+INFO 2025-08-20 14:26:36,722 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'Cumpleaños' con trigger 'birthday'
+INFO 2025-08-20 14:26:36,722 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:26:36,722 pricing_models 2526 139932582540992 🎯 Evaluando trigger: birthday
+INFO 2025-08-20 14:26:36,722 pricing_models 2526 139932582540992 🎂 Verificando cumpleaños - Mes cliente: 8, Mes booking: 8
+INFO 2025-08-20 14:26:36,723 pricing_service 2526 139932582540992 ✅ Resultado para 'Cumpleaños': True - '¡Feliz cumpleaños! 15.00% de descuento'
+INFO 2025-08-20 14:26:36,723 pricing_service 2526 139932582540992 💰 Descuento calculado para 'Cumpleaños': $23.2500 USD (15.00%)
+INFO 2025-08-20 14:26:36,723 pricing_service 2526 139932582540992 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-08-20 14:26:36,723 pricing_service 2526 139932582540992 🎯 'clientefrecuente' no requiere logros específicos
+INFO 2025-08-20 14:26:36,723 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'clientefrecuente' con trigger 'returning'
+INFO 2025-08-20 14:26:36,723 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:26:36,724 pricing_models 2526 139932582540992 🎯 Evaluando trigger: returning
+INFO 2025-08-20 14:26:36,725 pricing_models 2526 139932582540992 🔄 Cliente recurrente - Reservas previas: 0
+INFO 2025-08-20 14:26:36,725 pricing_service 2526 139932582540992 ✅ Resultado para 'clientefrecuente': False - 'No tiene reservas previas (tiene 0)'
+INFO 2025-08-20 14:26:36,725 pricing_service 2526 139932582540992 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-08-20 14:26:36,726 pricing_service 2526 139932582540992 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:26:36,727 pricing_models 2526 139932582540992 🔍 Evaluando descuento '50off ultimo minuto' con trigger 'last_minute'
+INFO 2025-08-20 14:26:36,727 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:26:36,727 pricing_models 2526 139932582540992 🏆 Verificando logros requeridos...
+INFO 2025-08-20 14:26:36,732 pricing_models 2526 139932582540992 🏆 Logros requeridos IDs: {UUID('d105ec64-fce9-4290-9722-7899966694b0'), UUID('f5cc25db-e6bf-4e61-ba85-44dd1a2f0321'), UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab'), UUID('828b1b18-ef7b-4637-87ea-c32838639514'), UUID('41cd0f7a-24db-4eb1-bb00-8a03de06b8b9')}
+INFO 2025-08-20 14:26:36,732 pricing_models 2526 139932582540992 🏆 Logros del cliente IDs: {UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab')}
+INFO 2025-08-20 14:26:36,734 pricing_models 2526 139932582540992 🏆 Logros requeridos: ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:26:36,734 pricing_models 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:26:36,735 pricing_models 2526 139932582540992 ❌ Le faltan logros: ['Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:26:36,735 pricing_service 2526 139932582540992 ✅ Resultado para '50off ultimo minuto': False - 'Requiere logros: Cliente Casa Austin, Huésped Frecuente, VIP Casa Austin, Embajador Casa Austin'
+INFO 2025-08-20 14:26:36,735 pricing_service 2526 139932582540992 🏆 MEJOR DESCUENTO SELECCIONADO: Cumpleaños - $23.2500 USD
+INFO 2025-08-20 14:26:36,748 pricing_service 2526 139932582540992 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-08-20 14:26:36,748 pricing_service 2526 139932582540992 👤 Cliente: AirBnB * (ID: 14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+INFO 2025-08-20 14:26:36,748 pricing_service 2526 139932582540992 📅 Fecha de nacimiento: 2025-08-15
+INFO 2025-08-20 14:26:36,748 pricing_service 2526 139932582540992 📅 Mes de check-in: 8
+INFO 2025-08-20 14:26:36,748 pricing_service 2526 139932582540992 📅 Fecha de check-in: 2025-08-20
+INFO 2025-08-20 14:26:36,749 pricing_service 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:26:36,750 pricing_service 2526 139932582540992 📋 Descuentos automáticos disponibles: 3
+INFO 2025-08-20 14:26:36,750 pricing_service 2526 139932582540992 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-08-20 14:26:36,751 pricing_service 2526 139932582540992 🎯 'Cumpleaños' no requiere logros específicos
+INFO 2025-08-20 14:26:36,751 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'Cumpleaños' con trigger 'birthday'
+INFO 2025-08-20 14:26:36,751 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:26:36,752 pricing_models 2526 139932582540992 🎯 Evaluando trigger: birthday
+INFO 2025-08-20 14:26:36,752 pricing_models 2526 139932582540992 🎂 Verificando cumpleaños - Mes cliente: 8, Mes booking: 8
+INFO 2025-08-20 14:26:36,752 pricing_service 2526 139932582540992 ✅ Resultado para 'Cumpleaños': True - '¡Feliz cumpleaños! 15.00% de descuento'
+INFO 2025-08-20 14:26:36,752 pricing_service 2526 139932582540992 💰 Descuento calculado para 'Cumpleaños': $8.2500 USD (15.00%)
+INFO 2025-08-20 14:26:36,752 pricing_service 2526 139932582540992 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-08-20 14:26:36,753 pricing_service 2526 139932582540992 🎯 'clientefrecuente' no requiere logros específicos
+INFO 2025-08-20 14:26:36,753 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'clientefrecuente' con trigger 'returning'
+INFO 2025-08-20 14:26:36,753 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:26:36,754 pricing_models 2526 139932582540992 🎯 Evaluando trigger: returning
+INFO 2025-08-20 14:26:36,754 pricing_models 2526 139932582540992 🔄 Cliente recurrente - Reservas previas: 0
+INFO 2025-08-20 14:26:36,755 pricing_service 2526 139932582540992 ✅ Resultado para 'clientefrecuente': False - 'No tiene reservas previas (tiene 0)'
+INFO 2025-08-20 14:26:36,755 pricing_service 2526 139932582540992 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-08-20 14:26:36,756 pricing_service 2526 139932582540992 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:26:36,756 pricing_models 2526 139932582540992 🔍 Evaluando descuento '50off ultimo minuto' con trigger 'last_minute'
+INFO 2025-08-20 14:26:36,756 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:26:36,757 pricing_models 2526 139932582540992 🏆 Verificando logros requeridos...
+INFO 2025-08-20 14:26:36,758 pricing_models 2526 139932582540992 🏆 Logros requeridos IDs: {UUID('d105ec64-fce9-4290-9722-7899966694b0'), UUID('f5cc25db-e6bf-4e61-ba85-44dd1a2f0321'), UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab'), UUID('828b1b18-ef7b-4637-87ea-c32838639514'), UUID('41cd0f7a-24db-4eb1-bb00-8a03de06b8b9')}
+INFO 2025-08-20 14:26:36,758 pricing_models 2526 139932582540992 🏆 Logros del cliente IDs: {UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab')}
+INFO 2025-08-20 14:26:36,760 pricing_models 2526 139932582540992 🏆 Logros requeridos: ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:26:36,760 pricing_models 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:26:36,761 pricing_models 2526 139932582540992 ❌ Le faltan logros: ['Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:26:36,761 pricing_service 2526 139932582540992 ✅ Resultado para '50off ultimo minuto': False - 'Requiere logros: Cliente Casa Austin, Huésped Frecuente, VIP Casa Austin, Embajador Casa Austin'
+INFO 2025-08-20 14:26:36,761 pricing_service 2526 139932582540992 🏆 MEJOR DESCUENTO SELECCIONADO: Cumpleaños - $8.2500 USD
+INFO 2025-08-20 14:26:56,579 pricing_service 2526 139932582540992 🔍 Validando protección de fechas especiales para casa 1
+INFO 2025-08-20 14:26:56,579 pricing_service 2526 139932582540992 📅 Check-in: 2025-08-20, Check-out: 2025-08-21, Noches: 1
+INFO 2025-08-20 14:26:56,580 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2025 (None)
+INFO 2025-08-20 14:26:56,580 pricing_service 2526 139932582540992 🛡️  Rango protegido: 31/12/2025 a 31/12/2025
+INFO 2025-08-20 14:26:56,580 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:26:56,581 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2026 (None)
+INFO 2025-08-20 14:26:56,581 pricing_service 2526 139932582540992 🛡️  Rango protegido: 31/12/2026 a 31/12/2026
+INFO 2025-08-20 14:26:56,581 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:26:56,582 pricing_service 2526 139932582540992 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-20 14:26:56,582 pricing_service 2526 139932582540992 🔍 Validando protección de fechas especiales para casa 2
+INFO 2025-08-20 14:26:56,582 pricing_service 2526 139932582540992 📅 Check-in: 2025-08-20, Check-out: 2025-08-21, Noches: 1
+INFO 2025-08-20 14:26:56,583 pricing_service 2526 139932582540992 🎯 Fecha especial: 28/07/2025 (Fiestas patrias)
+INFO 2025-08-20 14:26:56,583 pricing_service 2526 139932582540992 🛡️  Rango protegido: 28/07/2025 a 28/07/2025
+INFO 2025-08-20 14:26:56,583 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:26:56,584 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2025 (Año nuevo)
+INFO 2025-08-20 14:26:56,584 pricing_service 2526 139932582540992 🛡️  Rango protegido: 29/12/2025 a 02/01/2026
+INFO 2025-08-20 14:26:56,584 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 3
+INFO 2025-08-20 14:26:56,585 pricing_service 2526 139932582540992 🎯 Fecha especial: 28/07/2026 (Fiestas patrias)
+INFO 2025-08-20 14:26:56,585 pricing_service 2526 139932582540992 🛡️  Rango protegido: 28/07/2026 a 28/07/2026
+INFO 2025-08-20 14:26:56,585 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:26:56,585 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2026 (Año nuevo)
+INFO 2025-08-20 14:26:56,585 pricing_service 2526 139932582540992 🛡️  Rango protegido: 29/12/2026 a 02/01/2027
+INFO 2025-08-20 14:26:56,585 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 3
+INFO 2025-08-20 14:26:56,585 pricing_service 2526 139932582540992 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-20 14:26:56,597 pricing_service 2526 139932582540992 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-08-20 14:26:56,597 pricing_service 2526 139932582540992 👤 Cliente: AirBnB * (ID: 14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+INFO 2025-08-20 14:26:56,597 pricing_service 2526 139932582540992 📅 Fecha de nacimiento: 2025-08-15
+INFO 2025-08-20 14:26:56,597 pricing_service 2526 139932582540992 📅 Mes de check-in: 8
+INFO 2025-08-20 14:26:56,597 pricing_service 2526 139932582540992 📅 Fecha de check-in: 2025-08-20
+INFO 2025-08-20 14:26:56,598 pricing_service 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:26:56,599 pricing_service 2526 139932582540992 📋 Descuentos automáticos disponibles: 3
+INFO 2025-08-20 14:26:56,600 pricing_service 2526 139932582540992 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-08-20 14:26:56,600 pricing_service 2526 139932582540992 🎯 'Cumpleaños' no requiere logros específicos
+INFO 2025-08-20 14:26:56,600 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'Cumpleaños' con trigger 'birthday'
+INFO 2025-08-20 14:26:56,600 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:26:56,601 pricing_models 2526 139932582540992 🎯 Evaluando trigger: birthday
+INFO 2025-08-20 14:26:56,601 pricing_models 2526 139932582540992 🎂 Verificando cumpleaños - Mes cliente: 8, Mes booking: 8
+INFO 2025-08-20 14:26:56,601 pricing_service 2526 139932582540992 ✅ Resultado para 'Cumpleaños': True - '¡Feliz cumpleaños! 15.00% de descuento'
+INFO 2025-08-20 14:26:56,601 pricing_service 2526 139932582540992 💰 Descuento calculado para 'Cumpleaños': $23.2500 USD (15.00%)
+INFO 2025-08-20 14:26:56,601 pricing_service 2526 139932582540992 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-08-20 14:26:56,602 pricing_service 2526 139932582540992 🎯 'clientefrecuente' no requiere logros específicos
+INFO 2025-08-20 14:26:56,602 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'clientefrecuente' con trigger 'returning'
+INFO 2025-08-20 14:26:56,602 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:26:56,603 pricing_models 2526 139932582540992 🎯 Evaluando trigger: returning
+INFO 2025-08-20 14:26:56,604 pricing_models 2526 139932582540992 🔄 Cliente recurrente - Reservas previas: 0
+INFO 2025-08-20 14:26:56,604 pricing_service 2526 139932582540992 ✅ Resultado para 'clientefrecuente': False - 'No tiene reservas previas (tiene 0)'
+INFO 2025-08-20 14:26:56,604 pricing_service 2526 139932582540992 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-08-20 14:26:56,605 pricing_service 2526 139932582540992 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:26:56,605 pricing_models 2526 139932582540992 🔍 Evaluando descuento '50off ultimo minuto' con trigger 'last_minute'
+INFO 2025-08-20 14:26:56,605 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:26:56,605 pricing_models 2526 139932582540992 ❌ Restringido a fines de semana pero es día de semana
+INFO 2025-08-20 14:26:56,605 pricing_service 2526 139932582540992 ✅ Resultado para '50off ultimo minuto': False - 'Descuento solo válido para fines de semana'
+INFO 2025-08-20 14:26:56,605 pricing_service 2526 139932582540992 🏆 MEJOR DESCUENTO SELECCIONADO: Cumpleaños - $23.2500 USD
+INFO 2025-08-20 14:26:56,618 pricing_service 2526 139932582540992 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-08-20 14:26:56,618 pricing_service 2526 139932582540992 👤 Cliente: AirBnB * (ID: 14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+INFO 2025-08-20 14:26:56,618 pricing_service 2526 139932582540992 📅 Fecha de nacimiento: 2025-08-15
+INFO 2025-08-20 14:26:56,618 pricing_service 2526 139932582540992 📅 Mes de check-in: 8
+INFO 2025-08-20 14:26:56,618 pricing_service 2526 139932582540992 📅 Fecha de check-in: 2025-08-20
+INFO 2025-08-20 14:26:56,619 pricing_service 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:26:56,620 pricing_service 2526 139932582540992 📋 Descuentos automáticos disponibles: 3
+INFO 2025-08-20 14:26:56,620 pricing_service 2526 139932582540992 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-08-20 14:26:56,622 pricing_service 2526 139932582540992 🎯 'Cumpleaños' no requiere logros específicos
+INFO 2025-08-20 14:26:56,623 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'Cumpleaños' con trigger 'birthday'
+INFO 2025-08-20 14:26:56,623 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:26:56,623 pricing_models 2526 139932582540992 🎯 Evaluando trigger: birthday
+INFO 2025-08-20 14:26:56,623 pricing_models 2526 139932582540992 🎂 Verificando cumpleaños - Mes cliente: 8, Mes booking: 8
+INFO 2025-08-20 14:26:56,623 pricing_service 2526 139932582540992 ✅ Resultado para 'Cumpleaños': True - '¡Feliz cumpleaños! 15.00% de descuento'
+INFO 2025-08-20 14:26:56,624 pricing_service 2526 139932582540992 💰 Descuento calculado para 'Cumpleaños': $8.2500 USD (15.00%)
+INFO 2025-08-20 14:26:56,624 pricing_service 2526 139932582540992 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-08-20 14:26:56,624 pricing_service 2526 139932582540992 🎯 'clientefrecuente' no requiere logros específicos
+INFO 2025-08-20 14:26:56,624 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'clientefrecuente' con trigger 'returning'
+INFO 2025-08-20 14:26:56,624 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:26:56,625 pricing_models 2526 139932582540992 🎯 Evaluando trigger: returning
+INFO 2025-08-20 14:26:56,626 pricing_models 2526 139932582540992 🔄 Cliente recurrente - Reservas previas: 0
+INFO 2025-08-20 14:26:56,626 pricing_service 2526 139932582540992 ✅ Resultado para 'clientefrecuente': False - 'No tiene reservas previas (tiene 0)'
+INFO 2025-08-20 14:26:56,626 pricing_service 2526 139932582540992 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-08-20 14:26:56,627 pricing_service 2526 139932582540992 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:26:56,627 pricing_models 2526 139932582540992 🔍 Evaluando descuento '50off ultimo minuto' con trigger 'last_minute'
+INFO 2025-08-20 14:26:56,627 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:26:56,627 pricing_models 2526 139932582540992 ❌ Restringido a fines de semana pero es día de semana
+INFO 2025-08-20 14:26:56,628 pricing_service 2526 139932582540992 ✅ Resultado para '50off ultimo minuto': False - 'Descuento solo válido para fines de semana'
+INFO 2025-08-20 14:26:56,628 pricing_service 2526 139932582540992 🏆 MEJOR DESCUENTO SELECCIONADO: Cumpleaños - $8.2500 USD
+INFO 2025-08-20 14:28:22,107 pricing_service 2526 139932582540992 🔍 Validando protección de fechas especiales para casa 1
+INFO 2025-08-20 14:28:22,107 pricing_service 2526 139932582540992 📅 Check-in: 2025-08-20, Check-out: 2025-08-21, Noches: 1
+INFO 2025-08-20 14:28:22,109 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2025 (None)
+INFO 2025-08-20 14:28:22,109 pricing_service 2526 139932582540992 🛡️  Rango protegido: 31/12/2025 a 31/12/2025
+INFO 2025-08-20 14:28:22,109 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:28:22,110 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2026 (None)
+INFO 2025-08-20 14:28:22,110 pricing_service 2526 139932582540992 🛡️  Rango protegido: 31/12/2026 a 31/12/2026
+INFO 2025-08-20 14:28:22,110 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:28:22,111 pricing_service 2526 139932582540992 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-20 14:28:22,111 pricing_service 2526 139932582540992 🔍 Validando protección de fechas especiales para casa 2
+INFO 2025-08-20 14:28:22,111 pricing_service 2526 139932582540992 📅 Check-in: 2025-08-20, Check-out: 2025-08-21, Noches: 1
+INFO 2025-08-20 14:28:22,113 pricing_service 2526 139932582540992 🎯 Fecha especial: 28/07/2025 (Fiestas patrias)
+INFO 2025-08-20 14:28:22,113 pricing_service 2526 139932582540992 🛡️  Rango protegido: 28/07/2025 a 28/07/2025
+INFO 2025-08-20 14:28:22,113 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:28:22,113 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2025 (Año nuevo)
+INFO 2025-08-20 14:28:22,113 pricing_service 2526 139932582540992 🛡️  Rango protegido: 29/12/2025 a 02/01/2026
+INFO 2025-08-20 14:28:22,113 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 3
+INFO 2025-08-20 14:28:22,114 pricing_service 2526 139932582540992 🎯 Fecha especial: 28/07/2026 (Fiestas patrias)
+INFO 2025-08-20 14:28:22,114 pricing_service 2526 139932582540992 🛡️  Rango protegido: 28/07/2026 a 28/07/2026
+INFO 2025-08-20 14:28:22,114 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:28:22,115 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2026 (Año nuevo)
+INFO 2025-08-20 14:28:22,115 pricing_service 2526 139932582540992 🛡️  Rango protegido: 29/12/2026 a 02/01/2027
+INFO 2025-08-20 14:28:22,115 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 3
+INFO 2025-08-20 14:28:22,115 pricing_service 2526 139932582540992 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-20 14:28:22,129 pricing_service 2526 139932582540992 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-08-20 14:28:22,129 pricing_service 2526 139932582540992 👤 Cliente: AirBnB * (ID: 14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+INFO 2025-08-20 14:28:22,130 pricing_service 2526 139932582540992 📅 Fecha de nacimiento: 2025-08-15
+INFO 2025-08-20 14:28:22,130 pricing_service 2526 139932582540992 📅 Mes de check-in: 8
+INFO 2025-08-20 14:28:22,130 pricing_service 2526 139932582540992 📅 Fecha de check-in: 2025-08-20
+INFO 2025-08-20 14:28:22,131 pricing_service 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:28:22,132 pricing_service 2526 139932582540992 📋 Descuentos automáticos disponibles: 3
+INFO 2025-08-20 14:28:22,133 pricing_service 2526 139932582540992 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-08-20 14:28:22,136 pricing_service 2526 139932582540992 🎯 'Cumpleaños' no requiere logros específicos
+INFO 2025-08-20 14:28:22,136 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'Cumpleaños' con trigger 'birthday'
+INFO 2025-08-20 14:28:22,136 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:28:22,137 pricing_models 2526 139932582540992 🎯 Evaluando trigger: birthday
+INFO 2025-08-20 14:28:22,137 pricing_models 2526 139932582540992 🎂 Verificando cumpleaños - Mes cliente: 8, Mes booking: 8
+INFO 2025-08-20 14:28:22,138 pricing_service 2526 139932582540992 ✅ Resultado para 'Cumpleaños': True - '¡Feliz cumpleaños! 15.00% de descuento'
+INFO 2025-08-20 14:28:22,138 pricing_service 2526 139932582540992 💰 Descuento calculado para 'Cumpleaños': $23.2500 USD (15.00%)
+INFO 2025-08-20 14:28:22,138 pricing_service 2526 139932582540992 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-08-20 14:28:22,139 pricing_service 2526 139932582540992 🎯 'clientefrecuente' no requiere logros específicos
+INFO 2025-08-20 14:28:22,139 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'clientefrecuente' con trigger 'returning'
+INFO 2025-08-20 14:28:22,139 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:28:22,140 pricing_models 2526 139932582540992 🎯 Evaluando trigger: returning
+INFO 2025-08-20 14:28:22,142 pricing_models 2526 139932582540992 🔄 Cliente recurrente - Reservas previas: 0
+INFO 2025-08-20 14:28:22,142 pricing_service 2526 139932582540992 ✅ Resultado para 'clientefrecuente': False - 'No tiene reservas previas (tiene 0)'
+INFO 2025-08-20 14:28:22,142 pricing_service 2526 139932582540992 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-08-20 14:28:22,145 pricing_service 2526 139932582540992 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:28:22,145 pricing_models 2526 139932582540992 🔍 Evaluando descuento '50off ultimo minuto' con trigger 'last_minute'
+INFO 2025-08-20 14:28:22,146 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:28:22,146 pricing_models 2526 139932582540992 ❌ Restringido a fines de semana pero es día de semana
+INFO 2025-08-20 14:28:22,146 pricing_service 2526 139932582540992 ✅ Resultado para '50off ultimo minuto': False - 'Descuento solo válido para fines de semana'
+INFO 2025-08-20 14:28:22,146 pricing_service 2526 139932582540992 🏆 MEJOR DESCUENTO SELECCIONADO: Cumpleaños - $23.2500 USD
+INFO 2025-08-20 14:28:22,163 pricing_service 2526 139932582540992 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-08-20 14:28:22,163 pricing_service 2526 139932582540992 👤 Cliente: AirBnB * (ID: 14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+INFO 2025-08-20 14:28:22,163 pricing_service 2526 139932582540992 📅 Fecha de nacimiento: 2025-08-15
+INFO 2025-08-20 14:28:22,163 pricing_service 2526 139932582540992 📅 Mes de check-in: 8
+INFO 2025-08-20 14:28:22,163 pricing_service 2526 139932582540992 📅 Fecha de check-in: 2025-08-20
+INFO 2025-08-20 14:28:22,168 pricing_service 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:28:22,170 pricing_service 2526 139932582540992 📋 Descuentos automáticos disponibles: 3
+INFO 2025-08-20 14:28:22,171 pricing_service 2526 139932582540992 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-08-20 14:28:22,172 pricing_service 2526 139932582540992 🎯 'Cumpleaños' no requiere logros específicos
+INFO 2025-08-20 14:28:22,173 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'Cumpleaños' con trigger 'birthday'
+INFO 2025-08-20 14:28:22,173 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:28:22,173 pricing_models 2526 139932582540992 🎯 Evaluando trigger: birthday
+INFO 2025-08-20 14:28:22,174 pricing_models 2526 139932582540992 🎂 Verificando cumpleaños - Mes cliente: 8, Mes booking: 8
+INFO 2025-08-20 14:28:22,174 pricing_service 2526 139932582540992 ✅ Resultado para 'Cumpleaños': True - '¡Feliz cumpleaños! 15.00% de descuento'
+INFO 2025-08-20 14:28:22,174 pricing_service 2526 139932582540992 💰 Descuento calculado para 'Cumpleaños': $8.2500 USD (15.00%)
+INFO 2025-08-20 14:28:22,174 pricing_service 2526 139932582540992 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-08-20 14:28:22,175 pricing_service 2526 139932582540992 🎯 'clientefrecuente' no requiere logros específicos
+INFO 2025-08-20 14:28:22,175 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'clientefrecuente' con trigger 'returning'
+INFO 2025-08-20 14:28:22,175 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:28:22,176 pricing_models 2526 139932582540992 🎯 Evaluando trigger: returning
+INFO 2025-08-20 14:28:22,177 pricing_models 2526 139932582540992 🔄 Cliente recurrente - Reservas previas: 0
+INFO 2025-08-20 14:28:22,177 pricing_service 2526 139932582540992 ✅ Resultado para 'clientefrecuente': False - 'No tiene reservas previas (tiene 0)'
+INFO 2025-08-20 14:28:22,177 pricing_service 2526 139932582540992 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-08-20 14:28:22,179 pricing_service 2526 139932582540992 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:28:22,179 pricing_models 2526 139932582540992 🔍 Evaluando descuento '50off ultimo minuto' con trigger 'last_minute'
+INFO 2025-08-20 14:28:22,179 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:28:22,180 pricing_models 2526 139932582540992 ❌ Restringido a fines de semana pero es día de semana
+INFO 2025-08-20 14:28:22,180 pricing_service 2526 139932582540992 ✅ Resultado para '50off ultimo minuto': False - 'Descuento solo válido para fines de semana'
+INFO 2025-08-20 14:28:22,180 pricing_service 2526 139932582540992 🏆 MEJOR DESCUENTO SELECCIONADO: Cumpleaños - $8.2500 USD
+INFO 2025-08-20 14:28:43,586 pricing_service 2526 139932582540992 🔍 Validando protección de fechas especiales para casa 1
+INFO 2025-08-20 14:28:43,586 pricing_service 2526 139932582540992 📅 Check-in: 2025-08-20, Check-out: 2025-08-21, Noches: 1
+INFO 2025-08-20 14:28:43,587 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2025 (None)
+INFO 2025-08-20 14:28:43,587 pricing_service 2526 139932582540992 🛡️  Rango protegido: 31/12/2025 a 31/12/2025
+INFO 2025-08-20 14:28:43,587 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:28:43,588 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2026 (None)
+INFO 2025-08-20 14:28:43,588 pricing_service 2526 139932582540992 🛡️  Rango protegido: 31/12/2026 a 31/12/2026
+INFO 2025-08-20 14:28:43,588 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:28:43,588 pricing_service 2526 139932582540992 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-20 14:28:43,589 pricing_service 2526 139932582540992 🔍 Validando protección de fechas especiales para casa 2
+INFO 2025-08-20 14:28:43,589 pricing_service 2526 139932582540992 📅 Check-in: 2025-08-20, Check-out: 2025-08-21, Noches: 1
+INFO 2025-08-20 14:28:43,590 pricing_service 2526 139932582540992 🎯 Fecha especial: 28/07/2025 (Fiestas patrias)
+INFO 2025-08-20 14:28:43,591 pricing_service 2526 139932582540992 🛡️  Rango protegido: 28/07/2025 a 28/07/2025
+INFO 2025-08-20 14:28:43,591 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:28:43,591 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2025 (Año nuevo)
+INFO 2025-08-20 14:28:43,591 pricing_service 2526 139932582540992 🛡️  Rango protegido: 29/12/2025 a 02/01/2026
+INFO 2025-08-20 14:28:43,591 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 3
+INFO 2025-08-20 14:28:43,592 pricing_service 2526 139932582540992 🎯 Fecha especial: 28/07/2026 (Fiestas patrias)
+INFO 2025-08-20 14:28:43,592 pricing_service 2526 139932582540992 🛡️  Rango protegido: 28/07/2026 a 28/07/2026
+INFO 2025-08-20 14:28:43,593 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:28:43,593 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2026 (Año nuevo)
+INFO 2025-08-20 14:28:43,593 pricing_service 2526 139932582540992 🛡️  Rango protegido: 29/12/2026 a 02/01/2027
+INFO 2025-08-20 14:28:43,593 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 3
+INFO 2025-08-20 14:28:43,593 pricing_service 2526 139932582540992 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-20 14:28:43,608 pricing_service 2526 139932582540992 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-08-20 14:28:43,609 pricing_service 2526 139932582540992 👤 Cliente: AirBnB * (ID: 14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+INFO 2025-08-20 14:28:43,609 pricing_service 2526 139932582540992 📅 Fecha de nacimiento: 2025-08-15
+INFO 2025-08-20 14:28:43,609 pricing_service 2526 139932582540992 📅 Mes de check-in: 8
+INFO 2025-08-20 14:28:43,609 pricing_service 2526 139932582540992 📅 Fecha de check-in: 2025-08-20
+INFO 2025-08-20 14:28:43,610 pricing_service 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:28:43,611 pricing_service 2526 139932582540992 📋 Descuentos automáticos disponibles: 3
+INFO 2025-08-20 14:28:43,612 pricing_service 2526 139932582540992 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-08-20 14:28:43,612 pricing_service 2526 139932582540992 🎯 'Cumpleaños' no requiere logros específicos
+INFO 2025-08-20 14:28:43,612 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'Cumpleaños' con trigger 'birthday'
+INFO 2025-08-20 14:28:43,612 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:28:43,613 pricing_models 2526 139932582540992 🎯 Evaluando trigger: birthday
+INFO 2025-08-20 14:28:43,613 pricing_models 2526 139932582540992 🎂 Verificando cumpleaños - Mes cliente: 8, Mes booking: 8
+INFO 2025-08-20 14:28:43,613 pricing_service 2526 139932582540992 ✅ Resultado para 'Cumpleaños': True - '¡Feliz cumpleaños! 15.00% de descuento'
+INFO 2025-08-20 14:28:43,613 pricing_service 2526 139932582540992 💰 Descuento calculado para 'Cumpleaños': $23.2500 USD (15.00%)
+INFO 2025-08-20 14:28:43,613 pricing_service 2526 139932582540992 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-08-20 14:28:43,614 pricing_service 2526 139932582540992 🎯 'clientefrecuente' no requiere logros específicos
+INFO 2025-08-20 14:28:43,614 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'clientefrecuente' con trigger 'returning'
+INFO 2025-08-20 14:28:43,614 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:28:43,615 pricing_models 2526 139932582540992 🎯 Evaluando trigger: returning
+INFO 2025-08-20 14:28:43,616 pricing_models 2526 139932582540992 🔄 Cliente recurrente - Reservas previas: 0
+INFO 2025-08-20 14:28:43,616 pricing_service 2526 139932582540992 ✅ Resultado para 'clientefrecuente': False - 'No tiene reservas previas (tiene 0)'
+INFO 2025-08-20 14:28:43,616 pricing_service 2526 139932582540992 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-08-20 14:28:43,617 pricing_service 2526 139932582540992 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:28:43,617 pricing_models 2526 139932582540992 🔍 Evaluando descuento '50off ultimo minuto' con trigger 'last_minute'
+INFO 2025-08-20 14:28:43,617 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:28:43,618 pricing_models 2526 139932582540992 🏆 Verificando logros requeridos...
+INFO 2025-08-20 14:28:43,620 pricing_models 2526 139932582540992 🏆 Logros requeridos IDs: {UUID('d105ec64-fce9-4290-9722-7899966694b0'), UUID('f5cc25db-e6bf-4e61-ba85-44dd1a2f0321'), UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab'), UUID('828b1b18-ef7b-4637-87ea-c32838639514'), UUID('41cd0f7a-24db-4eb1-bb00-8a03de06b8b9')}
+INFO 2025-08-20 14:28:43,620 pricing_models 2526 139932582540992 🏆 Logros del cliente IDs: {UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab')}
+INFO 2025-08-20 14:28:43,622 pricing_models 2526 139932582540992 🏆 Logros requeridos: ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:28:43,622 pricing_models 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:28:43,623 pricing_models 2526 139932582540992 ❌ Le faltan logros: ['Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:28:43,623 pricing_service 2526 139932582540992 ✅ Resultado para '50off ultimo minuto': False - 'Requiere logros: Cliente Casa Austin, Huésped Frecuente, VIP Casa Austin, Embajador Casa Austin'
+INFO 2025-08-20 14:28:43,623 pricing_service 2526 139932582540992 🏆 MEJOR DESCUENTO SELECCIONADO: Cumpleaños - $23.2500 USD
+INFO 2025-08-20 14:28:43,636 pricing_service 2526 139932582540992 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-08-20 14:28:43,636 pricing_service 2526 139932582540992 👤 Cliente: AirBnB * (ID: 14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+INFO 2025-08-20 14:28:43,636 pricing_service 2526 139932582540992 📅 Fecha de nacimiento: 2025-08-15
+INFO 2025-08-20 14:28:43,636 pricing_service 2526 139932582540992 📅 Mes de check-in: 8
+INFO 2025-08-20 14:28:43,636 pricing_service 2526 139932582540992 📅 Fecha de check-in: 2025-08-20
+INFO 2025-08-20 14:28:43,637 pricing_service 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:28:43,638 pricing_service 2526 139932582540992 📋 Descuentos automáticos disponibles: 3
+INFO 2025-08-20 14:28:43,638 pricing_service 2526 139932582540992 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-08-20 14:28:43,639 pricing_service 2526 139932582540992 🎯 'Cumpleaños' no requiere logros específicos
+INFO 2025-08-20 14:28:43,639 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'Cumpleaños' con trigger 'birthday'
+INFO 2025-08-20 14:28:43,639 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:28:43,639 pricing_models 2526 139932582540992 🎯 Evaluando trigger: birthday
+INFO 2025-08-20 14:28:43,639 pricing_models 2526 139932582540992 🎂 Verificando cumpleaños - Mes cliente: 8, Mes booking: 8
+INFO 2025-08-20 14:28:43,640 pricing_service 2526 139932582540992 ✅ Resultado para 'Cumpleaños': True - '¡Feliz cumpleaños! 15.00% de descuento'
+INFO 2025-08-20 14:28:43,640 pricing_service 2526 139932582540992 💰 Descuento calculado para 'Cumpleaños': $8.2500 USD (15.00%)
+INFO 2025-08-20 14:28:43,640 pricing_service 2526 139932582540992 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-08-20 14:28:43,640 pricing_service 2526 139932582540992 🎯 'clientefrecuente' no requiere logros específicos
+INFO 2025-08-20 14:28:43,640 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'clientefrecuente' con trigger 'returning'
+INFO 2025-08-20 14:28:43,640 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:28:43,641 pricing_models 2526 139932582540992 🎯 Evaluando trigger: returning
+INFO 2025-08-20 14:28:43,642 pricing_models 2526 139932582540992 🔄 Cliente recurrente - Reservas previas: 0
+INFO 2025-08-20 14:28:43,642 pricing_service 2526 139932582540992 ✅ Resultado para 'clientefrecuente': False - 'No tiene reservas previas (tiene 0)'
+INFO 2025-08-20 14:28:43,642 pricing_service 2526 139932582540992 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-08-20 14:28:43,643 pricing_service 2526 139932582540992 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:28:43,643 pricing_models 2526 139932582540992 🔍 Evaluando descuento '50off ultimo minuto' con trigger 'last_minute'
+INFO 2025-08-20 14:28:43,643 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:28:43,644 pricing_models 2526 139932582540992 🏆 Verificando logros requeridos...
+INFO 2025-08-20 14:28:43,645 pricing_models 2526 139932582540992 🏆 Logros requeridos IDs: {UUID('d105ec64-fce9-4290-9722-7899966694b0'), UUID('f5cc25db-e6bf-4e61-ba85-44dd1a2f0321'), UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab'), UUID('828b1b18-ef7b-4637-87ea-c32838639514'), UUID('41cd0f7a-24db-4eb1-bb00-8a03de06b8b9')}
+INFO 2025-08-20 14:28:43,645 pricing_models 2526 139932582540992 🏆 Logros del cliente IDs: {UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab')}
+INFO 2025-08-20 14:28:43,647 pricing_models 2526 139932582540992 🏆 Logros requeridos: ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:28:43,647 pricing_models 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:28:43,648 pricing_models 2526 139932582540992 ❌ Le faltan logros: ['Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:28:43,648 pricing_service 2526 139932582540992 ✅ Resultado para '50off ultimo minuto': False - 'Requiere logros: Cliente Casa Austin, Huésped Frecuente, VIP Casa Austin, Embajador Casa Austin'
+INFO 2025-08-20 14:28:43,648 pricing_service 2526 139932582540992 🏆 MEJOR DESCUENTO SELECCIONADO: Cumpleaños - $8.2500 USD
+INFO 2025-08-20 14:29:10,907 pricing_service 2526 139932582540992 🔍 Validando protección de fechas especiales para casa 1
+INFO 2025-08-20 14:29:10,907 pricing_service 2526 139932582540992 📅 Check-in: 2025-08-20, Check-out: 2025-08-21, Noches: 1
+INFO 2025-08-20 14:29:10,909 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2025 (None)
+INFO 2025-08-20 14:29:10,909 pricing_service 2526 139932582540992 🛡️  Rango protegido: 31/12/2025 a 31/12/2025
+INFO 2025-08-20 14:29:10,909 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:29:10,911 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2026 (None)
+INFO 2025-08-20 14:29:10,911 pricing_service 2526 139932582540992 🛡️  Rango protegido: 31/12/2026 a 31/12/2026
+INFO 2025-08-20 14:29:10,911 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:29:10,911 pricing_service 2526 139932582540992 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-20 14:29:10,912 pricing_service 2526 139932582540992 🔍 Validando protección de fechas especiales para casa 2
+INFO 2025-08-20 14:29:10,912 pricing_service 2526 139932582540992 📅 Check-in: 2025-08-20, Check-out: 2025-08-21, Noches: 1
+INFO 2025-08-20 14:29:10,913 pricing_service 2526 139932582540992 🎯 Fecha especial: 28/07/2025 (Fiestas patrias)
+INFO 2025-08-20 14:29:10,914 pricing_service 2526 139932582540992 🛡️  Rango protegido: 28/07/2025 a 28/07/2025
+INFO 2025-08-20 14:29:10,914 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:29:10,914 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2025 (Año nuevo)
+INFO 2025-08-20 14:29:10,914 pricing_service 2526 139932582540992 🛡️  Rango protegido: 29/12/2025 a 02/01/2026
+INFO 2025-08-20 14:29:10,914 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 3
+INFO 2025-08-20 14:29:10,915 pricing_service 2526 139932582540992 🎯 Fecha especial: 28/07/2026 (Fiestas patrias)
+INFO 2025-08-20 14:29:10,916 pricing_service 2526 139932582540992 🛡️  Rango protegido: 28/07/2026 a 28/07/2026
+INFO 2025-08-20 14:29:10,916 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:29:10,916 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2026 (Año nuevo)
+INFO 2025-08-20 14:29:10,916 pricing_service 2526 139932582540992 🛡️  Rango protegido: 29/12/2026 a 02/01/2027
+INFO 2025-08-20 14:29:10,916 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 3
+INFO 2025-08-20 14:29:10,916 pricing_service 2526 139932582540992 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-20 14:29:10,930 pricing_service 2526 139932582540992 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-08-20 14:29:10,930 pricing_service 2526 139932582540992 👤 Cliente: AirBnB * (ID: 14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+INFO 2025-08-20 14:29:10,931 pricing_service 2526 139932582540992 📅 Fecha de nacimiento: 2025-08-15
+INFO 2025-08-20 14:29:10,931 pricing_service 2526 139932582540992 📅 Mes de check-in: 8
+INFO 2025-08-20 14:29:10,931 pricing_service 2526 139932582540992 📅 Fecha de check-in: 2025-08-20
+INFO 2025-08-20 14:29:10,932 pricing_service 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:29:10,933 pricing_service 2526 139932582540992 📋 Descuentos automáticos disponibles: 3
+INFO 2025-08-20 14:29:10,933 pricing_service 2526 139932582540992 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-08-20 14:29:10,934 pricing_service 2526 139932582540992 🎯 'Cumpleaños' no requiere logros específicos
+INFO 2025-08-20 14:29:10,934 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'Cumpleaños' con trigger 'birthday'
+INFO 2025-08-20 14:29:10,934 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:29:10,935 pricing_models 2526 139932582540992 🎯 Evaluando trigger: birthday
+INFO 2025-08-20 14:29:10,935 pricing_models 2526 139932582540992 🎂 Verificando cumpleaños - Mes cliente: 8, Mes booking: 8
+INFO 2025-08-20 14:29:10,935 pricing_service 2526 139932582540992 ✅ Resultado para 'Cumpleaños': True - '¡Feliz cumpleaños! 15.00% de descuento'
+INFO 2025-08-20 14:29:10,935 pricing_service 2526 139932582540992 💰 Descuento calculado para 'Cumpleaños': $23.2500 USD (15.00%)
+INFO 2025-08-20 14:29:10,936 pricing_service 2526 139932582540992 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-08-20 14:29:10,936 pricing_service 2526 139932582540992 🎯 'clientefrecuente' no requiere logros específicos
+INFO 2025-08-20 14:29:10,937 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'clientefrecuente' con trigger 'returning'
+INFO 2025-08-20 14:29:10,937 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:29:10,938 pricing_models 2526 139932582540992 🎯 Evaluando trigger: returning
+INFO 2025-08-20 14:29:10,939 pricing_models 2526 139932582540992 🔄 Cliente recurrente - Reservas previas: 0
+INFO 2025-08-20 14:29:10,939 pricing_service 2526 139932582540992 ✅ Resultado para 'clientefrecuente': False - 'No tiene reservas previas (tiene 0)'
+INFO 2025-08-20 14:29:10,939 pricing_service 2526 139932582540992 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-08-20 14:29:10,941 pricing_service 2526 139932582540992 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:29:10,941 pricing_models 2526 139932582540992 🔍 Evaluando descuento '50off ultimo minuto' con trigger 'last_minute'
+INFO 2025-08-20 14:29:10,942 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:29:10,943 pricing_models 2526 139932582540992 🏆 Verificando logros requeridos...
+INFO 2025-08-20 14:29:10,945 pricing_models 2526 139932582540992 🏆 Logros requeridos IDs: {UUID('d105ec64-fce9-4290-9722-7899966694b0'), UUID('f5cc25db-e6bf-4e61-ba85-44dd1a2f0321'), UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab'), UUID('828b1b18-ef7b-4637-87ea-c32838639514'), UUID('41cd0f7a-24db-4eb1-bb00-8a03de06b8b9')}
+INFO 2025-08-20 14:29:10,945 pricing_models 2526 139932582540992 🏆 Logros del cliente IDs: {UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab')}
+INFO 2025-08-20 14:29:10,947 pricing_models 2526 139932582540992 🏆 Logros requeridos: ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:29:10,947 pricing_models 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:29:10,949 pricing_models 2526 139932582540992 ❌ Le faltan logros: ['Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:29:10,949 pricing_service 2526 139932582540992 ✅ Resultado para '50off ultimo minuto': False - 'Requiere logros: Cliente Casa Austin, Huésped Frecuente, VIP Casa Austin, Embajador Casa Austin'
+INFO 2025-08-20 14:29:10,949 pricing_service 2526 139932582540992 🏆 MEJOR DESCUENTO SELECCIONADO: Cumpleaños - $23.2500 USD
+INFO 2025-08-20 14:29:10,964 pricing_service 2526 139932582540992 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-08-20 14:29:10,965 pricing_service 2526 139932582540992 👤 Cliente: AirBnB * (ID: 14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+INFO 2025-08-20 14:29:10,965 pricing_service 2526 139932582540992 📅 Fecha de nacimiento: 2025-08-15
+INFO 2025-08-20 14:29:10,965 pricing_service 2526 139932582540992 📅 Mes de check-in: 8
+INFO 2025-08-20 14:29:10,965 pricing_service 2526 139932582540992 📅 Fecha de check-in: 2025-08-20
+INFO 2025-08-20 14:29:10,966 pricing_service 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:29:10,967 pricing_service 2526 139932582540992 📋 Descuentos automáticos disponibles: 3
+INFO 2025-08-20 14:29:10,967 pricing_service 2526 139932582540992 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-08-20 14:29:10,968 pricing_service 2526 139932582540992 🎯 'Cumpleaños' no requiere logros específicos
+INFO 2025-08-20 14:29:10,968 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'Cumpleaños' con trigger 'birthday'
+INFO 2025-08-20 14:29:10,968 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:29:10,969 pricing_models 2526 139932582540992 🎯 Evaluando trigger: birthday
+INFO 2025-08-20 14:29:10,969 pricing_models 2526 139932582540992 🎂 Verificando cumpleaños - Mes cliente: 8, Mes booking: 8
+INFO 2025-08-20 14:29:10,969 pricing_service 2526 139932582540992 ✅ Resultado para 'Cumpleaños': True - '¡Feliz cumpleaños! 15.00% de descuento'
+INFO 2025-08-20 14:29:10,969 pricing_service 2526 139932582540992 💰 Descuento calculado para 'Cumpleaños': $8.2500 USD (15.00%)
+INFO 2025-08-20 14:29:10,969 pricing_service 2526 139932582540992 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-08-20 14:29:10,970 pricing_service 2526 139932582540992 🎯 'clientefrecuente' no requiere logros específicos
+INFO 2025-08-20 14:29:10,970 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'clientefrecuente' con trigger 'returning'
+INFO 2025-08-20 14:29:10,970 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:29:10,971 pricing_models 2526 139932582540992 🎯 Evaluando trigger: returning
+INFO 2025-08-20 14:29:10,972 pricing_models 2526 139932582540992 🔄 Cliente recurrente - Reservas previas: 0
+INFO 2025-08-20 14:29:10,972 pricing_service 2526 139932582540992 ✅ Resultado para 'clientefrecuente': False - 'No tiene reservas previas (tiene 0)'
+INFO 2025-08-20 14:29:10,972 pricing_service 2526 139932582540992 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-08-20 14:29:10,974 pricing_service 2526 139932582540992 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:29:10,974 pricing_models 2526 139932582540992 🔍 Evaluando descuento '50off ultimo minuto' con trigger 'last_minute'
+INFO 2025-08-20 14:29:10,974 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:29:10,975 pricing_models 2526 139932582540992 🏆 Verificando logros requeridos...
+INFO 2025-08-20 14:29:10,977 pricing_models 2526 139932582540992 🏆 Logros requeridos IDs: {UUID('d105ec64-fce9-4290-9722-7899966694b0'), UUID('f5cc25db-e6bf-4e61-ba85-44dd1a2f0321'), UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab'), UUID('828b1b18-ef7b-4637-87ea-c32838639514'), UUID('41cd0f7a-24db-4eb1-bb00-8a03de06b8b9')}
+INFO 2025-08-20 14:29:10,977 pricing_models 2526 139932582540992 🏆 Logros del cliente IDs: {UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab')}
+INFO 2025-08-20 14:29:10,979 pricing_models 2526 139932582540992 🏆 Logros requeridos: ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:29:10,979 pricing_models 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:29:10,980 pricing_models 2526 139932582540992 ❌ Le faltan logros: ['Cliente Casa Austin', 'Huésped Frecuente', 'VIP Casa Austin', 'Embajador Casa Austin']
+INFO 2025-08-20 14:29:10,981 pricing_service 2526 139932582540992 ✅ Resultado para '50off ultimo minuto': False - 'Requiere logros: Cliente Casa Austin, Huésped Frecuente, VIP Casa Austin, Embajador Casa Austin'
+INFO 2025-08-20 14:29:10,981 pricing_service 2526 139932582540992 🏆 MEJOR DESCUENTO SELECCIONADO: Cumpleaños - $8.2500 USD
+INFO 2025-08-20 14:30:07,224 pricing_service 2526 139932582540992 🔍 Validando protección de fechas especiales para casa 1
+INFO 2025-08-20 14:30:07,224 pricing_service 2526 139932582540992 📅 Check-in: 2025-08-20, Check-out: 2025-08-21, Noches: 1
+INFO 2025-08-20 14:30:07,225 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2025 (None)
+INFO 2025-08-20 14:30:07,226 pricing_service 2526 139932582540992 🛡️  Rango protegido: 31/12/2025 a 31/12/2025
+INFO 2025-08-20 14:30:07,226 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:30:07,227 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2026 (None)
+INFO 2025-08-20 14:30:07,227 pricing_service 2526 139932582540992 🛡️  Rango protegido: 31/12/2026 a 31/12/2026
+INFO 2025-08-20 14:30:07,227 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:30:07,227 pricing_service 2526 139932582540992 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-20 14:30:07,228 pricing_service 2526 139932582540992 🔍 Validando protección de fechas especiales para casa 2
+INFO 2025-08-20 14:30:07,228 pricing_service 2526 139932582540992 📅 Check-in: 2025-08-20, Check-out: 2025-08-21, Noches: 1
+INFO 2025-08-20 14:30:07,229 pricing_service 2526 139932582540992 🎯 Fecha especial: 28/07/2025 (Fiestas patrias)
+INFO 2025-08-20 14:30:07,229 pricing_service 2526 139932582540992 🛡️  Rango protegido: 28/07/2025 a 28/07/2025
+INFO 2025-08-20 14:30:07,229 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:30:07,229 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2025 (Año nuevo)
+INFO 2025-08-20 14:30:07,229 pricing_service 2526 139932582540992 🛡️  Rango protegido: 29/12/2025 a 02/01/2026
+INFO 2025-08-20 14:30:07,230 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 3
+INFO 2025-08-20 14:30:07,230 pricing_service 2526 139932582540992 🎯 Fecha especial: 28/07/2026 (Fiestas patrias)
+INFO 2025-08-20 14:30:07,231 pricing_service 2526 139932582540992 🛡️  Rango protegido: 28/07/2026 a 28/07/2026
+INFO 2025-08-20 14:30:07,231 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:30:07,231 pricing_service 2526 139932582540992 🎯 Fecha especial: 31/12/2026 (Año nuevo)
+INFO 2025-08-20 14:30:07,231 pricing_service 2526 139932582540992 🛡️  Rango protegido: 29/12/2026 a 02/01/2027
+INFO 2025-08-20 14:30:07,231 pricing_service 2526 139932582540992 📏 Noches mínimas requeridas: 3
+INFO 2025-08-20 14:30:07,231 pricing_service 2526 139932582540992 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-20 14:30:07,244 pricing_service 2526 139932582540992 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-08-20 14:30:07,244 pricing_service 2526 139932582540992 👤 Cliente: AirBnB * (ID: 14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+INFO 2025-08-20 14:30:07,244 pricing_service 2526 139932582540992 📅 Fecha de nacimiento: 2025-08-15
+INFO 2025-08-20 14:30:07,244 pricing_service 2526 139932582540992 📅 Mes de check-in: 8
+INFO 2025-08-20 14:30:07,244 pricing_service 2526 139932582540992 📅 Fecha de check-in: 2025-08-20
+INFO 2025-08-20 14:30:07,245 pricing_service 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:30:07,246 pricing_service 2526 139932582540992 📋 Descuentos automáticos disponibles: 3
+INFO 2025-08-20 14:30:07,247 pricing_service 2526 139932582540992 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-08-20 14:30:07,247 pricing_service 2526 139932582540992 🎯 'Cumpleaños' no requiere logros específicos
+INFO 2025-08-20 14:30:07,248 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'Cumpleaños' con trigger 'birthday'
+INFO 2025-08-20 14:30:07,248 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:30:07,248 pricing_models 2526 139932582540992 🎯 Evaluando trigger: birthday
+INFO 2025-08-20 14:30:07,248 pricing_models 2526 139932582540992 🎂 Verificando cumpleaños - Mes cliente: 8, Mes booking: 8
+INFO 2025-08-20 14:30:07,249 pricing_service 2526 139932582540992 ✅ Resultado para 'Cumpleaños': True - '¡Feliz cumpleaños! 15.00% de descuento'
+INFO 2025-08-20 14:30:07,249 pricing_service 2526 139932582540992 💰 Descuento calculado para 'Cumpleaños': $23.2500 USD (15.00%)
+INFO 2025-08-20 14:30:07,249 pricing_service 2526 139932582540992 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-08-20 14:30:07,249 pricing_service 2526 139932582540992 🎯 'clientefrecuente' no requiere logros específicos
+INFO 2025-08-20 14:30:07,249 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'clientefrecuente' con trigger 'returning'
+INFO 2025-08-20 14:30:07,250 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:30:07,250 pricing_models 2526 139932582540992 🎯 Evaluando trigger: returning
+INFO 2025-08-20 14:30:07,251 pricing_models 2526 139932582540992 🔄 Cliente recurrente - Reservas previas: 0
+INFO 2025-08-20 14:30:07,251 pricing_service 2526 139932582540992 ✅ Resultado para 'clientefrecuente': False - 'No tiene reservas previas (tiene 0)'
+INFO 2025-08-20 14:30:07,251 pricing_service 2526 139932582540992 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-08-20 14:30:07,253 pricing_service 2526 139932582540992 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso']
+INFO 2025-08-20 14:30:07,253 pricing_models 2526 139932582540992 🔍 Evaluando descuento '50off ultimo minuto' con trigger 'last_minute'
+INFO 2025-08-20 14:30:07,253 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:30:07,254 pricing_models 2526 139932582540992 🏆 Verificando logros requeridos...
+INFO 2025-08-20 14:30:07,256 pricing_models 2526 139932582540992 🏆 Logros requeridos IDs: {UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab')}
+INFO 2025-08-20 14:30:07,256 pricing_models 2526 139932582540992 🏆 Logros del cliente IDs: {UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab')}
+INFO 2025-08-20 14:30:07,258 pricing_models 2526 139932582540992 🏆 Logros requeridos: ['Curioso']
+INFO 2025-08-20 14:30:07,258 pricing_models 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:30:07,258 pricing_models 2526 139932582540992 ✅ Cliente tiene todos los logros requeridos
+INFO 2025-08-20 14:30:07,258 pricing_models 2526 139932582540992 🎯 Evaluando trigger: last_minute
+INFO 2025-08-20 14:30:07,258 pricing_models 2526 139932582540992 ⏰ Último minuto - Hoy: 2025-08-20, Mañana: 2025-08-21, Booking: 2025-08-20
+INFO 2025-08-20 14:30:07,258 pricing_service 2526 139932582540992 ✅ Resultado para '50off ultimo minuto': True - '¡Reserva para hoy! 50.00% de descuento último minuto'
+INFO 2025-08-20 14:30:07,259 pricing_service 2526 139932582540992 💰 Descuento calculado para '50off ultimo minuto': $77.5000 USD (50.00%)
+INFO 2025-08-20 14:30:07,259 pricing_service 2526 139932582540992 🏆 MEJOR DESCUENTO SELECCIONADO: 50off ultimo minuto - $77.5000 USD
+INFO 2025-08-20 14:30:07,271 pricing_service 2526 139932582540992 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-08-20 14:30:07,271 pricing_service 2526 139932582540992 👤 Cliente: AirBnB * (ID: 14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+INFO 2025-08-20 14:30:07,271 pricing_service 2526 139932582540992 📅 Fecha de nacimiento: 2025-08-15
+INFO 2025-08-20 14:30:07,271 pricing_service 2526 139932582540992 📅 Mes de check-in: 8
+INFO 2025-08-20 14:30:07,271 pricing_service 2526 139932582540992 📅 Fecha de check-in: 2025-08-20
+INFO 2025-08-20 14:30:07,272 pricing_service 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:30:07,273 pricing_service 2526 139932582540992 📋 Descuentos automáticos disponibles: 3
+INFO 2025-08-20 14:30:07,274 pricing_service 2526 139932582540992 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-08-20 14:30:07,274 pricing_service 2526 139932582540992 🎯 'Cumpleaños' no requiere logros específicos
+INFO 2025-08-20 14:30:07,274 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'Cumpleaños' con trigger 'birthday'
+INFO 2025-08-20 14:30:07,274 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:30:07,275 pricing_models 2526 139932582540992 🎯 Evaluando trigger: birthday
+INFO 2025-08-20 14:30:07,275 pricing_models 2526 139932582540992 🎂 Verificando cumpleaños - Mes cliente: 8, Mes booking: 8
+INFO 2025-08-20 14:30:07,275 pricing_service 2526 139932582540992 ✅ Resultado para 'Cumpleaños': True - '¡Feliz cumpleaños! 15.00% de descuento'
+INFO 2025-08-20 14:30:07,275 pricing_service 2526 139932582540992 💰 Descuento calculado para 'Cumpleaños': $8.2500 USD (15.00%)
+INFO 2025-08-20 14:30:07,275 pricing_service 2526 139932582540992 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-08-20 14:30:07,276 pricing_service 2526 139932582540992 🎯 'clientefrecuente' no requiere logros específicos
+INFO 2025-08-20 14:30:07,276 pricing_models 2526 139932582540992 🔍 Evaluando descuento 'clientefrecuente' con trigger 'returning'
+INFO 2025-08-20 14:30:07,276 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:30:07,277 pricing_models 2526 139932582540992 🎯 Evaluando trigger: returning
+INFO 2025-08-20 14:30:07,278 pricing_models 2526 139932582540992 🔄 Cliente recurrente - Reservas previas: 0
+INFO 2025-08-20 14:30:07,278 pricing_service 2526 139932582540992 ✅ Resultado para 'clientefrecuente': False - 'No tiene reservas previas (tiene 0)'
+INFO 2025-08-20 14:30:07,278 pricing_service 2526 139932582540992 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-08-20 14:30:07,279 pricing_service 2526 139932582540992 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso']
+INFO 2025-08-20 14:30:07,279 pricing_models 2526 139932582540992 🔍 Evaluando descuento '50off ultimo minuto' con trigger 'last_minute'
+INFO 2025-08-20 14:30:07,279 pricing_models 2526 139932582540992 📅 Día de la semana: 2 (día de semana)
+INFO 2025-08-20 14:30:07,280 pricing_models 2526 139932582540992 🏆 Verificando logros requeridos...
+INFO 2025-08-20 14:30:07,281 pricing_models 2526 139932582540992 🏆 Logros requeridos IDs: {UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab')}
+INFO 2025-08-20 14:30:07,282 pricing_models 2526 139932582540992 🏆 Logros del cliente IDs: {UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab')}
+INFO 2025-08-20 14:30:07,283 pricing_models 2526 139932582540992 🏆 Logros requeridos: ['Curioso']
+INFO 2025-08-20 14:30:07,283 pricing_models 2526 139932582540992 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:30:07,283 pricing_models 2526 139932582540992 ✅ Cliente tiene todos los logros requeridos
+INFO 2025-08-20 14:30:07,283 pricing_models 2526 139932582540992 🎯 Evaluando trigger: last_minute
+INFO 2025-08-20 14:30:07,283 pricing_models 2526 139932582540992 ⏰ Último minuto - Hoy: 2025-08-20, Mañana: 2025-08-21, Booking: 2025-08-20
+INFO 2025-08-20 14:30:07,283 pricing_service 2526 139932582540992 ✅ Resultado para '50off ultimo minuto': True - '¡Reserva para hoy! 50.00% de descuento último minuto'
+INFO 2025-08-20 14:30:07,284 pricing_service 2526 139932582540992 💰 Descuento calculado para '50off ultimo minuto': $27.5000 USD (50.00%)
+INFO 2025-08-20 14:30:07,284 pricing_service 2526 139932582540992 🏆 MEJOR DESCUENTO SELECCIONADO: 50off ultimo minuto - $27.5000 USD
