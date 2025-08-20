@@ -4253,3 +4253,99 @@ INFO 2025-08-20 14:30:07,283 pricing_models 2526 139932582540992 ⏰ Último min
 INFO 2025-08-20 14:30:07,283 pricing_service 2526 139932582540992 ✅ Resultado para '50off ultimo minuto': True - '¡Reserva para hoy! 50.00% de descuento último minuto'
 INFO 2025-08-20 14:30:07,284 pricing_service 2526 139932582540992 💰 Descuento calculado para '50off ultimo minuto': $27.5000 USD (50.00%)
 INFO 2025-08-20 14:30:07,284 pricing_service 2526 139932582540992 🏆 MEJOR DESCUENTO SELECCIONADO: 50off ultimo minuto - $27.5000 USD
+INFO 2025-08-20 14:49:19,538 pricing_service 6945 140054198654656 🔍 Validando protección de fechas especiales para casa 1
+INFO 2025-08-20 14:49:19,539 pricing_service 6945 140054198654656 📅 Check-in: 2025-08-26, Check-out: 2025-08-27, Noches: 1
+INFO 2025-08-20 14:49:19,540 pricing_service 6945 140054198654656 🎯 Fecha especial: 31/12/2025 (None)
+INFO 2025-08-20 14:49:19,541 pricing_service 6945 140054198654656 🛡️  Rango protegido: 31/12/2025 a 31/12/2025
+INFO 2025-08-20 14:49:19,541 pricing_service 6945 140054198654656 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:49:19,542 pricing_service 6945 140054198654656 🎯 Fecha especial: 31/12/2026 (None)
+INFO 2025-08-20 14:49:19,542 pricing_service 6945 140054198654656 🛡️  Rango protegido: 31/12/2026 a 31/12/2026
+INFO 2025-08-20 14:49:19,542 pricing_service 6945 140054198654656 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:49:19,542 pricing_service 6945 140054198654656 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-20 14:49:19,543 pricing_service 6945 140054198654656 🔍 Validando protección de fechas especiales para casa 2
+INFO 2025-08-20 14:49:19,543 pricing_service 6945 140054198654656 📅 Check-in: 2025-08-26, Check-out: 2025-08-27, Noches: 1
+INFO 2025-08-20 14:49:19,544 pricing_service 6945 140054198654656 🎯 Fecha especial: 28/07/2025 (Fiestas patrias)
+INFO 2025-08-20 14:49:19,544 pricing_service 6945 140054198654656 🛡️  Rango protegido: 28/07/2025 a 28/07/2025
+INFO 2025-08-20 14:49:19,544 pricing_service 6945 140054198654656 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:49:19,544 pricing_service 6945 140054198654656 🎯 Fecha especial: 31/12/2025 (Año nuevo)
+INFO 2025-08-20 14:49:19,544 pricing_service 6945 140054198654656 🛡️  Rango protegido: 29/12/2025 a 02/01/2026
+INFO 2025-08-20 14:49:19,544 pricing_service 6945 140054198654656 📏 Noches mínimas requeridas: 3
+INFO 2025-08-20 14:49:19,545 pricing_service 6945 140054198654656 🎯 Fecha especial: 28/07/2026 (Fiestas patrias)
+INFO 2025-08-20 14:49:19,545 pricing_service 6945 140054198654656 🛡️  Rango protegido: 28/07/2026 a 28/07/2026
+INFO 2025-08-20 14:49:19,545 pricing_service 6945 140054198654656 📏 Noches mínimas requeridas: 1
+INFO 2025-08-20 14:49:19,546 pricing_service 6945 140054198654656 🎯 Fecha especial: 31/12/2026 (Año nuevo)
+INFO 2025-08-20 14:49:19,546 pricing_service 6945 140054198654656 🛡️  Rango protegido: 29/12/2026 a 02/01/2027
+INFO 2025-08-20 14:49:19,546 pricing_service 6945 140054198654656 📏 Noches mínimas requeridas: 3
+INFO 2025-08-20 14:49:19,546 pricing_service 6945 140054198654656 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-08-20 14:49:19,557 pricing_service 6945 140054198654656 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-08-20 14:49:19,557 pricing_service 6945 140054198654656 👤 Cliente: AirBnB * (ID: 14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+INFO 2025-08-20 14:49:19,557 pricing_service 6945 140054198654656 📅 Fecha de nacimiento: 2025-08-15
+INFO 2025-08-20 14:49:19,558 pricing_service 6945 140054198654656 📅 Mes de check-in: 8
+INFO 2025-08-20 14:49:19,558 pricing_service 6945 140054198654656 📅 Fecha de check-in: 2025-08-26
+INFO 2025-08-20 14:49:19,559 pricing_service 6945 140054198654656 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:49:19,559 pricing_service 6945 140054198654656 📋 Descuentos automáticos disponibles: 3
+INFO 2025-08-20 14:49:19,560 pricing_service 6945 140054198654656 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-08-20 14:49:19,561 pricing_service 6945 140054198654656 🎯 'Cumpleaños' no requiere logros específicos
+INFO 2025-08-20 14:49:19,561 pricing_models 6945 140054198654656 🔍 Evaluando descuento 'Cumpleaños' con trigger 'birthday'
+INFO 2025-08-20 14:49:19,561 pricing_models 6945 140054198654656 📅 Día de la semana: 1 (día de semana)
+INFO 2025-08-20 14:49:19,561 pricing_models 6945 140054198654656 🎯 Evaluando trigger: birthday
+INFO 2025-08-20 14:49:19,562 pricing_models 6945 140054198654656 🎂 Verificando cumpleaños - Mes cliente: 8, Mes booking: 8
+INFO 2025-08-20 14:49:19,562 pricing_service 6945 140054198654656 ✅ Resultado para 'Cumpleaños': True - '¡Feliz cumpleaños! 15.00% de descuento'
+INFO 2025-08-20 14:49:19,562 pricing_service 6945 140054198654656 💰 Descuento calculado para 'Cumpleaños': $23.2500 USD (15.00%)
+INFO 2025-08-20 14:49:19,562 pricing_service 6945 140054198654656 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-08-20 14:49:19,562 pricing_service 6945 140054198654656 🎯 'clientefrecuente' no requiere logros específicos
+INFO 2025-08-20 14:49:19,563 pricing_models 6945 140054198654656 🔍 Evaluando descuento 'clientefrecuente' con trigger 'returning'
+INFO 2025-08-20 14:49:19,563 pricing_models 6945 140054198654656 📅 Día de la semana: 1 (día de semana)
+INFO 2025-08-20 14:49:19,563 pricing_models 6945 140054198654656 🎯 Evaluando trigger: returning
+INFO 2025-08-20 14:49:19,564 pricing_models 6945 140054198654656 🔄 Cliente recurrente - Reservas previas: 0
+INFO 2025-08-20 14:49:19,564 pricing_service 6945 140054198654656 ✅ Resultado para 'clientefrecuente': False - 'No tiene reservas previas (tiene 0)'
+INFO 2025-08-20 14:49:19,564 pricing_service 6945 140054198654656 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-08-20 14:49:19,565 pricing_service 6945 140054198654656 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso']
+INFO 2025-08-20 14:49:19,565 pricing_models 6945 140054198654656 🔍 Evaluando descuento '50off ultimo minuto' con trigger 'last_minute'
+INFO 2025-08-20 14:49:19,566 pricing_models 6945 140054198654656 📅 Día de la semana: 1 (día de semana)
+INFO 2025-08-20 14:49:19,566 pricing_models 6945 140054198654656 🏆 Verificando logros requeridos...
+INFO 2025-08-20 14:49:19,568 pricing_models 6945 140054198654656 🏆 Logros requeridos IDs: {UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab')}
+INFO 2025-08-20 14:49:19,568 pricing_models 6945 140054198654656 🏆 Logros del cliente IDs: {UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab')}
+INFO 2025-08-20 14:49:19,570 pricing_models 6945 140054198654656 🏆 Logros requeridos: ['Curioso']
+INFO 2025-08-20 14:49:19,570 pricing_models 6945 140054198654656 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:49:19,571 pricing_models 6945 140054198654656 ✅ Cliente tiene estos logros requeridos: ['Curioso']
+INFO 2025-08-20 14:49:19,571 pricing_models 6945 140054198654656 🎯 Evaluando trigger: last_minute
+INFO 2025-08-20 14:49:19,571 pricing_models 6945 140054198654656 ⏰ Último minuto - Hoy: 2025-08-20, Mañana: 2025-08-21, Booking: 2025-08-26
+INFO 2025-08-20 14:49:19,571 pricing_service 6945 140054198654656 ✅ Resultado para '50off ultimo minuto': False - 'No es reserva de último minuto (booking: 2025-08-26)'
+INFO 2025-08-20 14:49:19,571 pricing_service 6945 140054198654656 🏆 MEJOR DESCUENTO SELECCIONADO: Cumpleaños - $23.2500 USD
+INFO 2025-08-20 14:49:19,584 pricing_service 6945 140054198654656 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-08-20 14:49:19,584 pricing_service 6945 140054198654656 👤 Cliente: AirBnB * (ID: 14ae737b-26b5-4555-acb5-3bdcd0d680f6)
+INFO 2025-08-20 14:49:19,584 pricing_service 6945 140054198654656 📅 Fecha de nacimiento: 2025-08-15
+INFO 2025-08-20 14:49:19,585 pricing_service 6945 140054198654656 📅 Mes de check-in: 8
+INFO 2025-08-20 14:49:19,585 pricing_service 6945 140054198654656 📅 Fecha de check-in: 2025-08-26
+INFO 2025-08-20 14:49:19,585 pricing_service 6945 140054198654656 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:49:19,586 pricing_service 6945 140054198654656 📋 Descuentos automáticos disponibles: 3
+INFO 2025-08-20 14:49:19,587 pricing_service 6945 140054198654656 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-08-20 14:49:19,587 pricing_service 6945 140054198654656 🎯 'Cumpleaños' no requiere logros específicos
+INFO 2025-08-20 14:49:19,587 pricing_models 6945 140054198654656 🔍 Evaluando descuento 'Cumpleaños' con trigger 'birthday'
+INFO 2025-08-20 14:49:19,587 pricing_models 6945 140054198654656 📅 Día de la semana: 1 (día de semana)
+INFO 2025-08-20 14:49:19,588 pricing_models 6945 140054198654656 🎯 Evaluando trigger: birthday
+INFO 2025-08-20 14:49:19,588 pricing_models 6945 140054198654656 🎂 Verificando cumpleaños - Mes cliente: 8, Mes booking: 8
+INFO 2025-08-20 14:49:19,588 pricing_service 6945 140054198654656 ✅ Resultado para 'Cumpleaños': True - '¡Feliz cumpleaños! 15.00% de descuento'
+INFO 2025-08-20 14:49:19,588 pricing_service 6945 140054198654656 💰 Descuento calculado para 'Cumpleaños': $8.2500 USD (15.00%)
+INFO 2025-08-20 14:49:19,588 pricing_service 6945 140054198654656 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-08-20 14:49:19,589 pricing_service 6945 140054198654656 🎯 'clientefrecuente' no requiere logros específicos
+INFO 2025-08-20 14:49:19,589 pricing_models 6945 140054198654656 🔍 Evaluando descuento 'clientefrecuente' con trigger 'returning'
+INFO 2025-08-20 14:49:19,589 pricing_models 6945 140054198654656 📅 Día de la semana: 1 (día de semana)
+INFO 2025-08-20 14:49:19,590 pricing_models 6945 140054198654656 🎯 Evaluando trigger: returning
+INFO 2025-08-20 14:49:19,590 pricing_models 6945 140054198654656 🔄 Cliente recurrente - Reservas previas: 0
+INFO 2025-08-20 14:49:19,590 pricing_service 6945 140054198654656 ✅ Resultado para 'clientefrecuente': False - 'No tiene reservas previas (tiene 0)'
+INFO 2025-08-20 14:49:19,591 pricing_service 6945 140054198654656 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-08-20 14:49:19,592 pricing_service 6945 140054198654656 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso']
+INFO 2025-08-20 14:49:19,592 pricing_models 6945 140054198654656 🔍 Evaluando descuento '50off ultimo minuto' con trigger 'last_minute'
+INFO 2025-08-20 14:49:19,592 pricing_models 6945 140054198654656 📅 Día de la semana: 1 (día de semana)
+INFO 2025-08-20 14:49:19,592 pricing_models 6945 140054198654656 🏆 Verificando logros requeridos...
+INFO 2025-08-20 14:49:19,594 pricing_models 6945 140054198654656 🏆 Logros requeridos IDs: {UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab')}
+INFO 2025-08-20 14:49:19,594 pricing_models 6945 140054198654656 🏆 Logros del cliente IDs: {UUID('dc756ca4-d5ec-4869-b927-b9a8996311ab')}
+INFO 2025-08-20 14:49:19,595 pricing_models 6945 140054198654656 🏆 Logros requeridos: ['Curioso']
+INFO 2025-08-20 14:49:19,596 pricing_models 6945 140054198654656 🏆 Logros del cliente: ['Curioso']
+INFO 2025-08-20 14:49:19,596 pricing_models 6945 140054198654656 ✅ Cliente tiene estos logros requeridos: ['Curioso']
+INFO 2025-08-20 14:49:19,596 pricing_models 6945 140054198654656 🎯 Evaluando trigger: last_minute
+INFO 2025-08-20 14:49:19,597 pricing_models 6945 140054198654656 ⏰ Último minuto - Hoy: 2025-08-20, Mañana: 2025-08-21, Booking: 2025-08-26
+INFO 2025-08-20 14:49:19,597 pricing_service 6945 140054198654656 ✅ Resultado para '50off ultimo minuto': False - 'No es reserva de último minuto (booking: 2025-08-26)'
+INFO 2025-08-20 14:49:19,597 pricing_service 6945 140054198654656 🏆 MEJOR DESCUENTO SELECCIONADO: Cumpleaños - $8.2500 USD
