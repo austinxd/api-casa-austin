@@ -1,0 +1,92 @@
+➜  src git:(main) ✗ python manage.py showmigrations                                               
+accounts
+ [X] 0001_initial
+ [X] 0002_customuser_profile_photo
+admin
+ [X] 0001_initial
+ [X] 0002_logentry_remove_auto_add
+ [X] 0003_logentry_add_action_flag_choices
+auth
+ [X] 0001_initial
+ [X] 0002_alter_permission_name_max_length
+ [X] 0003_alter_user_email_max_length
+ [X] 0004_alter_user_username_opts
+ [X] 0005_alter_user_last_login_null
+ [X] 0006_require_contenttypes_0002
+ [X] 0007_alter_validators_add_error_messages
+ [X] 0008_alter_user_username_max_length
+ [X] 0009_alter_user_last_name_max_length
+ [X] 0010_alter_group_name_max_length
+ [X] 0011_update_proxy_permissions
+ [X] 0012_alter_user_first_name_max_length
+clients
+ [X] 0001_initial
+ [X] 0002_tokenapiclients
+ [X] 0003_alter_tokenapiclients_token
+ [X] 0004_alter_clients_unique_together
+ [X] 0005_alter_clients_email
+ [X] 0006_alter_tokenapiclients_options
+ [X] 0007_alter_clients_document_type_alter_clients_first_name_and_more
+ [X] 0008_alter_clients_document_type
+ [X] 0009_alter_clients_sex
+ [X] 0010_mensajefidelidad
+ [X] 0011_clients_id_manychat_clients_manychat
+ [X] 0012_clients_referral_code
+ [X] 0013_referralpointsconfig_clients_comentarios_clientes_and_more
+ [X] 0014_achievement_clientachievement
+contenttypes
+ [X] 0001_initial
+ [X] 0002_remove_content_type_name
+dashboard
+ (no migrations)
+property
+ [X] 0001_initial
+ [ ] 0002_profitpropertyairbnb
+ [ ] 0003_alter_profitpropertyairbnb_unique_together
+ [ ] 0004_property_background_color
+ [ ] 0005_property_off_temperature_pool_url_and_more
+ [ ] 0006_fix_utf8mb4_encoding
+ [ ] 0007_mark_slug_as_existing
+ [ ] 0008_add_slug_field_safely
+ [ ] 0010_fix_property_photo_foreign_key
+ [ ] 0011_property_banos_property_caracteristicas_and_more
+ [ ] 0012_automaticdiscount_exchangerate_seasonpricing_and_more
+ [ ] 0013_remove_additionalservice_properties_and_more
+ [ ] 0014_automaticdiscount_exchangerate_seasonpricing_and_more
+ [ ] 0015_alter_seasonpricing_options_and_more
+ [ ] 0016_auto_20250815_1744
+ [ ] 0016_add_name_field_with_default
+ [ ] 0017_merge_20250815_1745
+ [ ] 0018_alter_seasonpricing_options_and_more
+ [ ] 0019_seasonpricing_recurrent_dates
+ [ ] 0020_alter_seasonpricing_end_day_and_more
+ [ ] 0021_convert_special_dates_to_recurrent
+ [ ] 0022_alter_specialdatepricing_day_and_more
+ [ ] 0023_alter_specialdatepricing_description
+ [ ] 0024_discountcode_restrict_weekdays_and_more
+ [ ] 0025_dynamicdiscountconfig_and_more
+ [ ] 0026_propertyphoto_thumbnail
+ [ ] 0027_add_description_to_automaticdiscount
+ [ ] 0028_add_properties_to_dynamicdiscountconfig
+ [ ] 0029_add_minimum_consecutive_nights
+ [ ] 0030_automaticdiscount_restrict_weekdays_and_more
+ [ ] 0031_replace_min_reservations_with_achievements
+ [ ] 0032_increase_trigger_max_length
+ [ ] 0033_fix_migration_state
+reservation
+ [X] 0001_initial
+ [X] 0002_reservation_origin_reservation_uuid_external
+ [X] 0003_alter_reservation_uuid_external
+ [X] 0004_alter_reservation_price_usd
+ [X] 0005_alter_reservation_advance_payment_and_more
+ [X] 0006_reservation_tel_contact_number
+ [X] 0007_alter_reservation_origin
+ [X] 0008_reservation_full_payment_and_more
+ [X] 0009_alter_reservation_price_sol_and_more
+ [X] 0010_alter_reservation_advance_payment
+ [X] 0011_reservation_manychatfecha
+ [X] 0012_reservation_comentarios_reservas_reservation_fbc_and_more
+ [X] 0013_reservation_discount_code_used
+ [X] 0014_reservation_payment_approved_notification_sent
+sessions
+ [X] 0001_initial
