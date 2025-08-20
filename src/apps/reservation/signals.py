@@ -169,8 +169,16 @@ def notify_payment_approved(reservation):
         return
     
     try:
-        # Preparar datos para el template
-        client_name = f"{reservation.client.first_name} {reservation.client.last_name}".strip()
+        # Preparar datos para el template - solo primer nombre y primer apellido
+        first_name = reservation.client.first_name.split()[0] if reservation.client.first_name else ""
+        
+        # Obtener solo el primer apellido si existe
+        first_last_name = ""
+        if reservation.client.last_name:
+            first_last_name = reservation.client.last_name.split()[0]
+        
+        # Combinar primer nombre y primer apellido
+        client_name = f"{first_name} {first_last_name}".strip()
         
         # Formatear información del pago
         if reservation.advance_payment_currency == 'usd':
