@@ -66,6 +66,17 @@ class Command(BaseCommand):
             )
             self.stdout.write(self.style.SUCCESS('Descuento primera reserva creado'))
         
+        if not AutomaticDiscount.objects.filter(trigger='last_minute').exists():
+            AutomaticDiscount.objects.create(
+                name="Último Minuto",
+                description="Descuento especial para reservas realizadas para el día de hoy o mañana",
+                trigger="last_minute",
+                discount_percentage=Decimal('20.00'),
+                max_discount_usd=Decimal('100.00'),
+                is_active=True
+            )
+            self.stdout.write(self.style.SUCCESS('Descuento último minuto creado'))
+        
         # Crear servicios adicionales por defecto
         services = [
             {

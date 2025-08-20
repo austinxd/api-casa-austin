@@ -557,6 +557,7 @@ class AutomaticDiscount(BaseModel):
         RETURNING = "returning", ("Cliente Recurrente")
         FIRST_TIME = "first_time", ("Primera Reserva")
         LOYALTY = "loyalty", ("Programa de Lealtad")
+        LAST_MINUTE = "last_minute", ("Último Minuto")
 
     name = models.CharField(max_length=100, help_text="Nombre del descuento automático")
     description = models.TextField(
@@ -659,6 +660,17 @@ class AutomaticDiscount(BaseModel):
             # Para programa de lealtad, verificar que tenga al menos los logros requeridos
             if self.required_achievements.exists():
                 return True, f"Programa de lealtad: {self.discount_percentage}% de descuento"
+
+        elif self.trigger == self.DiscountTrigger.LAST_MINUTE:
+            from datetime import date, timedelta
+            today = date.today()
+            tomorrow = today + timedelta(days=1)
+            
+            # Verificar si la fecha de check-in es hoy o mañana
+            if booking_date == today:
+                return True, f"¡Reserva para hoy! {self.discount_percentage}% de descuento último minuto"
+            elif booking_date == tomorrow:
+                return True, f"¡Reserva para mañana! {self.discount_percentage}% de descuento último minuto"
 
         return False, "No aplica"
 
