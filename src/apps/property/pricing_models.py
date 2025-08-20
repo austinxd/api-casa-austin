@@ -565,7 +565,7 @@ class AutomaticDiscount(BaseModel):
         null=True,
         help_text="Descripción detallada del descuento automático y sus condiciones"
     )
-    trigger = models.CharField(max_length=10, choices=DiscountTrigger.choices)
+    trigger = models.CharField(max_length=15, choices=DiscountTrigger.choices)
     discount_percentage = models.DecimalField(
         max_digits=5,
         decimal_places=2,
