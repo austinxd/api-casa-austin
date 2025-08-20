@@ -83,6 +83,8 @@ class AutomaticDiscountSerializer(serializers.ModelSerializer):
             'discount_percentage',
             'max_discount_usd',
             'min_reservations',
+            'restrict_weekdays',
+            'restrict_weekends',
             'is_active',
             'created',
             'updated'

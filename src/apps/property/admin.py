@@ -343,8 +343,8 @@ class CancellationPolicyAdmin(admin.ModelAdmin):
 
 
 class AutomaticDiscountAdmin(admin.ModelAdmin):
-    list_display = ('name', 'trigger', 'discount_percentage', 'max_discount_usd', 'min_reservations', 'is_active')
-    list_filter = ('trigger', 'is_active')
+    list_display = ('name', 'trigger', 'discount_percentage', 'max_discount_usd', 'min_reservations', 'restrict_weekdays', 'restrict_weekends', 'is_active')
+    list_filter = ('trigger', 'restrict_weekdays', 'restrict_weekends', 'is_active')
     search_fields = ('name', 'description')
 
     fieldsets = (
@@ -353,6 +353,11 @@ class AutomaticDiscountAdmin(admin.ModelAdmin):
         }),
         ('Configuración del Descuento', {
             'fields': ('trigger', 'discount_percentage', 'max_discount_usd', 'min_reservations')
+        }),
+        ('Restricciones de Días', {
+            'fields': ('restrict_weekdays', 'restrict_weekends'),
+            'description': 'Configurar si el descuento aplica solo para días específicos de la semana'
+        }),ations')
         }),
     )
 

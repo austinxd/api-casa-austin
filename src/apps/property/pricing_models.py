@@ -582,6 +582,14 @@ class AutomaticDiscount(BaseModel):
         default=1,
         help_text="Mínimo de reservas previas (para cliente recurrente)"
     )
+    restrict_weekdays = models.BooleanField(
+        default=False,
+        help_text="Si está activo, el descuento solo aplica para días de semana (Lunes a Viernes)"
+    )
+    restrict_weekends = models.BooleanField(
+        default=False,
+        help_text="Si está activo, el descuento solo aplica para fines de semana (Sábado y Domingo)"
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -598,6 +606,16 @@ class AutomaticDiscount(BaseModel):
 
         if not self.is_active:
             return False, "Descuento no activo"
+
+        # Verificar restricciones de días de la semana
+        weekday = booking_date.weekday()  # 0=Lunes, 6=Domingo
+        is_weekend = weekday >= 5  # Sábado y Domingo
+
+        if self.restrict_weekdays and is_weekend:
+            return False, "Descuento solo válido para días de semana"
+        
+        if self.restrict_weekends and not is_weekend:
+            return False, "Descuento solo válido para fines de semana"
 
         if self.trigger == self.DiscountTrigger.BIRTHDAY:
             if client.date and client.date.month == booking_date.month:
