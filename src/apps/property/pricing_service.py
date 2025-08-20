@@ -16,6 +16,8 @@ from .pricing_models import (
 )
 from apps.clients.models import Clients
 from apps.reservation.models import Reservation
+# Importar ClientAchievement para la verificación de logros
+from apps.achievements.models import ClientAchievement
 
 
 class PricingCalculationService:
@@ -82,7 +84,7 @@ class PricingCalculationService:
             else:
                 # Si no tiene número, ordenar alfabéticamente
                 return (name, 0)
-        
+
         results.sort(key=sort_key)
 
         # Generar mensajes contextuales para chatbot
@@ -104,7 +106,7 @@ class PricingCalculationService:
             'message1': chatbot_messages['message1'],
             'message2': chatbot_messages['message2']
         }
-        
+
         # Solo incluir client_info si se proporciona un client_id
         if client_id:
             general_info['client_info'] = self._get_client_info(client)
@@ -137,7 +139,7 @@ class PricingCalculationService:
         final_price_usd = subtotal_usd - Decimal(str(discount_applied['discount_amount_usd']))
         final_price_sol = (subtotal_usd * self.exchange_rate) - Decimal(str(discount_applied['discount_amount_sol']))
 
-        
+
 
 
         # Convertir a soles
@@ -287,7 +289,7 @@ class PricingCalculationService:
 
     def _apply_discounts(self, property, subtotal_usd, subtotal_sol, nights, guests, discount_code, client, check_in_date):
         """Aplica descuentos automáticos o códigos de descuento"""
-        
+
         # Si no hay código de descuento ni cliente, no procesar descuentos
         if not discount_code and not client:
             return {
@@ -298,7 +300,7 @@ class PricingCalculationService:
                 'discount_amount_sol': Decimal('0.00'),
                 'code_used': None
             }
-            
+
         discount_info = {
             'type': 'none',
             'description': 'Sin descuento',
@@ -313,14 +315,14 @@ class PricingCalculationService:
             try:
                 # Limpiar el código y convertir a mayúsculas
                 clean_code = discount_code.strip().upper()
-                
+
                 # Buscar el código de descuento con búsqueda case-insensitive
                 code = DiscountCode.objects.filter(
                     code__iexact=clean_code, 
                     is_active=True, 
                     deleted=False
                 ).first()
-                
+
                 if not code:
                     # Debug: listar códigos disponibles
                     available_codes = DiscountCode.objects.filter(
@@ -328,7 +330,7 @@ class PricingCalculationService:
                         deleted=False
                     ).values_list('code', flat=True)
                     print(f"DEBUG: Código '{clean_code}' no encontrado. Códigos disponibles: {list(available_codes)}")
-                    
+
                     discount_info.update({
                         'type': 'error',
                         'description': f"Código '{clean_code}' no encontrado",
@@ -338,13 +340,13 @@ class PricingCalculationService:
                         'code_used': clean_code
                     })
                     return discount_info
-                
+
                 # Debug logging
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.info(f"Validando código {code.code} para propiedad {property.name} (ID: {property.id})")
                 logger.info(f"Propiedades asignadas al código: {list(code.properties.values_list('name', flat=True))}")
-                
+
                 is_valid, message = code.is_valid(property.id, subtotal_usd, None)  # Usar None para validar con fecha actual
                 logger.info(f"Resultado validación: {is_valid} - {message}")
 
@@ -369,7 +371,7 @@ class PricingCalculationService:
                         'code_used': clean_code
                     })
 
-            
+
             except Exception as e:
                 discount_info.update({
                     'type': 'error',
@@ -386,26 +388,27 @@ class PricingCalculationService:
             from .pricing_models import AutomaticDiscount
             import logging
             logger = logging.getLogger(__name__)
-            
+
             logger.info(f"🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS")
             logger.info(f"👤 Cliente: {client.first_name} {client.last_name or ''} (ID: {client.id})")
             logger.info(f"📅 Fecha de nacimiento: {client.date}")
             logger.info(f"📅 Mes de check-in: {check_in_date.month}")
             logger.info(f"📅 Fecha de check-in: {check_in_date}")
-            
+
             # Buscar descuentos automáticos aplicables al cliente
             automatic_discounts = AutomaticDiscount.objects.filter(is_active=True, deleted=False)
             logger.info(f"📋 Descuentos automáticos disponibles: {automatic_discounts.count()}")
-            
+
             # Evaluar todos los descuentos automáticos aplicables y elegir el mejor
             applicable_discounts = []
-            
+
             for auto_discount in automatic_discounts:
                 logger.info(f"🔍 Evaluando: '{auto_discount.name}' - Trigger: '{auto_discount.trigger}'")
                 try:
+                    # Aquí es donde se llama a applies_to_client que ahora incluye la verificación de logros.
                     applies, message = auto_discount.applies_to_client(client, check_in_date)
                     logger.info(f"✅ Resultado: {applies} - '{message}'")
-                    
+
                     if applies:
                         discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
                         logger.info(f"💰 Descuento calculado: ${discount_amount_usd} USD ({auto_discount.discount_percentage}%)")
@@ -414,17 +417,17 @@ class PricingCalculationService:
                             'message': message,
                             'amount_usd': discount_amount_usd
                         })
-                    
+
                 except Exception as e:
                     logger.error(f"❌ Error evaluando descuento {auto_discount.name}: {str(e)}")
-            
+
             # Si hay descuentos aplicables, elegir el que mayor ahorro genere
             if applicable_discounts:
                 # Ordenar por monto de descuento (de mayor a menor)
                 best_discount = max(applicable_discounts, key=lambda x: x['amount_usd'])
-                
+
                 logger.info(f"🏆 MEJOR DESCUENTO: {best_discount['discount'].name} - ${best_discount['amount_usd']} USD")
-                
+
                 # Actualizar discount_info con el descuento automático
                 discount_info = {
                     'type': 'automatic',
@@ -578,7 +581,7 @@ class PricingCalculationService:
         """Genera mensajes contextuales para chatbot similares al sistema PHP"""
         from datetime import datetime
         import locale
-        
+
         # Configurar localización en español
         try:
             locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
@@ -628,56 +631,56 @@ class PricingCalculationService:
         from datetime import timedelta, date
         from django.db.models import Q
         import logging
-        
+
         logger = logging.getLogger(__name__)
-        
+
         # OPTIMIZACIÓN: Verificar primero si esta propiedad tiene fechas especiales configuradas
         has_special_dates = SpecialDatePricing.objects.filter(
             property=property,
             is_active=True
         ).exists()
-        
+
         if not has_special_dates:
             logger.info(f"Propiedad {property.name} no tiene fechas especiales configuradas - omitiendo validación")
             return
-        
+
         logger.info(f"🔍 Validando protección de fechas especiales para {property.name}")
         logger.info(f"📅 Check-in: {check_in_date}, Check-out: {check_out_date}, Noches: {nights}")
-        
+
         # Obtener todas las fechas especiales de esta propiedad para el año actual y siguiente
         current_year = check_in_date.year
         years_to_check = [current_year, current_year + 1]
-        
+
         for year in years_to_check:
             special_pricings = SpecialDatePricing.objects.filter(
                 property=property,
                 is_active=True
             )
-            
+
             for special_pricing in special_pricings:
                 try:
                     special_date = date(year, special_pricing.month, special_pricing.day)
                     required_nights = special_pricing.minimum_consecutive_nights
-                    
+
                     # Calcular el rango protegido alrededor de la fecha especial
                     # Ejemplo: Si 31/12 requiere 3 noches, proteger del 29/12 al 2/01
                     protected_start = special_date - timedelta(days=required_nights - 1)
                     protected_end = special_date + timedelta(days=required_nights - 1)
-                    
+
                     logger.info(f"🎯 Fecha especial: {special_date.strftime('%d/%m/%Y')} ({special_pricing.description})")
                     logger.info(f"🛡️  Rango protegido: {protected_start.strftime('%d/%m/%Y')} a {protected_end.strftime('%d/%m/%Y')}")
                     logger.info(f"📏 Noches mínimas requeridas: {required_nights}")
-                    
+
                     # Verificar si la reserva propuesta interfiere con el rango protegido
                     reservation_start = check_in_date
                     reservation_end = check_out_date - timedelta(days=1)  # Última noche ocupada
-                    
+
                     # ¿La reserva interfiere con el rango protegido?
                     interferes = not (reservation_end < protected_start or reservation_start > protected_end)
-                    
+
                     if interferes:
                         logger.info(f"⚠️  La reserva interfiere con el rango protegido de {special_pricing.description}")
-                        
+
                         # Verificar si la fecha especial ya está ocupada
                         existing_reservations = Reservation.objects.filter(
                             property=property,
@@ -686,11 +689,11 @@ class PricingCalculationService:
                         ).filter(
                             Q(check_in_date__lte=special_date) & Q(check_out_date__gt=special_date)
                         )
-                        
+
                         if existing_reservations.exists():
                             logger.info(f"✅ Fecha especial {special_date.strftime('%d/%m/%Y')} ya está ocupada, permitiendo reserva")
                             continue
-                        
+
                         # La fecha especial está libre, verificar si esta reserva cumple el mínimo
                         if nights < required_nights:
                             error_msg = (
@@ -703,7 +706,7 @@ class PricingCalculationService:
                             )
                             logger.error(f"🚫 VALIDACIÓN FALLIDA: {error_msg}")
                             raise ValueError(error_msg)
-                        
+
                         # Si llega aquí, la reserva incluye la fecha especial y cumple el mínimo
                         # Verificar que efectivamente incluya la fecha especial
                         if not (check_in_date <= special_date < check_out_date):
@@ -717,9 +720,9 @@ class PricingCalculationService:
                             )
                             logger.error(f"🚫 VALIDACIÓN FALLIDA: {error_msg}")
                             raise ValueError(error_msg)
-                        
+
                         logger.info(f"✅ Reserva válida: incluye fecha especial {special_date.strftime('%d/%m/%Y')} con {nights} noches")
-                    
+
                 except ValueError as ve:
                     # Re-lanzar errores de validación
                     raise ve
@@ -727,7 +730,7 @@ class PricingCalculationService:
                     # Fecha inválida (ej: 29/02 en año no bisiesto)
                     logger.warning(f"Fecha especial inválida: {special_pricing.day}/{special_pricing.month}/{year} - {e}")
                     continue
-        
+
         logger.info("✅ Validación de protección de fechas especiales completada exitosamente")
 
     def _get_month_name_spanish(self, month):
@@ -742,14 +745,14 @@ class PricingCalculationService:
     def _generate_message1(self, estado_disponibilidad, fecha_inicio_str, fecha_fin_str, available_properties, guests, nights, client, discount_info, check_in_date, check_out_date):
         """Genera mensaje1 según el estado de disponibilidad"""
         from datetime import timedelta
-        
+
         if estado_disponibilidad > 0:
             # Hay propiedades disponibles
             if estado_disponibilidad == 1:
                 message1 = f"📅 Disponibilidad del {fecha_inicio_str} al {fecha_fin_str}"
             else:
                 message1 = f"📅 Del {fecha_inicio_str} al {fecha_fin_str}\n✨ Encontramos {estado_disponibilidad} casa(s) disponibles"
-            
+
             # Agregar información de descuento si aplica
             if discount_info and discount_info.get('type') not in ['none', 'error']:
                 if discount_info['type'] == 'discount_code':
@@ -763,7 +766,7 @@ class PricingCalculationService:
                 elif discount_info['type'] == 'automatic':
                     percentage = discount_info.get('discount_percentage', 0)
                     message1 += f"\n✨ Descuento automático del {percentage}% aplicado por ser cliente registrado"
-            
+
             # Tip para grupos pequeños cuando buscan fin de semana
             if guests < 5:
                 # Verificar si alguna de las fechas es viernes o sábado
@@ -774,10 +777,10 @@ class PricingCalculationService:
                         has_friday_or_saturday = True
                         break
                     current_date += timedelta(days=1)
-                
+
                 if has_friday_or_saturday:
                     message1 += "\n💡 Tip: Los días de semana son más recomendables para reservas de 5 personas o menos, ya que el costo es menor."
-                
+
         else:
             # Sin disponibilidad
             message1 = f"📅 Disponibilidad del {fecha_inicio_str} al {fecha_fin_str}\n❌ No hay casas disponibles para estas fechas"
@@ -786,16 +789,16 @@ class PricingCalculationService:
 
     def _generate_message2(self, estado_disponibilidad, available_properties, all_properties, property_id):
         """Genera message2 según la disponibilidad específica"""
-        
+
         if estado_disponibilidad == 0:
             # Sin disponibilidad
             return "No hay casas disponibles en las fechas seleccionadas. Te sugerimos revisar otras fechas."
-        
+
         if property_id and available_properties:
             # Casa específica disponible
             property_info = available_properties[0]
             return f"🏠 {property_info['property_name']}: ${property_info['final_price_usd']} Dólares ó S/.{property_info['final_price_sol']} Soles"
-        
+
         if not property_id and available_properties:
             # Mostrar lista de casas disponibles ordenadas por nombre
             # Ordenar propiedades por nombre para mostrar Casa Austin 1, 2, 3, 4
@@ -812,7 +815,7 @@ class PricingCalculationService:
                 else:
                     # Si no tiene número, ordenar alfabéticamente
                     return (name, 0)
-            
+
             sorted_properties = sorted(available_properties, key=sort_key)
             casas_disponibles = []
             for prop in sorted_properties:
@@ -820,5 +823,5 @@ class PricingCalculationService:
                     f"🏠 {prop['property_name']}: ${prop['final_price_usd']} USD ó S/.{prop['final_price_sol']} SOL"
                 )
             return "\n".join(casas_disponibles)
-        
+
         return "Información de disponibilidad no disponible."
