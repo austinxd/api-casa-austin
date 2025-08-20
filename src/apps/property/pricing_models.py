@@ -351,11 +351,11 @@ class DiscountCode(BaseModel):
         from datetime import date
 
         today = date.today()
-        
-        # Para códigos de descuento, normalmente validamos si está vigente HOY
+
+        # Para códigos de descuento, normally validamos si está vigente HOY
         # Solo usar booking_date para restricciones de días de la semana
         check_date = today
-        
+
         # Si se proporciona booking_date, convertirlo para restricciones de días
         booking_check_date = None
         if booking_date:
@@ -380,7 +380,7 @@ class DiscountCode(BaseModel):
         import logging
         logger = logging.getLogger(__name__)
         logger.info(f"Validando fechas - Hoy: {today}, Check date: {check_date}, Start: {self.start_date}, End: {self.end_date}")
-        
+
         # Verificar fechas
         if check_date < self.start_date:
             logger.info(f"Código no válido - fecha muy temprana: {check_date} < {self.start_date}")
@@ -389,12 +389,12 @@ class DiscountCode(BaseModel):
         if check_date > self.end_date:
             logger.info(f"Código expirado - fecha muy tardía: {check_date} > {self.end_date}")
             return False, f"Código expiró el {self.end_date.strftime('%d/%m/%Y')}"
-        
+
         logger.info(f"Fechas válidas - Código activo")
 
         # Verificar restricciones por día de la semana (usar fecha de reserva si se proporciona)
         day_check_date = booking_check_date if booking_check_date else check_date
-        
+
         if self.restrict_weekdays and not self.restrict_weekends:
             # Es noche de semana si el día es de Lunes (0) a Jueves (3)
             if day_check_date.weekday() < 4: # Lunes a Jueves
@@ -422,10 +422,10 @@ class DiscountCode(BaseModel):
         # Verificar propiedad - El código DEBE tener propiedades específicas asignadas
         if not self.properties.exists():
             return False, "Este código no tiene propiedades asignadas y no es válido"
-        
+
         if not property_id:
             return False, "Este código requiere especificar una propiedad"
-            
+
         if not self.properties.filter(id=property_id, deleted=False).exists():
             property_names = list(self.properties.filter(deleted=False).values_list('name', flat=True))
             return False, f"Código válido solo para: {', '.join(property_names)}"
@@ -604,10 +604,10 @@ class AutomaticDiscount(BaseModel):
     def applies_to_client(self, client, booking_date):
         """Verifica si el descuento automático aplica al cliente"""
         from apps.reservation.models import Reservation
-        from apps.clients.models import ClientAchievement
+        from apps.clients.models import ClientAchievement, Achievement
         from datetime import date
         import logging
-        
+
         logger = logging.getLogger(__name__)
         logger.info(f"🔍 Evaluando descuento '{self.name}' con trigger '{self.trigger}'")
 
@@ -623,7 +623,7 @@ class AutomaticDiscount(BaseModel):
         if self.restrict_weekdays and is_weekend:
             logger.info(f"❌ Restringido a días de semana pero es fin de semana")
             return False, "Descuento solo válido para días de semana"
-        
+
         if self.restrict_weekends and not is_weekend:
             logger.info(f"❌ Restringido a fines de semana pero es día de semana")
             return False, "Descuento solo válido para fines de semana"
@@ -631,49 +631,41 @@ class AutomaticDiscount(BaseModel):
         # Verificar si el cliente tiene los logros requeridos
         if self.required_achievements.exists():
             logger.info(f"🏆 Verificando logros requeridos...")
-            
-            # Importar aquí para evitar import circular
-            from apps.clients.models import ClientAchievement
-            
-            # Obtener los logros que tiene el cliente
+
+            # Obtener el logro MÁS ALTO del cliente (nivel actual)
             client_achievements = ClientAchievement.objects.filter(
-                client=client,
-                achievement__in=self.required_achievements.all()
-            ).values_list('achievement_id', flat=True)
-            
+                client=client
+            ).select_related('achievement').order_by('achievement__order', 'achievement__required_reservations', 'achievement__required_referrals')
+
+            if not client_achievements.exists():
+                logger.info(f"❌ Cliente no tiene ningún logro")
+                required_names = list(self.required_achievements.values_list('name', flat=True))
+                return False, f"Requiere tener uno de estos logros: {', '.join(required_names)}"
+
+            # El último en el orden es el logro más alto
+            highest_achievement = client_achievements.last()
+            client_current_level = highest_achievement.achievement
+
+            logger.info(f"🏆 Nivel actual del cliente: {client_current_level.name} (ID: {client_current_level.id})")
+
+            # Verificar si el logro actual del cliente está en los requeridos
             required_achievement_ids = set(self.required_achievements.values_list('id', flat=True))
-            client_achievement_ids = set(client_achievements)
-            
-            logger.info(f"🏆 Logros requeridos IDs: {required_achievement_ids}")
-            logger.info(f"🏆 Logros del cliente IDs: {client_achievement_ids}")
-            
-            # Obtener nombres para logging más claro
             required_names = list(self.required_achievements.values_list('name', flat=True))
-            client_names = list(ClientAchievement.objects.filter(
-                client=client,
-                achievement__in=self.required_achievements.all()
-            ).values_list('achievement__name', flat=True))
-            
+
             logger.info(f"🏆 Logros requeridos: {required_names}")
-            logger.info(f"🏆 Logros del cliente: {client_names}")
-            
-            # Verificar si el cliente tiene AL MENOS UNO de los logros requeridos
-            if not required_achievement_ids.intersection(client_achievement_ids):
-                missing_achievements = list(self.required_achievements.values_list('name', flat=True))
-                logger.info(f"❌ No tiene ninguno de los logros requeridos: {missing_achievements}")
-                return False, f"Requiere al menos uno de estos logros: {', '.join(missing_achievements)}"
-            
-            # Mostrar qué logros tiene el cliente de los requeridos
-            matching_achievements = self.required_achievements.filter(
-                id__in=client_achievement_ids
-            ).values_list('name', flat=True)
-            logger.info(f"✅ Cliente tiene estos logros requeridos: {list(matching_achievements)}")
+            logger.info(f"🏆 IDs requeridos: {required_achievement_ids}")
+
+            if client_current_level.id not in required_achievement_ids:
+                logger.info(f"❌ El nivel actual '{client_current_level.name}' no está en los logros requeridos")
+                return False, f"Este descuento es exclusivo para: {', '.join(required_names)}. Tu nivel actual ({client_current_level.name}) no califica."
+
+            logger.info(f"✅ El nivel actual '{client_current_level.name}' SÍ está en los logros requeridos")
         else:
             logger.info(f"🏆 Sin logros requeridos - descuento disponible para todos los clientes")
 
         # Evaluar triggers específicos
         logger.info(f"🎯 Evaluando trigger: {self.trigger}")
-        
+
         if self.trigger == self.DiscountTrigger.BIRTHDAY:
             logger.info(f"🎂 Verificando cumpleaños - Mes cliente: {client.date.month if client.date else 'N/A'}, Mes booking: {booking_date.month}")
             if client.date and client.date.month == booking_date.month:
@@ -716,9 +708,9 @@ class AutomaticDiscount(BaseModel):
             from datetime import date, timedelta
             today = date.today()
             tomorrow = today + timedelta(days=1)
-            
+
             logger.info(f"⏰ Último minuto - Hoy: {today}, Mañana: {tomorrow}, Booking: {booking_date}")
-            
+
             # Verificar si la fecha de check-in es hoy o mañana
             if booking_date == today:
                 return True, f"¡Reserva para hoy! {self.discount_percentage}% de descuento último minuto"
