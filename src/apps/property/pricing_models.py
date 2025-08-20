@@ -565,7 +565,7 @@ class AutomaticDiscount(BaseModel):
         null=True,
         help_text="Descripción detallada del descuento automático y sus condiciones"
     )
-    trigger = models.CharField(max_length=15, choices=DiscountTrigger.choices)
+    trigger = models.CharField(max_length=20, choices=DiscountTrigger.choices)
     discount_percentage = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -606,22 +606,31 @@ class AutomaticDiscount(BaseModel):
         from apps.reservation.models import Reservation
         from apps.clients.models import ClientAchievement
         from datetime import date
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        logger.info(f"🔍 Evaluando descuento '{self.name}' con trigger '{self.trigger}'")
 
         if not self.is_active:
+            logger.info(f"❌ Descuento no está activo")
             return False, "Descuento no activo"
 
         # Verificar restricciones de días de la semana
         weekday = booking_date.weekday()  # 0=Lunes, 6=Domingo
         is_weekend = weekday >= 5  # Sábado y Domingo
+        logger.info(f"📅 Día de la semana: {weekday} ({'fin de semana' if is_weekend else 'día de semana'})")
 
         if self.restrict_weekdays and is_weekend:
+            logger.info(f"❌ Restringido a días de semana pero es fin de semana")
             return False, "Descuento solo válido para días de semana"
         
         if self.restrict_weekends and not is_weekend:
+            logger.info(f"❌ Restringido a fines de semana pero es día de semana")
             return False, "Descuento solo válido para fines de semana"
 
         # Verificar si el cliente tiene los logros requeridos
         if self.required_achievements.exists():
+            logger.info(f"🏆 Verificando logros requeridos...")
             client_achievements = ClientAchievement.objects.filter(
                 client=client,
                 achievement__in=self.required_achievements.all()
@@ -630,49 +639,74 @@ class AutomaticDiscount(BaseModel):
             required_achievement_ids = set(self.required_achievements.values_list('id', flat=True))
             client_achievement_ids = set(client_achievements)
             
+            logger.info(f"🏆 Logros requeridos: {required_achievement_ids}")
+            logger.info(f"🏆 Logros del cliente: {client_achievement_ids}")
+            
             if not required_achievement_ids.issubset(client_achievement_ids):
                 missing_achievements = self.required_achievements.exclude(
                     id__in=client_achievement_ids
                 ).values_list('name', flat=True)
+                logger.info(f"❌ Le faltan logros: {list(missing_achievements)}")
                 return False, f"Requiere logros: {', '.join(missing_achievements)}"
 
+        # Evaluar triggers específicos
+        logger.info(f"🎯 Evaluando trigger: {self.trigger}")
+        
         if self.trigger == self.DiscountTrigger.BIRTHDAY:
+            logger.info(f"🎂 Verificando cumpleaños - Mes cliente: {client.date.month if client.date else 'N/A'}, Mes booking: {booking_date.month}")
             if client.date and client.date.month == booking_date.month:
                 return True, f"¡Feliz cumpleaños! {self.discount_percentage}% de descuento"
+            else:
+                return False, f"No es su mes de cumpleaños"
 
         elif self.trigger == self.DiscountTrigger.RETURNING:
             reservations_count = Reservation.objects.filter(
                 client=client,
-                deleted=False
+                deleted=False,
+                status__in=['approved', 'completed']  # Solo contar reservas exitosas
             ).count()
+            logger.info(f"🔄 Cliente recurrente - Reservas previas: {reservations_count}")
             if reservations_count >= 1:  # Al menos una reserva previa
                 return True, f"Cliente frecuente: {self.discount_percentage}% de descuento"
+            else:
+                return False, f"No tiene reservas previas (tiene {reservations_count})"
 
         elif self.trigger == self.DiscountTrigger.FIRST_TIME:
             reservations_count = Reservation.objects.filter(
                 client=client,
                 deleted=False
             ).count()
+            logger.info(f"🆕 Primera reserva - Reservas previas: {reservations_count}")
             if reservations_count == 0:
-                return True, f"Bienvenido! {self.discount_percentage}% de descuento en tu primera reserva"
+                return True, f"¡Bienvenido! {self.discount_percentage}% de descuento en tu primera reserva"
+            else:
+                return False, f"Ya tiene reservas previas ({reservations_count})"
 
         elif self.trigger == self.DiscountTrigger.LOYALTY:
+            logger.info(f"🏆 Programa de lealtad - Requiere logros específicos")
             # Para programa de lealtad, verificar que tenga al menos los logros requeridos
             if self.required_achievements.exists():
                 return True, f"Programa de lealtad: {self.discount_percentage}% de descuento"
+            else:
+                return False, f"Programa de lealtad requiere logros específicos"
 
         elif self.trigger == self.DiscountTrigger.LAST_MINUTE:
             from datetime import date, timedelta
             today = date.today()
             tomorrow = today + timedelta(days=1)
             
+            logger.info(f"⏰ Último minuto - Hoy: {today}, Mañana: {tomorrow}, Booking: {booking_date}")
+            
             # Verificar si la fecha de check-in es hoy o mañana
             if booking_date == today:
                 return True, f"¡Reserva para hoy! {self.discount_percentage}% de descuento último minuto"
             elif booking_date == tomorrow:
                 return True, f"¡Reserva para mañana! {self.discount_percentage}% de descuento último minuto"
+            else:
+                return False, f"No es reserva de último minuto (booking: {booking_date})"
 
-        return False, "No aplica"
+        logger.info(f"❌ Trigger '{self.trigger}' no reconocido")
+        return False, "Trigger no reconocido"
 
     def calculate_discount(self, total_amount_usd):
         """Calcula el descuento en USD"""

@@ -380,53 +380,62 @@ class PricingCalculationService:
                     'code_used': discount_code.strip() if discount_code else None
                 })
 
-        # Si no hay código válido y tampoco hubo error con código, verificar descuentos automáticos
-        # Solo evaluar descuentos automáticos si no se proporcionó código o si el tipo es 'none'
-        if client and discount_info['type'] == 'none':
+        # Evaluar descuentos automáticos si hay cliente y no hay descuento de código válido
+        # Aplicar descuentos automáticos si: no hay código, código inválido, o no hay descuento aplicado
+        if client and discount_info['type'] in ['none', 'error']:
             from .pricing_models import AutomaticDiscount
             import logging
             logger = logging.getLogger(__name__)
             
-            logger.info(f"Evaluando descuentos automáticos para cliente: {client.first_name} (ID: {client.id})")
-            logger.info(f"Fecha de nacimiento del cliente: {client.date}")
-            logger.info(f"Mes de búsqueda: {check_in_date.month}")
+            logger.info(f"🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS")
+            logger.info(f"👤 Cliente: {client.first_name} {client.last_name or ''} (ID: {client.id})")
+            logger.info(f"📅 Fecha de nacimiento: {client.date}")
+            logger.info(f"📅 Mes de check-in: {check_in_date.month}")
+            logger.info(f"📅 Fecha de check-in: {check_in_date}")
             
             # Buscar descuentos automáticos aplicables al cliente
             automatic_discounts = AutomaticDiscount.objects.filter(is_active=True, deleted=False)
-            logger.info(f"Descuentos automáticos disponibles: {automatic_discounts.count()}")
+            logger.info(f"📋 Descuentos automáticos disponibles: {automatic_discounts.count()}")
             
             # Evaluar todos los descuentos automáticos aplicables y elegir el mejor
             applicable_discounts = []
             
             for auto_discount in automatic_discounts:
-                logger.info(f"Evaluando descuento: {auto_discount.name} - Trigger: {auto_discount.trigger}")
-                applies, message = auto_discount.applies_to_client(client, check_in_date)
-                logger.info(f"¿Aplica descuento {auto_discount.name}?: {applies} - Mensaje: {message}")
-                
-                if applies:
-                    discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
-                    logger.info(f"Descuento evaluado: ${discount_amount_usd} USD ({auto_discount.discount_percentage}%)")
-                    applicable_discounts.append({
-                        'discount': auto_discount,
-                        'message': message,
-                        'amount_usd': discount_amount_usd
-                    })
+                logger.info(f"🔍 Evaluando: '{auto_discount.name}' - Trigger: '{auto_discount.trigger}'")
+                try:
+                    applies, message = auto_discount.applies_to_client(client, check_in_date)
+                    logger.info(f"✅ Resultado: {applies} - '{message}'")
+                    
+                    if applies:
+                        discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
+                        logger.info(f"💰 Descuento calculado: ${discount_amount_usd} USD ({auto_discount.discount_percentage}%)")
+                        applicable_discounts.append({
+                            'discount': auto_discount,
+                            'message': message,
+                            'amount_usd': discount_amount_usd
+                        })
+                    
+                except Exception as e:
+                    logger.error(f"❌ Error evaluando descuento {auto_discount.name}: {str(e)}")
             
             # Si hay descuentos aplicables, elegir el que mayor ahorro genere
             if applicable_discounts:
                 # Ordenar por monto de descuento (de mayor a menor)
                 best_discount = max(applicable_discounts, key=lambda x: x['amount_usd'])
                 
-                logger.info(f"Mejor descuento seleccionado: {best_discount['discount'].name} - ${best_discount['amount_usd']} USD")
+                logger.info(f"🏆 MEJOR DESCUENTO: {best_discount['discount'].name} - ${best_discount['amount_usd']} USD")
                 
-                discount_info.update({
+                # Actualizar discount_info con el descuento automático
+                discount_info = {
                     'type': 'automatic',
                     'description': best_discount['message'],
                     'discount_percentage': round(float(best_discount['discount'].discount_percentage), 2),
                     'discount_amount_usd': best_discount['amount_usd'],
                     'discount_amount_sol': best_discount['amount_usd'] * self.exchange_rate,
                     'code_used': None
-                })
+                }
+            else:
+                logger.info(f"❌ No se encontraron descuentos automáticos aplicables para este cliente")
 
         return discount_info
 
