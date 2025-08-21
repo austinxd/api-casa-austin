@@ -787,21 +787,25 @@ class ClientReservationsView(APIView):
             checkout_time = time(11, 0)  # 11 AM
 
             for reservation in reservations:
-                # Si check_in <= hoy < check_out (reserva en curso), es upcoming
-                if reservation.check_in_date <= today and reservation.check_out_date > today:
-                    upcoming_reservations.append(reservation)
-                # Si checkout es después de hoy, es upcoming
-                elif reservation.check_out_date > today:
+                logger.info(f"Procesando reserva {reservation.id}: check_in={reservation.check_in_date}, check_out={reservation.check_out_date}")
+                logger.info(f"Hoy: {today}, Hora actual: {now.time()}")
+                
+                # Si checkout es después de hoy, definitivamente es upcoming
+                if reservation.check_out_date > today:
+                    logger.info(f"Reserva {reservation.id} -> UPCOMING (checkout después de hoy)")
                     upcoming_reservations.append(reservation)
                 # Si checkout es hoy, verificar la hora
                 elif reservation.check_out_date == today:
                     # Si son antes de las 11 AM, aún es upcoming
                     if now.time() < checkout_time:
+                        logger.info(f"Reserva {reservation.id} -> UPCOMING (checkout hoy pero antes de 11 AM)")
                         upcoming_reservations.append(reservation)
                     else:
+                        logger.info(f"Reserva {reservation.id} -> PAST (checkout hoy después de 11 AM)")
                         past_reservations.append(reservation)
                 else:
                     # Si checkout fue antes de hoy, es pasada
+                    logger.info(f"Reserva {reservation.id} -> PAST (checkout antes de hoy)")
                     past_reservations.append(reservation)
 
             # Serializar las reservas
