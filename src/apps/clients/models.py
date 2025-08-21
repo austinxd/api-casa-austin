@@ -68,7 +68,7 @@ class Clients(BaseModel):
     )
     number_doc = models.CharField(max_length=50, null=False, blank=False, default="1")
     first_name = models.CharField(max_length=30, null=False, blank=False, default="nombre")
-    last_name = models.CharField(max_length=30, null=True, blank=True)
+    last_name = models.CharField(max_length=40, null=True, blank=True)
     sex = models.CharField(
         max_length=1, choices=GeneroChoice.choices, default=None, null=True, blank=True
     )
