@@ -771,7 +771,7 @@ class ClientReservationsView(APIView):
 
             from apps.reservation.models import Reservation
             from apps.reservation.serializers import ReservationListSerializer
-            from datetime import date
+            from datetime import date, time
 
             # Filtrar reservaciones del cliente autenticado
             reservations = Reservation.objects.filter(
@@ -781,9 +781,9 @@ class ClientReservationsView(APIView):
             upcoming_reservations = []
             past_reservations = []
 
-            # Obtener la hora actual
-            from datetime import time
+            # Obtener la fecha y hora actual
             now = timezone.now()
+            today = now.date()
             checkout_time = time(11, 0)  # 11 AM
 
             for reservation in reservations:
