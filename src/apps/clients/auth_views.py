@@ -797,6 +797,9 @@ class ClientReservationsView(APIView):
                         upcoming_reservations.append(reservation)
                     else:
                         past_reservations.append(reservation)
+                # Si check_in <= hoy < check_out (reserva en curso), es upcoming
+                elif reservation.check_in_date <= today and reservation.check_out_date > today:
+                    upcoming_reservations.append(reservation)
                 else:
                     # Si checkout fue antes de hoy, es pasada
                     past_reservations.append(reservation)
