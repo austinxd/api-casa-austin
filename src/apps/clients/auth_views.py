@@ -781,15 +781,23 @@ class ClientReservationsView(APIView):
             upcoming_reservations = []
             past_reservations = []
 
-            # Obtener la fecha y hora actual
-            now = timezone.now()
+            # Obtener la fecha y hora actual en la zona horaria del proyecto
+            from django.conf import settings
+            import pytz
+
+            # Obtener timezone del proyecto
+            project_tz = pytz.timezone(settings.TIME_ZONE)
+            now_utc = timezone.now()
+            now = now_utc.astimezone(project_tz)
             today = now.date()
             checkout_time = time(11, 0)  # 11 AM
 
             for reservation in reservations:
                 logger.info(f"Procesando reserva {reservation.id}: check_in={reservation.check_in_date}, check_out={reservation.check_out_date}")
                 logger.info(f"Hoy: {today}, Hora actual: {now.time()}")
-                
+                logger.info(f"Timezone del proyecto: {project_tz}, Fecha/hora completa: {now}")
+                logger.info(f"UTC: {now_utc}, Local: {now}")
+
                 # Si checkout es después de hoy, definitivamente es upcoming
                 if reservation.check_out_date > today:
                     logger.info(f"Reserva {reservation.id} -> UPCOMING (checkout después de hoy)")
