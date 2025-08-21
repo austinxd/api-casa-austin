@@ -114,13 +114,13 @@ class ClientPublicRegistrationView(APIView):
             # Validar contraseña si se proporciona
             password = request.data.get('password')
             confirm_password = request.data.get('confirm_password')
-            
+
             if password and confirm_password:
                 if password != confirm_password:
                     return Response(
                         {'message': 'Las contraseñas no coinciden'},
                         status=400)
-                
+
                 if len(password) < 8:
                     return Response(
                         {'message': 'La contraseña debe tener al menos 8 caracteres'},
@@ -161,9 +161,9 @@ class ClientPublicRegistrationView(APIView):
             serializer = ClientsSerializer(data=client_data)
             if serializer.is_valid():
                 client = serializer.save()
-                
+
                 logger.info(f"Cliente creado exitosamente: {client.first_name} ({client.number_doc})")
-                
+
                 if referrer:
                     logger.info(f"Cliente referido por: {referrer.first_name} (Código: {referral_code})")
 
@@ -315,11 +315,11 @@ class ClientCompleteRegistrationView(APIView):
                 from django.core.cache import cache
                 cache_key = f"whatsapp_otp_{tel_number}"
                 stored_otp = cache.get(cache_key)
-                
+
                 if not stored_otp or stored_otp != otp_code:
                     return Response({'message': 'Código OTP inválido o expirado'},
                                     status=400)
-                
+
                 # Limpiar el código del cache
                 cache.delete(cache_key)
             else:
@@ -425,11 +425,11 @@ class ClientVerifyDocumentView(APIView):
         serializer = ClientAuthVerifySerializer(data=request.data)
         if not serializer.is_valid():
             return Response({'message': 'Datos inválidos'}, status=400)
-        
+
         # Validar formato según tipo de documento
         document_type = serializer.validated_data['document_type']
         number_doc = serializer.validated_data['number_doc']
-        
+
         if document_type == 'dni' and (len(number_doc) != 8 or not number_doc.isdigit()):
             return Response({'message': 'El DNI debe tener exactamente 8 dígitos'}, status=400)
         elif document_type == 'cex' and (len(number_doc) < 9 or len(number_doc) > 12):
@@ -489,16 +489,16 @@ class ClientRequestOTPView(APIView):
 
             # Verificar qué servicio usar
             otp_service_provider = os.getenv('OTP_SERVICE_PROVIDER', 'twilio').lower()
-            
+
             if otp_service_provider == 'whatsapp':
                 whatsapp_service = WhatsAppOTPService()
                 otp_code = whatsapp_service.generate_otp_code()
-                
+
                 # Almacenar el código OTP temporalmente
                 from django.core.cache import cache
                 cache_key = f"whatsapp_otp_{client.tel_number}"
                 cache.set(cache_key, otp_code, 600)  # 10 minutos
-                
+
                 if whatsapp_service.send_otp_template(client.tel_number, otp_code):
                     return Response({
                         'message': 'Código de verificación enviado por WhatsApp',
@@ -552,22 +552,22 @@ class ClientRequestOTPForRegistrationView(APIView):
 
         # Verificar qué servicio usar
         otp_service_provider = os.getenv('OTP_SERVICE_PROVIDER', 'twilio').lower()
-        
+
         if otp_service_provider == 'whatsapp':
             whatsapp_service = WhatsAppOTPService()
-            
+
             # Verificar configuración antes de enviar
             config_ok = whatsapp_service.test_whatsapp_config()
             if not config_ok:
                 logger.error("Configuración de WhatsApp no válida")
-            
+
             otp_code = whatsapp_service.generate_otp_code()
-            
+
             # Almacenar el código OTP temporalmente
             from django.core.cache import cache
             cache_key = f"whatsapp_otp_{tel_number}"
             cache.set(cache_key, otp_code, 600)  # 10 minutos
-            
+
             if whatsapp_service.send_otp_template(tel_number, otp_code):
                 # Enmascarar el número para mostrar en la respuesta
                 masked_number = f"***{tel_number[-4:]}" if len(tel_number) > 4 else tel_number
@@ -622,17 +622,17 @@ class ClientSetupPasswordView(APIView):
             # Verificar OTP según el servicio configurado
             otp_service_provider = os.getenv('OTP_SERVICE_PROVIDER', 'twilio').lower()
             otp_code = serializer.validated_data['otp_code']
-            
+
             if otp_service_provider == 'whatsapp':
                 # Verificar OTP almacenado en cache
                 from django.core.cache import cache
                 cache_key = f"whatsapp_otp_{client.tel_number}"
                 stored_otp = cache.get(cache_key)
-                
+
                 if not stored_otp or stored_otp != otp_code:
                     return Response({'message': 'Código OTP inválido o expirado'},
                                     status=400)
-                
+
                 # Limpiar el código del cache
                 cache.delete(cache_key)
             else:
@@ -778,14 +778,27 @@ class ClientReservationsView(APIView):
                 client=client, deleted=False).order_by('-check_in_date')
 
             # Clasificar reservas en próximas y pasadas
-            today = date.today()
             upcoming_reservations = []
             past_reservations = []
 
+            # Obtener la hora actual
+            from datetime import time
+            now = timezone.now()
+            checkout_time = time(11, 0)  # 11 AM
+
             for reservation in reservations:
+                # Si checkout es después de hoy, es upcoming
                 if reservation.check_out_date > today:
                     upcoming_reservations.append(reservation)
+                # Si checkout es hoy, verificar la hora
+                elif reservation.check_out_date == today:
+                    # Si son antes de las 11 AM, aún es upcoming
+                    if now.time() < checkout_time:
+                        upcoming_reservations.append(reservation)
+                    else:
+                        past_reservations.append(reservation)
                 else:
+                    # Si checkout fue antes de hoy, es pasada
                     past_reservations.append(reservation)
 
             # Serializar las reservas
@@ -834,18 +847,18 @@ class ClientPointsView(APIView):
 
             # Obtener puntos disponibles del cliente
             available_points = client.get_available_points()
-            
+
             # Obtener historial de transacciones recientes (últimas 10)
             from .models import ClientPoints
             recent_transactions = ClientPoints.objects.filter(
                 client=client, 
                 deleted=False
             ).order_by('-created')[:10]
-            
+
             # Serializar las transacciones
             from .serializers import ClientPointsSerializer
             transactions_data = ClientPointsSerializer(recent_transactions, many=True).data
-            
+
             return Response({
                 'total_points': float(available_points), 
                 'recent_transactions': transactions_data
