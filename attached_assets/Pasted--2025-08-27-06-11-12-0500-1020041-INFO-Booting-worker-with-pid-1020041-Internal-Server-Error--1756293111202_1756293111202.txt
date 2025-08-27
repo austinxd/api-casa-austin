@@ -1,0 +1,43 @@
+[2025-08-27 06:11:12 -0500] [1020041] [INFO] Booting worker with pid: 1020041
+Internal Server Error: /api/v1/clients/client-auth/forgot-password/
+Traceback (most recent call last):
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/views/decorators/csrf.py", line 56, in wrapper_view
+    return view_func(*args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/views/generic/base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 509, in dispatch
+    response = self.handle_exception(exc)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 469, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+    raise exc
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/srv/casaaustin/api-casa-austin/src/apps/clients/auth_views.py", line 689, in post
+    result = whatsapp_service.send_otp_whatsapp(client.tel_number, otp_code)
+AttributeError: 'WhatsAppOTPService' object has no attribute 'send_otp_whatsapp'
+ERROR 2025-08-27 06:11:18,461 log 1020041 140247867012928 Internal Server Error: /api/v1/clients/client-auth/forgot-password/
+Traceback (most recent call last):
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/views/decorators/csrf.py", line 56, in wrapper_view
+    return view_func(*args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/views/generic/base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 509, in dispatch
+    response = self.handle_exception(exc)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 469, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+    raise exc
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/srv/casaaustin/api-casa-austin/src/apps/clients/auth_views.py", line 689, in post
+    result = whatsapp_service.send_otp_whatsapp(client.tel_number, otp_code)
+AttributeError: 'WhatsAppOTPService' object has no attribute 'send_otp_whatsapp'
