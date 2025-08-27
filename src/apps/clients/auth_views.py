@@ -686,11 +686,16 @@ class ClientForgotPasswordView(APIView):
                 whatsapp_service = WhatsAppOTPService()
                 # Generate OTP code for WhatsApp
                 otp_code = whatsapp_service.generate_otp_code()
-                result = whatsapp_service.send_otp_whatsapp(client.tel_number, otp_code)
-                if not result['success']:
+                
+                # Almacenar el código OTP temporalmente
+                from django.core.cache import cache
+                cache_key = f"whatsapp_otp_{client.tel_number}"
+                cache.set(cache_key, otp_code, 600)  # 10 minutos
+                
+                # Enviar usando el método correcto
+                if not whatsapp_service.send_otp_template(client.tel_number, otp_code):
                     return Response({
-                        'message': 'Error al enviar código de verificación por WhatsApp',
-                        'error': result.get('error', 'Error desconocido')
+                        'message': 'Error al enviar código de verificación por WhatsApp'
                     }, status=500)
             else:
                 # Usar Twilio SMS
