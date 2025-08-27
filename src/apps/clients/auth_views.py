@@ -657,6 +657,122 @@ class ClientSetupPasswordView(APIView):
             return Response({'message': 'Cliente no encontrado'}, status=404)
 
 
+class ClientForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        """Enviar código OTP para recuperar contraseña"""
+        serializer = ClientAuthRequestOTPSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({'message': 'Datos inválidos'}, status=400)
+
+        try:
+            client = Clients.objects.get(
+                document_type=serializer.validated_data['document_type'],
+                number_doc=serializer.validated_data['number_doc'],
+                deleted=False)
+
+            if not client.is_password_set or not client.password:
+                return Response(
+                    {
+                        'message': 'Este cliente no tiene una contraseña configurada. Use el endpoint de configuración inicial.'
+                    },
+                    status=400)
+
+            # Generar y enviar OTP
+            otp_service_provider = os.getenv('OTP_SERVICE_PROVIDER', 'twilio').lower()
+
+            if otp_service_provider == 'whatsapp':
+                whatsapp_service = WhatsAppOTPService()
+                result = whatsapp_service.send_otp(client.tel_number)
+                if not result['success']:
+                    return Response({
+                        'message': 'Error al enviar código de verificación por WhatsApp',
+                        'error': result.get('error', 'Error desconocido')
+                    }, status=500)
+            else:
+                # Usar Twilio SMS
+                twilio_service = TwilioOTPService()
+                if not twilio_service.send_otp_code(client.tel_number):
+                    return Response({
+                        'message': 'Error al enviar código de verificación SMS. Verifique que el número sea válido'
+                    }, status=500)
+
+            return Response({
+                'message': f'Código de verificación enviado a {client.tel_number} para recuperar contraseña'
+            })
+
+        except Clients.DoesNotExist:
+            return Response({'message': 'Cliente no encontrado'}, status=404)
+
+
+class ClientResetPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        """Reset password using OTP code"""
+        serializer = ClientAuthSetPasswordSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({'message': 'Datos inválidos'}, status=400)
+
+        try:
+            client = Clients.objects.get(
+                document_type=serializer.validated_data['document_type'],
+                number_doc=serializer.validated_data['number_doc'],
+                deleted=False)
+
+            if not client.is_password_set or not client.password:
+                return Response(
+                    {
+                        'message': 'Este cliente no tiene una contraseña configurada. Use el endpoint de configuración inicial.'
+                    },
+                    status=400)
+
+            # Verificar OTP según el servicio configurado
+            otp_service_provider = os.getenv('OTP_SERVICE_PROVIDER', 'twilio').lower()
+            otp_code = serializer.validated_data['otp_code']
+
+            if otp_service_provider == 'whatsapp':
+                # Verificar OTP almacenado en cache
+                from django.core.cache import cache
+                cache_key = f"whatsapp_otp_{client.tel_number}"
+                stored_otp = cache.get(cache_key)
+
+                if not stored_otp or stored_otp != otp_code:
+                    return Response({'message': 'Código OTP inválido o expirado'},
+                                    status=400)
+
+                # Limpiar el código del cache
+                cache.delete(cache_key)
+            else:
+                # Verificar OTP con Twilio
+                twilio_service = TwilioOTPService()
+
+                if not twilio_service.verify_otp_code(client.tel_number, otp_code):
+                    return Response({'message': 'Código OTP inválido o expirado'},
+                                    status=400)
+
+            # Validar nueva contraseña
+            password = serializer.validated_data['password']
+            if len(password) < 8:
+                return Response(
+                    {'message': 'La contraseña debe tener al menos 8 caracteres'},
+                    status=400)
+
+            # Actualizar contraseña
+            client.password = make_password(password)
+            client.otp_code = None
+            client.otp_expires_at = None
+            client.save()
+
+            logger.info(f"Password reset successful for client {client.id}")
+
+            return Response({'message': 'Contraseña actualizada exitosamente'})
+
+        except Clients.DoesNotExist:
+            return Response({'message': 'Cliente no encontrado'}, status=404)
+
+
 class ClientLoginView(APIView):
     permission_classes = [AllowAny]
 
