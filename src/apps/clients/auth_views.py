@@ -684,7 +684,9 @@ class ClientForgotPasswordView(APIView):
 
             if otp_service_provider == 'whatsapp':
                 whatsapp_service = WhatsAppOTPService()
-                result = whatsapp_service.send_otp(client.tel_number)
+                # Generate OTP code for WhatsApp
+                otp_code = whatsapp_service.generate_otp_code()
+                result = whatsapp_service.send_otp_whatsapp(client.tel_number, otp_code)
                 if not result['success']:
                     return Response({
                         'message': 'Error al enviar código de verificación por WhatsApp',
