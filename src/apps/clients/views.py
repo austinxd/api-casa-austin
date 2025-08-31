@@ -999,7 +999,7 @@ class BotClientProfileView(APIView):
             upcoming_reservations = Reservation.objects.filter(
                 client=client,
                 deleted=False,
-                check_out_date__gt=today,
+                check_out_date__gte=today,  # Incluye reservas que terminan hoy o después
                 status='approved'
             ).order_by('check_in_date')
 
