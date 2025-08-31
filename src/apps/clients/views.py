@@ -1018,7 +1018,7 @@ class BotClientProfileView(APIView):
                 highest_achievement_obj = earned_achievements.first()
                 icon = highest_achievement_obj.achievement.icon or ""
                 name = highest_achievement_obj.achievement.name
-                name_with_icon = f"{icon}{name}" if icon else name
+                name_with_icon = f"{icon} {name}" if icon else name
                 
                 highest_achievement = {
                     'name_icono': name_with_icon,
