@@ -1,0 +1,87 @@
+import mysql.connector
+from datetime import datetime, timedelta
+import requests
+
+# Configuración de la base de datos
+db_config = {
+    'user': 'Reservas',
+    'password': '!Leonel123',
+    'host': 'localhost',
+    'database': 'ReservasCA',
+}
+
+# Configuración de la API y flujo
+api_token = "1680437.Pgur5IA4kUXccspOK389nZugThdLB9h"
+flow_id = "1726722791692"
+api_base_url = "https://app.chatgptbuilder.io/api"
+
+# Conexión a la base de datos
+connection = mysql.connector.connect(**db_config)
+cursor = connection.cursor(dictionary=True)
+
+# Consulta de usuarios con documento "dni" o "cex"
+query = """
+    SELECT id_manychat, date, document_type
+    FROM clients_clients
+    WHERE document_type IN ('dni', 'cex')
+"""
+cursor.execute(query)
+usuarios = cursor.fetchall()
+
+# Fecha actual
+hoy = datetime.now().date()
+
+# Lista de usuarios que cumplen la condición hoy
+usuarios_a_enviar = []
+
+for usuario in usuarios:
+    subscriber_id = usuario['id_manychat']
+    cumpleanos = usuario['date']
+    
+    if not subscriber_id or not cumpleanos:
+        continue  # Saltamos registros incompletos
+
+    # Ajustamos el año del cumpleaños al actual
+    cumpleanos_date = cumpleanos.replace(year=hoy.year)
+    
+    # Calculamos la fecha de envío (15 días antes)
+    fecha_envio = cumpleanos_date - timedelta(days=15)
+    
+    # Verificamos si hoy es la fecha de envío
+    if hoy == fecha_envio:
+        usuarios_a_enviar.append({
+            "subscriber_id": subscriber_id,
+            "cumpleanos": cumpleanos
+        })
+
+        # 👉 Código de envío del flujo (comentado por ahora)
+
+        # URL para enviar el flujo
+        url = f"{api_base_url}/contacts/{subscriber_id}/send/{flow_id}"
+
+        # Encabezados
+        headers = {
+            "X-ACCESS-TOKEN": api_token,
+            "Content-Type": "application/json"
+        }
+
+        try:
+            response = requests.post(url, headers=headers)
+            if response.status_code == 200:
+                print(f"✅ Mensaje enviado a usuario {subscriber_id}")
+            else:
+                print(f"❌ Error enviando mensaje a {subscriber_id}. Código: {response.status_code}")
+                print(response.text)
+        except Exception as e:
+            print(f"⚠️ Error con el usuario {subscriber_id}: {e}")
+
+
+# Mostrar el resultado de la prueba
+print("🔎 Usuarios a los que se enviaría el mensaje hoy (solo DNI o CEX):")
+print(f"Total: {len(usuarios_a_enviar)}")
+for u in usuarios_a_enviar:
+    print(f"- Subscriber ID: {u['subscriber_id']} / Cumpleaños: {u['cumpleanos']}")
+
+# Cerrar conexión
+cursor.close()
+connection.close()
