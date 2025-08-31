@@ -969,3 +969,101 @@ class ClientAchievementsView(APIView):
                 'success': False,
                 'message': 'Error interno del servidor'
             }, status=500)
+
+
+class BotClientProfileView(APIView):
+    """Vista para bot - obtener perfil completo del cliente sin autenticación"""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, tel_number):
+        logger.info(f"BotClientProfileView: Request for tel_number {tel_number}")
+
+        try:
+            # Buscar cliente por número de teléfono
+            client = Clients.objects.filter(
+                tel_number=tel_number,
+                deleted=False
+            ).first()
+
+            if not client:
+                return Response({
+                    'success': False,
+                    'message': 'Cliente no encontrado'
+                }, status=404)
+
+            # Obtener reservas futuras
+            from datetime import date
+            today = date.today()
+            
+            upcoming_reservations = Reservation.objects.filter(
+                client=client,
+                deleted=False,
+                check_out_date__gt=today,
+                status='approved'
+            ).order_by('check_in_date')
+
+            # Obtener nivel más alto (logro más importante)
+            highest_achievement = None
+            earned_achievements = ClientAchievement.objects.filter(
+                client=client,
+                deleted=False
+            ).select_related('achievement').order_by(
+                '-achievement__required_reservations',
+                '-achievement__required_referrals',
+                '-achievement__required_referral_reservations'
+            )
+
+            if earned_achievements.exists():
+                highest_achievement_obj = earned_achievements.first()
+                highest_achievement = {
+                    'name': highest_achievement_obj.achievement.name,
+                    'description': highest_achievement_obj.achievement.description,
+                    'icon': highest_achievement_obj.achievement.icon,
+                    'earned_at': highest_achievement_obj.earned_at.isoformat()
+                }
+
+            # Serializar reservas futuras
+            upcoming_reservations_data = None
+            if upcoming_reservations.exists():
+                upcoming_reservations_data = []
+                for reservation in upcoming_reservations:
+                    upcoming_reservations_data.append({
+                        'id': reservation.id,
+                        'property_name': reservation.property.name if reservation.property else 'Sin propiedad',
+                        'check_in_date': reservation.check_in_date.isoformat(),
+                        'check_out_date': reservation.check_out_date.isoformat(),
+                        'guests': reservation.guests,
+                        'nights': (reservation.check_out_date - reservation.check_in_date).days,
+                        'price_sol': float(reservation.price_sol) if reservation.price_sol else 0,
+                        'status': reservation.get_status_display() if hasattr(reservation, 'get_status_display') else reservation.status
+                    })
+
+            # Preparar respuesta
+            response_data = {
+                'success': True,
+                'client_profile': {
+                    'id': client.id,
+                    'first_name': client.first_name,
+                    'last_name': client.last_name or '',
+                    'full_name': f"{client.first_name} {client.last_name or ''}".strip(),
+                    'email': client.email,
+                    'tel_number': client.tel_number,
+                    'document_type': client.get_document_type_display(),
+                    'number_doc': client.number_doc,
+                    'available_points': client.get_available_points(),
+                    'points_balance': float(client.points_balance),
+                    'highest_level': highest_achievement,
+                    'upcoming_reservations': upcoming_reservations_data
+                }
+            }
+
+            logger.info(f"BotClientProfileView: Profile data retrieved successfully for {client.first_name}")
+            return Response(response_data)
+
+        except Exception as e:
+            logger.error(f"BotClientProfileView: Error getting client profile: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)

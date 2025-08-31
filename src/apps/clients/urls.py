@@ -47,6 +47,13 @@ urlpatterns = [
     path('clients/client-auth/request-otp-registration/',
          auth_views.ClientRequestOTPForRegistrationView.as_view(),
          name='client-request-otp-registration'),
+
+    # Bot endpoint - sin autenticación
+    path('bot/client/<str:tel_number>/',
+         views.BotClientProfileView.as_view(),
+         name='bot-client-profile'),
+
+
     path('clients/client-auth/setup-password/',
          auth_views.ClientSetupPasswordView.as_view(),
          name='client-setup-password'),
