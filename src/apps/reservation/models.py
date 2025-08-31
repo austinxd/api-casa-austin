@@ -111,6 +111,18 @@ class Reservation(BaseModel):
         help_text="Indica si ya se envió la notificación de pago aprobado por WhatsApp"
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Guardar el valor original de full_payment para detectar cambios
+        self._original_full_payment = self.full_payment
+
+    def save(self, *args, **kwargs):
+        # Actualizar el valor original después de guardar
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if not is_new:
+            self._original_full_payment = self.full_payment
+
     def __str__(self):
         if self.client:
             return f"Reserva de {self.client.last_name}, {self.client.first_name} ({self.id}) - {self.origin} -"

@@ -220,6 +220,11 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
     if created:
         logger.debug(f"Nueva reserva creada: {instance.id} - Origen: {instance.origin}")
         notify_new_reservation(instance)
+        
+        # Verificar si la nueva reserva tiene pago completo
+        if instance.full_payment:
+            logger.debug(f"Nueva reserva {instance.id} creada con pago completo - Enviando flujo ChatBot")
+            send_chatbot_flow_payment_complete(instance)
     else:
         # Verificar si cambió a estado pending (voucher subido)
         if instance.status == 'pending' and instance.origin == 'client':
@@ -233,6 +238,42 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
             # Marcar como enviado para evitar duplicados
             instance.payment_approved_notification_sent = True
             instance.save(update_fields=['payment_approved_notification_sent'])
+        
+        # Verificar si cambió el campo full_payment a True (pago completado)
+        if hasattr(instance, '_original_full_payment'):
+            if not instance._original_full_payment and instance.full_payment:
+                logger.debug(f"Reserva {instance.id} marcada como pago completo - Enviando flujo ChatBot")
+                send_chatbot_flow_payment_complete(instance)
+
+def send_chatbot_flow_payment_complete(reservation):
+    """Envía flujo de ChatBot Builder cuando el pago está completo"""
+    if not reservation.client or not reservation.client.id_manychat:
+        logger.warning(f"No se puede enviar flujo ChatBot para reserva {reservation.id}: cliente o id_manychat no disponible")
+        return
+    
+    # Configuración de la API ChatBot Builder
+    api_token = "1680437.Pgur5IA4kUXccspOK389nZugThdLB9h"
+    flow_id = "1727388146335"  # Flujo para pago completo
+    api_base_url = "https://app.chatgptbuilder.io/api"
+    
+    # URL para enviar el flujo
+    url = f"{api_base_url}/contacts/{reservation.client.id_manychat}/send/{flow_id}"
+    
+    # Encabezados
+    headers = {
+        "X-ACCESS-TOKEN": api_token,
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        response = requests.post(url, headers=headers)
+        if response.status_code == 200:
+            logger.info(f"✅ Flujo de pago completo enviado a usuario {reservation.client.id_manychat} para reserva {reservation.id}")
+        else:
+            logger.error(f"❌ Error enviando flujo de pago completo a {reservation.client.id_manychat}. Código: {response.status_code}")
+            logger.error(f"Respuesta: {response.text}")
+    except Exception as e:
+        logger.error(f"⚠️ Error enviando flujo ChatBot para reserva {reservation.id}: {e}")
 
 def send_purchase_event_to_meta(
     phone,
