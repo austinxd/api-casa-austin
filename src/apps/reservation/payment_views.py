@@ -5,7 +5,8 @@ from rest_framework import status
 from django.db import transaction
 from django.conf import settings
 from .models import Reservation
-import openpay
+import requests
+import base64
 import logging
 
 logger = logging.getLogger(__name__)
@@ -17,12 +18,22 @@ class ProcessPaymentView(APIView):
     
     def __init__(self):
         super().__init__()
-        # Configurar OpenPay
-        self.openpay = openpay.Openpay(
-            merchant_id=settings.OPENPAY_MERCHANT_ID,
-            private_key=settings.OPENPAY_PRIVATE_KEY,
-            production=not settings.OPENPAY_SANDBOX
-        )
+        # Configurar OpenPay API
+        self.merchant_id = settings.OPENPAY_MERCHANT_ID
+        self.private_key = settings.OPENPAY_PRIVATE_KEY
+        self.is_sandbox = settings.OPENPAY_SANDBOX
+        
+        # URL base según el entorno
+        if self.is_sandbox:
+            self.base_url = "https://sandbox-api.openpay.pe/v1"
+        else:
+            self.base_url = "https://api.openpay.pe/v1"
+    
+    def _get_auth_header(self):
+        """Crear header de autenticación para OpenPay"""
+        credentials = f"{self.private_key}:"
+        encoded_credentials = base64.b64encode(credentials.encode()).decode()
+        return f"Basic {encoded_credentials}"
     
     def post(self, request, reservation_id):
         try:
@@ -41,10 +52,10 @@ class ProcessPaymentView(APIView):
             
             with transaction.atomic():
                 try:
-                    # Crear el cargo con OpenPay
+                    # Crear el cargo con OpenPay API
                     charge_data = {
                         "source_id": token,
-                        "method": "card",
+                        "method": "card", 
                         "amount": amount,
                         "currency": "PEN",
                         "description": f"Pago reserva #{reservation.id} - {reservation.property.name}",
@@ -57,32 +68,55 @@ class ProcessPaymentView(APIView):
                         }
                     }
                     
-                    # Procesar pago con OpenPay
-                    charge = self.openpay.Charge.create(charge_data)
+                    # Headers para la API
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': self._get_auth_header()
+                    }
                     
-                    if charge.get('status') == 'completed':
-                        # Pago exitoso - actualizar reserva
-                        reservation.full_payment = True
-                        reservation.status = 'approved'
-                        reservation.save()
+                    # Procesar pago con OpenPay API
+                    url = f"{self.base_url}/{self.merchant_id}/charges"
+                    response = requests.post(url, json=charge_data, headers=headers)
+                    
+                    if response.status_code == 201:
+                        charge = response.json()
                         
-                        logger.info(f"Pago exitoso para reserva {reservation.id}. Transaction ID: {charge.get('id')}")
-                        
-                        return Response({
-                            'success': True,
-                            'message': 'Pago procesado exitosamente',
-                            'reservation_id': reservation.id,
-                            'transaction_id': charge.get('id')
-                        })
+                        if charge.get('status') == 'completed':
+                            # Pago exitoso - actualizar reserva
+                            reservation.full_payment = True
+                            reservation.status = 'approved'
+                            reservation.save()
+                            
+                            logger.info(f"Pago exitoso para reserva {reservation.id}. Transaction ID: {charge.get('id')}")
+                            
+                            return Response({
+                                'success': True,
+                                'message': 'Pago procesado exitosamente',
+                                'reservation_id': reservation.id,
+                                'transaction_id': charge.get('id')
+                            })
+                        else:
+                            logger.warning(f"Pago no completado para reserva {reservation.id}. Status: {charge.get('status')}")
+                            return Response({
+                                'success': False,
+                                'message': f"Pago no completado. Estado: {charge.get('status')}"
+                            }, status=400)
                     else:
-                        logger.warning(f"Pago no completado para reserva {reservation.id}. Status: {charge.get('status')}")
+                        error_msg = response.json().get('description', 'Error desconocido') if response.content else 'Error de conexión'
+                        logger.error(f"Error de OpenPay para reserva {reservation.id}: {error_msg}")
                         return Response({
                             'success': False,
-                            'message': f"Pago no completado. Estado: {charge.get('status')}"
+                            'message': f'Error procesando el pago: {error_msg}'
                         }, status=400)
                         
-                except openpay.exceptions.OpenpayError as e:
-                    logger.error(f"Error de OpenPay para reserva {reservation.id}: {str(e)}")
+                except requests.RequestException as e:
+                    logger.error(f"Error de conexión OpenPay para reserva {reservation.id}: {str(e)}")
+                    return Response({
+                        'success': False,
+                        'message': 'Error de conexión con el procesador de pagos'
+                    }, status=500)
+                except Exception as e:
+                    logger.error(f"Error general OpenPay para reserva {reservation.id}: {str(e)}")
                     return Response({
                         'success': False,
                         'message': f'Error procesando el pago: {str(e)}'
