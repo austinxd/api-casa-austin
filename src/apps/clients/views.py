@@ -1058,6 +1058,7 @@ class BotClientProfileView(APIView):
                     'number_doc': client.number_doc,
                     'available_points': client.get_available_points(),
                     'points_balance': float(client.points_balance),
+                    'referral_code': client.get_referral_code(),
                     'highest_level': highest_achievement,
                     'upcoming_reservations': upcoming_reservations_data
                 }
