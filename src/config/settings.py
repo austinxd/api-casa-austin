@@ -339,6 +339,12 @@ TWILIO_AUTH_TOKEN = env('TWILIO_AUTH_TOKEN', default='No token')
 TWILIO_VERIFY_SID = env('TWILIO_VERIFY_SID', default='No verify SID')
 TWILIO_PHONE_NUMBER = env('TWILIO_PHONE_NUMBER', default='No phone')
 
+# OpenPay Configuration
+OPENPAY_MERCHANT_ID = env('OPENPAY_MERCHANT_ID', default='No merchant ID')
+OPENPAY_PRIVATE_KEY = env('OPENPAY_PRIVATE_KEY', default='No private key')
+OPENPAY_PUBLIC_KEY = env('OPENPAY_PUBLIC_KEY', default='No public key')
+OPENPAY_SANDBOX = env.bool('OPENPAY_SANDBOX', default=True)
+
 # Verificar que las variables de entorno se cargan correctamente
 import logging
 

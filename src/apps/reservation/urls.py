@@ -2,15 +2,16 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
-    ReservationsApiView, 
-    DeleteRecipeApiView, 
-    GetICSApiView, 
-    UpdateICSApiView, 
+    ReservationsApiView,
+    DeleteRecipeApiView,
+    GetICSApiView,
+    UpdateICSApiView,
     ProfitApiView,
     VistaCalendarioApiView,
     confirm_reservation,
     PropertyCalendarOccupancyAPIView
 )
+from .payment_views import ProcessPaymentView
 
 router = DefaultRouter()
 
@@ -27,4 +28,5 @@ urlpatterns = [
     path("profit-resume/", ProfitApiView.as_view(), name='profit-resume'),
     path('confirm/<str:uuid>/', confirm_reservation, name='confirm_reservation'),
     path('property/<str:property_id>/calendar-occupancy/', PropertyCalendarOccupancyAPIView.as_view(), name='property-calendar-occupancy'),
+    path('reservations/<int:reservation_id>/process-payment/', ProcessPaymentView.as_view(), name='process-payment'),
 ]
