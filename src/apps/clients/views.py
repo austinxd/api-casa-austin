@@ -1036,7 +1036,9 @@ class BotClientProfileView(APIView):
                         'guests': reservation.guests,
                         'nights': (reservation.check_out_date - reservation.check_in_date).days,
                         'price_sol': float(reservation.price_sol) if reservation.price_sol else 0,
-                        'status': reservation.get_status_display() if hasattr(reservation, 'get_status_display') else reservation.status
+                        'status': reservation.get_status_display() if hasattr(reservation, 'get_status_display') else reservation.status,
+                        'payment_full': reservation.full_payment,
+                        'temperature_pool': reservation.temperature_pool
                     })
 
             # Preparar respuesta
