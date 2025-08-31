@@ -53,14 +53,8 @@ class ClientVoucherUploadView(APIView):
                     'message': 'El tiempo para subir el voucher ha expirado. La reserva ha sido cancelada.'
                 }, status=400)
 
-            # Verificar cuántos vouchers ha subido
+            # Contar vouchers existentes (sin límite)
             existing_vouchers_count = RentalReceipt.objects.filter(reservation=reservation).count()
-            
-            # Si ya subió 2 vouchers (50% + diferencia), no permitir más
-            if existing_vouchers_count >= 2:
-                return Response({
-                    'message': 'Ya has subido todos los vouchers necesarios para esta reserva'
-                }, status=400)
 
             # Obtener archivo del voucher
             voucher_file = request.FILES.get('voucher')
@@ -94,10 +88,8 @@ class ClientVoucherUploadView(APIView):
                 reservation.payment_confirmed = bool(payment_confirmed)
                 reservation.save()
 
-            voucher_message = 'Voucher inicial subido exitosamente' if new_vouchers_count == 1 else 'Voucher de diferencia subido exitosamente'
-            
             return Response({
-                'message': voucher_message,
+                'message': f'Voucher #{new_vouchers_count} subido exitosamente',
                 'reservation_id': reservation.id,
                 'vouchers_uploaded': new_vouchers_count,
                 'payment_confirmed': reservation.payment_confirmed
