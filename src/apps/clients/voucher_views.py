@@ -53,10 +53,13 @@ class ClientVoucherUploadView(APIView):
                     'message': 'El tiempo para subir el voucher ha expirado. La reserva ha sido cancelada.'
                 }, status=400)
 
-            # Verificar si ya subió el voucher
-            if reservation.payment_voucher_uploaded:
+            # Verificar cuántos vouchers ha subido
+            existing_vouchers_count = RentalReceipt.objects.filter(reservation=reservation).count()
+            
+            # Si ya subió 2 vouchers (50% + diferencia), no permitir más
+            if existing_vouchers_count >= 2:
                 return Response({
-                    'message': 'Ya has subido el voucher para esta reserva'
+                    'message': 'Ya has subido todos los vouchers necesarios para esta reserva'
                 }, status=400)
 
             # Obtener archivo del voucher
@@ -66,25 +69,37 @@ class ClientVoucherUploadView(APIView):
                     'message': 'Debe subir un archivo de voucher'
                 }, status=400)
 
-            # Obtener confirmación de pago
+            # Obtener confirmación de pago y tipo de voucher
             payment_confirmed = request.data.get('payment_confirmed', False)
+            voucher_type = request.data.get('voucher_type', 'initial')  # 'initial' o 'balance'
 
             with transaction.atomic():
-                # Crear el RentalReceipt
+                # Crear el RentalReceipt con tipo de voucher
                 RentalReceipt.objects.create(
                     reservation=reservation,
                     file=voucher_file
                 )
 
-                # Marcar voucher como subido y cambiar estado a pending (esperando aprobación del admin)
+                # Actualizar contadores
+                new_vouchers_count = existing_vouchers_count + 1
+                
+                # Marcar voucher como subido
                 reservation.payment_voucher_uploaded = True
-                reservation.status = 'pending'  # Cambiar a pending cuando se sube voucher
+                
+                # Si es el primer voucher o segundo voucher, mantener en pending
+                # Solo cambiar a approved cuando admin lo apruebe manualmente
+                if reservation.status != 'approved':
+                    reservation.status = 'pending'
+                    
                 reservation.payment_confirmed = bool(payment_confirmed)
                 reservation.save()
 
+            voucher_message = 'Voucher inicial subido exitosamente' if new_vouchers_count == 1 else 'Voucher de diferencia subido exitosamente'
+            
             return Response({
-                'message': 'Voucher subido exitosamente',
+                'message': voucher_message,
                 'reservation_id': reservation.id,
+                'vouchers_uploaded': new_vouchers_count,
                 'payment_confirmed': reservation.payment_confirmed
             })
 
