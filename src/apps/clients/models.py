@@ -309,12 +309,18 @@ class ClientPoints(BaseModel):
 
 class SearchTracking(BaseModel):
     """Modelo para tracking de búsquedas de clientes"""
-    client = models.OneToOneField(Clients, on_delete=models.CASCADE, related_name='search_tracking', help_text="Cliente que realiza la búsqueda")
+    client = models.ForeignKey(Clients, on_delete=models.CASCADE, related_name='search_tracking', null=True, blank=True, help_text="Cliente que realiza la búsqueda (null para usuarios anónimos)")
     check_in_date = models.DateField(help_text="Fecha de check-in buscada")
     check_out_date = models.DateField(help_text="Fecha de check-out buscada")
     guests = models.PositiveIntegerField(help_text="Número de huéspedes")
     property = models.ForeignKey('property.Property', on_delete=models.CASCADE, null=True, blank=True, help_text="Propiedad buscada")
     search_timestamp = models.DateTimeField(auto_now=True, help_text="Timestamp de la última búsqueda")
+    
+    # Campos adicionales para usuarios anónimos
+    session_key = models.CharField(max_length=100, null=True, blank=True, help_text="Clave de sesión para usuarios anónimos")
+    ip_address = models.GenericIPAddressField(null=True, blank=True, help_text="Dirección IP del usuario")
+    user_agent = models.TextField(null=True, blank=True, help_text="User agent del navegador")
+    referrer = models.URLField(null=True, blank=True, help_text="URL de referencia")
     
     class Meta:
         verbose_name = "Tracking de Búsqueda"

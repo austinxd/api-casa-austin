@@ -91,7 +91,7 @@ class ClientReservationDetailView(APIView):
                     direct_reservation = direct_search.first()
                     logger.error(f"ClientReservationDetailView: ENCONTRADO! Reserva ID {direct_reservation.id} pertenece al cliente {direct_reservation.client_id}, esperado: {client.id}")
                     logger.error(f"ClientReservationDetailView: Status: {direct_reservation.status}, UUID: {direct_reservation.uuid_external}")
-                    
+
                     # Verificar si es el mismo cliente
                     if direct_reservation.client_id == client.id:
                         logger.error(f"ClientReservationDetailView: ¡ES EL MISMO CLIENTE! Hay un problema con la query original.")
@@ -106,11 +106,11 @@ class ClientReservationDetailView(APIView):
 
                 # Verificar si la reserva existe para cualquier cliente (incluyendo deleted)
                 debug_filters = Q(uuid_external=reservation_id) | Q(uuid_external=reservation_id.replace("-", ""))
-                
+
                 # Si es numérico, también buscar por ID
                 if reservation_id.isdigit():
                     debug_filters |= Q(id=reservation_id)
-                
+
                 debug_reservations_all = Reservation.objects.filter(debug_filters)
 
                 debug_reservations_active = debug_reservations_all.filter(deleted=False)
@@ -995,7 +995,7 @@ class BotClientProfileView(APIView):
             # Obtener reservas futuras
             from datetime import date
             today = date.today()
-            
+
             upcoming_reservations = Reservation.objects.filter(
                 client=client,
                 deleted=False,
@@ -1019,7 +1019,7 @@ class BotClientProfileView(APIView):
                 icon = highest_achievement_obj.achievement.icon or ""
                 name = highest_achievement_obj.achievement.name
                 name_with_icon = f"{icon} {name}" if icon else name
-                
+
                 highest_achievement = {
                     'name_icono': name_with_icon,
                     'description': highest_achievement_obj.achievement.description,
@@ -1073,3 +1073,1063 @@ class BotClientProfileView(APIView):
                 'success': False,
                 'message': 'Error interno del servidor'
             }, status=500)
+```
+# Added helper method to get client IP address
+    def get_client_ip(self, request):
+        """Obtener IP real del cliente"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+
+
+class ClientProfileView(APIView):
+    """Vista para el perfil del cliente autenticado"""
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        logger.info(f"ClientProfileView: Request received")
+
+        try:
+            authenticator = ClientJWTAuthentication()
+            auth_result = authenticator.authenticate(request)
+
+            if auth_result is None:
+                logger.error("ClientProfileView: Authentication failed - no result")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            client, validated_token = auth_result
+
+            if not client:
+                logger.error("ClientProfileView: Authentication failed - no client")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            logger.info(f"ClientProfileView: Client authenticated - ID: {client.id}, Name: {client.first_name} {client.last_name}")
+
+            # Obtener el logro más alto del cliente
+            highest_achievement = None
+            earned_achievements = ClientAchievement.objects.filter(
+                client=client,
+                deleted=False
+            ).select_related('achievement').order_by(
+                '-achievement__required_reservations',
+                '-achievement__required_referrals',
+                '-achievement__required_referral_reservations'
+            )
+
+            if earned_achievements.exists():
+                highest_achievement_obj = earned_achievements.first()
+                icon = highest_achievement_obj.achievement.icon or ""
+                name = highest_achievement_obj.achievement.name
+                name_with_icon = f"{icon} {name}" if icon else name
+
+                highest_achievement = {
+                    'name_icono': name_with_icon,
+                    'description': highest_achievement_obj.achievement.description,
+                    'earned_at': highest_achievement_obj.earned_at.isoformat()
+                }
+
+            # Serializar el perfil del cliente
+            serializer = ClientProfileSerializer(client, context={'request': request})
+            profile_data = serializer.data
+
+            # Agregar información de logros al perfil
+            profile_data['highest_level'] = highest_achievement
+
+            # Agregar información de puntos disponibles
+            profile_data['available_points'] = client.get_available_points()
+            profile_data['points_balance'] = float(client.points_balance)
+
+            # Obtener reservas futuras para el cliente
+            from datetime import date
+            today = date.today()
+            upcoming_reservations = Reservation.objects.filter(
+                client=client,
+                deleted=False,
+                check_out_date__gte=today,
+                status='approved'
+            ).order_by('check_in_date')
+
+            upcoming_reservations_data = []
+            if upcoming_reservations.exists():
+                for res in upcoming_reservations:
+                    upcoming_reservations_data.append({
+                        'id': res.id,
+                        'property_name': res.property.name if res.property else 'Sin propiedad',
+                        'check_in_date': res.check_in_date.isoformat(),
+                        'check_out_date': res.check_out_date.isoformat(),
+                        'guests': res.guests,
+                        'nights': (res.check_out_date - res.check_in_date).days,
+                        'status': res.get_status_display() if hasattr(res, 'get_status_display') else res.status,
+                        'payment_full': res.full_payment,
+                        'temperature_pool': res.temperature_pool
+                    })
+            profile_data['upcoming_reservations'] = upcoming_reservations_data
+
+            # Obtener última búsqueda del cliente (si existe)
+            try:
+                search_tracking = SearchTracking.objects.get(client=client, deleted=False)
+                search_serializer = SearchTrackingSerializer(search_tracking)
+                profile_data['last_search'] = search_serializer.data
+            except SearchTracking.DoesNotExist:
+                profile_data['last_search'] = None
+                logger.info(f"ClientProfileView: No hay búsquedas registradas para el cliente {client.id}")
+
+            logger.info(f"ClientProfileView: Perfil del cliente {client.id} recuperado con éxito")
+
+            return Response({
+                'success': True,
+                'client_profile': profile_data
+            })
+
+        except Exception as e:
+            logger.error(f"ClientProfileView: Error getting client profile: {str(e)}")
+            import traceback
+            logger.error(f"ClientProfileView: TRACEBACK: {traceback.format_exc()}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+    def post(self, request):
+        """Actualizar perfil del cliente"""
+        logger.info(f"ClientProfileView: Update profile request")
+
+        try:
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
+
+            if not client:
+                logger.error("ClientProfileView: Authentication failed")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            logger.info(f"ClientProfileView: Client authenticated - ID: {client.id}")
+
+            # Usar serializer para validar y actualizar datos
+            serializer = ClientProfileSerializer(client, data=request.data, partial=True, context={'request': request})
+
+            if serializer.is_valid():
+                serializer.save()
+                logger.info(f"ClientProfileView: Profile updated successfully for client {client.id}")
+
+                # Generar auditoría de la actualización
+                generate_audit(client, client, "update", "Perfil del cliente actualizado")
+
+                # Retornar datos actualizados
+                updated_profile_data = serializer.data
+                updated_profile_data['available_points'] = client.get_available_points()
+                updated_profile_data['points_balance'] = float(client.points_balance)
+
+                return Response({
+                    'success': True,
+                    'message': 'Perfil actualizado correctamente',
+                    'client_profile': updated_profile_data
+                })
+            else:
+                logger.error(f"ClientProfileView: Validation errors: {serializer.errors}")
+                return Response({
+                    'success': False,
+                    'message': 'Error en los datos enviados',
+                    'errors': serializer.errors
+                }, status=400)
+
+        except Exception as e:
+            logger.error(f"ClientProfileView: Error updating profile: {str(e)}")
+            import traceback
+            logger.error(f"ClientProfileView: TRACEBACK: {traceback.format_exc()}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+
+class ClientAuthRequestOTPView(APIView):
+    """Vista para solicitar código OTP para verificación de email/teléfono"""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        logger.info("ClientAuthRequestOTPView: Request OTP received")
+
+        try:
+            email = request.data.get('email')
+            phone_number = request.data.get('phone_number')
+
+            if not email and not phone_number:
+                return Response({
+                    'success': False,
+                    'message': 'Debe proporcionar un email o un número de teléfono.'
+                }, status=400)
+
+            client = None
+            if email:
+                client = Clients.objects.filter(email=email, deleted=False).first()
+                if not client:
+                    return Response({
+                        'success': False,
+                        'message': 'Cliente no encontrado con este email.'
+                    }, status=404)
+            elif phone_number:
+                client = Clients.objects.filter(tel_number=phone_number, deleted=False).first()
+                if not client:
+                    return Response({
+                        'success': False,
+                        'message': 'Cliente no encontrado con este número de teléfono.'
+                    }, status=404)
+
+            # Generar y enviar OTP
+            otp_code = client.generate_otp()
+            logger.info(f"ClientAuthRequestOTPView: OTP generated for client {client.id}: {otp_code}")
+
+            # Enviar OTP por SMS o Email según corresponda
+            if client.tel_number and client.tel_number.startswith('+'): # Asumir que el número tiene código de país y es para SMS
+                message = f"Tu código de verificación es: {otp_code}"
+                send_sms(client.tel_number, message)
+                logger.info(f"ClientAuthRequestOTPView: OTP enviado por SMS a {client.tel_number}")
+            elif client.email:
+                # Aquí iría la lógica para enviar el email con el OTP
+                # Por ahora, solo registramos que se enviaría
+                logger.info(f"ClientAuthRequestOTPView: Se enviaría OTP por email a {client.email}")
+                # Ejemplo de envío de email (requiere configuración de Django email backend)
+                # from django.core.mail import send_mail
+                # subject = 'Tu código de verificación'
+                # message_body = f'Hola {client.first_name},\n\nTu código de verificación es: {otp_code}\n\nGracias.'
+                # from_email = 'your_email@example.com'
+                # recipient_list = [client.email]
+                # send_mail(subject, message_body, from_email, recipient_list, fail_silently=False)
+
+            return Response({
+                'success': True,
+                'message': 'Código de verificación enviado exitosamente.'
+            })
+
+        except Exception as e:
+            logger.error(f"ClientAuthRequestOTPView: Error requesting OTP: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+
+class ClientAuthVerifyOTPView(APIView):
+    """Vista para verificar el código OTP y generar token JWT"""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        logger.info("ClientAuthVerifyOTPView: Verify OTP received")
+
+        try:
+            email = request.data.get('email')
+            phone_number = request.data.get('phone_number')
+            otp_code = request.data.get('otp_code')
+
+            if not email and not phone_number:
+                return Response({
+                    'success': False,
+                    'message': 'Debe proporcionar un email o un número de teléfono.'
+                }, status=400)
+
+            if not otp_code:
+                return Response({
+                    'success': False,
+                    'message': 'Debe proporcionar el código de verificación (OTP).'
+                }, status=400)
+
+            client = None
+            if email:
+                client = Clients.objects.filter(email=email, deleted=False).first()
+            elif phone_number:
+                client = Clients.objects.filter(tel_number=phone_number, deleted=False).first()
+
+            if not client:
+                return Response({
+                    'success': False,
+                    'message': 'Cliente no encontrado.'
+                }, status=404)
+
+            # Verificar OTP
+            if client.verify_otp(otp_code):
+                logger.info(f"ClientAuthVerifyOTPView: OTP verified successfully for client {client.id}")
+
+                # Generar token JWT
+                from .utils import generate_jwt_token
+                token = generate_jwt_token(client)
+
+                # Guardar el token para el cliente (opcional, pero útil para revocación)
+                # TokenApiClients.objects.create(client=client, key=token) # Requiere modelo TokenApiClients
+
+                return Response({
+                    'success': True,
+                    'message': 'Verificación exitosa. Token generado.',
+                    'token': token,
+                    'client_id': client.id
+                })
+            else:
+                logger.warning(f"ClientAuthVerifyOTPView: Invalid OTP for client {client.id}")
+                return Response({
+                    'success': False,
+                    'message': 'Código de verificación inválido.'
+                }, status=400)
+
+        except Exception as e:
+            logger.error(f"ClientAuthVerifyOTPView: Error verifying OTP: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+
+class ClientAuthLoginView(APIView):
+    """Vista para login de clientes (email/teléfono y contraseña)"""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        logger.info("ClientAuthLoginView: Login request received")
+
+        try:
+            email = request.data.get('email')
+            phone_number = request.data.get('phone_number')
+            password = request.data.get('password')
+
+            if not (email or phone_number) or not password:
+                return Response({
+                    'success': False,
+                    'message': 'Por favor, proporcione email/número de teléfono y contraseña.'
+                }, status=400)
+
+            client = None
+            if email:
+                client = Clients.objects.filter(email=email, deleted=False).first()
+            elif phone_number:
+                client = Clients.objects.filter(tel_number=phone_number, deleted=False).first()
+
+            if not client:
+                logger.warning("ClientAuthLoginView: Client not found")
+                return Response({
+                    'success': False,
+                    'message': 'Credenciales inválidas.'
+                }, status=401)
+
+            # Verificar contraseña
+            if client.check_password(password): # Asume que el modelo Client tiene un método check_password o usa make_password/check_password de Django
+                logger.info(f"ClientAuthLoginView: Login successful for client {client.id}")
+
+                # Generar token JWT
+                from .utils import generate_jwt_token
+                token = generate_jwt_token(client)
+
+                return Response({
+                    'success': True,
+                    'message': 'Inicio de sesión exitoso.',
+                    'token': token,
+                    'client_id': client.id
+                })
+            else:
+                logger.warning(f"ClientAuthLoginView: Invalid password for client {client.id}")
+                return Response({
+                    'success': False,
+                    'message': 'Credenciales inválidas.'
+                }, status=401)
+
+        except Exception as e:
+            logger.error(f"ClientAuthLoginView: Error during login: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+
+class ClientAuthSetPasswordView(APIView):
+    """Vista para establecer contraseña (generalmente después de verificación OTP)"""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        logger.info("ClientAuthSetPasswordView: Set password request received")
+
+        try:
+            email = request.data.get('email')
+            phone_number = request.data.get('phone_number')
+            new_password = request.data.get('new_password')
+            otp_code = request.data.get('otp_code') # Asumimos que OTP también se envía para seguridad
+
+            if not (email or phone_number) or not new_password or not otp_code:
+                return Response({
+                    'success': False,
+                    'message': 'Por favor, proporcione email/número de teléfono, nueva contraseña y código OTP.'
+                }, status=400)
+
+            client = None
+            if email:
+                client = Clients.objects.filter(email=email, deleted=False).first()
+            elif phone_number:
+                client = Clients.objects.filter(tel_number=phone_number, deleted=False).first()
+
+            if not client:
+                logger.warning("ClientAuthSetPasswordView: Client not found")
+                return Response({
+                    'success': False,
+                    'message': 'Cliente no encontrado.'
+                }, status=404)
+
+            # Verificar OTP primero
+            if not client.verify_otp(otp_code):
+                logger.warning(f"ClientAuthSetPasswordView: Invalid OTP for client {client.id}")
+                return Response({
+                    'success': False,
+                    'message': 'Código de verificación inválido.'
+                }, status=400)
+
+            # Establecer nueva contraseña
+            client.set_password(new_password) # Asume que el modelo Client tiene un método set_password
+            client.save()
+            logger.info(f"ClientAuthSetPasswordView: Password reset successfully for client {client.id}")
+
+            # Opcional: Invalidar OTP después de su uso
+            client.otp_code = None
+            client.otp_expiry = None
+            client.save()
+
+            return Response({
+                'success': True,
+                'message': 'Contraseña actualizada correctamente.'
+            })
+
+        except Exception as e:
+            logger.error(f"ClientAuthSetPasswordView: Error setting password: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+
+class ClientPointsView(APIView):
+    """Vista para gestionar puntos de fidelidad del cliente"""
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        """Obtener saldo de puntos del cliente"""
+        logger.info("ClientPointsView: Get points request")
+
+        try:
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
+
+            if not client:
+                logger.error("ClientPointsView: Authentication failed")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            logger.info(f"ClientPointsView: Client authenticated - ID: {client.id}")
+
+            # Obtener serializer para el balance de puntos
+            serializer = ClientPointsBalanceSerializer(client)
+
+            return Response({
+                'success': True,
+                'data': serializer.data
+            })
+
+        except Exception as e:
+            logger.error(f"ClientPointsView: Error getting points balance: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+    def post(self, request):
+        """Redimir puntos de fidelidad"""
+        logger.info("ClientPointsView: Redeem points request")
+
+        try:
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
+
+            if not client:
+                logger.error("ClientPointsView: Authentication failed")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            logger.info(f"ClientPointsView: Client authenticated - ID: {client.id}")
+
+            serializer = RedeemPointsSerializer(data=request.data, context={'client': client})
+
+            if serializer.is_valid():
+                # El serializer se encarga de la lógica de redención (descontar puntos, crear registro, etc.)
+                result = serializer.save() # save() debería retornar el resultado de la redención
+
+                if result and result.get('success'):
+                    logger.info(f"ClientPointsView: Points redeemed successfully for client {client.id}")
+                    return Response({
+                        'success': True,
+                        'message': result.get('message', 'Puntos redimidos exitosamente.'),
+                        'new_balance': result.get('new_balance')
+                    })
+                else:
+                    logger.warning(f"ClientPointsView: Failed to redeem points for client {client.id}. Reason: {result.get('message')}")
+                    return Response({
+                        'success': False,
+                        'message': result.get('message', 'No se pudieron redimir los puntos.')
+                    }, status=400)
+            else:
+                logger.error(f"ClientPointsView: Validation errors for redeem points: {serializer.errors}")
+                return Response({
+                    'success': False,
+                    'message': 'Error en los datos de redención',
+                    'errors': serializer.errors
+                }, status=400)
+
+        except Exception as e:
+            logger.error(f"ClientPointsView: Error redeeming points: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+
+class ClientPointsHistoryView(APIView):
+    """Vista para obtener el historial de transacciones de puntos de fidelidad del cliente"""
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        logger.info("ClientPointsHistoryView: Get points history request")
+
+        try:
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
+
+            if not client:
+                logger.error("ClientPointsHistoryView: Authentication failed")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            logger.info(f"ClientPointsHistoryView: Client authenticated - ID: {client.id}")
+
+            # Obtener transacciones de puntos del cliente
+            points_history = ClientPoints.objects.filter(
+                client=client,
+                deleted=False
+            ).order_by('-created_at') # Ordenar por fecha de creación descendente
+
+            # Serializar el historial
+            serializer = ClientPointsSerializer(points_history, many=True)
+
+            return Response({
+                'success': True,
+                'data': {
+                    'points_history': serializer.data,
+                    'total_transactions': points_history.count()
+                }
+            })
+
+        except Exception as e:
+            logger.error(f"ClientPointsHistoryView: Error getting points history: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+
+# Vistas relacionadas con SearchTracking (ajustadas para permitir clientes null si es necesario)
+
+class SearchTrackingTestView(APIView):
+    """Vista de prueba para debuggear tracking de búsquedas"""
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        """Endpoint de prueba para verificar datos recibidos"""
+        logger.info("SearchTrackingTestView: Test endpoint called")
+
+        # Aquí se podría simular la lógica de SearchTrackingView para probarla
+        # Por ahora, solo retornamos la información recibida
+
+        return Response({
+            'success': True,
+            'message': 'Datos recibidos correctamente',
+            'data': {
+                'request_method': request.method,
+                'content_type': request.content_type,
+                'request_data': request.data,
+                'request_post': dict(request.POST),
+                'request_body': request.body.decode('utf-8') if request.body else None,
+                'headers': {
+                    'authorization': request.META.get('HTTP_AUTHORIZATION', 'Not found'),
+                    'content_type': request.META.get('CONTENT_TYPE', 'Not found'),
+                }
+            }
+        }, status=200)
+
+
+class SearchTrackingView(APIView):
+    """Vista para tracking de búsquedas de clientes"""
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        """Registrar o actualizar búsqueda del cliente"""
+        logger.info("SearchTrackingView: === INICIO === ")
+
+        try:
+            # Autenticar cliente
+            authenticator = ClientJWTAuthentication()
+            auth_result = authenticator.authenticate(request)
+
+            client = None
+            if auth_result:
+                client, validated_token = auth_result
+                logger.info(f"SearchTrackingView: Cliente autenticado: {client.id if client else 'Anónimo'}")
+            else:
+                # Permitir búsquedas anónimas si el cliente no está autenticado
+                logger.info("SearchTrackingView: Cliente no autenticado. Procesando como anónimo.")
+                # Aquí se podría usar la IP para identificar al usuario anónimo si fuera necesario
+                client_ip = self.get_client_ip(request)
+                logger.info(f"SearchTrackingView: IP del cliente anónimo: {client_ip}")
+
+
+            # Log de lo que recibe Django
+            logger.info(f"SearchTrackingView: === DATOS RECIBIDOS ===")
+            logger.info(f"SearchTrackingView: request.method = {request.method}")
+            logger.info(f"SearchTrackingView: request.content_type = {request.content_type}")
+            logger.info(f"SearchTrackingView: request.data = {request.data}")
+            logger.info(f"SearchTrackingView: type(request.data) = {type(request.data)}")
+
+            # Extraer y procesar datos
+            raw_data = request.data
+            logger.info(f"SearchTrackingView: === PROCESANDO DATOS ===")
+            logger.info(f"SearchTrackingView: raw_data = {raw_data}")
+
+            # Procesar fechas y número de huéspedes
+            check_in_date = None
+            check_out_date = None
+            guests = None
+            property_obj = None # Asumiendo que 'property' en raw_data es un ID
+
+            try:
+                from datetime import datetime
+                from django.utils import timezone
+
+                if 'check_in_date' in raw_data and raw_data['check_in_date']:
+                    check_in_str = raw_data['check_in_date']
+                    logger.info(f"SearchTrackingView: Procesando check_in_date: {check_in_str}")
+                    # Intentar varios formatos de fecha si es necesario, o definir uno estricto
+                    check_in_date = datetime.strptime(check_in_str, '%Y-%m-%d').date()
+                    logger.info(f"SearchTrackingView: check_in_date procesado: {check_in_date}")
+
+                if 'check_out_date' in raw_data and raw_data['check_out_date']:
+                    check_out_str = raw_data['check_out_date']
+                    logger.info(f"SearchTrackingView: Procesando check_out_date: {check_out_str}")
+                    check_out_date = datetime.strptime(check_out_str, '%Y-%m-%d').date()
+                    logger.info(f"SearchTrackingView: check_out_date procesado: {check_out_date}")
+
+                if 'guests' in raw_data and raw_data['guests'] is not None:
+                    guests = int(raw_data['guests'])
+                    logger.info(f"SearchTrackingView: guests procesado: {guests}")
+
+                if 'property' in raw_data and raw_data['property']:
+                    from apps.property.models import Property
+                    try:
+                        property_obj = Property.objects.get(id=raw_data['property'])
+                        logger.info(f"SearchTrackingView: property procesado: {property_obj.id if property_obj else 'None'}")
+                    except Property.DoesNotExist:
+                        logger.warning(f"SearchTrackingView: Property con ID {raw_data['property']} no encontrada")
+                    except ValueError:
+                         logger.warning(f"SearchTrackingView: Formato de ID de propiedad inválido: {raw_data['property']}")
+
+
+                # Validaciones básicas requeridas para guardar el tracking
+                if not check_in_date:
+                    raise ValueError("check_in_date es requerido.")
+                if not check_out_date:
+                    raise ValueError("check_out_date es requerido.")
+                if guests is None: # guests puede ser 0, pero no None
+                    raise ValueError("guests es requerido.")
+
+            except ValueError as ve:
+                logger.error(f"SearchTrackingView: Error en formato de datos: {str(ve)}")
+                return Response({
+                    'success': False,
+                    'message': 'Error en formato de datos',
+                    'errors': str(ve)
+                }, status=400)
+            except Exception as e:
+                 logger.error(f"SearchTrackingView: Error procesando datos: {str(e)}")
+                 return Response({
+                    'success': False,
+                    'message': 'Error al procesar datos de búsqueda',
+                    'errors': str(e)
+                }, status=500)
+
+
+            # Guardar o actualizar el registro de SearchTracking
+            try:
+                search_tracking = None
+                if client: # Si hay cliente autenticado
+                    search_tracking, created = SearchTracking.objects.update_or_create(
+                        client=client,
+                        defaults={
+                            'check_in_date': check_in_date,
+                            'check_out_date': check_out_date,
+                            'guests': guests,
+                            'property': property_obj,
+                            'search_timestamp': timezone.now(),
+                            'deleted': False # Asegurar que no esté marcado como borrado
+                        }
+                    )
+                    action_taken = "actualizado" if not created else "creado"
+                    logger.info(f"SearchTrackingView: Registro para cliente {client.id} {action_taken}: {search_tracking.id}")
+
+                else: # Si es un usuario anónimo (sin cliente autenticado)
+                    # Podríamos usar la IP para identificar búsquedas anónimas
+                    # O podríamos simplemente registrar la última búsqueda anónima sin asociarla a un cliente específico
+                    # Por simplicidad aquí, crearemos un registro anónimo si no hay cliente
+                    # Nota: Considerar cómo manejar múltiples usuarios anónimos desde la misma IP
+                    search_tracking = SearchTracking.objects.create(
+                        client=None, # O podrías tener un campo para IP o un identificador anónimo
+                        client_ip=client_ip, # Guardar la IP
+                        check_in_date=check_in_date,
+                        check_out_date=check_out_date,
+                        guests=guests,
+                        property=property_obj,
+                        search_timestamp=timezone.now(),
+                        deleted=False
+                    )
+                    logger.info(f"SearchTrackingView: Registro anónimo creado: {search_tracking.id} para IP {client_ip}")
+
+                # Serializar la respuesta
+                serializer = SearchTrackingSerializer(search_tracking)
+
+                return Response({
+                    'success': True,
+                    'message': 'Búsqueda registrada exitosamente',
+                    'data': serializer.data
+                }, status=200)
+
+            except Exception as e:
+                logger.error(f"SearchTrackingView: Error al guardar/actualizar SearchTracking: {str(e)}")
+                return Response({
+                    'success': False,
+                    'message': 'Error al guardar la búsqueda',
+                    'errors': str(e)
+                }, status=500)
+
+
+        except Exception as e:
+            logger.error(f"SearchTrackingView: EXCEPCIÓN GENERAL: {str(e)}")
+            import traceback
+            logger.error(f"SearchTrackingView: TRACEBACK: {traceback.format_exc()}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+    def get(self, request):
+        """Obtener última búsqueda del cliente autenticado"""
+        logger.info("SearchTrackingView: Get last search request")
+
+        try:
+            authenticator = ClientJWTAuthentication()
+            auth_result = authenticator.authenticate(request)
+
+            if auth_result is None:
+                logger.error("SearchTrackingView: Authentication failed - no result")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            client, validated_token = auth_result
+
+            if not client:
+                logger.error("SearchTrackingView: Authentication failed - no client")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            # Obtener registro de tracking asociado al cliente
+            try:
+                search_tracking = SearchTracking.objects.get(client=client, deleted=False)
+                serializer = SearchTrackingSerializer(search_tracking)
+                logger.info(f"SearchTrackingView: Última búsqueda para cliente {client.id} encontrada.")
+                return Response({
+                    'success': True,
+                    'data': serializer.data
+                }, status=200)
+
+            except SearchTracking.DoesNotExist:
+                logger.info(f"SearchTrackingView: No hay búsquedas registradas para el cliente {client.id}")
+                return Response({
+                    'success': True,
+                    'message': 'No hay búsquedas registradas',
+                    'data': None
+                }, status=200)
+
+        except Exception as e:
+            logger.error(f"SearchTrackingView: Error getting search: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+
+class PublicAchievementsListView(APIView):
+    """Vista pública para obtener todos los logros disponibles"""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        """Obtener lista de todos los logros disponibles"""
+        logger.info("PublicAchievementsListView: Request for public achievements")
+        try:
+            # Obtener todos los logros activos y no eliminados, ordenados
+            achievements = Achievement.objects.filter(
+                is_active=True,
+                deleted=False
+            ).order_by('order', 'required_reservations', 'required_referrals')
+
+            # Serializar los datos
+            serializer = AchievementSerializer(achievements, many=True)
+
+            logger.info(f"PublicAchievementsListView: Found {achievements.count()} achievements.")
+            return Response({
+                'success': True,
+                'data': {
+                    'total_achievements': achievements.count(),
+                    'achievements': serializer.data
+                }
+            })
+
+        except Exception as e:
+            logger.error(f"PublicAchievementsListView: Error getting achievements: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+
+class ClientAchievementsView(APIView):
+    """Vista para obtener logros del cliente autenticado"""
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        """Obtener logros del cliente y verificar si se han ganado nuevos"""
+        logger.info("ClientAchievementsView: Request for client achievements")
+
+        try:
+            # Autenticar cliente
+            authenticator = ClientJWTAuthentication()
+            auth_result = authenticator.authenticate(request)
+
+            if auth_result is None:
+                logger.error("ClientAchievementsView: Authentication failed - no result")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            client, validated_token = auth_result
+
+            if not client:
+                logger.error("ClientAchievementsView: Authentication failed - no client")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            logger.info(f"ClientAchievementsView: Client authenticated - ID: {client.id}")
+
+            from apps.reservation.models import Reservation
+
+            # Obtener logros ya ganados por el cliente
+            client_achievements = ClientAchievement.objects.filter(
+                client=client,
+                deleted=False
+            ).select_related('achievement').order_by('-earned_at')
+
+            # Obtener todos los logros disponibles y activos para comparación
+            all_achievements = Achievement.objects.filter(
+                is_active=True,
+                deleted=False
+            ).order_by('order', 'required_reservations')
+
+            # Calcular estadísticas relevantes del cliente
+            client_reservations = Reservation.objects.filter(
+                client=client,
+                deleted=False,
+                status='approved' # Solo considerar reservas aprobadas
+            ).count()
+
+            client_referrals = Clients.objects.filter(
+                referred_by=client,
+                deleted=False
+            ).count()
+
+            referral_reservations = Reservation.objects.filter(
+                client__referred_by=client, # Reservas hechas por referidos
+                deleted=False,
+                status='approved'
+            ).count()
+
+            # Verificar si el cliente ha ganado nuevos logros
+            newly_earned_achievements = []
+            earned_achievement_ids = set(client_achievements.values_list('achievement_id', flat=True))
+
+            for achievement in all_achievements:
+                if achievement.id not in earned_achievement_ids:
+                    # Verificar si el cliente cumple los requisitos para este logro
+                    if achievement.check_client_qualifies(client, client_reservations, client_referrals, referral_reservations):
+                        # Otorgar el nuevo logro
+                        try:
+                            new_client_achievement = ClientAchievement.objects.create(
+                                client=client,
+                                achievement=achievement,
+                                earned_at=timezone.now() # Registrar cuándo se ganó
+                            )
+                            newly_earned_achievements.append(new_client_achievement)
+                            logger.info(f"ClientAchievementsView: Nuevo logro otorgado: '{achievement.name}' a {client.first_name} (ID: {client.id})")
+                        except Exception as e:
+                            logger.error(f"ClientAchievementsView: Error al otorgar logro '{achievement.name}': {str(e)}")
+
+            # Si se ganaron nuevos logros, recargar la lista de logros ganados
+            if newly_earned_achievements:
+                client_achievements = ClientAchievement.objects.filter(
+                    client=client,
+                    deleted=False
+                ).select_related('achievement').order_by('-earned_at')
+                earned_achievement_ids = set(client_achievements.values_list('achievement_id', flat=True)) # Actualizar IDs ganados
+
+            # Determinar logros disponibles (aún no ganados)
+            available_achievements = all_achievements.exclude(id__in=earned_achievement_ids)
+
+            # Serializar los datos
+            achievements_serializer = ClientAchievementSerializer(client_achievements, many=True)
+            available_serializer = AchievementSerializer(available_achievements, many=True)
+
+            logger.info(f"ClientAchievementsView: Logros del cliente {client.id}: {len(client_achievements)} ganados, {len(available_achievements)} disponibles.")
+            return Response({
+                'success': True,
+                'data': {
+                    'total_achievements': all_achievements.count(),
+                    'earned_achievements': achievements_serializer.data,
+                    'available_achievements': available_serializer.data,
+                    'new_achievements_count': len(newly_earned_achievements),
+                    'client_stats': { # Estadísticas para contexto de logros
+                        'reservations': client_reservations,
+                        'referrals': client_referrals,
+                        'referral_reservations': referral_reservations
+                    }
+                }
+            })
+
+        except Exception as e:
+            logger.error(f"ClientAchievementsView: Error getting client achievements: {str(e)}")
+            import traceback
+            logger.error(f"ClientAchievementsView: TRACEBACK: {traceback.format_exc()}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+
+class BotClientProfileView(APIView):
+    """Vista para bot - obtener perfil completo del cliente sin autenticación"""
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, tel_number):
+        logger.info(f"BotClientProfileView: Request for tel_number {tel_number}")
+
+        try:
+            # Buscar cliente por número de teléfono, asegurándose de que no esté borrado
+            client = Clients.objects.filter(
+                tel_number=tel_number,
+                deleted=False
+            ).first()
+
+            if not client:
+                logger.warning(f"BotClientProfileView: Client not found for tel_number {tel_number}")
+                return Response({
+                    'success': False,
+                    'message': 'Cliente no encontrado'
+                }, status=404)
+
+            logger.info(f"BotClientProfileView: Client found - ID: {client.id}, Name: {client.first_name}")
+
+            # Obtener reservas futuras aprobadas
+            from datetime import date
+            today = date.today()
+            upcoming_reservations = Reservation.objects.filter(
+                client=client,
+                deleted=False,
+                check_out_date__gte=today, # Reservas que terminan hoy o después
+                status='approved'
+            ).order_by('check_in_date') # Ordenar por fecha de check-in
+
+            # Obtener el logro más alto del cliente
+            highest_achievement = None
+            earned_achievements = ClientAchievement.objects.filter(
+                client=client,
+                deleted=False
+            ).select_related('achievement').order_by(
+                '-achievement__required_reservations',
+                '-achievement__required_referrals',
+                '-achievement__required_referral_reservations'
+            )
+
+            if earned_achievements.exists():
+                highest_achievement_obj = earned_achievements.first()
+                icon = highest_achievement_obj.achievement.icon or ""
+                name = highest_achievement_obj.achievement.name
+                # Formatear el nombre con icono si existe
+                name_with_icon = f"{icon} {name}" if icon else name
+
+                highest_achievement = {
+                    'name_icono': name_with_icon,
+                    'description': highest_achievement_obj.achievement.description,
+                    'earned_at': highest_achievement_obj.earned_at.isoformat() if highest_achievement_obj.earned_at else None
+                }
+
+            # Serializar reservas futuras
+            upcoming_reservations_data = []
+            if upcoming_reservations.exists():
+                for reservation in upcoming_reservations:
+                    upcoming_reservations_data.append({
+                        'id': reservation.id,
+                        'property_name': reservation.property.name if reservation.property else 'Sin propiedad',
+                        'check_in_date': reservation.check_in_date.isoformat(),
+                        'check_out_date': reservation.check_out_date.isoformat(),
+                        'guests': reservation.guests,
+                        'nights': (reservation.check_out_date - reservation.check_in_date).days,
+                        'price_sol': float(reservation.price_sol) if reservation.price_sol else 0.0,
+                        'status': reservation.get_status_display() if hasattr(reservation, 'get_status_display') else reservation.status,
+                        'payment_full': reservation.full_payment,
+                        'temperature_pool': reservation.temperature_pool
+                    })
+
+            # Preparar la respuesta con el perfil del cliente y datos adicionales
+            response_data = {
+                'success': True,
+                'client_profile': {
+                    'id': client.id,
+                    'first_name': client.first_name,
+                    'last_name': client.last_name or '',
+                    'full_name': f"{client.first_name} {client.last_name or ''}".strip(),
+                    'email': client.email,
+                    'tel_number': client.tel_number,
+                    'document_type': client.get_document_type_display(),
+                    'number_doc': client.number_doc,
+                    'available_points': client.get_available_points(),
+                    'points_balance': float(client.points_balance),
+                    'referral_code': client.get_referral_code(),
+                    'highest_level': highest_achievement,
+                    'upcoming_reservations': upcoming_reservations_data
+                }
+            }
+
+            logger.info(f"BotClientProfileView: Profile data retrieved successfully for {client.first_name} (ID: {client.id})")
+            return Response(response_data)
+
+        except Exception as e:
+            logger.error(f"BotClientProfileView: Error getting client profile: {str(e)}")
+            import traceback
+            logger.error(f"BotClientProfileView: TRACEBACK: {traceback.format_exc()}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+
+# Configuración de serializers y paginación importados al principio del archivo.
