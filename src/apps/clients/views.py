@@ -2110,66 +2110,66 @@ class SearchTrackingView(APIView):
 
 
             # Obtener datos adicionales del request
-                ip_address = self.get_client_ip(request)
-                session_key = request.session.session_key if hasattr(request, 'session') and request.session.session_key else None
-                user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]  # Limitar longitud
-                referrer = request.META.get('HTTP_REFERER', '')
-                
-                logger.info(f"SearchTrackingView: Datos adicionales capturados - IP: {ip_address}, Session: {session_key}")
+            ip_address = self.get_client_ip(request)
+            session_key = request.session.session_key if hasattr(request, 'session') and request.session.session_key else None
+            user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]  # Limitar longitud
+            referrer = request.META.get('HTTP_REFERER', '')
+            
+            logger.info(f"SearchTrackingView: Datos adicionales capturados - IP: {ip_address}, Session: {session_key}")
 
-                # Guardar o actualizar el registro de SearchTracking
+            # Guardar o actualizar el registro de SearchTracking
                 search_tracking = None
-                if client: # Si hay cliente autenticado
-                    search_tracking, created = SearchTracking.objects.update_or_create(
-                        client=client,
-                        defaults={
-                            'check_in_date': check_in_date,
-                            'check_out_date': check_out_date,
-                            'guests': guests,
-                            'property': property_obj,
-                            'search_timestamp': timezone.now(),
-                            'ip_address': ip_address,
-                            'session_key': session_key,
-                            'user_agent': user_agent,
-                            'referrer': referrer,
-                            'deleted': False
-                        }
-                    )
-                    action_taken = "actualizado" if not created else "creado"
-                    logger.info(f"SearchTrackingView: Registro para cliente {client.id} {action_taken}: {search_tracking.id}")
+            if client: # Si hay cliente autenticado
+                search_tracking, created = SearchTracking.objects.update_or_create(
+                    client=client,
+                    defaults={
+                        'check_in_date': check_in_date,
+                        'check_out_date': check_out_date,
+                        'guests': guests,
+                        'property': property_obj,
+                        'search_timestamp': timezone.now(),
+                        'ip_address': ip_address,
+                        'session_key': session_key,
+                        'user_agent': user_agent,
+                        'referrer': referrer,
+                        'deleted': False
+                    }
+                )
+                action_taken = "actualizado" if not created else "creado"
+                logger.info(f"SearchTrackingView: Registro para cliente {client.id} {action_taken}: {search_tracking.id}")
 
-                else: # Si es un usuario anónimo (sin cliente autenticado)
-                    search_tracking = SearchTracking.objects.create(
-                        client=None,
-                        check_in_date=check_in_date,
-                        check_out_date=check_out_date,
-                        guests=guests,
-                        property=property_obj,
-                        search_timestamp=timezone.now(),
-                        ip_address=ip_address,
-                        session_key=session_key,
-                        user_agent=user_agent,
-                        referrer=referrer,
-                        deleted=False
-                    )
-                    logger.info(f"SearchTrackingView: Registro anónimo creado: {search_tracking.id} para IP {client_ip}")
+            else: # Si es un usuario anónimo (sin cliente autenticado)
+                search_tracking = SearchTracking.objects.create(
+                    client=None,
+                    check_in_date=check_in_date,
+                    check_out_date=check_out_date,
+                    guests=guests,
+                    property=property_obj,
+                    search_timestamp=timezone.now(),
+                    ip_address=ip_address,
+                    session_key=session_key,
+                    user_agent=user_agent,
+                    referrer=referrer,
+                    deleted=False
+                )
+                logger.info(f"SearchTrackingView: Registro anónimo creado: {search_tracking.id} para IP {ip_address}")
 
                 # Serializar la respuesta
-                serializer = SearchTrackingSerializer(search_tracking)
+            serializer = SearchTrackingSerializer(search_tracking)
 
-                return Response({
-                    'success': True,
-                    'message': 'Búsqueda registrada exitosamente',
-                    'data': serializer.data
-                }, status=200)
+            return Response({
+                'success': True,
+                'message': 'Búsqueda registrada exitosamente',
+                'data': serializer.data
+            }, status=200)
 
-            except Exception as e:
-                logger.error(f"SearchTrackingView: Error al guardar/actualizar SearchTracking: {str(e)}")
-                return Response({
-                    'success': False,
-                    'message': 'Error al guardar la búsqueda',
-                    'errors': str(e)
-                }, status=500)
+        except Exception as e:
+            logger.error(f"SearchTrackingView: Error al guardar/actualizar SearchTracking: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error al guardar la búsqueda',
+                'errors': str(e)
+            }, status=500)
 
 
         except Exception as e:
