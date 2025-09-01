@@ -1,0 +1,35 @@
+INFO 2025-09-01 10:07:36,464 payment_views 1166706 139886581421888 🔧 OPENPAY INIT - Merchant: miylepzquim9mnassise
+INFO 2025-09-01 10:07:36,464 payment_views 1166706 139886581421888 🔧 OPENPAY INIT - Private Key length: 35
+INFO 2025-09-01 10:07:36,464 payment_views 1166706 139886581421888 🔧 OPENPAY INIT - Sandbox: True
+INFO 2025-09-01 10:07:36,466 payment_views 1166706 139886581421888 === DEBUGGING OPENPAY CREDENTIALS ===
+INFO 2025-09-01 10:07:36,466 payment_views 1166706 139886581421888 Merchant ID: miylepzquim9mnassise
+INFO 2025-09-01 10:07:36,466 payment_views 1166706 139886581421888 Private Key (masked): sk_5431f...167c
+INFO 2025-09-01 10:07:36,466 payment_views 1166706 139886581421888 Is Sandbox: True
+INFO 2025-09-01 10:07:36,466 payment_views 1166706 139886581421888 Base URL: https://sandbox-api.openpay.pe/v1
+INFO 2025-09-01 10:07:36,468 payment_views 1166706 139886581421888 Token recibido: k0p08fpkgbevx8spnpo9
+INFO 2025-09-01 10:07:36,468 payment_views 1166706 139886581421888 Amount: 468.0
+INFO 2025-09-01 10:07:36,468 payment_views 1166706 139886581421888 Device Session ID: ai1plOR006gNvuJJ0v6soSl2kNu0Rp0o
+INFO 2025-09-01 10:07:36,468 payment_views 1166706 139886581421888 === VERIFICANDO TOKEN ===
+INFO 2025-09-01 10:07:36,468 payment_views 1166706 139886581421888 Token length: 20
+INFO 2025-09-01 10:07:36,468 payment_views 1166706 139886581421888 Token starts with: k0p08fpkgb
+INFO 2025-09-01 10:07:36,469 payment_views 1166706 139886581421888 === VALIDANDO CREDENCIALES OPENPAY ===
+INFO 2025-09-01 10:07:36,469 payment_views 1166706 139886581421888 Auth header creado: Basic c2tfNTQzMWYxMW...
+INFO 2025-09-01 10:07:36,831 payment_views 1166706 139886581421888 Merchant validation status: 200
+INFO 2025-09-01 10:07:36,831 payment_views 1166706 139886581421888 ✅ Credenciales válidas para consultar merchant
+INFO 2025-09-01 10:07:36,831 payment_views 1166706 139886581421888 Verificando permisos de charges en: https://sandbox-api.openpay.pe/v1/miylepzquim9mnassise/charges
+INFO 2025-09-01 10:07:36,831 payment_views 1166706 139886581421888 Procesando pago para reserva 59c7bd3d-e91b-4209-891d-8cf0ba1d8505 con order_id: RES-59c7bd3d-e91b-4209-891d-8cf0ba1d8505-1756739256468385-8676
+INFO 2025-09-01 10:07:36,831 payment_views 1166706 139886581421888 DEBUGGING OPENPAY REQUEST:
+INFO 2025-09-01 10:07:36,831 payment_views 1166706 139886581421888 URL: https://sandbox-api.openpay.pe/v1/miylepzquim9mnassise/charges
+INFO 2025-09-01 10:07:36,831 payment_views 1166706 139886581421888 Headers: {'Content-Type': 'application/json', 'Authorization': 'Basic c2tfNTQzMWYxMWYyNjBjNDJmZmFmZGE4NDFjN2RiNzE2N2M6'}
+INFO 2025-09-01 10:07:36,831 payment_views 1166706 139886581421888 Charge Data: {'source_id': 'k0p08fpkgbevx8spnpo9', 'method': 'card', 'amount': 468.0, 'currency': 'PEN', 'description': 'Pago reserva #59c7bd3d-e91b-4209-891d-8cf0ba1d8505 - Casa Austin 3', 'order_id': 'RES-59c7bd3d-e91b-4209-891d-8cf0ba1d8505-1756739256468385-8676', 'device_session_id': 'ai1plOR006gNvuJJ0v6soSl2kNu0Rp0o', 'customer': {'name': 'Augusto Ray Leonel', 'last_name': 'Tantalean Marcatoma', 'email': 'austin.xd@live.com', 'phone_number': '+51986607686'}}
+INFO 2025-09-01 10:07:41,715 payment_views 1166706 139886581421888 OpenPay Response - Status: 412
+INFO 2025-09-01 10:07:41,715 payment_views 1166706 139886581421888 OpenPay Response Headers: {'Date': 'Mon, 01 Sep 2025 15:07:41 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Content-Length': '144', 'Connection': 'keep-alive', 'OpenPay-Request-ID': '09d2e74a-b03c-4918-b82f-6df85d77c06a', 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0', 'Strict-Transport-Security': 'max-age=0', 'X-XSS-Protection': '1; mode=block', 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': 'upgrade-insecure-requests', 'Permissions-Policy': 'geolocation=()', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'Resource-ID': 'trkr5khlncj7rpdmb18j', 'OP-Error-Code': '3006'}
+ERROR 2025-09-01 10:07:41,715 payment_views 1166706 139886581421888 OpenPay Error Response: {"http_code":412,"error_code":3006,"category":"gateway","description":"Request not allowed","request_id":"09d2e74a-b03c-4918-b82f-6df85d77c06a"}
+ERROR 2025-09-01 10:07:41,715 payment_views 1166706 139886581421888 🚨 ERROR 412 - POSIBLES CAUSAS:
+ERROR 2025-09-01 10:07:41,715 payment_views 1166706 139886581421888 1. Private Key incorrecta o expirada
+ERROR 2025-09-01 10:07:41,715 payment_views 1166706 139886581421888 2. Merchant ID incorrecto
+ERROR 2025-09-01 10:07:41,715 payment_views 1166706 139886581421888 3. Cuenta sin permisos para charges
+ERROR 2025-09-01 10:07:41,715 payment_views 1166706 139886581421888 4. Token ya utilizado anteriormente
+ERROR 2025-09-01 10:07:41,715 payment_views 1166706 139886581421888 5. Configuración de sandbox incorrecta
+ERROR 2025-09-01 10:07:41,715 payment_views 1166706 139886581421888 Error de OpenPay para reserva 59c7bd3d-e91b-4209-891d-8cf0ba1d8505: Request not allowed
+Bad Request: /api/v1/payment/process/59c7bd3d-e91b-4209-891d-8cf0ba1d8505/
