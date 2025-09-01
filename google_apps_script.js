@@ -6,7 +6,7 @@
 
 // Configuración
 const SHEET_ID = '1CxliaXMZPmLOc_OkPRezdpdTw2ix9r9Fw4oQNkCR4J0'; // ✅ ID real de tu Google Sheets
-const SHEET_NAME = 'SearchTracking'; // Nombre de la hoja donde se guardarán los datos
+const SHEET_NAME = 'Hoja 1'; // ✅ Usar el nombre real de tu pestaña
 
 /**
  * Función principal que recibe las requests POST desde Django
