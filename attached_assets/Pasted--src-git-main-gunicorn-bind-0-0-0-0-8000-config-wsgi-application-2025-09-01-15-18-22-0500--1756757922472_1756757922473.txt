@@ -1,0 +1,629 @@
+➜  src git:(main) ✗ gunicorn --bind 0.0.0.0:8000 config.wsgi:application
+[2025-09-01 15:18:22 -0500] [1176855] [INFO] Starting gunicorn 21.2.0
+[2025-09-01 15:18:22 -0500] [1176855] [INFO] Listening at: http://0.0.0.0:8000 (1176855)
+[2025-09-01 15:18:22 -0500] [1176855] [INFO] Using worker: sync
+[2025-09-01 15:18:22 -0500] [1176856] [INFO] Booting worker with pid: 1176856
+INFO 2025-09-01 15:18:24,000 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 69a98d37-58e7-4ed5-8b90-aa056021d85f ===
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = None
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'NoneType'>
+WARNING 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: 69a98d37-58e7-4ed5-8b90-aa056021d85f
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 69a98d37-58e7-4ed5-8b90-aa056021d85f
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 69a98d37-58e7-4ed5-8b90-aa056021d85f:
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 8e011527-9d61-40fd-a01c-3563bf1fb84c ===
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = None
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'NoneType'>
+WARNING 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: 8e011527-9d61-40fd-a01c-3563bf1fb84c
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 8e011527-9d61-40fd-a01c-3563bf1fb84c
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 8e011527-9d61-40fd-a01c-3563bf1fb84c:
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO d08076fd-941c-43b9-908b-159d0edb476d ===
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = None
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'NoneType'>
+WARNING 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: d08076fd-941c-43b9-908b-159d0edb476d
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = Casa Austin 2
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: property.id = 9a04892a-4ba5-4b10-92b5-2a72f6d89d57
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: property.name = Casa Austin 2
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro d08076fd-941c-43b9-908b-159d0edb476d:
+INFO 2025-09-01 15:18:24,001 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056   - property_info: {'id': '9a04892a-4ba5-4b10-92b5-2a72f6d89d57', 'name': 'Casa Austin 2'}
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 7027d14a-ec84-49f2-94b9-54ff82687c9b ===
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = None
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'NoneType'>
+WARNING 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: 7027d14a-ec84-49f2-94b9-54ff82687c9b
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = Casa Austin 2
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: property.id = 9a04892a-4ba5-4b10-92b5-2a72f6d89d57
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: property.name = Casa Austin 2
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 7027d14a-ec84-49f2-94b9-54ff82687c9b:
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056   - property_info: {'id': '9a04892a-4ba5-4b10-92b5-2a72f6d89d57', 'name': 'Casa Austin 2'}
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 2f504080-1eed-4176-86b5-1776aa40546e ===
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = None
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'NoneType'>
+WARNING 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: 2f504080-1eed-4176-86b5-1776aa40546e
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 2f504080-1eed-4176-86b5-1776aa40546e
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 2f504080-1eed-4176-86b5-1776aa40546e:
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 58ba1b65-4c6b-4b03-9d45-a3e4391038d8 ===
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = None
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'NoneType'>
+WARNING 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: 58ba1b65-4c6b-4b03-9d45-a3e4391038d8
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 58ba1b65-4c6b-4b03-9d45-a3e4391038d8
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 58ba1b65-4c6b-4b03-9d45-a3e4391038d8:
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 2e05faef-5de1-4eb3-b1f7-f04f17178894 ===
+INFO 2025-09-01 15:18:24,002 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = None
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'NoneType'>
+WARNING 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: 2e05faef-5de1-4eb3-b1f7-f04f17178894
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 2e05faef-5de1-4eb3-b1f7-f04f17178894
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 2e05faef-5de1-4eb3-b1f7-f04f17178894:
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO fc906fb1-815f-4d99-aa66-0be74925c16b ===
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = None
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'NoneType'>
+WARNING 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: fc906fb1-815f-4d99-aa66-0be74925c16b
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: fc906fb1-815f-4d99-aa66-0be74925c16b
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro fc906fb1-815f-4d99-aa66-0be74925c16b:
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 5350d130-7ca2-49fc-88bc-905907fc4e95 ===
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = None
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'NoneType'>
+WARNING 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: 5350d130-7ca2-49fc-88bc-905907fc4e95
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 5350d130-7ca2-49fc-88bc-905907fc4e95
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 5350d130-7ca2-49fc-88bc-905907fc4e95:
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO dc9718bf-1dd6-4c75-a98b-d495f92836e9 ===
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = None
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'NoneType'>
+WARNING 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: dc9718bf-1dd6-4c75-a98b-d495f92836e9
+INFO 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,003 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: dc9718bf-1dd6-4c75-a98b-d495f92836e9
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro dc9718bf-1dd6-4c75-a98b-d495f92836e9:
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 3ea08eb9-463b-4a28-8025-f12442f1d6d2 ===
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = None
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'NoneType'>
+WARNING 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: 3ea08eb9-463b-4a28-8025-f12442f1d6d2
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 3ea08eb9-463b-4a28-8025-f12442f1d6d2
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 3ea08eb9-463b-4a28-8025-f12442f1d6d2:
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 85339ee7-b8f5-43fa-ad38-c07abfb5053d ===
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = None
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'NoneType'>
+WARNING 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: 85339ee7-b8f5-43fa-ad38-c07abfb5053d
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 85339ee7-b8f5-43fa-ad38-c07abfb5053d
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 85339ee7-b8f5-43fa-ad38-c07abfb5053d:
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 389d4ab4-f30d-4fce-bde0-52bda2a31649 ===
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = None
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'NoneType'>
+WARNING 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: 389d4ab4-f30d-4fce-bde0-52bda2a31649
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 389d4ab4-f30d-4fce-bde0-52bda2a31649
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 389d4ab4-f30d-4fce-bde0-52bda2a31649:
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,004 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 98151976-9f6f-4fd5-9b1f-bcfbbbb327d8 ===
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = None
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'NoneType'>
+WARNING 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: 98151976-9f6f-4fd5-9b1f-bcfbbbb327d8
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 98151976-9f6f-4fd5-9b1f-bcfbbbb327d8
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 98151976-9f6f-4fd5-9b1f-bcfbbbb327d8:
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO b0bdee30-5301-44a6-9160-0b20e20b886d ===
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = None
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'NoneType'>
+WARNING 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: b0bdee30-5301-44a6-9160-0b20e20b886d
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: b0bdee30-5301-44a6-9160-0b20e20b886d
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro b0bdee30-5301-44a6-9160-0b20e20b886d:
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO df5f4c2f-c07f-4590-b044-9416a662bcd1 ===
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = None
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'NoneType'>
+WARNING 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: df5f4c2f-c07f-4590-b044-9416a662bcd1
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: df5f4c2f-c07f-4590-b044-9416a662bcd1
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro df5f4c2f-c07f-4590-b044-9416a662bcd1:
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 4bb8558c-3dc6-46ce-953f-835275ab079e ===
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (4e2c765f-009a-4acc-a7bc-e48932e9642f)
+INFO 2025-09-01 15:18:24,005 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: client.id = 4e2c765f-009a-4acc-a7bc-e48932e9642f
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Diego Salvatore
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Rios Vidal
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: client.email = diegovidal001@gmail.com
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 4bb8558c-3dc6-46ce-953f-835275ab079e
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 4bb8558c-3dc6-46ce-953f-835275ab079e:
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056   - client_info: {'id': '4e2c765f-009a-4acc-a7bc-e48932e9642f', 'first_name': 'Diego Salvatore', 'last_name': 'Rios Vidal', 'email': 'diegovidal001@gmail.com', 'tel_number': '51961732611'}
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO cd36184a-de2d-44fb-a4a4-339c2a948595 ===
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (11296f60-9b26-46c9-a836-e964f2a83fa6)
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: client.id = 11296f60-9b26-46c9-a836-e964f2a83fa6
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Christian Renato
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Cueva Vega
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: client.email = cueva.renato@gmail.com
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: cd36184a-de2d-44fb-a4a4-339c2a948595
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro cd36184a-de2d-44fb-a4a4-339c2a948595:
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056   - client_info: {'id': '11296f60-9b26-46c9-a836-e964f2a83fa6', 'first_name': 'Christian Renato', 'last_name': 'Cueva Vega', 'email': 'cueva.renato@gmail.com', 'tel_number': '51985941893'}
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 5a543943-494d-4c86-abb8-9aca4c78e6ef ===
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (821c48c2-a8e3-4eb5-ae88-2579fbae260c)
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: client.id = 821c48c2-a8e3-4eb5-ae88-2579fbae260c
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Yeralin Marleni
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Martin Pariona
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: client.email = dinskz12@gmail.com
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = Casa Austin 1
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: property.id = 573c6650-65a7-4e81-883a-2b910159731b
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: property.name = Casa Austin 1
+INFO 2025-09-01 15:18:24,006 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 5a543943-494d-4c86-abb8-9aca4c78e6ef:
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056   - client_info: {'id': '821c48c2-a8e3-4eb5-ae88-2579fbae260c', 'first_name': 'Yeralin Marleni', 'last_name': 'Martin Pariona', 'email': 'dinskz12@gmail.com', 'tel_number': '51949146779'}
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056   - property_info: {'id': '573c6650-65a7-4e81-883a-2b910159731b', 'name': 'Casa Austin 1'}
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO bd7594e1-2e0f-48ed-8b21-1a1590b2e986 ===
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (7f90c53d-fb32-4ed2-bf34-5e8a83069373)
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: client.id = 7f90c53d-fb32-4ed2-bf34-5e8a83069373
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Arielle
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Saenz Paredes
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: client.email = ariellesp183@gmail.com
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: bd7594e1-2e0f-48ed-8b21-1a1590b2e986
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro bd7594e1-2e0f-48ed-8b21-1a1590b2e986:
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056   - client_info: {'id': '7f90c53d-fb32-4ed2-bf34-5e8a83069373', 'first_name': 'Arielle', 'last_name': 'Saenz Paredes', 'email': 'ariellesp183@gmail.com', 'tel_number': '51989159303'}
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 5ab578f9-dd76-4781-81c9-4907a13e1a9d ===
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (0cd3c985-c917-4570-b215-de77527db0f7)
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: client.id = 0cd3c985-c917-4570-b215-de77527db0f7
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Roberto Jordan
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Rojas Palomino
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: client.email = ROBERTUNI05@GMAIL.COM
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 5ab578f9-dd76-4781-81c9-4907a13e1a9d
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 5ab578f9-dd76-4781-81c9-4907a13e1a9d:
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056   - client_info: {'id': '0cd3c985-c917-4570-b215-de77527db0f7', 'first_name': 'Roberto Jordan', 'last_name': 'Rojas Palomino', 'email': 'ROBERTUNI05@GMAIL.COM', 'tel_number': '51987738439'}
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO e586cac0-2a74-48a4-8f56-f16d16ae9b10 ===
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (479b2f98-50e4-4aaf-b578-9376349e3933)
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: client.id = 479b2f98-50e4-4aaf-b578-9376349e3933
+INFO 2025-09-01 15:18:24,007 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Salvador Logan
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Chumpitaz Sotelo
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: client.email = chumpitazsalvador914@gmail.com
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = Casa Austin 1
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: property.id = 573c6650-65a7-4e81-883a-2b910159731b
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: property.name = Casa Austin 1
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro e586cac0-2a74-48a4-8f56-f16d16ae9b10:
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056   - client_info: {'id': '479b2f98-50e4-4aaf-b578-9376349e3933', 'first_name': 'Salvador Logan', 'last_name': 'Chumpitaz Sotelo', 'email': 'chumpitazsalvador914@gmail.com', 'tel_number': '51923 999 427'}
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056   - property_info: {'id': '573c6650-65a7-4e81-883a-2b910159731b', 'name': 'Casa Austin 1'}
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO f5e8a587-768c-4cf1-bd94-2f851c3ea7ae ===
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (0f48fc91-ff19-4498-b8c6-37949cce84de)
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: client.id = 0f48fc91-ff19-4498-b8c6-37949cce84de
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Frank Cristhian
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Liñan Jimenez
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: client.email = cristhianlinan@outlook.com
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = Casa Austin 1
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: property.id = 573c6650-65a7-4e81-883a-2b910159731b
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: property.name = Casa Austin 1
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro f5e8a587-768c-4cf1-bd94-2f851c3ea7ae:
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056   - client_info: {'id': '0f48fc91-ff19-4498-b8c6-37949cce84de', 'first_name': 'Frank Cristhian', 'last_name': 'Liñan Jimenez', 'email': 'cristhianlinan@outlook.com', 'tel_number': '51943527005'}
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056   - property_info: {'id': '573c6650-65a7-4e81-883a-2b910159731b', 'name': 'Casa Austin 1'}
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO a74589eb-9f77-49a4-8031-1855a1acd0b3 ===
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (3f02a395-c421-4e3b-b131-2ffcae7823f1)
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: client.id = 3f02a395-c421-4e3b-b131-2ffcae7823f1
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Roberto Carlos
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Maguiña Leon
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: client.email = maguinaroberto5@gmail.com
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: a74589eb-9f77-49a4-8031-1855a1acd0b3
+INFO 2025-09-01 15:18:24,008 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro a74589eb-9f77-49a4-8031-1855a1acd0b3:
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056   - client_info: {'id': '3f02a395-c421-4e3b-b131-2ffcae7823f1', 'first_name': 'Roberto Carlos', 'last_name': 'Maguiña Leon', 'email': 'maguinaroberto5@gmail.com', 'tel_number': '51931743523'}
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO d55667df-9b65-42cb-b0f4-6800a07b4508 ===
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (6aa7e31a-d759-4416-a113-4306c12d19bc)
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: client.id = 6aa7e31a-d759-4416-a113-4306c12d19bc
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Yassira Mery
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Reategui Ruiz
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: client.email = yassirarr@gmail.com
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: d55667df-9b65-42cb-b0f4-6800a07b4508
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro d55667df-9b65-42cb-b0f4-6800a07b4508:
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056   - client_info: {'id': '6aa7e31a-d759-4416-a113-4306c12d19bc', 'first_name': 'Yassira Mery', 'last_name': 'Reategui Ruiz', 'email': 'yassirarr@gmail.com', 'tel_number': '51943571026'}
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 04ede607-dc83-423d-8e9b-4afdd3c9abb9 ===
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (0e7a764f-7aca-448a-8174-27254d2a9567)
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: client.id = 0e7a764f-7aca-448a-8174-27254d2a9567
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Lucas Deciderio
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Angulo Chavez
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: client.email = angulochavezlucas@gmail.com
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 04ede607-dc83-423d-8e9b-4afdd3c9abb9
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 04ede607-dc83-423d-8e9b-4afdd3c9abb9:
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056   - client_info: {'id': '0e7a764f-7aca-448a-8174-27254d2a9567', 'first_name': 'Lucas Deciderio', 'last_name': 'Angulo Chavez', 'email': 'angulochavezlucas@gmail.com', 'tel_number': '51973334908'}
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 607a394d-38d2-4ae7-933e-29367c61221a ===
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (1bf52e7d-9097-4569-b636-3f7df0c53121)
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: client.id = 1bf52e7d-9097-4569-b636-3f7df0c53121
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Gabriel Alejandro
+INFO 2025-09-01 15:18:24,009 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Farias Oviedo
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: client.email = gabrielalejofarias@gmail.com
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = Casa Austin 2
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: property.id = 9a04892a-4ba5-4b10-92b5-2a72f6d89d57
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: property.name = Casa Austin 2
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 607a394d-38d2-4ae7-933e-29367c61221a:
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056   - client_info: {'id': '1bf52e7d-9097-4569-b636-3f7df0c53121', 'first_name': 'Gabriel Alejandro', 'last_name': 'Farias Oviedo', 'email': 'gabrielalejofarias@gmail.com', 'tel_number': '51913923847'}
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056   - property_info: {'id': '9a04892a-4ba5-4b10-92b5-2a72f6d89d57', 'name': 'Casa Austin 2'}
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 1ac46f49-fe90-40d4-8f18-1d68547407e8 ===
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (34602306-6f69-4072-8569-603beddf4942)
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: client.id = 34602306-6f69-4072-8569-603beddf4942
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Diego Alonso
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Medina Pino
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: client.email = elwassupoficiall@gmail.com
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = Casa Austin 2
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: property.id = 9a04892a-4ba5-4b10-92b5-2a72f6d89d57
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: property.name = Casa Austin 2
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 1ac46f49-fe90-40d4-8f18-1d68547407e8:
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056   - client_info: {'id': '34602306-6f69-4072-8569-603beddf4942', 'first_name': 'Diego Alonso', 'last_name': 'Medina Pino', 'email': 'elwassupoficiall@gmail.com', 'tel_number': '51923345463'}
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056   - property_info: {'id': '9a04892a-4ba5-4b10-92b5-2a72f6d89d57', 'name': 'Casa Austin 2'}
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 498553a5-293c-426d-9dea-fa2ef10582cb ===
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (ce6a3e4d-73c2-4528-8641-5a392019f5e8)
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: client.id = ce6a3e4d-73c2-4528-8641-5a392019f5e8
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Josthyn Slather
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = BriceñO PiñAs
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: client.email = Karenstephany333@gmail.com
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = Casa Austin 4
+INFO 2025-09-01 15:18:24,010 views 1176856 140358998837056 SearchTrackingExportView: property.id = d9d4e844-c38f-4ade-aa5c-5def19652ad0
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: property.name = Casa Austin 4
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 498553a5-293c-426d-9dea-fa2ef10582cb:
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056   - client_info: {'id': 'ce6a3e4d-73c2-4528-8641-5a392019f5e8', 'first_name': 'Josthyn Slather', 'last_name': 'BriceñO PiñAs', 'email': 'Karenstephany333@gmail.com', 'tel_number': '51982011757'}
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056   - property_info: {'id': 'd9d4e844-c38f-4ade-aa5c-5def19652ad0', 'name': 'Casa Austin 4'}
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 1403a636-3776-4b63-9806-10ed1cdbb5f9 ===
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (b2b1652f-1a00-4c44-8788-e97884738cd8)
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: client.id = b2b1652f-1a00-4c44-8788-e97884738cd8
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Cielo Yamile
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Serrano Tisza
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: client.email = yamiltisza@gmail.com
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 1403a636-3776-4b63-9806-10ed1cdbb5f9
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 1403a636-3776-4b63-9806-10ed1cdbb5f9:
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056   - client_info: {'id': 'b2b1652f-1a00-4c44-8788-e97884738cd8', 'first_name': 'Cielo Yamile', 'last_name': 'Serrano Tisza', 'email': 'yamiltisza@gmail.com', 'tel_number': '51973706650'}
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 94cfa70c-6233-4bd3-95d9-5d3c9507abad ===
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (a793a765-3c15-4120-8096-8f31a4659f48)
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: client.id = a793a765-3c15-4120-8096-8f31a4659f48
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Alessandro Jordano
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Cama Vicente
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: client.email = alessandrocv94@gmail.com
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 94cfa70c-6233-4bd3-95d9-5d3c9507abad
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 94cfa70c-6233-4bd3-95d9-5d3c9507abad:
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056   - client_info: {'id': 'a793a765-3c15-4120-8096-8f31a4659f48', 'first_name': 'Alessandro Jordano', 'last_name': 'Cama Vicente', 'email': 'alessandrocv94@gmail.com', 'tel_number': '51970891408'}
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 0eb8933a-0bc9-41aa-8637-3e86118ec6e4 ===
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (e7d40fd7-fd7d-43c5-83ab-6b3727c12b7b)
+INFO 2025-09-01 15:18:24,011 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: client.id = e7d40fd7-fd7d-43c5-83ab-6b3727c12b7b
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Luciano Jose
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Flores Flores
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: client.email = 
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 0eb8933a-0bc9-41aa-8637-3e86118ec6e4
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 0eb8933a-0bc9-41aa-8637-3e86118ec6e4:
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056   - client_info: {'id': 'e7d40fd7-fd7d-43c5-83ab-6b3727c12b7b', 'first_name': 'Luciano Jose', 'last_name': 'Flores Flores', 'email': '', 'tel_number': '51921943855'}
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO e7330005-36a2-4878-a37b-5c0accd74595 ===
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (922da7d0-856b-440e-855e-b4856d011985)
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: client.id = 922da7d0-856b-440e-855e-b4856d011985
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = DIEGO JOSE LUIS
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = GARCIA CHAVEZ
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: client.email = None
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: e7330005-36a2-4878-a37b-5c0accd74595
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro e7330005-36a2-4878-a37b-5c0accd74595:
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056   - client_info: {'id': '922da7d0-856b-440e-855e-b4856d011985', 'first_name': 'DIEGO JOSE LUIS', 'last_name': 'GARCIA CHAVEZ', 'email': None, 'tel_number': '51939169444'}
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 3674b4ac-0fff-45b0-b237-54f1e0e9ae86 ===
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (0b27bb30-2ab2-41f3-8c53-dc1df722bb96)
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: client.id = 0b27bb30-2ab2-41f3-8c53-dc1df722bb96
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Ronald Mauro
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Cisneros Huaman
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: client.email = 
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 3674b4ac-0fff-45b0-b237-54f1e0e9ae86
+INFO 2025-09-01 15:18:24,012 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 3674b4ac-0fff-45b0-b237-54f1e0e9ae86:
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056   - client_info: {'id': '0b27bb30-2ab2-41f3-8c53-dc1df722bb96', 'first_name': 'Ronald Mauro', 'last_name': 'Cisneros Huaman', 'email': '', 'tel_number': '51944475999'}
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 4e7a24db-336e-4b7b-9290-04b3adf9e746 ===
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (8c8dff22-3798-4937-8e10-05aafb6f2c6a)
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: client.id = 8c8dff22-3798-4937-8e10-05aafb6f2c6a
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Juan Carlos
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Falcon Calzadilla
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: client.email = 
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 4e7a24db-336e-4b7b-9290-04b3adf9e746
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 4e7a24db-336e-4b7b-9290-04b3adf9e746:
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056   - client_info: {'id': '8c8dff22-3798-4937-8e10-05aafb6f2c6a', 'first_name': 'Juan Carlos', 'last_name': 'Falcon Calzadilla', 'email': '', 'tel_number': '51994306675'}
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 50b753cc-1ca8-4556-a483-66a7ead874a2 ===
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (d51e91e1-f716-46c4-90d9-111f5fc5678c)
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: client.id = d51e91e1-f716-46c4-90d9-111f5fc5678c
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Mariana
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Villa Castillo
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: client.email = mvillacastillo@gmail.com
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 50b753cc-1ca8-4556-a483-66a7ead874a2
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 50b753cc-1ca8-4556-a483-66a7ead874a2:
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056   - client_info: {'id': 'd51e91e1-f716-46c4-90d9-111f5fc5678c', 'first_name': 'Mariana', 'last_name': 'Villa Castillo', 'email': 'mvillacastillo@gmail.com', 'tel_number': '51979836915'}
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO e94b2696-5500-4fab-8c11-aacfcb6de49c ===
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (b8d63b35-806e-4393-8e73-14d46e0643e7)
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: client.id = b8d63b35-806e-4393-8e73-14d46e0643e7
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Erika Karina
+INFO 2025-09-01 15:18:24,013 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Contreras Apolinario
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: client.email = digitalreniec28@hotmail.com
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: e94b2696-5500-4fab-8c11-aacfcb6de49c
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro e94b2696-5500-4fab-8c11-aacfcb6de49c:
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056   - client_info: {'id': 'b8d63b35-806e-4393-8e73-14d46e0643e7', 'first_name': 'Erika Karina', 'last_name': 'Contreras Apolinario', 'email': 'digitalreniec28@hotmail.com', 'tel_number': '51970504413'}
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 858464ed-bb96-4385-8e8f-c49c00a6e049 ===
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (b90c1517-29ce-405f-947e-ff21df203744)
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: client.id = b90c1517-29ce-405f-947e-ff21df203744
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Emerson Anthony
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Alanya Chombo
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: client.email = emerson21082019@outlook.es
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = Casa Austin 2
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: property.id = 9a04892a-4ba5-4b10-92b5-2a72f6d89d57
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: property.name = Casa Austin 2
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 858464ed-bb96-4385-8e8f-c49c00a6e049:
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056   - client_info: {'id': 'b90c1517-29ce-405f-947e-ff21df203744', 'first_name': 'Emerson Anthony', 'last_name': 'Alanya Chombo', 'email': 'emerson21082019@outlook.es', 'tel_number': '51955562073'}
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056   - property_info: {'id': '9a04892a-4ba5-4b10-92b5-2a72f6d89d57', 'name': 'Casa Austin 2'}
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 306f502f-e88b-482e-ab28-b95ea58dc33f ===
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (6c48790d-be60-4a0d-a4bd-c8387b5c0328)
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: client.id = 6c48790d-be60-4a0d-a4bd-c8387b5c0328
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Mario Daniel
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Sanchez Sencio
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: client.email = sanchezsencio05@gmail.com
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 306f502f-e88b-482e-ab28-b95ea58dc33f
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 306f502f-e88b-482e-ab28-b95ea58dc33f:
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056   - client_info: {'id': '6c48790d-be60-4a0d-a4bd-c8387b5c0328', 'first_name': 'Mario Daniel', 'last_name': 'Sanchez Sencio', 'email': 'sanchezsencio05@gmail.com', 'tel_number': '51923880398'}
+INFO 2025-09-01 15:18:24,014 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO bf269f08-64f8-4d36-9b9f-24c504de5d52 ===
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (b9ccbbb2-42bb-493d-81c3-e7c04d0bed14)
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: client.id = b9ccbbb2-42bb-493d-81c3-e7c04d0bed14
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Selene Massiel
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Carrillo Villaseca
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: client.email = selene.carrillo2022@gmail.com
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: bf269f08-64f8-4d36-9b9f-24c504de5d52
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro bf269f08-64f8-4d36-9b9f-24c504de5d52:
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056   - client_info: {'id': 'b9ccbbb2-42bb-493d-81c3-e7c04d0bed14', 'first_name': 'Selene Massiel', 'last_name': 'Carrillo Villaseca', 'email': 'selene.carrillo2022@gmail.com', 'tel_number': '51945485156'}
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 7a2562dc-15da-455f-a125-a550b08fb581 ===
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (4ca6cd74-721b-404e-8cf9-bb59267c74d6)
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: client.id = 4ca6cd74-721b-404e-8cf9-bb59267c74d6
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Valeria Rosana
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Soto Lagos
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: client.email = Valerialagos2005@gmail.com
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = Casa Austin 1
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: property.id = 573c6650-65a7-4e81-883a-2b910159731b
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: property.name = Casa Austin 1
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 7a2562dc-15da-455f-a125-a550b08fb581:
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056   - client_info: {'id': '4ca6cd74-721b-404e-8cf9-bb59267c74d6', 'first_name': 'Valeria Rosana', 'last_name': 'Soto Lagos', 'email': 'Valerialagos2005@gmail.com', 'tel_number': '51946085818'}
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056   - property_info: {'id': '573c6650-65a7-4e81-883a-2b910159731b', 'name': 'Casa Austin 1'}
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 616b4a6a-f4af-4b7d-93b6-3a23926ea812 ===
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (01e8e22e-cb68-468b-b64a-f5a273f574e1)
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: client.id = 01e8e22e-cb68-468b-b64a-f5a273f574e1
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Jose Manuel
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Molinari Melendez
+INFO 2025-09-01 15:18:24,015 views 1176856 140358998837056 SearchTrackingExportView: client.email = josemolinari81@gmail.com
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 616b4a6a-f4af-4b7d-93b6-3a23926ea812
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 616b4a6a-f4af-4b7d-93b6-3a23926ea812:
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056   - client_info: {'id': '01e8e22e-cb68-468b-b64a-f5a273f574e1', 'first_name': 'Jose Manuel', 'last_name': 'Molinari Melendez', 'email': 'josemolinari81@gmail.com', 'tel_number': '51949344060'}
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO aeb90b59-14e1-4700-ba1f-4d84e0dcf03c ===
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (6c65335f-9b3d-4222-b7dd-57e4a3065417)
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: client.id = 6c65335f-9b3d-4222-b7dd-57e4a3065417
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Esther Isidora
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Palomino Samaniego
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: client.email = esther.palomino.samaniego@gmail.com
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: aeb90b59-14e1-4700-ba1f-4d84e0dcf03c
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro aeb90b59-14e1-4700-ba1f-4d84e0dcf03c:
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056   - client_info: {'id': '6c65335f-9b3d-4222-b7dd-57e4a3065417', 'first_name': 'Esther Isidora', 'last_name': 'Palomino Samaniego', 'email': 'esther.palomino.samaniego@gmail.com', 'tel_number': '51940560755'}
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 4f0f980e-be77-4af2-9fae-194c42c20f9c ===
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (1a06d96f-ea46-4d8c-bb2d-863d213d2f21)
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: client.id = 1a06d96f-ea46-4d8c-bb2d-863d213d2f21
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Diego
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Asmat Lopez
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: client.email = dasmatlopez9@gmail.com
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 4f0f980e-be77-4af2-9fae-194c42c20f9c
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 4f0f980e-be77-4af2-9fae-194c42c20f9c:
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056   - client_info: {'id': '1a06d96f-ea46-4d8c-bb2d-863d213d2f21', 'first_name': 'Diego', 'last_name': 'Asmat Lopez', 'email': 'dasmatlopez9@gmail.com', 'tel_number': '51923448505'}
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 03adc018-c2a0-4ea1-aa8d-e68b1eafa0c7 ===
+INFO 2025-09-01 15:18:24,016 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (5eb89322-d59a-400a-ae98-a7a6cfc8e083)
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: client.id = 5eb89322-d59a-400a-ae98-a7a6cfc8e083
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Jacson Joshua
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Delgado Montero
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: client.email = joshuadelgado545@gmail.com
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = Casa Austin 1
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: property.id = 573c6650-65a7-4e81-883a-2b910159731b
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: property.name = Casa Austin 1
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 03adc018-c2a0-4ea1-aa8d-e68b1eafa0c7:
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056   - client_info: {'id': '5eb89322-d59a-400a-ae98-a7a6cfc8e083', 'first_name': 'Jacson Joshua', 'last_name': 'Delgado Montero', 'email': 'joshuadelgado545@gmail.com', 'tel_number': '51980888912'}
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056   - property_info: {'id': '573c6650-65a7-4e81-883a-2b910159731b', 'name': 'Casa Austin 1'}
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO ad19e151-487b-435f-8386-fb9baf51d07e ===
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (da1f3e75-ff47-43d6-b48f-d1dff4a348fc)
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: client.id = da1f3e75-ff47-43d6-b48f-d1dff4a348fc
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Freddy Junior
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Salvatierra Peña
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: client.email = fred.sp.025@gmail.com
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: ad19e151-487b-435f-8386-fb9baf51d07e
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro ad19e151-487b-435f-8386-fb9baf51d07e:
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056   - client_info: {'id': 'da1f3e75-ff47-43d6-b48f-d1dff4a348fc', 'first_name': 'Freddy Junior', 'last_name': 'Salvatierra Peña', 'email': 'fred.sp.025@gmail.com', 'tel_number': '51982084673'}
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 32b39553-6135-459f-84a9-2620701a03bd ===
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (cdd3fc90-ab50-4ff7-8891-80bc8bfb9d87)
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: client.id = cdd3fc90-ab50-4ff7-8891-80bc8bfb9d87
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Jorge Raí
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Campos Pastor
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: client.email = jorgeraicampos@hotmail.com
+INFO 2025-09-01 15:18:24,017 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = Casa Austin 4
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: property.id = d9d4e844-c38f-4ade-aa5c-5def19652ad0
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: property.name = Casa Austin 4
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 32b39553-6135-459f-84a9-2620701a03bd:
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056   - client_info: {'id': 'cdd3fc90-ab50-4ff7-8891-80bc8bfb9d87', 'first_name': 'Jorge Raí', 'last_name': 'Campos Pastor', 'email': 'jorgeraicampos@hotmail.com', 'tel_number': '51959162993'}
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056   - property_info: {'id': 'd9d4e844-c38f-4ade-aa5c-5def19652ad0', 'name': 'Casa Austin 4'}
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 095133ce-2dfc-4262-804a-80dc9b4bf346 ===
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (3991f6aa-bcb1-43dc-96c5-7455ba23a443)
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: client.id = 3991f6aa-bcb1-43dc-96c5-7455ba23a443
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Jhan Felix
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Tarazona Gonzales
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: client.email = jhan.tarazona.gonzales@gmail.com
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 095133ce-2dfc-4262-804a-80dc9b4bf346
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 095133ce-2dfc-4262-804a-80dc9b4bf346:
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056   - client_info: {'id': '3991f6aa-bcb1-43dc-96c5-7455ba23a443', 'first_name': 'Jhan Felix', 'last_name': 'Tarazona Gonzales', 'email': 'jhan.tarazona.gonzales@gmail.com', 'tel_number': '51917665886'}
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 541486a2-fd5d-423c-8056-b7d21d36d39a ===
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (c185ac01-1e11-4b1e-af9a-4a8ddbaa8cd4)
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: client.id = c185ac01-1e11-4b1e-af9a-4a8ddbaa8cd4
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Freddy Alberto
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Ureta Albornoz
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: client.email = jeiureta30@gmail.com
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 541486a2-fd5d-423c-8056-b7d21d36d39a
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 541486a2-fd5d-423c-8056-b7d21d36d39a:
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056   - client_info: {'id': 'c185ac01-1e11-4b1e-af9a-4a8ddbaa8cd4', 'first_name': 'Freddy Alberto', 'last_name': 'Ureta Albornoz', 'email': 'jeiureta30@gmail.com', 'tel_number': '51997164425'}
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO 1d835649-c076-4bdd-9581-fa806b02f0d8 ===
+INFO 2025-09-01 15:18:24,018 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (2578302f-c49d-465a-b054-62c9aeadabd7)
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: client.id = 2578302f-c49d-465a-b054-62c9aeadabd7
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Erick Lisber
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Mamani Yapuchura
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: client.email = 
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: 1d835649-c076-4bdd-9581-fa806b02f0d8
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro 1d835649-c076-4bdd-9581-fa806b02f0d8:
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056   - client_info: {'id': '2578302f-c49d-465a-b054-62c9aeadabd7', 'first_name': 'Erick Lisber', 'last_name': 'Mamani Yapuchura', 'email': '', 'tel_number': '51970881117'}
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: === PROCESANDO REGISTRO d34c6ead-fed1-404b-a71e-16bf56bdc3e3 ===
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: tracking.client = Clients object (4e4a6ace-2f1a-48f4-a459-8e9ecf3b67a1)
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: tracking.client type = <class 'apps.clients.models.Clients'>
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: client.id = 4e4a6ace-2f1a-48f4-a459-8e9ecf3b67a1
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: client.first_name = Andres
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: client.last_name = Payano Vargas
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: client.email = andres.pv19@gmail.com
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: tracking.property = None
+WARNING 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: d34c6ead-fed1-404b-a71e-16bf56bdc3e3
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: Estructura final del registro d34c6ead-fed1-404b-a71e-16bf56bdc3e3:
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056   - client_info: {'id': '4e4a6ace-2f1a-48f4-a459-8e9ecf3b67a1', 'first_name': 'Andres', 'last_name': 'Payano Vargas', 'email': 'andres.pv19@gmail.com', 'tel_number': '51926094940'}
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: === DEBUGGING ENVÍO A GOOGLE SHEETS ===
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: Webhook URL: https://script.google.com/macros/s/AKfycbyfmMGfuyDiUdQ2rjdnG3bkvXsUVYQ09Ug-PxZVr2Z9EXbU0ZQQvC8ozcA9tId9zojwig/exec
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: Número de registros a enviar: 51
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: Primer registro completo: {'id': '69a98d37-58e7-4ed5-8b90-aa056021d85f', 'search_timestamp': '2025-09-01T20:08:45.959414+00:00', 'check_in_date': '2025-09-06', 'check_out_date': '2025-09-07', 'guests': 10, 'client_info': {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}, 'property_info': {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}, 'technical_data': {'ip_address': '132.191.0.3', 'session_key': None, 'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36', 'referrer': 'https://casaaustin.pe/'}, 'created': '2025-09-01T20:08:45.959372+00:00'}
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: === PAYLOAD COMPLETO ===
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: Action: insert_search_tracking
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: Timestamp: 2025-09-01T20:18:24.019850+00:00
+INFO 2025-09-01 15:18:24,019 views 1176856 140358998837056 SearchTrackingExportView: Data length: 51
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056 SearchTrackingExportView: Payload JSON string (primeros 1000 chars): {'action': 'insert_search_tracking', 'data': [{'id': '69a98d37-58e7-4ed5-8b90-aa056021d85f', 'search_timestamp': '2025-09-01T20:08:45.959414+00:00', 'check_in_date': '2025-09-06', 'check_out_date': '2025-09-07', 'guests': 10, 'client_info': {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}, 'property_info': {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}, 'technical_data': {'ip_address': '132.191.0.3', 'session_key': None, 'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36', 'referrer': 'https://casaaustin.pe/'}, 'created': '2025-09-01T20:08:45.959372+00:00'}, {'id': '8e011527-9d61-40fd-a01c-3563bf1fb84c', 'search_timestamp': '2025-09-01T20:08:08.010209+00:00', 'check_in_date': '2025-09-27', 'check_out_date': '2025-09-28', 'guests': 50, 'client_info': {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': '...
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056 SearchTrackingExportView: Registro 1 estructura:
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - ID: 69a98d37-58e7-4ed5-8b90-aa056021d85f
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - search_timestamp: 2025-09-01T20:08:45.959414+00:00
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - check_in_date: 2025-09-06
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - check_out_date: 2025-09-07
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - guests: 10
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - technical_data: {'ip_address': '132.191.0.3', 'session_key': None, 'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36', 'referrer': 'https://casaaustin.pe/'}
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - created: 2025-09-01T20:08:45.959372+00:00
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056 SearchTrackingExportView: Registro 2 estructura:
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - ID: 8e011527-9d61-40fd-a01c-3563bf1fb84c
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - search_timestamp: 2025-09-01T20:08:08.010209+00:00
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - check_in_date: 2025-09-27
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - check_out_date: 2025-09-28
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - guests: 50
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - property_info: {'id': 'SIN_PROPIEDAD', 'name': 'Búsqueda general'}
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - technical_data: {'ip_address': '38.25.29.181', 'session_key': None, 'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36', 'referrer': 'https://casaaustin.pe/'}
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - created: 2025-09-01T20:08:08.010165+00:00
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056 SearchTrackingExportView: Registro 3 estructura:
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - ID: d08076fd-941c-43b9-908b-159d0edb476d
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - search_timestamp: 2025-09-01T20:05:33.350650+00:00
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - check_in_date: 2025-09-20
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - check_out_date: 2025-09-21
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - guests: 10
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - client_info: {'id': 'ANONIMO', 'first_name': 'Usuario', 'last_name': 'Anónimo', 'email': 'anonimo@casaaustin.pe', 'tel_number': 'Sin teléfono'}
+INFO 2025-09-01 15:18:24,020 views 1176856 140358998837056   - property_info: {'id': '9a04892a-4ba5-4b10-92b5-2a72f6d89d57', 'name': 'Casa Austin 2'}
+INFO 2025-09-01 15:18:24,021 views 1176856 140358998837056   - technical_data: {'ip_address': '179.6.14.104', 'session_key': None, 'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', 'referrer': 'https://casaaustin.pe/'}
+INFO 2025-09-01 15:18:24,021 views 1176856 140358998837056   - created: 2025-09-01T20:05:33.350597+00:00
+INFO 2025-09-01 15:18:24,021 views 1176856 140358998837056 SearchTrackingExportView: === ENVIANDO REQUEST ===
+INFO 2025-09-01 15:18:26,031 views 1176856 140358998837056 SearchTrackingExportView: === RESPUESTA RECIBIDA ===
+INFO 2025-09-01 15:18:26,031 views 1176856 140358998837056 SearchTrackingExportView: Status Code: 200
+INFO 2025-09-01 15:18:26,031 views 1176856 140358998837056 SearchTrackingExportView: Response Headers: {'Content-Type': 'application/json; charset=utf-8', 'Vary': 'Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site', 'X-Content-Type-Options': 'nosniff', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache', 'Expires': 'Mon, 01 Jan 1990 00:00:00 GMT', 'Date': 'Mon, 01 Sep 2025 20:18:25 GMT', 'Content-Encoding': 'gzip', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': "frame-ancestors 'self'", 'X-XSS-Protection': '1; mode=block', 'Server': 'GSE', 'Alt-Svc': 'h3=":443"; ma=2592000,h3-29=":443"; ma=2592000', 'Transfer-Encoding': 'chunked'}
+INFO 2025-09-01 15:18:26,031 views 1176856 140358998837056 SearchTrackingExportView: Response Text (primeros 1000 chars): {"success":true,"message":"Datos guardados en Google Sheets"}
+INFO 2025-09-01 15:18:26,031 views 1176856 140358998837056 SearchTrackingExportView: Response JSON: {'success': True, 'message': 'Datos guardados en Google Sheets'}
+INFO 2025-09-01 15:18:26,031 views 1176856 140358998837056 SearchTrackingExportView: ✅ 51 registros enviados exitosamente a Google Sheets
+INFO 2025-09-01 15:18:26,032 views 1176856 140358998837056 SearchTrackingExportView: Exported 51 search tracking records
+
