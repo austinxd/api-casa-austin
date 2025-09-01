@@ -980,6 +980,95 @@ class SearchTrackingTestView(APIView):
         }, status=200)
 
 
+class GoogleSheetsDebugView(APIView):
+    """Vista específica para debuggear el envío a Google Sheets"""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        """Debuggear envío a Google Sheets con datos de prueba"""
+        logger.info("GoogleSheetsDebugView: === INICIO DEBUG GOOGLE SHEETS ===")
+        
+        try:
+            # Crear datos de prueba
+            test_data = [
+                {
+                    'id': 'debug-test-001',
+                    'search_timestamp': '2025-09-01T20:15:00.000000+00:00',
+                    'check_in_date': '2025-09-15',
+                    'check_out_date': '2025-09-17',
+                    'guests': 4,
+                    'client_info': {
+                        'id': 'client-123',
+                        'first_name': 'Test',
+                        'last_name': 'User',
+                        'email': 'test@example.com',
+                        'tel_number': '+51999888777'
+                    },
+                    'property_info': {
+                        'id': 'prop-456',
+                        'name': 'Test Property'
+                    },
+                    'technical_data': {
+                        'ip_address': '192.168.1.1',
+                        'session_key': 'test-session',
+                        'user_agent': 'Mozilla/5.0 Test Browser',
+                        'referrer': 'https://test.com'
+                    },
+                    'created': '2025-09-01T20:14:50.000000+00:00'
+                },
+                {
+                    'id': 'debug-test-002',
+                    'search_timestamp': '2025-09-01T20:16:00.000000+00:00',
+                    'check_in_date': '2025-09-20',
+                    'check_out_date': '2025-09-22',
+                    'guests': 2,
+                    'client_info': {
+                        'id': 'client-789',
+                        'first_name': 'Another',
+                        'last_name': 'Test',
+                        'email': 'another@example.com',
+                        'tel_number': '+51888777666'
+                    },
+                    'property_info': {
+                        'id': 'prop-101',
+                        'name': 'Another Test Property'
+                    },
+                    'technical_data': {
+                        'ip_address': '192.168.1.2',
+                        'session_key': 'test-session-2',
+                        'user_agent': 'Mozilla/5.0 Another Test Browser',
+                        'referrer': 'https://another-test.com'
+                    },
+                    'created': '2025-09-01T20:15:50.000000+00:00'
+                }
+            ]
+            
+            logger.info(f"GoogleSheetsDebugView: Datos de prueba creados: {len(test_data)} registros")
+            
+            # Usar el mismo método de envío que SearchTrackingExportView
+            export_view = SearchTrackingExportView()
+            result = export_view.send_to_google_sheets(test_data)
+            
+            logger.info(f"GoogleSheetsDebugView: Resultado del envío: {result}")
+            
+            return Response({
+                'success': True,
+                'message': 'Debug de Google Sheets completado',
+                'test_data_sent': test_data,
+                'google_sheets_result': result
+            })
+            
+        except Exception as e:
+            logger.error(f"GoogleSheetsDebugView: Error: {str(e)}")
+            import traceback
+            logger.error(f"GoogleSheetsDebugView: Traceback: {traceback.format_exc()}")
+            return Response({
+                'success': False,
+                'message': 'Error en debug de Google Sheets',
+                'error': str(e)
+            }, status=500)
+
+
 class SearchTrackingView(APIView):
     """Vista para tracking de búsquedas de clientes - Versión simplificada para debug"""
     authentication_classes = [ClientJWTAuthentication]
@@ -2017,12 +2106,45 @@ class SearchTrackingExportView(APIView):
             return {'success': False, 'message': 'Webhook no configurado'}
         
         try:
+            # DEBUGGING: Log detallado de los datos a enviar
+            logger.info(f"SearchTrackingExportView: === DEBUGGING ENVÍO A GOOGLE SHEETS ===")
+            logger.info(f"SearchTrackingExportView: Webhook URL: {GOOGLE_SCRIPT_WEBHOOK}")
+            logger.info(f"SearchTrackingExportView: Número de registros a enviar: {len(data)}")
+            logger.info(f"SearchTrackingExportView: Primer registro completo: {data[0] if data else 'DATOS VACÍOS'}")
+            
+            # Validar que tenemos datos
+            if not data:
+                logger.error("SearchTrackingExportView: ¡DATOS VACÍOS! No hay nada que enviar")
+                return {'success': False, 'message': 'No hay datos para enviar'}
+            
             # Enviar todos los datos en una sola request como array
             payload = {
                 'action': 'insert_search_tracking',
                 'data': data,
                 'timestamp': timezone.now().isoformat()
             }
+            
+            # DEBUGGING: Log del payload completo
+            logger.info(f"SearchTrackingExportView: === PAYLOAD COMPLETO ===")
+            logger.info(f"SearchTrackingExportView: Action: {payload['action']}")
+            logger.info(f"SearchTrackingExportView: Timestamp: {payload['timestamp']}")
+            logger.info(f"SearchTrackingExportView: Data length: {len(payload['data'])}")
+            logger.info(f"SearchTrackingExportView: Payload JSON string (primeros 1000 chars): {str(payload)[:1000]}...")
+            
+            # Validar estructura de cada registro
+            for i, record in enumerate(data[:3]):  # Solo los primeros 3 para no saturar logs
+                logger.info(f"SearchTrackingExportView: Registro {i+1} estructura:")
+                logger.info(f"  - ID: {record.get('id', 'MISSING')}")
+                logger.info(f"  - search_timestamp: {record.get('search_timestamp', 'MISSING')}")
+                logger.info(f"  - check_in_date: {record.get('check_in_date', 'MISSING')}")
+                logger.info(f"  - check_out_date: {record.get('check_out_date', 'MISSING')}")
+                logger.info(f"  - guests: {record.get('guests', 'MISSING')}")
+                logger.info(f"  - client_info: {record.get('client_info', 'MISSING')}")
+                logger.info(f"  - property_info: {record.get('property_info', 'MISSING')}")
+                logger.info(f"  - technical_data: {record.get('technical_data', 'MISSING')}")
+                logger.info(f"  - created: {record.get('created', 'MISSING')}")
+            
+            logger.info(f"SearchTrackingExportView: === ENVIANDO REQUEST ===")
             
             response = requests.post(
                 GOOGLE_SCRIPT_WEBHOOK,
@@ -2031,11 +2153,18 @@ class SearchTrackingExportView(APIView):
                 timeout=60  # Timeout más largo para múltiples registros
             )
             
+            logger.info(f"SearchTrackingExportView: === RESPUESTA RECIBIDA ===")
+            logger.info(f"SearchTrackingExportView: Status Code: {response.status_code}")
+            logger.info(f"SearchTrackingExportView: Response Headers: {dict(response.headers)}")
+            logger.info(f"SearchTrackingExportView: Response Text (primeros 1000 chars): {response.text[:1000]}")
+            
             if response.status_code == 200:
                 try:
                     response_data = response.json()
+                    logger.info(f"SearchTrackingExportView: Response JSON: {response_data}")
+                    
                     if response_data.get('success'):
-                        logger.info(f"SearchTrackingExportView: {len(data)} registros enviados exitosamente a Google Sheets")
+                        logger.info(f"SearchTrackingExportView: ✅ {len(data)} registros enviados exitosamente a Google Sheets")
                         return {
                             'success': True,
                             'successful_sends': len(data),
@@ -2044,33 +2173,36 @@ class SearchTrackingExportView(APIView):
                             'google_response': response_data
                         }
                     else:
-                        logger.error(f"SearchTrackingExportView: Google Apps Script retornó error: {response_data}")
+                        logger.error(f"SearchTrackingExportView: ❌ Google Apps Script retornó error: {response_data}")
                         return {
                             'success': False,
                             'message': response_data.get('message', 'Error desde Google Apps Script')
                         }
-                except ValueError:
+                except ValueError as ve:
                     # Si la respuesta no es JSON válido
-                    logger.warning(f"SearchTrackingExportView: Respuesta no es JSON válido: {response.text}")
+                    logger.warning(f"SearchTrackingExportView: ⚠️ Respuesta no es JSON válido: {response.text}")
+                    logger.warning(f"SearchTrackingExportView: ValueError: {str(ve)}")
                     return {
                         'success': True,
                         'successful_sends': len(data),
                         'failed_sends': 0,
                         'total_records': len(data),
-                        'message': 'Datos enviados, respuesta no es JSON'
+                        'message': 'Datos enviados, respuesta no es JSON válido'
                     }
             else:
-                logger.error(f"SearchTrackingExportView: Error HTTP {response.status_code}: {response.text}")
+                logger.error(f"SearchTrackingExportView: ❌ Error HTTP {response.status_code}: {response.text}")
                 return {
                     'success': False,
                     'message': f'Error HTTP {response.status_code}: {response.text}'
                 }
             
         except requests.exceptions.Timeout:
-            logger.error(f"SearchTrackingExportView: Timeout enviando a Google Sheets")
+            logger.error(f"SearchTrackingExportView: ❌ Timeout enviando a Google Sheets")
             return {'success': False, 'message': 'Timeout al enviar datos'}
         except Exception as e:
-            logger.error(f"SearchTrackingExportView: Error enviando a Google Sheets: {str(e)}")
+            logger.error(f"SearchTrackingExportView: ❌ Error enviando a Google Sheets: {str(e)}")
+            import traceback
+            logger.error(f"SearchTrackingExportView: Traceback: {traceback.format_exc()}")
             return {'success': False, 'message': str(e)}
 
     def get(self, request):

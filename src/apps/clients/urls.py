@@ -9,7 +9,7 @@ from .views import (
     MensajeFidelidadApiView, TokenApiClientApiView, ClientsApiView,
     ReferralConfigView, ReferralStatsView, SearchTrackingView, SearchTrackingTestView,
     SearchTrackingExportView, ClientCreateReservationView, ClientReservationsListView, 
-    ClientReservationDetailView
+    ClientReservationDetailView, GoogleSheetsDebugView
 )
 
 router = DefaultRouter()
@@ -115,7 +115,7 @@ urlpatterns = [
     path('clients/reservations/list/',
          views.ClientReservationsListView.as_view(),
          name='client-reservations-list'),
-    
+
     # Endpoint para detalle de reserva específica
     path('clients/client-auth/reservations/<str:reservation_id>/',
          views.ClientReservationDetailView.as_view(),
@@ -129,4 +129,10 @@ urlpatterns = [
          ClientReservationStatusView.as_view(),
          name='client-reservation-status'),
     path('clients/csrf-token/', auth_views.get_csrf_token, name='csrf-token'),
+
+    # Debug endpoints for Sheets and Webhook issues
+    path('api/v1/clients/track-search/', SearchTrackingView.as_view(), name='search-tracking'),
+    path('api/v1/clients/track-search/test/', SearchTrackingTestView.as_view(), name='search-tracking-test'),
+    path('api/v1/clients/track-search/export/', SearchTrackingExportView.as_view(), name='search-tracking-export'),
+    path('api/v1/clients/track-search/debug-sheets/', GoogleSheetsDebugView.as_view(), name='google-sheets-debug'),
 ]

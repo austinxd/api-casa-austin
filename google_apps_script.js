@@ -14,15 +14,60 @@ const SHEET_NAME = 'Hoja 1'; // ✅ Usar el nombre real de tu pestaña
 function doPost(e) {
   try {
     console.log('=== INICIO doPost ===');
-    console.log('Content type:', e.postData.type);
-    console.log('Raw data:', e.postData.contents);
+    console.log('Content type:', e.postData ? e.postData.type : 'NO POST DATA');
+    console.log('Raw data length:', e.postData ? e.postData.contents.length : 0);
+    console.log('Raw data (primeros 500 chars):', e.postData ? e.postData.contents.substring(0, 500) : 'NO DATA');
+    
+    if (!e.postData || !e.postData.contents) {
+      console.error('ERROR: No se recibieron datos POST');
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          success: false,
+          message: 'No se recibieron datos en la request',
+          timestamp: new Date().toISOString()
+        }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
     
     // Parsear datos JSON
-    const data = JSON.parse(e.postData.contents);
-    console.log('Parsed data:', JSON.stringify(data, null, 2));
+    let data;
+    try {
+      data = JSON.parse(e.postData.contents);
+      console.log('=== DATOS PARSEADOS EXITOSAMENTE ===');
+      console.log('Action:', data.action);
+      console.log('Timestamp:', data.timestamp);
+      console.log('Data type:', typeof data.data);
+      console.log('Data length:', Array.isArray(data.data) ? data.data.length : 'NO ES ARRAY');
+      console.log('Primer registro:', data.data && data.data.length > 0 ? JSON.stringify(data.data[0], null, 2) : 'NO HAY DATOS');
+    } catch (parseError) {
+      console.error('ERROR PARSEANDO JSON:', parseError);
+      console.error('Contenido que falló:', e.postData.contents);
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          success: false,
+          message: 'Error parseando JSON: ' + parseError.toString(),
+          timestamp: new Date().toISOString()
+        }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
     
     // Verificar que sea una request de insert_search_tracking
     if (data.action === 'insert_search_tracking') {
+      console.log('=== ACCIÓN RECONOCIDA: insert_search_tracking ===');
+      
+      if (!data.data || !Array.isArray(data.data)) {
+        console.error('ERROR: data.data no es un array válido');
+        return ContentService
+          .createTextOutput(JSON.stringify({
+            success: false,
+            message: 'data.data debe ser un array',
+            received_data_type: typeof data.data,
+            timestamp: new Date().toISOString()
+          }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      
+      console.log(`Procesando ${data.data.length} registros...`);
       const result = insertSearchTrackingData(data.data);
       
       return ContentService
