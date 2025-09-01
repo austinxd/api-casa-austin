@@ -30,6 +30,7 @@ function doPost(e) {
           success: true,
           message: 'Datos insertados correctamente',
           records_processed: result.records_processed,
+          records_skipped: result.records_skipped,
           timestamp: new Date().toISOString()
         }))
         .setMimeType(ContentService.MimeType.JSON);
@@ -85,41 +86,79 @@ function insertSearchTrackingData(records) {
       headerRange.setBackground('#e1f5fe');
     }
     
-    // Preparar datos para insertar
+    // Obtener IDs existentes para evitar duplicados
+    const existingData = sheet.getDataRange().getValues();
+    const existingIds = new Set();
+    
+    // Empezar desde la fila 2 (skip headers)
+    for (let i = 1; i < existingData.length; i++) {
+      if (existingData[i][0]) { // Columna ID (índice 0)
+        existingIds.add(existingData[i][0].toString());
+      }
+    }
+    
+    console.log('IDs existentes en la hoja:', existingIds.size);
+    
+    // Preparar datos para insertar (solo los nuevos)
     const rows = [];
+    let skipped = 0;
     
     records.forEach(record => {
+      // Verificar si ya existe este ID
+      if (existingIds.has(record.id)) {
+        console.log('Saltando registro duplicado:', record.id);
+        skipped++;
+        return;
+      }
+      
+      // Extraer datos correctamente desde la estructura anidada
+      const clientInfo = record.client_info || {};
+      const propertyInfo = record.property_info || {};
+      const technicalData = record.technical_data || {};
+      
       const row = [
         record.id || '',
         record.search_timestamp || '',
         record.check_in_date || '',
         record.check_out_date || '',
         record.guests || '',
-        record.client_info?.id || '',
-        record.client_info?.first_name || '',
-        record.client_info?.last_name || '',
-        record.client_info?.email || '',
-        record.client_info?.tel_number || '',
-        record.property_info?.id || '',
-        record.property_info?.name || '',
-        record.technical_data?.ip_address || '',
-        record.technical_data?.session_key || '',
-        record.technical_data?.user_agent || '',
-        record.technical_data?.referrer || '',
+        clientInfo.id || '',
+        clientInfo.first_name || '',
+        clientInfo.last_name || '',
+        clientInfo.email || '',
+        clientInfo.tel_number || '',
+        propertyInfo.id || '',
+        propertyInfo.name || '',
+        technicalData.ip_address || '',
+        technicalData.session_key || '',
+        technicalData.user_agent || '',
+        technicalData.referrer || '',
         record.created || ''
       ];
       rows.push(row);
     });
     
-    // Insertar todas las filas de una vez
+    console.log('Registros nuevos a insertar:', rows.length);
+    console.log('Registros saltados (duplicados):', skipped);
+    
+    // Insertar todas las filas nuevas de una vez
     if (rows.length > 0) {
       const startRow = sheet.getLastRow() + 1;
       sheet.getRange(startRow, 1, rows.length, rows[0].length).setValues(rows);
       console.log('Insertadas', rows.length, 'filas en Google Sheets');
+      
+      // Aplicar formato a las nuevas filas
+      const newDataRange = sheet.getRange(startRow, 1, rows.length, rows[0].length);
+      newDataRange.setBorder(true, true, true, true, true, true);
+      
+      // Ajustar ancho de columnas automáticamente
+      sheet.autoResizeColumns(1, rows[0].length);
     }
     
     return {
       records_processed: rows.length,
+      records_skipped: skipped,
+      total_records: records.length,
       sheet_name: SHEET_NAME
     };
     
@@ -147,7 +186,30 @@ function insertSingleRecord(record) {
         'IP Address', 'Session Key', 'User Agent', 'Referrer', 'Fecha Creación'
       ];
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      
+      // Formatear headers
+      const headerRange = sheet.getRange(1, 1, 1, headers.length);
+      headerRange.setFontWeight('bold');
+      headerRange.setBackground('#e1f5fe');
     }
+    
+    // Verificar si ya existe este registro
+    const existingData = sheet.getDataRange().getValues();
+    for (let i = 1; i < existingData.length; i++) {
+      if (existingData[i][0] === record.id) {
+        console.log('Registro ya existe:', record.id);
+        return {
+          record_id: record.id,
+          sheet_name: SHEET_NAME,
+          action: 'skipped_duplicate'
+        };
+      }
+    }
+    
+    // Extraer datos correctamente desde la estructura anidada
+    const clientInfo = record.client_info || {};
+    const propertyInfo = record.property_info || {};
+    const technicalData = record.technical_data || {};
     
     // Preparar fila de datos
     const row = [
@@ -156,26 +218,32 @@ function insertSingleRecord(record) {
       record.check_in_date || '',
       record.check_out_date || '',
       record.guests || '',
-      record.client_info?.id || '',
-      record.client_info?.first_name || '',
-      record.client_info?.last_name || '',
-      record.client_info?.email || '',
-      record.client_info?.tel_number || '',
-      record.property_info?.id || '',
-      record.property_info?.name || '',
-      record.technical_data?.ip_address || '',
-      record.technical_data?.session_key || '',
-      record.technical_data?.user_agent || '',
-      record.technical_data?.referrer || '',
+      clientInfo.id || '',
+      clientInfo.first_name || '',
+      clientInfo.last_name || '',
+      clientInfo.email || '',
+      clientInfo.tel_number || '',
+      propertyInfo.id || '',
+      propertyInfo.name || '',
+      technicalData.ip_address || '',
+      technicalData.session_key || '',
+      technicalData.user_agent || '',
+      technicalData.referrer || '',
       record.created || ''
     ];
     
     // Insertar fila
     sheet.appendRow(row);
     
+    // Aplicar formato a la nueva fila
+    const lastRow = sheet.getLastRow();
+    const newRowRange = sheet.getRange(lastRow, 1, 1, row.length);
+    newRowRange.setBorder(true, true, true, true, true, true);
+    
     return {
       record_id: record.id,
-      sheet_name: SHEET_NAME
+      sheet_name: SHEET_NAME,
+      action: 'inserted'
     };
     
   } catch (error) {
@@ -198,6 +266,9 @@ function getOrCreateSheet() {
     if (!sheet) {
       console.log('Creando nueva hoja:', SHEET_NAME);
       sheet = spreadsheet.insertSheet(SHEET_NAME);
+      
+      // Configurar formato inicial de la hoja
+      sheet.setFrozenRows(1); // Congelar fila de headers
     }
     
     return sheet;
@@ -221,6 +292,42 @@ function doGet(e) {
       sheet_name: SHEET_NAME
     }))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Función de utilidad para testear la inserción manual
+ */
+function testInsertData() {
+  const testData = [
+    {
+      id: "test-123",
+      search_timestamp: new Date().toISOString(),
+      check_in_date: "2025-01-15",
+      check_out_date: "2025-01-17",
+      guests: 2,
+      client_info: {
+        id: "client-456",
+        first_name: "Juan",
+        last_name: "Pérez",
+        email: "juan@example.com",
+        tel_number: "+51999888777"
+      },
+      property_info: {
+        id: "prop-789",
+        name: "Villa Test"
+      },
+      technical_data: {
+        ip_address: "192.168.1.1",
+        session_key: "test-session",
+        user_agent: "Mozilla/5.0 Test",
+        referrer: "https://test.com"
+      },
+      created: new Date().toISOString()
+    }
+  ];
+  
+  const result = insertSearchTrackingData(testData);
+  console.log('Test result:', result);
 }
 
 /**
@@ -260,6 +367,20 @@ function cleanOldData(daysToKeep = 90) {
     
   } catch (error) {
     console.error('Error limpiando datos antiguos:', error);
+    throw error;
+  }
+}
+
+/**
+ * Función para limpiar todos los datos (uso con precaución)
+ */
+function clearAllData() {
+  try {
+    const sheet = getOrCreateSheet();
+    sheet.clear();
+    console.log('Todos los datos han sido eliminados de la hoja.');
+  } catch (error) {
+    console.error('Error limpiando datos:', error);
     throw error;
   }
 }
