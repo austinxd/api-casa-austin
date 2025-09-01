@@ -1,0 +1,31 @@
+INFO 2025-09-01 10:15:54,505 payment_views 1167277 140049840764736 🔧 OPENPAY INIT - Merchant: miylepzquim9mnassise
+INFO 2025-09-01 10:15:54,505 payment_views 1167277 140049840764736 🔧 OPENPAY INIT - Private Key length: 35
+INFO 2025-09-01 10:15:54,505 payment_views 1167277 140049840764736 🔧 OPENPAY INIT - Sandbox: True
+INFO 2025-09-01 10:15:54,507 payment_views 1167277 140049840764736 === DEBUGGING OPENPAY CREDENTIALS ===
+INFO 2025-09-01 10:15:54,507 payment_views 1167277 140049840764736 Merchant ID: miylepzquim9mnassise
+INFO 2025-09-01 10:15:54,507 payment_views 1167277 140049840764736 Private Key (masked): sk_5431f...167c
+INFO 2025-09-01 10:15:54,507 payment_views 1167277 140049840764736 Is Sandbox: True
+INFO 2025-09-01 10:15:54,507 payment_views 1167277 140049840764736 Base URL: https://sandbox-api.openpay.pe/v1
+INFO 2025-09-01 10:15:54,509 payment_views 1167277 140049840764736 Token recibido: k5yeynhubynzlme5udm1
+INFO 2025-09-01 10:15:54,509 payment_views 1167277 140049840764736 Amount: 468.0
+INFO 2025-09-01 10:15:54,509 payment_views 1167277 140049840764736 Device Session ID: xGBwgX0bQphkSCtHEfuEXgZzZ7CLt6q3
+INFO 2025-09-01 10:15:54,509 payment_views 1167277 140049840764736 === VERIFICANDO TOKEN ===
+INFO 2025-09-01 10:15:54,509 payment_views 1167277 140049840764736 Token length: 20
+INFO 2025-09-01 10:15:54,509 payment_views 1167277 140049840764736 Token starts with: k5yeynhuby
+INFO 2025-09-01 10:15:54,510 payment_views 1167277 140049840764736 ✅ Token k5yeynhubynzlme5udm1 no ha sido usado anteriormente
+INFO 2025-09-01 10:15:54,511 payment_views 1167277 140049840764736 === VALIDANDO CREDENCIALES OPENPAY ===
+INFO 2025-09-01 10:15:54,511 payment_views 1167277 140049840764736 Auth header creado: Basic c2tfNTQzMWYxMW...
+INFO 2025-09-01 10:15:54,978 payment_views 1167277 140049840764736 Merchant validation status: 200
+INFO 2025-09-01 10:15:54,979 payment_views 1167277 140049840764736 ✅ Credenciales válidas para consultar merchant
+INFO 2025-09-01 10:15:54,979 payment_views 1167277 140049840764736 Verificando permisos de charges en: https://sandbox-api.openpay.pe/v1/miylepzquim9mnassise/charges
+INFO 2025-09-01 10:15:54,979 payment_views 1167277 140049840764736 Procesando pago para reserva 59c7bd3d-e91b-4209-891d-8cf0ba1d8505 con order_id: RES-59c7bd3d-e91b-4209-891d-8cf0ba1d8505-17567397545103161-3706
+INFO 2025-09-01 10:15:54,979 payment_views 1167277 140049840764736 DEBUGGING OPENPAY REQUEST:
+INFO 2025-09-01 10:15:54,979 payment_views 1167277 140049840764736 URL: https://sandbox-api.openpay.pe/v1/miylepzquim9mnassise/charges
+INFO 2025-09-01 10:15:54,979 payment_views 1167277 140049840764736 Headers: {'Content-Type': 'application/json', 'Authorization': 'Basic c2tfNTQzMWYxMWYyNjBjNDJmZmFmZGE4NDFjN2RiNzE2N2M6'}
+INFO 2025-09-01 10:15:54,979 payment_views 1167277 140049840764736 Charge Data: {'source_id': 'k5yeynhubynzlme5udm1', 'method': 'card', 'amount': 468.0, 'currency': 'PEN', 'description': 'Pago reserva #59c7bd3d-e91b-4209-891d-8cf0ba1d8505 - Casa Austin 3', 'order_id': 'RES-59c7bd3d-e91b-4209-891d-8cf0ba1d8505-17567397545103161-3706', 'device_session_id': 'xGBwgX0bQphkSCtHEfuEXgZzZ7CLt6q3', 'customer': {'name': 'Augusto Ray Leonel', 'last_name': 'Tantalean Marcatoma', 'email': 'austin.xd@live.com', 'phone_number': '+51986607686'}}
+INFO 2025-09-01 10:16:00,809 payment_views 1167277 140049840764736 OpenPay Response - Status: 200
+INFO 2025-09-01 10:16:00,809 payment_views 1167277 140049840764736 OpenPay Response Headers: {'Date': 'Mon, 01 Sep 2025 15:16:00 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Content-Length': '1213', 'Connection': 'keep-alive', 'OpenPay-Request-ID': 'db6f7464-f83b-452a-855b-8b7af96ee61a', 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0', 'Strict-Transport-Security': 'max-age=0', 'X-XSS-Protection': '1; mode=block', 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': 'upgrade-insecure-requests', 'Permissions-Policy': 'geolocation=()', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'Resource-ID': 'trgvjvljzoopihwzks7s', 'Location': 'https://sandbox-api.openpay.pe/v1/miylepzquim9mnassise/charges/trgvjvljzoopihwzks7s'}
+ERROR 2025-09-01 10:16:00,809 payment_views 1167277 140049840764736 OpenPay Error Response: {"id":"trgvjvljzoopihwzks7s","authorization":"846602598","operation_type":"in","transaction_type":"charge","status":"completed","conciliated":false,"creation_date":"2025-09-01T10:15:55-05:00","operation_date":"2025-09-01T10:16:00-05:00","description":"Pago reserva #59c7bd3d-e91b-4209-891d-8cf0ba1d8505 - Casa Austin 3","error_message":null,"order_id":"RES-59c7bd3d-e91b-4209-891d-8cf0ba1d8505-17567397545103161-3706","card":{"type":"debit","brand":"visa","address":{"line1":"av principal 123","line2":"","line3":"","state":"Lima","city":"Lima","postal_code":"00051","country_code":"PE"},"card_number":"411111XXXXXX1111","holder_name":"juan perez","expiration_year":"25","expiration_month":"12","allows_charges":true,"allows_payouts":false,"bank_name":"BANAMEX","card_business_type":null,"dcc":null,"bank_code":"000"},"gateway_card_present":"VISANET","amount":468.00,"currency":"PEN","customer":{"name":"Augusto Ray Leonel","last_name":"Tantalean Marcatoma","email":"austin.xd@live.com","phone_number":"+51986607686","address":null,"creation_date":"2025-09-01T10:15:55-05:00","external_id":null,"clabe":null},"fee":{"amount":10.00,"tax":0,"surcharge":null,"base_commission":null,"currency":"PEN"},"method":"card"}
+ERROR 2025-09-01 10:16:00,809 payment_views 1167277 140049840764736    Descripción API: Pago reserva #59c7bd3d-e91b-4209-891d-8cf0ba1d8505 - Casa Austin 3
+Bad Request: /api/v1/payment/process/59c7bd3d-e91b-4209-891d-8cf0ba1d8505/
+WARNING 2025-09-01 10:16:00,811 log 1167277 140049840764736 Bad Request: /api/v1/payment/process/59c7bd3d-e91b-4209-891d-8cf0ba1d8505/
