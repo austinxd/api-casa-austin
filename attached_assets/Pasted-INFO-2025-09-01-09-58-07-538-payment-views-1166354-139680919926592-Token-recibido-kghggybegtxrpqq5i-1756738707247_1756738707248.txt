@@ -1,0 +1,13 @@
+INFO 2025-09-01 09:58:07,538 payment_views 1166354 139680919926592 Token recibido: kghggybegtxrpqq5ip7k
+INFO 2025-09-01 09:58:07,538 payment_views 1166354 139680919926592 Amount: 468.0
+INFO 2025-09-01 09:58:07,538 payment_views 1166354 139680919926592 Device Session ID: j5tzV0Ov47ro8UXDJqsSMmdQa1QZTWZ4
+INFO 2025-09-01 09:58:07,539 payment_views 1166354 139680919926592 Procesando pago para reserva 59c7bd3d-e91b-4209-891d-8cf0ba1d8505 con order_id: RES-59c7bd3d-e91b-4209-891d-8cf0ba1d8505-17567386875383687-5217
+INFO 2025-09-01 09:58:07,539 payment_views 1166354 139680919926592 DEBUGGING OPENPAY REQUEST:
+INFO 2025-09-01 09:58:07,539 payment_views 1166354 139680919926592 URL: https://sandbox-api.openpay.pe/v1/miylepzquim9mnassise/charges
+INFO 2025-09-01 09:58:07,539 payment_views 1166354 139680919926592 Headers: {'Content-Type': 'application/json', 'Authorization': 'Basic c2tfNTQzMWYxMWYyNjBjNDJmZmFmZGE4NDFjN2RiNzE2N2M6'}
+INFO 2025-09-01 09:58:07,539 payment_views 1166354 139680919926592 Charge Data: {'source_id': 'kghggybegtxrpqq5ip7k', 'method': 'card', 'amount': 468.0, 'currency': 'PEN', 'description': 'Pago reserva #59c7bd3d-e91b-4209-891d-8cf0ba1d8505 - Casa Austin 3', 'order_id': 'RES-59c7bd3d-e91b-4209-891d-8cf0ba1d8505-17567386875383687-5217', 'device_session_id': 'j5tzV0Ov47ro8UXDJqsSMmdQa1QZTWZ4', 'customer': {'name': 'Augusto Ray Leonel', 'last_name': 'Tantalean Marcatoma', 'email': 'austin.xd@live.com', 'phone_number': '+51986607686'}}
+INFO 2025-09-01 09:58:12,213 payment_views 1166354 139680919926592 OpenPay Response - Status: 412
+ERROR 2025-09-01 09:58:12,213 payment_views 1166354 139680919926592 OpenPay Error Response: {"http_code":412,"error_code":3006,"category":"gateway","description":"Request not allowed","request_id":"92ac8647-3cf9-471f-b996-477d9b4b493f"}
+ERROR 2025-09-01 09:58:12,213 payment_views 1166354 139680919926592 Error de OpenPay para reserva 59c7bd3d-e91b-4209-891d-8cf0ba1d8505: Request not allowed
+Bad Request: /api/v1/payment/process/59c7bd3d-e91b-4209-891d-8cf0ba1d8505/
+WARNING 2025-09-01 09:58:12,215 log 1166354 139680919926592 Bad Request: /api/v1/payment/process/59c7bd3d-e91b-4209-891d-8cf0ba1d8505/
