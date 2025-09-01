@@ -4460,3 +4460,9 @@ INFO 2025-09-01 20:21:39,904 views 9616 140527249036992 SearchTrackingExportView
 INFO 2025-09-01 20:21:39,904 views 9616 140527249036992 SearchTrackingExportView: Primer registro completo: DATOS VACÍOS
 ERROR 2025-09-01 20:21:39,904 views 9616 140527249036992 SearchTrackingExportView: ¡DATOS VACÍOS! No hay nada que enviar
 INFO 2025-09-01 20:21:39,904 views 9616 140527249036992 SearchTrackingExportView: Exported 0 search tracking records
+INFO 2025-09-01 20:29:05,000 views 11144 140478495319744 SearchTrackingExportView: === DEBUGGING ENVÍO A GOOGLE SHEETS ===
+INFO 2025-09-01 20:29:05,000 views 11144 140478495319744 SearchTrackingExportView: Webhook URL: https://script.google.com/macros/s/AKfycbyEtAbn0gB0UWAQ1KbCaYg7z7TCRCPHRPsD4paxMb8ajaAnutJN8siPVIYTzhaRE37voQ/exec
+INFO 2025-09-01 20:29:05,000 views 11144 140478495319744 SearchTrackingExportView: Número de registros a enviar: 0
+INFO 2025-09-01 20:29:05,000 views 11144 140478495319744 SearchTrackingExportView: Primer registro completo: DATOS VACÍOS
+ERROR 2025-09-01 20:29:05,000 views 11144 140478495319744 SearchTrackingExportView: ¡DATOS VACÍOS! No hay nada que enviar
+INFO 2025-09-01 20:29:05,001 views 11144 140478495319744 SearchTrackingExportView: Exported 0 search tracking records
