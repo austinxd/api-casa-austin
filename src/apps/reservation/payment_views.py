@@ -77,13 +77,16 @@ class ProcessPaymentView(APIView):
             with transaction.atomic():
                 try:
                     # Crear el cargo con OpenPay API
+                    import time
+                    unique_order_id = f"RES-{reservation.id}-{int(time.time())}"
+                    
                     charge_data = {
                         "source_id": token,
                         "method": "card",
                         "amount": amount,
                         "currency": "PEN",
                         "description": f"Pago reserva #{reservation.id} - {reservation.property.name}",
-                        "order_id": f"RES-{reservation.id}",
+                        "order_id": unique_order_id,
                         "device_session_id": device_session_id,
                         "customer": {
                             "name": reservation.client.first_name if reservation.client else "Cliente",
@@ -102,23 +105,13 @@ class ProcessPaymentView(APIView):
                     # Procesar pago con OpenPay API
                     url = f"{self.base_url}/{self.merchant_id}/charges"
                     
-                    # Log detallado para debugging
-                    logger.info(f"=== DEBUGGING OPENPAY REQUEST ===")
-                    logger.info(f"URL: {url}")
-                    logger.info(f"Merchant ID: {self.merchant_id}")
-                    logger.info(f"Private Key (first 10 chars): {self.private_key[:10]}...")
-                    logger.info(f"Private Key (last 4 chars): ...{self.private_key[-4:]}")
-                    logger.info(f"Is Sandbox: {self.is_sandbox}")
-                    logger.info(f"Base64 credentials: {base64.b64encode(f'{self.private_key}:'.encode()).decode()}")
-                    logger.info(f"Headers: {headers}")
-                    logger.info(f"Charge Data: {charge_data}")
+                    logger.info(f"Procesando pago para reserva {reservation.id} con order_id: {unique_order_id}")
                     
                     response = requests.post(url, json=charge_data, headers=headers)
                     
-                    # Log de la respuesta completa
-                    logger.info(f"Response Status: {response.status_code}")
-                    logger.info(f"Response Headers: {dict(response.headers)}")
-                    logger.info(f"Response Content: {response.text}")
+                    logger.info(f"OpenPay Response - Status: {response.status_code}")
+                    if response.status_code != 201:
+                        logger.error(f"OpenPay Error Response: {response.text}")
 
                     if response.status_code == 201:
                         charge = response.json()
