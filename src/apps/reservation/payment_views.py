@@ -63,6 +63,10 @@ class ProcessPaymentView(APIView):
             amount = float(request.data.get('amount', 0))
             device_session_id = request.data.get('device_session_id')
 
+            logger.info(f"Token recibido: {token}")
+            logger.info(f"Amount: {amount}")
+            logger.info(f"Device Session ID: {device_session_id}")
+
             if not token or amount <= 0:
                 return Response({
                     'success': False,
@@ -106,6 +110,10 @@ class ProcessPaymentView(APIView):
                     url = f"{self.base_url}/{self.merchant_id}/charges"
 
                     logger.info(f"Procesando pago para reserva {reservation.id} con order_id: {unique_order_id}")
+                    logger.info(f"DEBUGGING OPENPAY REQUEST:")
+                    logger.info(f"URL: {url}")
+                    logger.info(f"Headers: {headers}")
+                    logger.info(f"Charge Data: {charge_data}")
 
                     response = requests.post(url, json=charge_data, headers=headers)
 
