@@ -2244,6 +2244,26 @@ class SearchTrackingExportView(APIView):
             # Preparar datos para exportación
             export_data = []
             for tracking in search_tracking_queryset:
+                # DEBUGGING: Log detallado de cada registro
+                logger.info(f"SearchTrackingExportView: === PROCESANDO REGISTRO {tracking.id} ===")
+                logger.info(f"SearchTrackingExportView: tracking.client = {tracking.client}")
+                logger.info(f"SearchTrackingExportView: tracking.client type = {type(tracking.client)}")
+                
+                if tracking.client:
+                    logger.info(f"SearchTrackingExportView: client.id = {tracking.client.id}")
+                    logger.info(f"SearchTrackingExportView: client.first_name = {tracking.client.first_name}")
+                    logger.info(f"SearchTrackingExportView: client.last_name = {tracking.client.last_name}")
+                    logger.info(f"SearchTrackingExportView: client.email = {tracking.client.email}")
+                else:
+                    logger.warning(f"SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: {tracking.id}")
+                
+                logger.info(f"SearchTrackingExportView: tracking.property = {tracking.property}")
+                if tracking.property:
+                    logger.info(f"SearchTrackingExportView: property.id = {tracking.property.id}")
+                    logger.info(f"SearchTrackingExportView: property.name = {tracking.property.name}")
+                else:
+                    logger.warning(f"SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: {tracking.id}")
+                
                 data = {
                     'id': str(tracking.id),
                     'search_timestamp': tracking.search_timestamp.isoformat() if tracking.search_timestamp else None,
@@ -2251,16 +2271,25 @@ class SearchTrackingExportView(APIView):
                     'check_out_date': tracking.check_out_date.isoformat() if tracking.check_out_date else None,
                     'guests': tracking.guests,
                     'client_info': {
-                        'id': str(tracking.client.id) if tracking.client else None,
-                        'first_name': tracking.client.first_name if tracking.client else None,
-                        'last_name': tracking.client.last_name if tracking.client else None,
-                        'email': tracking.client.email if tracking.client else None,
-                        'tel_number': tracking.client.tel_number if tracking.client else None,
-                    } if tracking.client else None,
+                        'id': str(tracking.client.id) if tracking.client else 'ANONIMO',
+                        'first_name': tracking.client.first_name if tracking.client else 'Usuario',
+                        'last_name': tracking.client.last_name if tracking.client else 'Anónimo',
+                        'email': tracking.client.email if tracking.client else 'anonimo@casaaustin.pe',
+                        'tel_number': tracking.client.tel_number if tracking.client else 'Sin teléfono',
+                    } if tracking.client else {
+                        'id': 'ANONIMO',
+                        'first_name': 'Usuario',
+                        'last_name': 'Anónimo',
+                        'email': 'anonimo@casaaustin.pe',
+                        'tel_number': 'Sin teléfono',
+                    },
                     'property_info': {
-                        'id': str(tracking.property.id) if tracking.property else None,
-                        'name': tracking.property.name if tracking.property else None,
-                    } if tracking.property else None,
+                        'id': str(tracking.property.id) if tracking.property else 'SIN_PROPIEDAD',
+                        'name': tracking.property.name if tracking.property else 'Búsqueda general',
+                    } if tracking.property else {
+                        'id': 'SIN_PROPIEDAD',
+                        'name': 'Búsqueda general',
+                    },
                     'technical_data': {
                         'ip_address': str(tracking.ip_address) if tracking.ip_address else None,
                         'session_key': str(tracking.session_key) if tracking.session_key else None,
@@ -2269,6 +2298,12 @@ class SearchTrackingExportView(APIView):
                     },
                     'created': tracking.created.isoformat() if hasattr(tracking, 'created') and tracking.created else None,
                 }
+                
+                # DEBUGGING: Log de la estructura final
+                logger.info(f"SearchTrackingExportView: Estructura final del registro {tracking.id}:")
+                logger.info(f"  - client_info: {data['client_info']}")
+                logger.info(f"  - property_info: {data['property_info']}")
+                
                 export_data.append(data)
 
             # Preparar respuesta con metadatos
