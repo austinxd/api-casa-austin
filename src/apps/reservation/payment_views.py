@@ -1,4 +1,3 @@
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -19,61 +18,62 @@ class ProcessPaymentView(APIView):
     """
     authentication_classes = [ClientJWTAuthentication]
     permission_classes = [AllowAny]
-    
+
     def __init__(self):
         super().__init__()
         # Configurar OpenPay API
         self.merchant_id = settings.OPENPAY_MERCHANT_ID
         self.private_key = settings.OPENPAY_PRIVATE_KEY
         self.is_sandbox = settings.OPENPAY_SANDBOX
-        
+
         # URL base según el entorno
         if self.is_sandbox:
             self.base_url = "https://sandbox-api.openpay.pe/v1"
         else:
             self.base_url = "https://api.openpay.pe/v1"
-    
+
     def _get_auth_header(self):
         """Crear header de autenticación para OpenPay"""
         credentials = f"{self.private_key}:"
         encoded_credentials = base64.b64encode(credentials.encode()).decode()
         return f"Basic {encoded_credentials}"
-    
+
     def post(self, request, reservation_id):
         try:
             # Autenticar cliente
             authenticator = ClientJWTAuthentication()
             client, validated_token = authenticator.authenticate(request)
-            
+
             if not client:
                 return Response({
                     'success': False,
                     'message': 'Token inválido'
                 }, status=401)
-            
+
             # Obtener la reserva y verificar que pertenece al cliente
+            # Buscar por uuid_external ya que el endpoint espera un UUID
             reservation = Reservation.objects.get(
-                uuid=reservation_id, 
+                uuid_external=reservation_id,
                 client=client,
                 deleted=False
             )
-            
+
             # Datos del pago desde el frontend
             token = request.data.get('token')  # Token de OpenPay
             amount = float(request.data.get('amount', 0))
-            
+
             if not token or amount <= 0:
                 return Response({
                     'success': False,
                     'message': 'Token y monto válido son requeridos'
                 }, status=400)
-            
+
             with transaction.atomic():
                 try:
                     # Crear el cargo con OpenPay API
                     charge_data = {
                         "source_id": token,
-                        "method": "card", 
+                        "method": "card",
                         "amount": amount,
                         "currency": "PEN",
                         "description": f"Pago reserva #{reservation.id} - {reservation.property.name}",
@@ -85,28 +85,28 @@ class ProcessPaymentView(APIView):
                             "phone_number": f"+51{reservation.client.tel_number}" if reservation.client and reservation.client.tel_number else ""
                         }
                     }
-                    
+
                     # Headers para la API
                     headers = {
                         'Content-Type': 'application/json',
                         'Authorization': self._get_auth_header()
                     }
-                    
+
                     # Procesar pago con OpenPay API
                     url = f"{self.base_url}/{self.merchant_id}/charges"
                     response = requests.post(url, json=charge_data, headers=headers)
-                    
+
                     if response.status_code == 201:
                         charge = response.json()
-                        
+
                         if charge.get('status') == 'completed':
                             # Pago exitoso - actualizar reserva
                             reservation.full_payment = True
                             reservation.status = 'approved'
                             reservation.save()
-                            
+
                             logger.info(f"Pago exitoso para reserva {reservation.id}. Transaction ID: {charge.get('id')}")
-                            
+
                             return Response({
                                 'success': True,
                                 'message': 'Pago procesado exitosamente',
@@ -126,7 +126,7 @@ class ProcessPaymentView(APIView):
                             'success': False,
                             'message': f'Error procesando el pago: {error_msg}'
                         }, status=400)
-                        
+
                 except requests.RequestException as e:
                     logger.error(f"Error de conexión OpenPay para reserva {reservation.id}: {str(e)}")
                     return Response({
@@ -139,7 +139,7 @@ class ProcessPaymentView(APIView):
                         'success': False,
                         'message': f'Error procesando el pago: {str(e)}'
                     }, status=400)
-                    
+
         except Reservation.DoesNotExist:
             return Response({
                 'success': False,
