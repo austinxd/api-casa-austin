@@ -1,0 +1,144 @@
+10:00:34 p.m.	Aviso	Se inició la ejecución
+10:00:34 p.m.	Información	=== FUNCIÓN DE DEBUG ===
+10:00:35 p.m.	Información	Hoja limpiada
+10:00:35 p.m.	Información	=== INICIANDO INSERCIÓN ===
+10:00:35 p.m.	Información	Número de registros recibidos: 1
+10:00:35 p.m.	Información	Primer registro completo: {
+  "id": "debug-test-001",
+  "search_timestamp": "2025-09-01T19:54:58.064000+00:00",
+  "check_in_date": "2025-09-15",
+  "check_out_date": "2025-09-17",
+  "guests": 4,
+  "client_info": {
+    "id": "12345678-1234-1234-1234-123456789012",
+    "first_name": "María",
+    "last_name": "González",
+    "email": "maria@example.com",
+    "tel_number": "+51987654321"
+  },
+  "property_info": {
+    "id": "prop-987654321-abcd-efgh-ijkl-123456789012",
+    "name": "Casa Austin Villa Principal"
+  },
+  "technical_data": {
+    "ip_address": "192.168.1.100",
+    "session_key": "abc123session456",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "referrer": "https://casaaustin.com/search"
+  },
+  "created": "2025-09-01T19:54:50.000000+00:00"
+}
+10:00:37 p.m.	Información	IDs existentes en la hoja: 0
+10:00:37 p.m.	Información	=== PROCESANDO REGISTRO 1 ===
+10:00:37 p.m.	Información	Registro completo: {
+  "id": "debug-test-001",
+  "search_timestamp": "2025-09-01T19:54:58.064000+00:00",
+  "check_in_date": "2025-09-15",
+  "check_out_date": "2025-09-17",
+  "guests": 4,
+  "client_info": {
+    "id": "12345678-1234-1234-1234-123456789012",
+    "first_name": "María",
+    "last_name": "González",
+    "email": "maria@example.com",
+    "tel_number": "+51987654321"
+  },
+  "property_info": {
+    "id": "prop-987654321-abcd-efgh-ijkl-123456789012",
+    "name": "Casa Austin Villa Principal"
+  },
+  "technical_data": {
+    "ip_address": "192.168.1.100",
+    "session_key": "abc123session456",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "referrer": "https://casaaustin.com/search"
+  },
+  "created": "2025-09-01T19:54:50.000000+00:00"
+}
+10:00:37 p.m.	Información	Client info extraído: {
+  "id": "12345678-1234-1234-1234-123456789012",
+  "first_name": "María",
+  "last_name": "González",
+  "email": "maria@example.com",
+  "tel_number": "+51987654321"
+}
+10:00:37 p.m.	Información	Property info extraído: {
+  "id": "prop-987654321-abcd-efgh-ijkl-123456789012",
+  "name": "Casa Austin Villa Principal"
+}
+10:00:37 p.m.	Información	Technical data extraído: {
+  "ip_address": "192.168.1.100",
+  "session_key": "abc123session456",
+  "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+  "referrer": "https://casaaustin.com/search"
+}
+10:00:37 p.m.	Información	Datos extraídos:
+10:00:37 p.m.	Información	- ID: debug-test-001
+10:00:37 p.m.	Información	- Search timestamp: 2025-09-01T19:54:58.064000+00:00
+10:00:37 p.m.	Información	- Check-in: 2025-09-15
+10:00:37 p.m.	Información	- Check-out: 2025-09-17
+10:00:37 p.m.	Información	- Guests: 4
+10:00:37 p.m.	Información	- Cliente ID: 12345678-1234-1234-1234-123456789012
+10:00:37 p.m.	Información	- Cliente Nombre: María
+10:00:37 p.m.	Información	- Cliente Apellido: González
+10:00:37 p.m.	Información	- Cliente Email: maria@example.com
+10:00:37 p.m.	Información	- Cliente Teléfono: +51987654321
+10:00:37 p.m.	Información	- Propiedad ID: prop-987654321-abcd-efgh-ijkl-123456789012
+10:00:37 p.m.	Información	- Propiedad Nombre: Casa Austin Villa Principal
+10:00:37 p.m.	Información	- IP: 192.168.1.100
+10:00:37 p.m.	Información	- Session Key: abc123session456
+10:00:37 p.m.	Información	- User Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+10:00:37 p.m.	Información	- Referrer: https://casaaustin.com/search
+10:00:37 p.m.	Información	- Created: 2025-09-01T19:54:50.000000+00:00
+10:00:37 p.m.	Información	Fila construida: [ 'debug-test-001',
+  '2025-09-01T19:54:58.064000+00:00',
+  '2025-09-15',
+  '2025-09-17',
+  4,
+  '12345678-1234-1234-1234-123456789012',
+  'María',
+  'González',
+  'maria@example.com',
+  '+51987654321',
+  'prop-987654321-abcd-efgh-ijkl-123456789012',
+  'Casa Austin Villa Principal',
+  '192.168.1.100',
+  'abc123session456',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+  'https://casaaustin.com/search',
+  '2025-09-01T19:54:50.000000+00:00' ]
+10:00:37 p.m.	Información	=== RESUMEN DE PROCESAMIENTO ===
+10:00:37 p.m.	Información	Registros nuevos a insertar: 1
+10:00:37 p.m.	Información	Registros saltados (duplicados): 0
+10:00:37 p.m.	Información	Datos completos de filas: [
+  [
+    "debug-test-001",
+    "2025-09-01T19:54:58.064000+00:00",
+    "2025-09-15",
+    "2025-09-17",
+    4,
+    "12345678-1234-1234-1234-123456789012",
+    "María",
+    "González",
+    "maria@example.com",
+    "+51987654321",
+    "prop-987654321-abcd-efgh-ijkl-123456789012",
+    "Casa Austin Villa Principal",
+    "192.168.1.100",
+    "abc123session456",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "https://casaaustin.com/search",
+    "2025-09-01T19:54:50.000000+00:00"
+  ]
+]
+10:00:37 p.m.	Información	Insertando en fila: 2
+10:00:37 p.m.	Información	Número de filas a insertar: 1
+10:00:37 p.m.	Información	Número de columnas por fila: 17
+10:00:37 p.m.	Información	¡INSERTADAS! 1 filas en Google Sheets
+10:00:37 p.m.	Información	Resultado del test: {
+  "records_processed": 1,
+  "records_skipped": 0,
+  "total_records": 1,
+  "sheet_name": "SearchTracking"
+}
+10:00:38 p.m.	Aviso	Se completó la ejecución
