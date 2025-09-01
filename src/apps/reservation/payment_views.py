@@ -60,11 +60,18 @@ class ProcessPaymentView(APIView):
             # Datos del pago desde el frontend
             token = request.data.get('token')  # Token de OpenPay
             amount = float(request.data.get('amount', 0))
+            device_session_id = request.data.get('device_session_id')
 
             if not token or amount <= 0:
                 return Response({
                     'success': False,
                     'message': 'Token y monto válido son requeridos'
+                }, status=400)
+            
+            if not device_session_id:
+                return Response({
+                    'success': False,
+                    'message': 'Device session ID es requerido'
                 }, status=400)
 
             with transaction.atomic():
@@ -77,6 +84,7 @@ class ProcessPaymentView(APIView):
                         "currency": "PEN",
                         "description": f"Pago reserva #{reservation.id} - {reservation.property.name}",
                         "order_id": f"RES-{reservation.id}",
+                        "device_session_id": device_session_id,
                         "customer": {
                             "name": reservation.client.first_name if reservation.client else "Cliente",
                             "last_name": reservation.client.last_name if reservation.client else "",
