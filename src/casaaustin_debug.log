@@ -4454,3 +4454,9 @@ INFO 2025-08-20 14:52:04,859 pricing_models 9701 139861307856576 ⏰ Último min
 INFO 2025-08-20 14:52:04,859 pricing_service 9701 139861307856576 ✅ Resultado para '50off ultimo minuto': False - 'No es reserva de último minuto (booking: 2025-08-26)'
 INFO 2025-08-20 14:52:04,859 pricing_service 9701 139861307856576 ❌ No se encontraron descuentos automáticos aplicables para este cliente
 INFO 2025-09-01 19:17:50,475 views 1777 140695017002688 SearchTrackingExportView: Exported 0 search tracking records
+INFO 2025-09-01 20:21:39,903 views 9616 140527249036992 SearchTrackingExportView: === DEBUGGING ENVÍO A GOOGLE SHEETS ===
+INFO 2025-09-01 20:21:39,903 views 9616 140527249036992 SearchTrackingExportView: Webhook URL: https://script.google.com/macros/s/AKfycbyfmMGfuyDiUdQ2rjdnG3bkvXsUVYQ09Ug-PxZVr2Z9EXbU0ZQQvC8ozcA9tId9zojwig/exec
+INFO 2025-09-01 20:21:39,904 views 9616 140527249036992 SearchTrackingExportView: Número de registros a enviar: 0
+INFO 2025-09-01 20:21:39,904 views 9616 140527249036992 SearchTrackingExportView: Primer registro completo: DATOS VACÍOS
+ERROR 2025-09-01 20:21:39,904 views 9616 140527249036992 SearchTrackingExportView: ¡DATOS VACÍOS! No hay nada que enviar
+INFO 2025-09-01 20:21:39,904 views 9616 140527249036992 SearchTrackingExportView: Exported 0 search tracking records
