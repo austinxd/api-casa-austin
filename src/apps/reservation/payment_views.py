@@ -10,6 +10,7 @@ import requests
 import base64
 import logging
 import time
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -81,8 +82,12 @@ class ProcessPaymentView(APIView):
 
             with transaction.atomic():
                 try:
-                    # Crear el cargo con OpenPay API
-                    unique_order_id = f"RES-{reservation.id}-{int(time.time())}"
+                    # Generar un order_id verdaderamente único con timestamp y microsegundos
+                    import time
+                    import random
+                    timestamp_micro = str(time.time()).replace('.', '')
+                    random_suffix = random.randint(1000, 9999)
+                    unique_order_id = f"RES-{reservation.id}-{timestamp_micro}-{random_suffix}"
 
                     charge_data = {
                         "source_id": token,
