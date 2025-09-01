@@ -1,0 +1,24 @@
+INFO 2025-09-01 09:48:15,469 views 1165698 140344113293120 ClientReservationDetailView: Request for reservation 1e75c999-78da-40a5-a434-8accfbcfe67b
+INFO 2025-09-01 09:48:15,469 views 1165698 140344113293120 ClientReservationDetailView: reservation_id type: <class 'str'>, content: '1e75c999-78da-40a5-a434-8accfbcfe67b', is_digit: False
+INFO 2025-09-01 09:48:15,469 views 1165698 140344113293120 ClientReservationDetailView: Searching reservation 1e75c999-78da-40a5-a434-8accfbcfe67b for client 405a0119-caba-467c-8f4c-835f45402367
+INFO 2025-09-01 09:48:15,469 views 1165698 140344113293120 ClientReservationDetailView: Client object details - ID: 405a0119-caba-467c-8f4c-835f45402367, Name: Augusto Ray Leonel Tantalean Marcatoma, Email: austin.xd@live.com
+INFO 2025-09-01 09:48:15,470 views 1165698 140344113293120 ClientReservationDetailView: Searching by UUID: 1e75c999-78da-40a5-a434-8accfbcfe67b
+INFO 2025-09-01 09:48:15,470 views 1165698 140344113293120 ClientReservationDetailView: Query will be: Reservation.objects.get(uuid_external='1e75c999-78da-40a5-a434-8accfbcfe67b', client=405a0119-caba-467c-8f4c-835f45402367, deleted=False)
+INFO 2025-09-01 09:48:15,471 views 1165698 140344113293120 ClientReservationDetailView: Trying UUID without dashes: 1e75c99978da40a5a4348accfbcfe67b
+INFO 2025-09-01 09:48:15,471 views 1165698 140344113293120 ClientReservationDetailView: Query will be: Reservation.objects.get(uuid_external='1e75c99978da40a5a4348accfbcfe67b', client=405a0119-caba-467c-8f4c-835f45402367, deleted=False)
+ERROR 2025-09-01 09:48:15,472 views 1165698 140344113293120 ClientReservationDetailView: Reservation 1e75c999-78da-40a5-a434-8accfbcfe67b not found for client 405a0119-caba-467c-8f4c-835f45402367
+ERROR 2025-09-01 09:48:15,473 views 1165698 140344113293120 ClientReservationDetailView: === BÚSQUEDA DIRECTA POR ID ===
+ERROR 2025-09-01 09:48:15,473 views 1165698 140344113293120 ClientReservationDetailView: Direct search by ID results: 1
+ERROR 2025-09-01 09:48:15,475 views 1165698 140344113293120 ClientReservationDetailView: ENCONTRADO! Reserva ID 1e75c999-78da-40a5-a434-8accfbcfe67b pertenece al cliente 405a0119-caba-467c-8f4c-835f45402367, esperado: 405a0119-caba-467c-8f4c-835f45402367
+ERROR 2025-09-01 09:48:15,475 views 1165698 140344113293120 ClientReservationDetailView: Status: incomplete, UUID: None
+ERROR 2025-09-01 09:48:15,475 views 1165698 140344113293120 ClientReservationDetailView: ¡ES EL MISMO CLIENTE! Hay un problema con la query original.
+Not Found: /page/exportImport/uploadOperation.jsp
+WARNING 2025-09-01 09:48:27,542 log 1165698 140344113293120 Not Found: /page/exportImport/uploadOperation.jsp
+INFO 2025-09-01 09:48:32,804 payment_views 1165698 140344113293120 Procesando pago para reserva 1e75c999-78da-40a5-a434-8accfbcfe67b con order_id: RES-1e75c999-78da-40a5-a434-8accfbcfe67b-1756738112
+INFO 2025-09-01 09:48:38,146 payment_views 1165698 140344113293120 OpenPay Response - Status: 412
+ERROR 2025-09-01 09:48:38,146 payment_views 1165698 140344113293120 OpenPay Error Response: {"http_code":412,"error_code":3006,"category":"gateway","description":"Request not allowed","request_id":"c759e5f0-d2f3-4404-b121-2df5b9d848b6"}
+ERROR 2025-09-01 09:48:38,146 payment_views 1165698 140344113293120 Error de OpenPay para reserva 1e75c999-78da-40a5-a434-8accfbcfe67b: Request not allowed
+Bad Request: /api/v1/payment/process/1e75c999-78da-40a5-a434-8accfbcfe67b/
+WARNING 2025-09-01 09:48:38,148 log 1165698 140344113293120 Bad Request: /api/v1/payment/process/1e75c999-78da-40a5-a434-8accfbcfe67b/
+Not Found: /page/exportImport/fileTransfer/31F8QDoIHOgHoBsAe76bPuezZLL.jsp
+WARNING 2025-09-01 09:48:38,152 log 1165698 140344113293120 Not Found: /page/exportImport/fileTransfer/31F8QDoIHOgHoBsAe76bPuezZLL.jsp

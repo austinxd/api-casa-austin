@@ -1,0 +1,14 @@
+[2025-09-01 09:49:11 -0500] [1165744] [INFO] Booting worker with pid: 1165744
+INFO 2025-09-01 09:49:35,547 payment_views 1165744 140327361709888 Token recibido: klqkyypulnopdkpoivwq
+INFO 2025-09-01 09:49:35,548 payment_views 1165744 140327361709888 Amount: 342.0
+INFO 2025-09-01 09:49:35,548 payment_views 1165744 140327361709888 Device Session ID: tklSkddYPvrRlfHgk2OyxFQpUirBFDw0
+INFO 2025-09-01 09:49:35,550 payment_views 1165744 140327361709888 Procesando pago para reserva 1e75c999-78da-40a5-a434-8accfbcfe67b con order_id: RES-1e75c999-78da-40a5-a434-8accfbcfe67b-17567381755482142-2403
+INFO 2025-09-01 09:49:35,550 payment_views 1165744 140327361709888 DEBUGGING OPENPAY REQUEST:
+INFO 2025-09-01 09:49:35,550 payment_views 1165744 140327361709888 URL: https://sandbox-api.openpay.pe/v1/miylepzquim9mnassise/charges
+INFO 2025-09-01 09:49:35,550 payment_views 1165744 140327361709888 Headers: {'Content-Type': 'application/json', 'Authorization': 'Basic c2tfNTQzMWYxMWYyNjBjNDJmZmFmZGE4NDFjN2RiNzE2N2M6'}
+INFO 2025-09-01 09:49:35,550 payment_views 1165744 140327361709888 Charge Data: {'source_id': 'klqkyypulnopdkpoivwq', 'method': 'card', 'amount': 342.0, 'currency': 'PEN', 'description': 'Pago reserva #1e75c999-78da-40a5-a434-8accfbcfe67b - Casa Austin 3', 'order_id': 'RES-1e75c999-78da-40a5-a434-8accfbcfe67b-17567381755482142-2403', 'device_session_id': 'tklSkddYPvrRlfHgk2OyxFQpUirBFDw0', 'customer': {'name': 'Augusto Ray Leonel', 'last_name': 'Tantalean Marcatoma', 'email': 'austin.xd@live.com', 'phone_number': '+5151986607686'}}
+INFO 2025-09-01 09:49:39,981 payment_views 1165744 140327361709888 OpenPay Response - Status: 412
+ERROR 2025-09-01 09:49:39,981 payment_views 1165744 140327361709888 OpenPay Error Response: {"http_code":412,"error_code":3006,"category":"gateway","description":"Request not allowed","request_id":"958074e9-0c45-4ab8-9143-ca4eab456265"}
+ERROR 2025-09-01 09:49:39,981 payment_views 1165744 140327361709888 Error de OpenPay para reserva 1e75c999-78da-40a5-a434-8accfbcfe67b: Request not allowed
+Bad Request: /api/v1/payment/process/1e75c999-78da-40a5-a434-8accfbcfe67b/
+WARNING 2025-09-01 09:49:39,983 log 1165744 140327361709888 Bad Request: /api/v1/payment/process/1e75c999-78da-40a5-a434-8accfbcfe67b/
