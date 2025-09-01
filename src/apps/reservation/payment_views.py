@@ -40,6 +40,27 @@ class ProcessPaymentView(APIView):
         encoded_credentials = base64.b64encode(credentials.encode()).decode()
         return f"Basic {encoded_credentials}"
 
+    def _format_phone_number(self, phone_number):
+        """Formatear número de teléfono para OpenPay"""
+        if not phone_number:
+            return ""
+        
+        # Limpiar el número de espacios, guiones, etc.
+        clean_number = ''.join(filter(str.isdigit, str(phone_number)))
+        
+        # Si ya tiene código de país +51, no agregarlo de nuevo
+        if clean_number.startswith('51') and len(clean_number) >= 11:
+            return f"+{clean_number}"
+        # Si es un número peruano de 9 dígitos, agregar +51
+        elif len(clean_number) == 9:
+            return f"+51{clean_number}"
+        # Si tiene más de 9 dígitos pero no empieza con 51, asumir que ya tiene código de país
+        elif len(clean_number) > 9:
+            return f"+{clean_number}"
+        else:
+            # Para números que no siguen el patrón esperado, intentar agregar +51
+            return f"+51{clean_number}"
+
     def post(self, request, reservation_id):
         try:
             # Autenticar cliente
@@ -101,7 +122,7 @@ class ProcessPaymentView(APIView):
                             "name": reservation.client.first_name if reservation.client else "Cliente",
                             "last_name": reservation.client.last_name if reservation.client else "",
                             "email": reservation.client.email if reservation.client else "",
-                            "phone_number": f"+51{reservation.client.tel_number}" if reservation.client and reservation.client.tel_number else ""
+                            "phone_number": self._format_phone_number(reservation.client.tel_number) if reservation.client and reservation.client.tel_number else ""
                         }
                     }
 
