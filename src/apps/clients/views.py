@@ -2007,8 +2007,9 @@ class SearchTrackingExportView(APIView):
     def send_to_google_sheets(self, data):
         """Enviar datos a Google Sheets usando Google Apps Script webhook"""
         import requests
+        from django.conf import settings
         
-        # URL del webhook de Google Apps Script (configurar en settings)
+        # URL del webhook de Google Apps Script
         GOOGLE_SCRIPT_WEBHOOK = getattr(settings, 'GOOGLE_SCRIPT_WEBHOOK', None)
         
         if not GOOGLE_SCRIPT_WEBHOOK:
@@ -2016,32 +2017,58 @@ class SearchTrackingExportView(APIView):
             return {'success': False, 'message': 'Webhook no configurado'}
         
         try:
-            # Enviar cada registro individualmente para mejor control
-            successful_sends = 0
-            failed_sends = 0
-            
-            for record in data:
-                response = requests.post(
-                    GOOGLE_SCRIPT_WEBHOOK,
-                    json=record,
-                    headers={'Content-Type': 'application/json'},
-                    timeout=30
-                )
-                
-                if response.status_code == 200:
-                    successful_sends += 1
-                    logger.info(f"SearchTrackingExportView: Registro {record.get('id')} enviado a Google Sheets")
-                else:
-                    failed_sends += 1
-                    logger.error(f"SearchTrackingExportView: Error enviando registro {record.get('id')}: {response.text}")
-            
-            return {
-                'success': True,
-                'successful_sends': successful_sends,
-                'failed_sends': failed_sends,
-                'total_records': len(data)
+            # Enviar todos los datos en una sola request como array
+            payload = {
+                'action': 'insert_search_tracking',
+                'data': data,
+                'timestamp': timezone.now().isoformat()
             }
             
+            response = requests.post(
+                GOOGLE_SCRIPT_WEBHOOK,
+                json=payload,
+                headers={'Content-Type': 'application/json'},
+                timeout=60  # Timeout más largo para múltiples registros
+            )
+            
+            if response.status_code == 200:
+                try:
+                    response_data = response.json()
+                    if response_data.get('success'):
+                        logger.info(f"SearchTrackingExportView: {len(data)} registros enviados exitosamente a Google Sheets")
+                        return {
+                            'success': True,
+                            'successful_sends': len(data),
+                            'failed_sends': 0,
+                            'total_records': len(data),
+                            'google_response': response_data
+                        }
+                    else:
+                        logger.error(f"SearchTrackingExportView: Google Apps Script retornó error: {response_data}")
+                        return {
+                            'success': False,
+                            'message': response_data.get('message', 'Error desde Google Apps Script')
+                        }
+                except ValueError:
+                    # Si la respuesta no es JSON válido
+                    logger.warning(f"SearchTrackingExportView: Respuesta no es JSON válido: {response.text}")
+                    return {
+                        'success': True,
+                        'successful_sends': len(data),
+                        'failed_sends': 0,
+                        'total_records': len(data),
+                        'message': 'Datos enviados, respuesta no es JSON'
+                    }
+            else:
+                logger.error(f"SearchTrackingExportView: Error HTTP {response.status_code}: {response.text}")
+                return {
+                    'success': False,
+                    'message': f'Error HTTP {response.status_code}: {response.text}'
+                }
+            
+        except requests.exceptions.Timeout:
+            logger.error(f"SearchTrackingExportView: Timeout enviando a Google Sheets")
+            return {'success': False, 'message': 'Timeout al enviar datos'}
         except Exception as e:
             logger.error(f"SearchTrackingExportView: Error enviando a Google Sheets: {str(e)}")
             return {'success': False, 'message': str(e)}

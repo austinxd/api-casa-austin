@@ -1,10 +1,11 @@
 
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 from apps.clients.models import SearchTracking
 from apps.clients.views import SearchTrackingExportView
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('apps')
 
 class Command(BaseCommand):
     help = 'Sincronizar datos de SearchTracking con Google Sheets'
@@ -13,31 +14,41 @@ class Command(BaseCommand):
         parser.add_argument(
             '--days',
             type=int,
-            default=7,
-            help='Número de días hacia atrás para sincronizar (default: 7)'
+            default=30,
+            help='Número de días hacia atrás para sincronizar (default: 30)'
         )
         parser.add_argument(
             '--all',
             action='store_true',
-            help='Sincronizar todos los registros'
+            help='Sincronizar todos los registros (ignorar --days)'
         )
 
     def handle(self, *args, **options):
         try:
-            export_view = SearchTrackingExportView()
+            self.stdout.write('🔄 Iniciando sincronización con Google Sheets...')
             
-            # Preparar queryset
+            # Obtener registros de SearchTracking
             queryset = SearchTracking.objects.filter(deleted=False)
             
             if not options['all']:
-                from datetime import datetime, timedelta
-                days_back = options['days']
-                since_date = datetime.now() - timedelta(days=days_back)
-                queryset = queryset.filter(search_timestamp__gte=since_date)
+                from datetime import timedelta
+                days_ago = timezone.now() - timedelta(days=options['days'])
+                queryset = queryset.filter(search_timestamp__gte=days_ago)
             
-            # Preparar datos como en la vista
+            queryset = queryset.select_related('client', 'property').order_by('-search_timestamp')
+            
+            self.stdout.write(f'📊 Encontrados {queryset.count()} registros para sincronizar')
+            
+            if not queryset.exists():
+                self.stdout.write(self.style.WARNING('⚠️ No hay registros para sincronizar'))
+                return
+            
+            # Usar la misma lógica de exportación que SearchTrackingExportView
+            export_view = SearchTrackingExportView()
+            
+            # Preparar datos
             export_data = []
-            for tracking in queryset.select_related('client', 'property').order_by('-search_timestamp'):
+            for tracking in queryset:
                 data = {
                     'id': tracking.id,
                     'search_timestamp': tracking.search_timestamp.isoformat() if tracking.search_timestamp else None,
@@ -77,15 +88,18 @@ class Command(BaseCommand):
                 if result.get('failed_sends', 0) > 0:
                     self.stdout.write(
                         self.style.WARNING(
-                            f'⚠️ {result["failed_sends"]} registros fallaron'
+                            f'⚠️ {result.get("failed_sends", 0)} registros fallaron'
                         )
                     )
             else:
                 self.stdout.write(
-                    self.style.ERROR(f'❌ Error en sincronización: {result.get("message", "Error desconocido")}')
+                    self.style.ERROR(
+                        f'❌ Error en sincronización: {result.get("message", "Error desconocido")}'
+                    )
                 )
                 
         except Exception as e:
+            logger.error(f"Error en comando sync_google_sheets: {str(e)}")
             self.stdout.write(
                 self.style.ERROR(f'❌ Error ejecutando comando: {str(e)}')
             )

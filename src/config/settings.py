@@ -331,7 +331,12 @@ TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 # Google Apps Script webhook for Google Sheets integration
-GOOGLE_SCRIPT_WEBHOOK = os.getenv('GOOGLE_SCRIPT_WEBHOOK')
+GOOGLE_SCRIPT_WEBHOOK = env('GOOGLE_SCRIPT_WEBHOOK', default='https://script.google.com/macros/s/AKfycbyfmMGfuyDiUdQ2rjdnG3bkvXsUVYQ09Ug-PxZVr2Z9EXbU0ZQQvC8ozcA9tId9zojwig/exec')
+
+# Telegram settings
+SECOND_CHAT_ID = env('SECOND_CHAT_ID', default='No second chat ID')
+PERSONAL_CHAT_ID = env('PERSONAL_CHAT_ID', default='No personal chat ID')
+CLIENTS_CHAT_ID = env('CLIENTS_CHAT_ID', default='No clients chat ID')
 
 # Twilio settings for OTP (using env function for consistency)
 TWILIO_ACCOUNT_SID = env('TWILIO_ACCOUNT_SID', default='No SID')
@@ -356,6 +361,7 @@ logger.debug(f"PERSONAL_CHAT_ID: {PERSONAL_CHAT_ID}")
 logger.debug(f"CLIENTS_CHAT_ID: {CLIENTS_CHAT_ID}")
 logger.debug(f"TWILIO_ACCOUNT_SID: {TWILIO_ACCOUNT_SID}")
 logger.debug(f"TWILIO_VERIFY_SID: {TWILIO_VERIFY_SID}")
+logger.debug(f"GOOGLE_SCRIPT_WEBHOOK: {GOOGLE_SCRIPT_WEBHOOK}")
 
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = False
