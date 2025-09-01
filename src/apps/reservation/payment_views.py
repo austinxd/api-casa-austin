@@ -2,9 +2,11 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from django.db import transaction
 from django.conf import settings
 from .models import Reservation
+from apps.clients.auth_views import ClientJWTAuthentication
 import requests
 import base64
 import logging
@@ -15,6 +17,8 @@ class ProcessPaymentView(APIView):
     """
     Endpoint para procesar pagos con OpenPay
     """
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
     
     def __init__(self):
         super().__init__()
@@ -37,8 +41,22 @@ class ProcessPaymentView(APIView):
     
     def post(self, request, reservation_id):
         try:
-            # Obtener la reserva
-            reservation = Reservation.objects.get(uuid=reservation_id, deleted=False)
+            # Autenticar cliente
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
+            
+            if not client:
+                return Response({
+                    'success': False,
+                    'message': 'Token inválido'
+                }, status=401)
+            
+            # Obtener la reserva y verificar que pertenece al cliente
+            reservation = Reservation.objects.get(
+                uuid=reservation_id, 
+                client=client,
+                deleted=False
+            )
             
             # Datos del pago desde el frontend
             token = request.data.get('token')  # Token de OpenPay
