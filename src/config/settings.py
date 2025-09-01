@@ -327,8 +327,8 @@ LOGGING = {
 }
 
 # Telegram settings
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+CHAT_ID = os.environ.get('CHAT_ID', '')
 
 # Google Apps Script webhook for Google Sheets integration
 GOOGLE_SCRIPT_WEBHOOK = env('GOOGLE_SCRIPT_WEBHOOK', default='https://script.google.com/macros/s/AKfycbyEtAbn0gB0UWAQ1KbCaYg7z7TCRCPHRPsD4paxMb8ajaAnutJN8siPVIYTzhaRE37voQ/exec')
@@ -382,7 +382,7 @@ import logging
 
 logger = logging.getLogger('apps')
 logger.debug(f"TELEGRAM_BOT_TOKEN: {TELEGRAM_BOT_TOKEN}")
-logger.debug(f"CHAT_ID: {TELEGRAM_CHAT_ID}")
+logger.debug(f"CHAT_ID: {CHAT_ID}")
 logger.debug(f"SECOND_CHAT_ID: {SECOND_CHAT_ID}")
 logger.debug(f"PERSONAL_CHAT_ID: {PERSONAL_CHAT_ID}")
 logger.debug(f"CLIENTS_CHAT_ID: {CLIENTS_CHAT_ID}")
