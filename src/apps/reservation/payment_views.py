@@ -9,6 +9,7 @@ from apps.clients.auth_views import ClientJWTAuthentication
 import requests
 import base64
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +68,7 @@ class ProcessPaymentView(APIView):
                     'success': False,
                     'message': 'Token y monto válido son requeridos'
                 }, status=400)
-            
+
             if not device_session_id:
                 return Response({
                     'success': False,
@@ -77,9 +78,8 @@ class ProcessPaymentView(APIView):
             with transaction.atomic():
                 try:
                     # Crear el cargo con OpenPay API
-                    import time
                     unique_order_id = f"RES-{reservation.id}-{int(time.time())}"
-                    
+
                     charge_data = {
                         "source_id": token,
                         "method": "card",
@@ -104,11 +104,11 @@ class ProcessPaymentView(APIView):
 
                     # Procesar pago con OpenPay API
                     url = f"{self.base_url}/{self.merchant_id}/charges"
-                    
+
                     logger.info(f"Procesando pago para reserva {reservation.id} con order_id: {unique_order_id}")
-                    
+
                     response = requests.post(url, json=charge_data, headers=headers)
-                    
+
                     logger.info(f"OpenPay Response - Status: {response.status_code}")
                     if response.status_code != 201:
                         logger.error(f"OpenPay Error Response: {response.text}")
