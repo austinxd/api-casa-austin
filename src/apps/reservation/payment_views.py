@@ -52,7 +52,7 @@ class ProcessPaymentView(APIView):
 
             # Obtener la reserva y verificar que pertenece al cliente
             reservation = Reservation.objects.get(
-                uuid_external=reservation_id,
+                id=reservation_id,
                 client=client,
                 deleted=False
             )
