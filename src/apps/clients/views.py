@@ -2000,6 +2000,107 @@ class SearchTrackingTestView(APIView):
         }, status=200)
 
 
+class SearchTrackingExportView(APIView):
+    """Vista para exportar datos de tracking de búsquedas en formato JSON"""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        """Exportar todos los datos de SearchTracking en formato JSON"""
+        try:
+            # Obtener todos los registros de SearchTracking no eliminados
+            search_tracking_queryset = SearchTracking.objects.filter(
+                deleted=False
+            ).select_related('client', 'property').order_by('-search_timestamp')
+
+            # Filtros opcionales
+            client_id = request.GET.get('client_id')
+            date_from = request.GET.get('date_from')
+            date_to = request.GET.get('date_to')
+            property_id = request.GET.get('property_id')
+
+            if client_id:
+                search_tracking_queryset = search_tracking_queryset.filter(client_id=client_id)
+            
+            if date_from:
+                try:
+                    from datetime import datetime
+                    date_from_parsed = datetime.strptime(date_from, '%Y-%m-%d').date()
+                    search_tracking_queryset = search_tracking_queryset.filter(search_timestamp__date__gte=date_from_parsed)
+                except ValueError:
+                    pass
+            
+            if date_to:
+                try:
+                    from datetime import datetime
+                    date_to_parsed = datetime.strptime(date_to, '%Y-%m-%d').date()
+                    search_tracking_queryset = search_tracking_queryset.filter(search_timestamp__date__lte=date_to_parsed)
+                except ValueError:
+                    pass
+            
+            if property_id:
+                search_tracking_queryset = search_tracking_queryset.filter(property_id=property_id)
+
+            # Preparar datos para exportación
+            export_data = []
+            for tracking in search_tracking_queryset:
+                data = {
+                    'id': tracking.id,
+                    'search_timestamp': tracking.search_timestamp.isoformat() if tracking.search_timestamp else None,
+                    'check_in_date': tracking.check_in_date.isoformat() if tracking.check_in_date else None,
+                    'check_out_date': tracking.check_out_date.isoformat() if tracking.check_out_date else None,
+                    'guests': tracking.guests,
+                    'client_info': {
+                        'id': tracking.client.id if tracking.client else None,
+                        'first_name': tracking.client.first_name if tracking.client else None,
+                        'last_name': tracking.client.last_name if tracking.client else None,
+                        'email': tracking.client.email if tracking.client else None,
+                        'tel_number': tracking.client.tel_number if tracking.client else None,
+                    } if tracking.client else None,
+                    'property_info': {
+                        'id': tracking.property.id if tracking.property else None,
+                        'name': tracking.property.name if tracking.property else None,
+                    } if tracking.property else None,
+                    'technical_data': {
+                        'ip_address': tracking.ip_address,
+                        'session_key': tracking.session_key,
+                        'user_agent': tracking.user_agent,
+                        'referrer': tracking.referrer,
+                    },
+                    'created': tracking.created.isoformat() if hasattr(tracking, 'created') and tracking.created else None,
+                }
+                export_data.append(data)
+
+            # Preparar respuesta con metadatos
+            response_data = {
+                'success': True,
+                'metadata': {
+                    'total_records': len(export_data),
+                    'export_timestamp': timezone.now().isoformat(),
+                    'filters_applied': {
+                        'client_id': client_id,
+                        'date_from': date_from,
+                        'date_to': date_to,
+                        'property_id': property_id,
+                    },
+                    'fields': [
+                        'id', 'search_timestamp', 'check_in_date', 'check_out_date', 
+                        'guests', 'client_info', 'property_info', 'technical_data', 'created'
+                    ]
+                },
+                'data': export_data
+            }
+
+            logger.info(f"SearchTrackingExportView: Exported {len(export_data)} search tracking records")
+            return Response(response_data)
+
+        except Exception as e:
+            logger.error(f"SearchTrackingExportView: Error exporting data: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error al exportar datos de tracking'
+            }, status=500)
+
+
 class SearchTrackingView(APIView):
     """Vista para tracking de búsquedas de clientes"""
     authentication_classes = [ClientJWTAuthentication]
