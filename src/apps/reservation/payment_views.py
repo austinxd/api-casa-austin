@@ -33,7 +33,7 @@ class ProcessPaymentView(APIView):
             self.base_url = "https://sandbox-api.openpay.pe/v1"
         else:
             self.base_url = "https://api.openpay.pe/v1"
-            
+
         # Debugging inicial de credenciales
         logger.info(f"🔧 OPENPAY INIT - Merchant: {self.merchant_id}")
         logger.info(f"🔧 OPENPAY INIT - Private Key length: {len(self.private_key) if self.private_key else 0}")
@@ -49,10 +49,10 @@ class ProcessPaymentView(APIView):
         """Formatear número de teléfono para OpenPay"""
         if not phone_number:
             return ""
-        
+
         # Limpiar el número de espacios, guiones, etc.
         clean_number = ''.join(filter(str.isdigit, str(phone_number)))
-        
+
         # Si ya tiene código de país +51, no agregarlo de nuevo
         if clean_number.startswith('51') and len(clean_number) >= 11:
             return f"+{clean_number}"
@@ -74,7 +74,7 @@ class ProcessPaymentView(APIView):
             logger.info(f"Private Key (masked): {self.private_key[:8]}...{self.private_key[-4:]}")
             logger.info(f"Is Sandbox: {self.is_sandbox}")
             logger.info(f"Base URL: {self.base_url}")
-            
+
             # Autenticar cliente
             authenticator = ClientJWTAuthentication()
             client, validated_token = authenticator.authenticate(request)
@@ -100,7 +100,7 @@ class ProcessPaymentView(APIView):
             logger.info(f"Token recibido: {token}")
             logger.info(f"Amount: {amount}")
             logger.info(f"Device Session ID: {device_session_id}")
-            
+
             # Verificar si el token ya fue usado anteriormente
             logger.info(f"=== VERIFICANDO TOKEN ===")
             logger.info(f"Token length: {len(token) if token else 0}")
@@ -117,6 +117,35 @@ class ProcessPaymentView(APIView):
                     'success': False,
                     'message': 'Device session ID es requerido'
                 }, status=400)
+
+            # Verificar si ya existe un pago con este token específico
+            from .models import PaymentToken
+            try:
+                # Buscar si ya se usó este token anteriormente
+                from django.utils import timezone
+                from datetime import timedelta
+
+                # Verificar si el token ya fue usado en las últimas 24 horas
+                twenty_four_hours_ago = timezone.now() - timedelta(hours=24)
+                existing_token = PaymentToken.objects.filter(
+                    token=token,
+                    used_at__gte=twenty_four_hours_ago
+                ).first()
+
+                if existing_token:
+                    logger.error(f"🚫 TOKEN YA UTILIZADO: {token} fue usado en {existing_token.used_at}")
+                    return Response({
+                        'success': False,
+                        'message': 'Este token de pago ya fue utilizado. Por favor, ingrese nuevamente los datos de la tarjeta.',
+                        'error_code': 'TOKEN_ALREADY_USED'
+                    }, status=400)
+
+                logger.info(f"✅ Token {token} no ha sido usado anteriormente")
+
+            except Exception as token_check_error:
+                logger.warning(f"No se pudo verificar token previo: {token_check_error}")
+                # Continuar con el procesamiento
+
 
             with transaction.atomic():
                 try:
@@ -153,12 +182,12 @@ class ProcessPaymentView(APIView):
                     logger.info(f"=== VALIDANDO CREDENCIALES OPENPAY ===")
                     auth_header = self._get_auth_header()
                     logger.info(f"Auth header creado: {auth_header[:20]}...")
-                    
+
                     # Probar endpoint de merchant info
                     validation_url = f"{self.base_url}/{self.merchant_id}"
                     validation_response = requests.get(validation_url, headers={'Authorization': auth_header})
                     logger.info(f"Merchant validation status: {validation_response.status_code}")
-                    
+
                     if validation_response.status_code == 200:
                         logger.info("✅ Credenciales válidas para consultar merchant")
                     elif validation_response.status_code == 401:
@@ -171,12 +200,12 @@ class ProcessPaymentView(APIView):
                     else:
                         logger.warning(f"⚠️ Respuesta inesperada del merchant endpoint: {validation_response.status_code}")
                         logger.warning(f"Response: {validation_response.text}")
-                    
+
                     # Verificar si la cuenta tiene permisos para hacer charges
                     charges_test_url = f"{self.base_url}/{self.merchant_id}/charges"
                     test_headers = {'Authorization': auth_header}
                     logger.info(f"Verificando permisos de charges en: {charges_test_url}")
-                    
+
                     # Procesar pago con OpenPay API
                     url = f"{self.base_url}/{self.merchant_id}/charges"
 
@@ -190,11 +219,11 @@ class ProcessPaymentView(APIView):
 
                     logger.info(f"OpenPay Response - Status: {response.status_code}")
                     logger.info(f"OpenPay Response Headers: {dict(response.headers)}")
-                    
+
                     if response.status_code != 201:
                         logger.error(f"OpenPay Error Response: {response.text}")
-                        
-                        # Análisis específico del error 412
+
+                        # Análisis específico del error 412 (o cualquier código que no sea 201)
                         if response.status_code == 412:
                             logger.error("🚨 ERROR 412 - POSIBLES CAUSAS:")
                             logger.error("1. Private Key incorrecta o expirada")
@@ -202,6 +231,44 @@ class ProcessPaymentView(APIView):
                             logger.error("3. Cuenta sin permisos para charges")
                             logger.error("4. Token ya utilizado anteriormente")
                             logger.error("5. Configuración de sandbox incorrecta")
+                        elif response.status_code == 3006: # Error específico de OpenPay Perú
+                            logger.error("🚨 ERROR 3006 - 'Request not allowed' (OpenPay Perú)")
+                            logger.error("   Posibles causas:")
+                            logger.error("   1. El token de pago ya ha sido utilizado.")
+                            logger.error("   2. Problemas con la cuenta sandbox (permisos).")
+                            logger.error("   3. Configuración del método de pago.")
+
+                        # Intentar parsear el JSON del error para obtener una descripción más clara
+                        try:
+                            error_details = response.json()
+                            error_msg_from_api = error_details.get('description', 'No se pudo obtener descripción del error.')
+                            logger.error(f"   Descripción API: {error_msg_from_api}")
+                            if "The token is already used" in error_msg_from_api:
+                                logger.error("   Detectado: El token ya ha sido usado.")
+                                return Response({
+                                    'success': False,
+                                    'message': 'Este token de pago ya fue utilizado. Por favor, ingrese nuevamente los datos de la tarjeta.',
+                                    'error_code': 'TOKEN_ALREADY_USED'
+                                }, status=400)
+                            elif "Invalid token" in error_msg_from_api:
+                                logger.error("   Detectado: Token inválido.")
+                                return Response({
+                                    'success': False,
+                                    'message': 'El token de pago proporcionado es inválido.',
+                                    'error_code': 'INVALID_TOKEN'
+                                }, status=400)
+                            else:
+                                return Response({
+                                    'success': False,
+                                    'message': f'Error procesando el pago: {error_msg_from_api}'
+                                }, status=400)
+                        except ValueError: # Si la respuesta no es JSON
+                            logger.error(f"   Respuesta no JSON: {response.text}")
+                            return Response({
+                                'success': False,
+                                'message': f'Error procesando el pago: {response.text}'
+                            }, status=400)
+
 
                     if response.status_code == 201:
                         charge = response.json()
@@ -211,6 +278,21 @@ class ProcessPaymentView(APIView):
                             reservation.full_payment = True
                             reservation.status = 'approved'
                             reservation.save()
+
+                            # Registrar el uso del token
+                            try:
+                                from .models import PaymentToken
+                                PaymentToken.objects.create(
+                                    token=token,
+                                    reservation=reservation,
+                                    amount=amount,
+                                    transaction_id=charge.get('id'),
+                                    used_at=timezone.now()
+                                )
+                                logger.info(f"✅ Token {token} registrado como usado para la reserva {reservation.id}")
+                            except Exception as token_creation_error:
+                                logger.error(f"Error al registrar el uso del token {token}: {token_creation_error}")
+
 
                             logger.info(f"Pago exitoso para reserva {reservation.id}. Transaction ID: {charge.get('id')}")
 

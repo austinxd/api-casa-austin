@@ -3,6 +3,8 @@ from django.conf import settings
 
 
 from django.db import models
+from django.utils import timezone
+
 
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
@@ -134,11 +136,11 @@ class Reservation(BaseModel):
         if self.points_redeemed and self.points_redeemed > 0 and self.client:
             from apps.clients.models import ClientPoints
             from decimal import Decimal
-            
+
             # Devolver puntos al cliente
             self.client.points_balance += Decimal(str(self.points_redeemed))
             self.client.save()
-            
+
             # Crear transacción de devolución
             ClientPoints.objects.create(
                 client=self.client,
@@ -147,7 +149,7 @@ class Reservation(BaseModel):
                 points=Decimal(str(self.points_redeemed)),
                 description=f"Devolución de puntos por eliminación de reserva #{self.id} - {self.property.name if self.property else 'Propiedad'}"
             )
-        
+
         self.deleted = True
         self.save()
 
@@ -158,6 +160,14 @@ def recipt_directory_path(instance, filename):
 class RentalReceipt(BaseModel):
     reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, null=False, blank=False)
     file = models.FileField(null=False, upload_to=recipt_directory_path)
+
+# Model to track used payment tokens
+class PaymentToken(BaseModel):
+    token = models.CharField(max_length=255, unique=True, null=False, blank=False)
+    used_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"Token: {self.token} - Used at: {self.used_at}"
 
 
 @receiver(post_delete, sender=RentalReceipt)
