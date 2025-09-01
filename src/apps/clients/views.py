@@ -2118,7 +2118,7 @@ class SearchTrackingView(APIView):
             logger.info(f"SearchTrackingView: Datos adicionales capturados - IP: {ip_address}, Session: {session_key}")
 
             # Guardar o actualizar el registro de SearchTracking
-                search_tracking = None
+            search_tracking = None
             if client: # Si hay cliente autenticado
                 search_tracking, created = SearchTracking.objects.update_or_create(
                     client=client,
@@ -2154,7 +2154,7 @@ class SearchTrackingView(APIView):
                 )
                 logger.info(f"SearchTrackingView: Registro anónimo creado: {search_tracking.id} para IP {ip_address}")
 
-                # Serializar la respuesta
+            # Serializar la respuesta
             serializer = SearchTrackingSerializer(search_tracking)
 
             return Response({
@@ -2170,9 +2170,6 @@ class SearchTrackingView(APIView):
                 'message': 'Error al guardar la búsqueda',
                 'errors': str(e)
             }, status=500)
-
-
-        except Exception as e:
             logger.error(f"SearchTrackingView: EXCEPCIÓN GENERAL: {str(e)}")
             import traceback
             logger.error(f"SearchTrackingView: TRACEBACK: {traceback.format_exc()}")
