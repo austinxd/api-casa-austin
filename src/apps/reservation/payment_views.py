@@ -63,6 +63,13 @@ class ProcessPaymentView(APIView):
 
     def post(self, request, reservation_id):
         try:
+            # Debug de credenciales OpenPay
+            logger.info(f"=== DEBUGGING OPENPAY CREDENTIALS ===")
+            logger.info(f"Merchant ID: {self.merchant_id}")
+            logger.info(f"Private Key (masked): {self.private_key[:8]}...{self.private_key[-4:]}")
+            logger.info(f"Is Sandbox: {self.is_sandbox}")
+            logger.info(f"Base URL: {self.base_url}")
+            
             # Autenticar cliente
             authenticator = ClientJWTAuthentication()
             client, validated_token = authenticator.authenticate(request)
@@ -88,6 +95,11 @@ class ProcessPaymentView(APIView):
             logger.info(f"Token recibido: {token}")
             logger.info(f"Amount: {amount}")
             logger.info(f"Device Session ID: {device_session_id}")
+            
+            # Verificar si el token ya fue usado anteriormente
+            logger.info(f"=== VERIFICANDO TOKEN ===")
+            logger.info(f"Token length: {len(token) if token else 0}")
+            logger.info(f"Token starts with: {token[:10] if token and len(token) >= 10 else token}")
 
             if not token or amount <= 0:
                 return Response({
@@ -132,6 +144,19 @@ class ProcessPaymentView(APIView):
                         'Authorization': self._get_auth_header()
                     }
 
+                    # Validar credenciales primero haciendo una consulta simple
+                    logger.info(f"=== VALIDANDO CREDENCIALES OPENPAY ===")
+                    validation_url = f"{self.base_url}/{self.merchant_id}"
+                    validation_response = requests.get(validation_url, headers={'Authorization': self._get_auth_header()})
+                    logger.info(f"Validation response status: {validation_response.status_code}")
+                    
+                    if validation_response.status_code == 401:
+                        logger.error("❌ CREDENCIALES OPENPAY INVÁLIDAS")
+                        return Response({
+                            'success': False,
+                            'message': 'Error de configuración del procesador de pagos'
+                        }, status=500)
+                    
                     # Procesar pago con OpenPay API
                     url = f"{self.base_url}/{self.merchant_id}/charges"
 
