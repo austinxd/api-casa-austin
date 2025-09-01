@@ -30,6 +30,9 @@ urlpatterns = [
     path('clients/track-search/',
          SearchTrackingView.as_view(),
          name='client-track-search'),
+    path('clients/track-search/export/',
+         SearchTrackingExportView.as_view(),
+         name='client-track-search-export'),
     path('clients/track-search-test/', SearchTrackingTestView.as_view(), name='track-search-test'),
 
     path('', include(router.urls)),
