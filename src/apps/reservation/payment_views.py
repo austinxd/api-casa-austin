@@ -51,9 +51,8 @@ class ProcessPaymentView(APIView):
                 }, status=401)
 
             # Obtener la reserva y verificar que pertenece al cliente
-            # Buscar por uuid_external ya que el endpoint espera un UUID
             reservation = Reservation.objects.get(
-                uuid_external=reservation_id,
+                uuid=reservation_id,
                 client=client,
                 deleted=False
             )
