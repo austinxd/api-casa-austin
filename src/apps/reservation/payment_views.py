@@ -101,7 +101,21 @@ class ProcessPaymentView(APIView):
 
                     # Procesar pago con OpenPay API
                     url = f"{self.base_url}/{self.merchant_id}/charges"
+                    
+                    # Log detallado para debugging
+                    logger.info(f"=== DEBUGGING OPENPAY REQUEST ===")
+                    logger.info(f"URL: {url}")
+                    logger.info(f"Merchant ID: {self.merchant_id}")
+                    logger.info(f"Is Sandbox: {self.is_sandbox}")
+                    logger.info(f"Headers: {headers}")
+                    logger.info(f"Charge Data: {charge_data}")
+                    
                     response = requests.post(url, json=charge_data, headers=headers)
+                    
+                    # Log de la respuesta completa
+                    logger.info(f"Response Status: {response.status_code}")
+                    logger.info(f"Response Headers: {dict(response.headers)}")
+                    logger.info(f"Response Content: {response.text}")
 
                     if response.status_code == 201:
                         charge = response.json()
