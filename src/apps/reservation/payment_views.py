@@ -242,10 +242,11 @@ class ProcessPaymentView(APIView):
                     logger.info(f"OpenPay Response - Status: {response.status_code}")
                     logger.info(f"OpenPay Response Headers: {dict(response.headers)}")
 
-                    if response.status_code != 201:
+                    # OpenPay puede devolver 200 o 201 para pagos exitosos
+                    if response.status_code not in [200, 201]:
                         logger.error(f"OpenPay Error Response: {response.text}")
 
-                        # Análisis específico del error 412 (o cualquier código que no sea 201)
+                        # Análisis específico del error 412 (o cualquier código que no sea 200/201)
                         if response.status_code == 412:
                             logger.error("🚨 ERROR 412 - POSIBLES CAUSAS:")
                             logger.error("1. Private Key incorrecta o expirada")
@@ -292,7 +293,7 @@ class ProcessPaymentView(APIView):
                             }, status=400)
 
 
-                    if response.status_code == 201:
+                    if response.status_code in [200, 201]:
                         charge = response.json()
 
                         if charge.get('status') == 'completed':
@@ -331,7 +332,11 @@ class ProcessPaymentView(APIView):
                                 'message': f"Pago no completado. Estado: {charge.get('status')}"
                             }, status=400)
                     else:
-                        error_msg = response.json().get('description', 'Error desconocido') if response.content else 'Error de conexión'
+                        # Solo llegar aquí si el status code no es 200 o 201
+                        try:
+                            error_msg = response.json().get('description', 'Error desconocido') if response.content else 'Error de conexión'
+                        except:
+                            error_msg = 'Error de conexión'
                         logger.error(f"Error de OpenPay para reserva {reservation.id}: {error_msg}")
                         return Response({
                             'success': False,
