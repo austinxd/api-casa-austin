@@ -106,7 +106,10 @@ class ProcessPaymentView(APIView):
                     logger.info(f"=== DEBUGGING OPENPAY REQUEST ===")
                     logger.info(f"URL: {url}")
                     logger.info(f"Merchant ID: {self.merchant_id}")
+                    logger.info(f"Private Key (first 10 chars): {self.private_key[:10]}...")
+                    logger.info(f"Private Key (last 4 chars): ...{self.private_key[-4:]}")
                     logger.info(f"Is Sandbox: {self.is_sandbox}")
+                    logger.info(f"Base64 credentials: {base64.b64encode(f'{self.private_key}:'.encode()).decode()}")
                     logger.info(f"Headers: {headers}")
                     logger.info(f"Charge Data: {charge_data}")
                     
