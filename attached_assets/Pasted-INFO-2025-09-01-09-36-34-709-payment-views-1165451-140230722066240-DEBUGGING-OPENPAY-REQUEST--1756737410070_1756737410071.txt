@@ -1,0 +1,15 @@
+INFO 2025-09-01 09:36:34,709 payment_views 1165451 140230722066240 === DEBUGGING OPENPAY REQUEST ===
+INFO 2025-09-01 09:36:34,709 payment_views 1165451 140230722066240 URL: https://sandbox-api.openpay.pe/v1/miylepzquim9mnassise/charges
+INFO 2025-09-01 09:36:34,710 payment_views 1165451 140230722066240 Merchant ID: miylepzquim9mnassise
+INFO 2025-09-01 09:36:34,710 payment_views 1165451 140230722066240 Private Key (first 10 chars): sk_5431f11...
+INFO 2025-09-01 09:36:34,710 payment_views 1165451 140230722066240 Private Key (last 4 chars): ...167c
+INFO 2025-09-01 09:36:34,710 payment_views 1165451 140230722066240 Is Sandbox: True
+INFO 2025-09-01 09:36:34,710 payment_views 1165451 140230722066240 Base64 credentials: c2tfNTQzMWYxMWYyNjBjNDJmZmFmZGE4NDFjN2RiNzE2N2M6
+INFO 2025-09-01 09:36:34,710 payment_views 1165451 140230722066240 Headers: {'Content-Type': 'application/json', 'Authorization': 'Basic c2tfNTQzMWYxMWYyNjBjNDJmZmFmZGE4NDFjN2RiNzE2N2M6'}
+INFO 2025-09-01 09:36:34,710 payment_views 1165451 140230722066240 Charge Data: {'source_id': 'kjdcjrmiskmys0lm1zfz', 'method': 'card', 'amount': 342.0, 'currency': 'PEN', 'description': 'Pago reserva #1e75c999-78da-40a5-a434-8accfbcfe67b - Casa Austin 3', 'order_id': 'RES-1e75c999-78da-40a5-a434-8accfbcfe67b', 'device_session_id': 'CEoHCX7C04lPkYziUWsQ1IhHt98zVz1M', 'customer': {'name': 'Augusto Ray Leonel', 'last_name': 'Tantalean Marcatoma', 'email': 'austin.xd@live.com', 'phone_number': '+5151986607686'}}
+INFO 2025-09-01 09:36:35,626 payment_views 1165451 140230722066240 Response Status: 409
+INFO 2025-09-01 09:36:35,626 payment_views 1165451 140230722066240 Response Headers: {'Date': 'Mon, 01 Sep 2025 14:36:35 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Content-Length': '164', 'Connection': 'keep-alive', 'OpenPay-Request-ID': 'c5a72405-44e4-40a3-8d1d-d6cf97edb541', 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache', 'Expires': '0', 'Strict-Transport-Security': 'max-age=0', 'X-XSS-Protection': '1; mode=block', 'X-Frame-Options': 'DENY', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': 'upgrade-insecure-requests', 'Permissions-Policy': 'geolocation=()', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'OP-Error-Code': '1006'}
+INFO 2025-09-01 09:36:35,626 payment_views 1165451 140230722066240 Response Content: {"http_code":409,"error_code":1006,"category":"request","description":"The order_id has already been processed","request_id":"c5a72405-44e4-40a3-8d1d-d6cf97edb541"}
+ERROR 2025-09-01 09:36:35,626 payment_views 1165451 140230722066240 Error de OpenPay para reserva 1e75c999-78da-40a5-a434-8accfbcfe67b: The order_id has already been processed
+Bad Request: /api/v1/payment/process/1e75c999-78da-40a5-a434-8accfbcfe67b/
+WARNING 2025-09-01 09:36:35,628 log 1165451 140230722066240 Bad Request: /api/v1/payment/process/1e75c999-78da-40a5-a434-8accfbcfe67b/
