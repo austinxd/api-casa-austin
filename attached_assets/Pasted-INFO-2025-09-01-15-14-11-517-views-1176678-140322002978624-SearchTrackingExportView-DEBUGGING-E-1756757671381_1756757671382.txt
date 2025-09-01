@@ -1,0 +1,48 @@
+INFO 2025-09-01 15:14:11,517 views 1176678 140322002978624 SearchTrackingExportView: === DEBUGGING ENVÍO A GOOGLE SHEETS ===
+INFO 2025-09-01 15:14:11,517 views 1176678 140322002978624 SearchTrackingExportView: Webhook URL: https://script.google.com/macros/s/AKfycbyfmMGfuyDiUdQ2rjdnG3bkvXsUVYQ09Ug-PxZVr2Z9EXbU0ZQQvC8ozcA9tId9zojwig/exec
+INFO 2025-09-01 15:14:11,517 views 1176678 140322002978624 SearchTrackingExportView: Número de registros a enviar: 51
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624 SearchTrackingExportView: Primer registro completo: {'id': '69a98d37-58e7-4ed5-8b90-aa056021d85f', 'search_timestamp': '2025-09-01T20:08:45.959414+00:00', 'check_in_date': '2025-09-06', 'check_out_date': '2025-09-07', 'guests': 10, 'client_info': None, 'property_info': None, 'technical_data': {'ip_address': '132.191.0.3', 'session_key': None, 'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36', 'referrer': 'https://casaaustin.pe/'}, 'created': '2025-09-01T20:08:45.959372+00:00'}
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624 SearchTrackingExportView: === PAYLOAD COMPLETO ===
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624 SearchTrackingExportView: Action: insert_search_tracking
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624 SearchTrackingExportView: Timestamp: 2025-09-01T20:14:11.518059+00:00
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624 SearchTrackingExportView: Data length: 51
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624 SearchTrackingExportView: Payload JSON string (primeros 1000 chars): {'action': 'insert_search_tracking', 'data': [{'id': '69a98d37-58e7-4ed5-8b90-aa056021d85f', 'search_timestamp': '2025-09-01T20:08:45.959414+00:00', 'check_in_date': '2025-09-06', 'check_out_date': '2025-09-07', 'guests': 10, 'client_info': None, 'property_info': None, 'technical_data': {'ip_address': '132.191.0.3', 'session_key': None, 'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36', 'referrer': 'https://casaaustin.pe/'}, 'created': '2025-09-01T20:08:45.959372+00:00'}, {'id': '8e011527-9d61-40fd-a01c-3563bf1fb84c', 'search_timestamp': '2025-09-01T20:08:08.010209+00:00', 'check_in_date': '2025-09-27', 'check_out_date': '2025-09-28', 'guests': 50, 'client_info': None, 'property_info': None, 'technical_data': {'ip_address': '38.25.29.181', 'session_key': None, 'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36', 'referrer': 'https://c...
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624 SearchTrackingExportView: Registro 1 estructura:
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624   - ID: 69a98d37-58e7-4ed5-8b90-aa056021d85f
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624   - search_timestamp: 2025-09-01T20:08:45.959414+00:00
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624   - check_in_date: 2025-09-06
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624   - check_out_date: 2025-09-07
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624   - guests: 10
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624   - client_info: None
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624   - property_info: None
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624   - technical_data: {'ip_address': '132.191.0.3', 'session_key': None, 'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36', 'referrer': 'https://casaaustin.pe/'}
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624   - created: 2025-09-01T20:08:45.959372+00:00
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624 SearchTrackingExportView: Registro 2 estructura:
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624   - ID: 8e011527-9d61-40fd-a01c-3563bf1fb84c
+INFO 2025-09-01 15:14:11,518 views 1176678 140322002978624   - search_timestamp: 2025-09-01T20:08:08.010209+00:00
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624   - check_in_date: 2025-09-27
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624   - check_out_date: 2025-09-28
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624   - guests: 50
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624   - client_info: None
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624   - property_info: None
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624   - technical_data: {'ip_address': '38.25.29.181', 'session_key': None, 'user_agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36', 'referrer': 'https://casaaustin.pe/'}
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624   - created: 2025-09-01T20:08:08.010165+00:00
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624 SearchTrackingExportView: Registro 3 estructura:
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624   - ID: d08076fd-941c-43b9-908b-159d0edb476d
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624   - search_timestamp: 2025-09-01T20:05:33.350650+00:00
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624   - check_in_date: 2025-09-20
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624   - check_out_date: 2025-09-21
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624   - guests: 10
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624   - client_info: None
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624   - property_info: {'id': '9a04892a-4ba5-4b10-92b5-2a72f6d89d57', 'name': 'Casa Austin 2'}
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624   - technical_data: {'ip_address': '179.6.14.104', 'session_key': None, 'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', 'referrer': 'https://casaaustin.pe/'}
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624   - created: 2025-09-01T20:05:33.350597+00:00
+INFO 2025-09-01 15:14:11,519 views 1176678 140322002978624 SearchTrackingExportView: === ENVIANDO REQUEST ===
+INFO 2025-09-01 15:14:13,582 views 1176678 140322002978624 SearchTrackingExportView: === RESPUESTA RECIBIDA ===
+INFO 2025-09-01 15:14:13,582 views 1176678 140322002978624 SearchTrackingExportView: Status Code: 200
+INFO 2025-09-01 15:14:13,582 views 1176678 140322002978624 SearchTrackingExportView: Response Headers: {'Content-Type': 'application/json; charset=utf-8', 'Vary': 'Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site', 'X-Content-Type-Options': 'nosniff', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache', 'Expires': 'Mon, 01 Jan 1990 00:00:00 GMT', 'Date': 'Mon, 01 Sep 2025 20:14:13 GMT', 'Content-Encoding': 'gzip', 'X-Frame-Options': 'SAMEORIGIN', 'Content-Security-Policy': "frame-ancestors 'self'", 'X-XSS-Protection': '1; mode=block', 'Server': 'GSE', 'Alt-Svc': 'h3=":443"; ma=2592000,h3-29=":443"; ma=2592000', 'Transfer-Encoding': 'chunked'}
+INFO 2025-09-01 15:14:13,582 views 1176678 140322002978624 SearchTrackingExportView: Response Text (primeros 1000 chars): {"success":true,"message":"Datos guardados en Google Sheets"}
+INFO 2025-09-01 15:14:13,583 views 1176678 140322002978624 SearchTrackingExportView: Response JSON: {'success': True, 'message': 'Datos guardados en Google Sheets'}
+INFO 2025-09-01 15:14:13,583 views 1176678 140322002978624 SearchTrackingExportView: ✅ 51 registros enviados exitosamente a Google Sheets
+INFO 2025-09-01 15:14:13,584 views 1176678 140322002978624 SearchTrackingExportView: Exported 51 search tracking records
+
