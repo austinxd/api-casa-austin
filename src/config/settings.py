@@ -350,19 +350,6 @@ OPENPAY_PRIVATE_KEY = env('OPENPAY_PRIVATE_KEY', default='No private key')
 OPENPAY_PUBLIC_KEY = env('OPENPAY_PUBLIC_KEY', default='No public key')
 OPENPAY_SANDBOX = env.bool('OPENPAY_SANDBOX', default=True)
 
-# Verificar que las variables de entorno se cargan correctamente
-import logging
-
-logger = logging.getLogger('apps')
-logger.debug(f"TELEGRAM_BOT_TOKEN: {TELEGRAM_BOT_TOKEN}")
-logger.debug(f"CHAT_ID: {TELEGRAM_CHAT_ID}")
-logger.debug(f"SECOND_CHAT_ID: {SECOND_CHAT_ID}")
-logger.debug(f"PERSONAL_CHAT_ID: {PERSONAL_CHAT_ID}")
-logger.debug(f"CLIENTS_CHAT_ID: {CLIENTS_CHAT_ID}")
-logger.debug(f"TWILIO_ACCOUNT_SID: {TWILIO_ACCOUNT_SID}")
-logger.debug(f"TWILIO_VERIFY_SID: {TWILIO_VERIFY_SID}")
-logger.debug(f"GOOGLE_SCRIPT_WEBHOOK: {GOOGLE_SCRIPT_WEBHOOK}")
-
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'None'
@@ -389,3 +376,16 @@ if os.environ.get('REPL_ID'):
         current_replit_domain = f"https://{repl_id}.{repl_owner}.replit.dev"
         if current_replit_domain not in CSRF_TRUSTED_ORIGINS:
             CSRF_TRUSTED_ORIGINS.append(current_replit_domain)
+
+# Verificar que las variables de entorno se cargan correctamente
+import logging
+
+logger = logging.getLogger('apps')
+logger.debug(f"TELEGRAM_BOT_TOKEN: {TELEGRAM_BOT_TOKEN}")
+logger.debug(f"CHAT_ID: {TELEGRAM_CHAT_ID}")
+logger.debug(f"SECOND_CHAT_ID: {SECOND_CHAT_ID}")
+logger.debug(f"PERSONAL_CHAT_ID: {PERSONAL_CHAT_ID}")
+logger.debug(f"CLIENTS_CHAT_ID: {CLIENTS_CHAT_ID}")
+logger.debug(f"TWILIO_ACCOUNT_SID: {TWILIO_ACCOUNT_SID}")
+logger.debug(f"TWILIO_VERIFY_SID: {TWILIO_VERIFY_SID}")
+logger.debug(f"GOOGLE_SCRIPT_WEBHOOK: {GOOGLE_SCRIPT_WEBHOOK}")
