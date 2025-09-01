@@ -67,10 +67,10 @@ class Command(BaseCommand):
                         'name': tracking.property.name if tracking.property else None,
                     } if tracking.property else None,
                     'technical_data': {
-                        'ip_address': tracking.ip_address,
-                        'session_key': tracking.session_key,
-                        'user_agent': tracking.user_agent,
-                        'referrer': tracking.referrer,
+                        'ip_address': str(tracking.ip_address) if tracking.ip_address else None,
+                        'session_key': str(tracking.session_key) if tracking.session_key else None,
+                        'user_agent': str(tracking.user_agent) if tracking.user_agent else None,
+                        'referrer': str(tracking.referrer) if tracking.referrer else None,
                     },
                     'created': tracking.created.isoformat() if hasattr(tracking, 'created') and tracking.created else None,
                 }
