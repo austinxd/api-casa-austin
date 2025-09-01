@@ -1,0 +1,78 @@
+Token created successfully: kb05uz4kjac7q99iuhqg
+reservation-detail.tsx:566 Card payment token received: kb05uz4kjac7q99iuhqg
+reservation-detail.tsx:567 Device session ID: XYDIhwx10fQCO60Tr8iiFtSFHF4tVvso
+reservation-detail.tsx:572 🔍 DEBUG - Token verification:
+reservation-detail.tsx:573 Client token exists: true
+reservation-detail.tsx:574 Client token length: 407
+reservation-detail.tsx:575 Client token preview: eyJhbGciOiJIUzI1NiIs...
+reservation-detail.tsx:583 🚀 Sending payment data: {token: 'kb05uz4kjac7q99iuhqg', amount: 342, device_session_id: 'XYDIhwx10fQCO60Tr8iiFtSFHF4tVvso'}
+The FetchEvent for "https://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.replit.dev:24678/" resulted in a network error response: the promise was rejected.
+Promise.then
+(anónimas) @ sw.js:142Comprende esta advertencia
+client:536 WebSocket connection to 'wss://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.replit.dev:24678/?token=5UBtlQJuB_xy' failed: 
+setupWebSocket @ client:536
+(anónimas) @ client:531Comprende este error
+client:560 [vite] server connection lost. Polling for restart...
+sw.js:142  Uncaught (in promise) TypeError: Failed to fetch
+    at sw.js:142:21
+(anónimas) @ sw.js:142Comprende este error
+client:736  GET https://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.replit.dev:24678/ net::ERR_CONNECTION_TIMED_OUT
+ping @ client:736
+waitForSuccessfulPing @ client:749
+(anónimas) @ client:561Comprende este error
+reservation-detail.tsx:586  POST https://api.casaaustin.pe/api/v1/payment/process/1e75c999-78da-40a5-a434-8accfbcfe67b/ 400 (Bad Request)
+handleCardPaymentSuccess @ reservation-detail.tsx:586
+onSuccess @ reservation-detail.tsx:1650
+(anónimas) @ OpenpayCardPayment.tsx:232
+d @ openpay.v1.min.js:2
+XMLHttpRequest.send
+u @ openpay.v1.min.js:2
+f.send @ openpay.v1.min.js:2
+a.create @ openpay.v1.min.js:2
+processPayment @ OpenpayCardPayment.tsx:227
+callCallback2 @ chunk-RPCDYKBN.js?v=d70b3e62:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=d70b3e62:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=d70b3e62:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=d70b3e62:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=d70b3e62:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=d70b3e62:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=d70b3e62:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=d70b3e62:7051
+(anónimas) @ chunk-RPCDYKBN.js?v=d70b3e62:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=d70b3e62:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=d70b3e62:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=d70b3e62:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=d70b3e62:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=d70b3e62:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=d70b3e62:5449Comprende este error
+reservation-detail.tsx:605 Payment processing failed: {success: false, message: 'Error procesando el pago: Pago reserva #1e75c999-78da-40a5-a434-8accfbcfe67b - Casa Austin 3'}
+handleCardPaymentSuccess @ reservation-detail.tsx:605
+await in handleCardPaymentSuccess
+onSuccess @ reservation-detail.tsx:1650
+(anónimas) @ OpenpayCardPayment.tsx:232
+d @ openpay.v1.min.js:2
+XMLHttpRequest.send
+u @ openpay.v1.min.js:2
+f.send @ openpay.v1.min.js:2
+a.create @ openpay.v1.min.js:2
+processPayment @ OpenpayCardPayment.tsx:227
+callCallback2 @ chunk-RPCDYKBN.js?v=d70b3e62:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=d70b3e62:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=d70b3e62:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=d70b3e62:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=d70b3e62:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=d70b3e62:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=d70b3e62:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=d70b3e62:7051
+(anónimas) @ chunk-RPCDYKBN.js?v=d70b3e62:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=d70b3e62:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=d70b3e62:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=d70b3e62:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=d70b3e62:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=d70b3e62:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=d70b3e62:5449Comprende este error
+client:736  GET https://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.replit.dev:24678/ net::ERR_CONNECTION_TIMED_OUT
+ping @ client:736
+waitForSuccessfulPing @ client:755
+await in waitForSuccessfulPing
+(anónimas) @ client:561Comprende este error
