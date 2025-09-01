@@ -8,7 +8,8 @@ from .voucher_views import ClientVoucherUploadView, ClientReservationStatusView
 from .views import (
     MensajeFidelidadApiView, TokenApiClientApiView, ClientsApiView,
     ReferralConfigView, ReferralStatsView, SearchTrackingView, SearchTrackingTestView,
-    ClientCreateReservationView, ClientReservationsListView, ClientReservationDetailView
+    SearchTrackingExportView, ClientCreateReservationView, ClientReservationsListView, 
+    ClientReservationDetailView
 )
 
 router = DefaultRouter()
