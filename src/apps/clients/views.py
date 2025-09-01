@@ -2005,6 +2005,15 @@ class SearchTrackingView(APIView):
     authentication_classes = [ClientJWTAuthentication]
     permission_classes = [AllowAny]
 
+    def get_client_ip(self, request):
+        """Obtener IP real del cliente"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+
     def post(self, request):
         """Registrar o actualizar búsqueda del cliente"""
         logger.info("SearchTrackingView: === INICIO === ")
@@ -2100,8 +2109,15 @@ class SearchTrackingView(APIView):
                 }, status=500)
 
 
-            # Guardar o actualizar el registro de SearchTracking
-            try:
+            # Obtener datos adicionales del request
+                ip_address = self.get_client_ip(request)
+                session_key = request.session.session_key if hasattr(request, 'session') and request.session.session_key else None
+                user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]  # Limitar longitud
+                referrer = request.META.get('HTTP_REFERER', '')
+                
+                logger.info(f"SearchTrackingView: Datos adicionales capturados - IP: {ip_address}, Session: {session_key}")
+
+                # Guardar o actualizar el registro de SearchTracking
                 search_tracking = None
                 if client: # Si hay cliente autenticado
                     search_tracking, created = SearchTracking.objects.update_or_create(
@@ -2112,25 +2128,28 @@ class SearchTrackingView(APIView):
                             'guests': guests,
                             'property': property_obj,
                             'search_timestamp': timezone.now(),
-                            'deleted': False # Asegurar que no esté marcado como borrado
+                            'ip_address': ip_address,
+                            'session_key': session_key,
+                            'user_agent': user_agent,
+                            'referrer': referrer,
+                            'deleted': False
                         }
                     )
                     action_taken = "actualizado" if not created else "creado"
                     logger.info(f"SearchTrackingView: Registro para cliente {client.id} {action_taken}: {search_tracking.id}")
 
                 else: # Si es un usuario anónimo (sin cliente autenticado)
-                    # Podríamos usar la IP para identificar búsquedas anónimas
-                    # O podríamos simplemente registrar la última búsqueda anónima sin asociarla a un cliente específico
-                    # Por simplicidad aquí, crearemos un registro anónimo si no hay cliente
-                    # Nota: Considerar cómo manejar múltiples usuarios anónimos desde la misma IP
                     search_tracking = SearchTracking.objects.create(
-                        client=None, # O podrías tener un campo para IP o un identificador anónimo
-                        client_ip=client_ip, # Guardar la IP
+                        client=None,
                         check_in_date=check_in_date,
                         check_out_date=check_out_date,
                         guests=guests,
                         property=property_obj,
                         search_timestamp=timezone.now(),
+                        ip_address=ip_address,
+                        session_key=session_key,
+                        user_agent=user_agent,
+                        referrer=referrer,
                         deleted=False
                     )
                     logger.info(f"SearchTrackingView: Registro anónimo creado: {search_tracking.id} para IP {client_ip}")
