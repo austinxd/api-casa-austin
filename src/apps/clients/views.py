@@ -2001,11 +2001,53 @@ class SearchTrackingTestView(APIView):
 
 
 class SearchTrackingExportView(APIView):
-    """Vista para exportar datos de tracking de búsquedas en formato JSON"""
+    """Vista para exportar datos de tracking de búsquedas en formato JSON y enviar a Google Sheets"""
     permission_classes = [AllowAny]
 
+    def send_to_google_sheets(self, data):
+        """Enviar datos a Google Sheets usando Google Apps Script webhook"""
+        import requests
+        
+        # URL del webhook de Google Apps Script (configurar en settings)
+        GOOGLE_SCRIPT_WEBHOOK = getattr(settings, 'GOOGLE_SCRIPT_WEBHOOK', None)
+        
+        if not GOOGLE_SCRIPT_WEBHOOK:
+            logger.warning("SearchTrackingExportView: GOOGLE_SCRIPT_WEBHOOK no configurado")
+            return {'success': False, 'message': 'Webhook no configurado'}
+        
+        try:
+            # Enviar cada registro individualmente para mejor control
+            successful_sends = 0
+            failed_sends = 0
+            
+            for record in data:
+                response = requests.post(
+                    GOOGLE_SCRIPT_WEBHOOK,
+                    json=record,
+                    headers={'Content-Type': 'application/json'},
+                    timeout=30
+                )
+                
+                if response.status_code == 200:
+                    successful_sends += 1
+                    logger.info(f"SearchTrackingExportView: Registro {record.get('id')} enviado a Google Sheets")
+                else:
+                    failed_sends += 1
+                    logger.error(f"SearchTrackingExportView: Error enviando registro {record.get('id')}: {response.text}")
+            
+            return {
+                'success': True,
+                'successful_sends': successful_sends,
+                'failed_sends': failed_sends,
+                'total_records': len(data)
+            }
+            
+        except Exception as e:
+            logger.error(f"SearchTrackingExportView: Error enviando a Google Sheets: {str(e)}")
+            return {'success': False, 'message': str(e)}
+
     def get(self, request):
-        """Exportar todos los datos de SearchTracking en formato JSON"""
+        """Exportar todos los datos de SearchTracking en formato JSON y opcionalmente enviar a Google Sheets"""
         try:
             # Obtener todos los registros de SearchTracking no eliminados
             search_tracking_queryset = SearchTracking.objects.filter(
@@ -2090,6 +2132,14 @@ class SearchTrackingExportView(APIView):
                 'data': export_data
             }
 
+            # Verificar si se debe enviar a Google Sheets
+            send_to_sheets = request.GET.get('send_to_sheets', 'false').lower() == 'true'
+            google_sheets_result = None
+            
+            if send_to_sheets:
+                google_sheets_result = self.send_to_google_sheets(export_data)
+                response_data['google_sheets_sync'] = google_sheets_result
+            
             logger.info(f"SearchTrackingExportView: Exported {len(export_data)} search tracking records")
             return Response(response_data)
 

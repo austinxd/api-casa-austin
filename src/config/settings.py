@@ -327,11 +327,11 @@ LOGGING = {
 }
 
 # Telegram settings
-TELEGRAM_BOT_TOKEN = env('TELEGRAM_BOT_TOKEN', default='No token')
-CHAT_ID = env('CHAT_ID', default='N° chat ID')
-SECOND_CHAT_ID = env('SECOND_CHAT_ID', default='N° second chat ID')
-PERSONAL_CHAT_ID = env('PERSONAL_CHAT_ID', default='N° personal chat ID')
-CLIENTS_CHAT_ID = env('CLIENTS_CHAT_ID', default='N° clients chat ID')
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+
+# Google Apps Script webhook for Google Sheets integration
+GOOGLE_SCRIPT_WEBHOOK = os.getenv('GOOGLE_SCRIPT_WEBHOOK')
 
 # Twilio settings for OTP (using env function for consistency)
 TWILIO_ACCOUNT_SID = env('TWILIO_ACCOUNT_SID', default='No SID')
@@ -350,7 +350,7 @@ import logging
 
 logger = logging.getLogger('apps')
 logger.debug(f"TELEGRAM_BOT_TOKEN: {TELEGRAM_BOT_TOKEN}")
-logger.debug(f"CHAT_ID: {CHAT_ID}")
+logger.debug(f"CHAT_ID: {TELEGRAM_CHAT_ID}")
 logger.debug(f"SECOND_CHAT_ID: {SECOND_CHAT_ID}")
 logger.debug(f"PERSONAL_CHAT_ID: {PERSONAL_CHAT_ID}")
 logger.debug(f"CLIENTS_CHAT_ID: {CLIENTS_CHAT_ID}")
