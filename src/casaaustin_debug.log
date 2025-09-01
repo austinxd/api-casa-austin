@@ -4453,3 +4453,4 @@ INFO 2025-08-20 14:52:04,859 pricing_models 9701 139861307856576 🎯 Evaluando 
 INFO 2025-08-20 14:52:04,859 pricing_models 9701 139861307856576 ⏰ Último minuto - Hoy: 2025-08-20, Mañana: 2025-08-21, Booking: 2025-08-26
 INFO 2025-08-20 14:52:04,859 pricing_service 9701 139861307856576 ✅ Resultado para '50off ultimo minuto': False - 'No es reserva de último minuto (booking: 2025-08-26)'
 INFO 2025-08-20 14:52:04,859 pricing_service 9701 139861307856576 ❌ No se encontraron descuentos automáticos aplicables para este cliente
+INFO 2025-09-01 19:17:50,475 views 1777 140695017002688 SearchTrackingExportView: Exported 0 search tracking records
