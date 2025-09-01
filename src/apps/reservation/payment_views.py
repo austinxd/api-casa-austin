@@ -206,9 +206,31 @@ class ProcessPaymentView(APIView):
                     test_headers = {'Authorization': auth_header}
                     logger.info(f"Verificando permisos de charges en: {charges_test_url}")
 
+                    # Verificar límites de la cuenta sandbox
+                    try:
+                        account_info_url = f"{self.base_url}/{self.merchant_id}"
+                        account_response = requests.get(account_info_url, headers={'Authorization': auth_header})
+                        if account_response.status_code == 200:
+                            account_data = account_response.json()
+                            logger.info(f"📊 ACCOUNT INFO: {account_data}")
+                        else:
+                            logger.warning(f"No se pudo obtener info de cuenta: {account_response.status_code}")
+                    except Exception as account_error:
+                        logger.warning(f"Error obteniendo info de cuenta: {account_error}")
+
                     # Procesar pago con OpenPay API
                     url = f"{self.base_url}/{self.merchant_id}/charges"
 
+                    # Validaciones adicionales antes del request
+                    logger.info(f"=== VALIDACIONES PRE-REQUEST ===")
+                    logger.info(f"Amount validation: {amount} > 0 = {amount > 0}")
+                    logger.info(f"Currency: {charge_data['currency']}")
+                    logger.info(f"Method: {charge_data['method']}")
+                    logger.info(f"Token length: {len(token)}")
+                    logger.info(f"Order ID: {charge_data['order_id']}")
+                    logger.info(f"Customer email: {charge_data['customer']['email']}")
+                    logger.info(f"Customer phone: {charge_data['customer']['phone_number']}")
+                    
                     logger.info(f"Procesando pago para reserva {reservation.id} con order_id: {unique_order_id}")
                     logger.info(f"DEBUGGING OPENPAY REQUEST:")
                     logger.info(f"URL: {url}")

@@ -164,6 +164,9 @@ class RentalReceipt(BaseModel):
 # Model to track used payment tokens
 class PaymentToken(BaseModel):
     token = models.CharField(max_length=255, unique=True, null=False, blank=False)
+    reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, null=True, blank=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    transaction_id = models.CharField(max_length=255, null=True, blank=True)
     used_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
