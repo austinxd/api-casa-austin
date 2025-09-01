@@ -2113,20 +2113,20 @@ class SearchTrackingExportView(APIView):
             export_data = []
             for tracking in search_tracking_queryset:
                 data = {
-                    'id': tracking.id,
+                    'id': str(tracking.id),
                     'search_timestamp': tracking.search_timestamp.isoformat() if tracking.search_timestamp else None,
                     'check_in_date': tracking.check_in_date.isoformat() if tracking.check_in_date else None,
                     'check_out_date': tracking.check_out_date.isoformat() if tracking.check_out_date else None,
                     'guests': tracking.guests,
                     'client_info': {
-                        'id': tracking.client.id if tracking.client else None,
+                        'id': str(tracking.client.id) if tracking.client else None,
                         'first_name': tracking.client.first_name if tracking.client else None,
                         'last_name': tracking.client.last_name if tracking.client else None,
                         'email': tracking.client.email if tracking.client else None,
                         'tel_number': tracking.client.tel_number if tracking.client else None,
                     } if tracking.client else None,
                     'property_info': {
-                        'id': tracking.property.id if tracking.property else None,
+                        'id': str(tracking.property.id) if tracking.property else None,
                         'name': tracking.property.name if tracking.property else None,
                     } if tracking.property else None,
                     'technical_data': {
