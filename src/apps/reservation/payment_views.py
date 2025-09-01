@@ -38,7 +38,7 @@ class ProcessPaymentView(APIView):
     def post(self, request, reservation_id):
         try:
             # Obtener la reserva
-            reservation = Reservation.objects.get(id=reservation_id, deleted=False)
+            reservation = Reservation.objects.get(uuid=reservation_id, deleted=False)
             
             # Datos del pago desde el frontend
             token = request.data.get('token')  # Token de OpenPay
