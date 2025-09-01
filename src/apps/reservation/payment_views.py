@@ -33,6 +33,11 @@ class ProcessPaymentView(APIView):
             self.base_url = "https://sandbox-api.openpay.pe/v1"
         else:
             self.base_url = "https://api.openpay.pe/v1"
+            
+        # Debugging inicial de credenciales
+        logger.info(f"🔧 OPENPAY INIT - Merchant: {self.merchant_id}")
+        logger.info(f"🔧 OPENPAY INIT - Private Key length: {len(self.private_key) if self.private_key else 0}")
+        logger.info(f"🔧 OPENPAY INIT - Sandbox: {self.is_sandbox}")
 
     def _get_auth_header(self):
         """Crear header de autenticación para OpenPay"""
@@ -144,18 +149,33 @@ class ProcessPaymentView(APIView):
                         'Authorization': self._get_auth_header()
                     }
 
-                    # Validar credenciales primero haciendo una consulta simple
+                    # Validar credenciales primero con múltiples endpoints
                     logger.info(f"=== VALIDANDO CREDENCIALES OPENPAY ===")
-                    validation_url = f"{self.base_url}/{self.merchant_id}"
-                    validation_response = requests.get(validation_url, headers={'Authorization': self._get_auth_header()})
-                    logger.info(f"Validation response status: {validation_response.status_code}")
+                    auth_header = self._get_auth_header()
+                    logger.info(f"Auth header creado: {auth_header[:20]}...")
                     
-                    if validation_response.status_code == 401:
-                        logger.error("❌ CREDENCIALES OPENPAY INVÁLIDAS")
+                    # Probar endpoint de merchant info
+                    validation_url = f"{self.base_url}/{self.merchant_id}"
+                    validation_response = requests.get(validation_url, headers={'Authorization': auth_header})
+                    logger.info(f"Merchant validation status: {validation_response.status_code}")
+                    
+                    if validation_response.status_code == 200:
+                        logger.info("✅ Credenciales válidas para consultar merchant")
+                    elif validation_response.status_code == 401:
+                        logger.error("❌ CREDENCIALES OPENPAY INVÁLIDAS - Error 401")
+                        logger.error(f"Response: {validation_response.text}")
                         return Response({
                             'success': False,
-                            'message': 'Error de configuración del procesador de pagos'
+                            'message': 'Credenciales de OpenPay inválidas'
                         }, status=500)
+                    else:
+                        logger.warning(f"⚠️ Respuesta inesperada del merchant endpoint: {validation_response.status_code}")
+                        logger.warning(f"Response: {validation_response.text}")
+                    
+                    # Verificar si la cuenta tiene permisos para hacer charges
+                    charges_test_url = f"{self.base_url}/{self.merchant_id}/charges"
+                    test_headers = {'Authorization': auth_header}
+                    logger.info(f"Verificando permisos de charges en: {charges_test_url}")
                     
                     # Procesar pago con OpenPay API
                     url = f"{self.base_url}/{self.merchant_id}/charges"
@@ -166,11 +186,22 @@ class ProcessPaymentView(APIView):
                     logger.info(f"Headers: {headers}")
                     logger.info(f"Charge Data: {charge_data}")
 
-                    response = requests.post(url, json=charge_data, headers=headers)
+                    response = requests.post(url, json=charge_data, headers=headers, timeout=30)
 
                     logger.info(f"OpenPay Response - Status: {response.status_code}")
+                    logger.info(f"OpenPay Response Headers: {dict(response.headers)}")
+                    
                     if response.status_code != 201:
                         logger.error(f"OpenPay Error Response: {response.text}")
+                        
+                        # Análisis específico del error 412
+                        if response.status_code == 412:
+                            logger.error("🚨 ERROR 412 - POSIBLES CAUSAS:")
+                            logger.error("1. Private Key incorrecta o expirada")
+                            logger.error("2. Merchant ID incorrecto")
+                            logger.error("3. Cuenta sin permisos para charges")
+                            logger.error("4. Token ya utilizado anteriormente")
+                            logger.error("5. Configuración de sandbox incorrecta")
 
                     if response.status_code == 201:
                         charge = response.json()
