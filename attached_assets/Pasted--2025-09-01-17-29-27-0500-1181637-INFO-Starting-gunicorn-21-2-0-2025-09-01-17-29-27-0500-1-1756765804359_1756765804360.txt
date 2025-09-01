@@ -1,0 +1,113 @@
+[2025-09-01 17:29:27 -0500] [1181637] [INFO] Starting gunicorn 21.2.0
+[2025-09-01 17:29:27 -0500] [1181637] [INFO] Listening at: http://0.0.0.0:8000 (1181637)
+[2025-09-01 17:29:27 -0500] [1181637] [INFO] Using worker: sync
+[2025-09-01 17:29:27 -0500] [1181638] [INFO] Booting worker with pid: 1181638
+DEBUG 2025-09-01 17:29:44,562 signals 1181638 139970463864640 Nueva reserva creada: 4b11656f-7862-48cb-9fb7-6deebc6c753f - Origen: aus
+DEBUG 2025-09-01 17:29:44,563 signals 1181638 139970463864640 Enviando mensaje de Telegram: 📞 **AUSTIN** - Reserva en Casa Austin 3
+Cliente: Cesar Gustavo Durand Caceres
+Check-in : Lunes 1 de septiembre
+Check-out : Martes 2 de septiembre
+Invitados : 10
+Temperado : No
+Precio (USD) : 270.00 dólares
+Precio (Soles) : 1000.00 soles
+Adelanto : 1000.00 SOL
+Teléfono : +51981023602 con imagen: None
+Internal Server Error: /api/v1/reservations/
+Traceback (most recent call last):
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/views/decorators/csrf.py", line 56, in wrapper_view
+    return view_func(*args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/viewsets.py", line 124, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 509, in dispatch
+    response = self.handle_exception(exc)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 469, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+    raise exc
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/mixins.py", line 21, in create
+    self.perform_create(serializer)
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/views.py", line 226, in perform_create
+    instance = serializer.save(seller=user_seller, status='approved')
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 208, in save
+    self.instance = self.create(validated_data)
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/serializers.py", line 189, in create
+    reservation = super().create(validated_data)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 989, in create
+    instance = ModelClass._default_manager.create(**validated_data)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/models/query.py", line 658, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/models.py", line 124, in save
+    super().save(*args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/models/base.py", line 814, in save
+    self.save_base(
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/models/base.py", line 892, in save_base
+    post_save.send(
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/dispatch/dispatcher.py", line 176, in send
+    return [
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/dispatch/dispatcher.py", line 177, in <listcomp>
+    (receiver, receiver(signal=self, sender=sender, **named))
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/signals.py", line 222, in reservation_post_save_handler
+    notify_new_reservation(instance)
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/signals.py", line 112, in notify_new_reservation
+    send_telegram_message(message, settings.CHAT_ID, full_image_url)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/conf/__init__.py", line 104, in __getattr__
+    val = getattr(_wrapped, name)
+AttributeError: 'Settings' object has no attribute 'CHAT_ID'
+ERROR 2025-09-01 17:29:44,659 log 1181638 139970463864640 Internal Server Error: /api/v1/reservations/
+Traceback (most recent call last):
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/views/decorators/csrf.py", line 56, in wrapper_view
+    return view_func(*args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/viewsets.py", line 124, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 509, in dispatch
+    response = self.handle_exception(exc)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 469, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+    raise exc
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/mixins.py", line 21, in create
+    self.perform_create(serializer)
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/views.py", line 226, in perform_create
+    instance = serializer.save(seller=user_seller, status='approved')
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 208, in save
+    self.instance = self.create(validated_data)
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/serializers.py", line 189, in create
+    reservation = super().create(validated_data)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 989, in create
+    instance = ModelClass._default_manager.create(**validated_data)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/models/query.py", line 658, in create
+    obj.save(force_insert=True, using=self.db)
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/models.py", line 124, in save
+    super().save(*args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/models/base.py", line 814, in save
+    self.save_base(
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/models/base.py", line 892, in save_base
+    post_save.send(
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/dispatch/dispatcher.py", line 176, in send
+    return [
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/dispatch/dispatcher.py", line 177, in <listcomp>
+    (receiver, receiver(signal=self, sender=sender, **named))
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/signals.py", line 222, in reservation_post_save_handler
+    notify_new_reservation(instance)
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/signals.py", line 112, in notify_new_reservation
+    send_telegram_message(message, settings.CHAT_ID, full_image_url)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/conf/__init__.py", line 104, in __getattr__
+    val = getattr(_wrapped, name)
+AttributeError: 'Settings' object has no attribute 'CHAT_ID'
