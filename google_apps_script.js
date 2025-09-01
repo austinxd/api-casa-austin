@@ -19,7 +19,7 @@ function doPost(e) {
     
     // Parsear datos JSON
     const data = JSON.parse(e.postData.contents);
-    console.log('Parsed data:', data);
+    console.log('Parsed data:', JSON.stringify(data, null, 2));
     
     // Verificar que sea una request de insert_search_tracking
     if (data.action === 'insert_search_tracking') {
@@ -65,7 +65,9 @@ function doPost(e) {
  */
 function insertSearchTrackingData(records) {
   try {
-    console.log('Insertando', records.length, 'registros');
+    console.log('=== INICIANDO INSERCIÓN ===');
+    console.log('Número de registros recibidos:', records.length);
+    console.log('Primer registro completo:', JSON.stringify(records[0], null, 2));
     
     // Abrir la hoja de cálculo
     const sheet = getOrCreateSheet();
@@ -103,49 +105,100 @@ function insertSearchTrackingData(records) {
     const rows = [];
     let skipped = 0;
     
-    records.forEach(record => {
+    records.forEach((record, index) => {
+      console.log(`=== PROCESANDO REGISTRO ${index + 1} ===`);
+      console.log('Registro completo:', JSON.stringify(record, null, 2));
+      
       // Verificar si ya existe este ID
-      if (existingIds.has(record.id)) {
-        console.log('Saltando registro duplicado:', record.id);
+      const recordId = record.id ? record.id.toString() : '';
+      
+      if (existingIds.has(recordId)) {
+        console.log('Saltando registro duplicado:', recordId);
         skipped++;
         return;
       }
       
-      // Extraer datos correctamente desde la estructura anidada
+      // Extraer datos con validación mejorada
       const clientInfo = record.client_info || {};
       const propertyInfo = record.property_info || {};
       const technicalData = record.technical_data || {};
       
+      console.log('Client info extraído:', JSON.stringify(clientInfo, null, 2));
+      console.log('Property info extraído:', JSON.stringify(propertyInfo, null, 2));
+      console.log('Technical data extraído:', JSON.stringify(technicalData, null, 2));
+      
+      // Extraer cada campo individualmente con logs
+      const clientId = clientInfo.id || '';
+      const clientFirstName = clientInfo.first_name || '';
+      const clientLastName = clientInfo.last_name || '';
+      const clientEmail = clientInfo.email || '';
+      const clientTelNumber = clientInfo.tel_number || '';
+      
+      const propertyId = propertyInfo.id || '';
+      const propertyName = propertyInfo.name || '';
+      
+      const ipAddress = technicalData.ip_address || '';
+      const sessionKey = technicalData.session_key || '';
+      const userAgent = technicalData.user_agent || '';
+      const referrer = technicalData.referrer || '';
+      
+      console.log('Datos extraídos:');
+      console.log('- ID:', recordId);
+      console.log('- Search timestamp:', record.search_timestamp);
+      console.log('- Check-in:', record.check_in_date);
+      console.log('- Check-out:', record.check_out_date);
+      console.log('- Guests:', record.guests);
+      console.log('- Cliente ID:', clientId);
+      console.log('- Cliente Nombre:', clientFirstName);
+      console.log('- Cliente Apellido:', clientLastName);
+      console.log('- Cliente Email:', clientEmail);
+      console.log('- Cliente Teléfono:', clientTelNumber);
+      console.log('- Propiedad ID:', propertyId);
+      console.log('- Propiedad Nombre:', propertyName);
+      console.log('- IP:', ipAddress);
+      console.log('- Session Key:', sessionKey);
+      console.log('- User Agent:', userAgent);
+      console.log('- Referrer:', referrer);
+      console.log('- Created:', record.created);
+      
       const row = [
-        record.id || '',
+        recordId,
         record.search_timestamp || '',
         record.check_in_date || '',
         record.check_out_date || '',
         record.guests || '',
-        clientInfo.id || '',
-        clientInfo.first_name || '',
-        clientInfo.last_name || '',
-        clientInfo.email || '',
-        clientInfo.tel_number || '',
-        propertyInfo.id || '',
-        propertyInfo.name || '',
-        technicalData.ip_address || '',
-        technicalData.session_key || '',
-        technicalData.user_agent || '',
-        technicalData.referrer || '',
+        clientId,
+        clientFirstName,
+        clientLastName,
+        clientEmail,
+        clientTelNumber,
+        propertyId,
+        propertyName,
+        ipAddress,
+        sessionKey,
+        userAgent,
+        referrer,
         record.created || ''
       ];
+      
+      console.log('Fila construida:', row);
       rows.push(row);
     });
     
+    console.log('=== RESUMEN DE PROCESAMIENTO ===');
     console.log('Registros nuevos a insertar:', rows.length);
     console.log('Registros saltados (duplicados):', skipped);
+    console.log('Datos completos de filas:', JSON.stringify(rows, null, 2));
     
     // Insertar todas las filas nuevas de una vez
     if (rows.length > 0) {
       const startRow = sheet.getLastRow() + 1;
+      console.log('Insertando en fila:', startRow);
+      console.log('Número de filas a insertar:', rows.length);
+      console.log('Número de columnas por fila:', rows[0].length);
+      
       sheet.getRange(startRow, 1, rows.length, rows[0].length).setValues(rows);
-      console.log('Insertadas', rows.length, 'filas en Google Sheets');
+      console.log('¡INSERTADAS!', rows.length, 'filas en Google Sheets');
       
       // Aplicar formato a las nuevas filas
       const newDataRange = sheet.getRange(startRow, 1, rows.length, rows[0].length);
@@ -328,6 +381,59 @@ function testInsertData() {
   
   const result = insertSearchTrackingData(testData);
   console.log('Test result:', result);
+}
+
+/**
+ * Función para debug - limpiar hoja y logs detallados
+ */
+function debugAndTest() {
+  try {
+    console.log('=== FUNCIÓN DE DEBUG ===');
+    
+    // Limpiar hoja para empezar de cero
+    const sheet = getOrCreateSheet();
+    sheet.clear();
+    console.log('Hoja limpiada');
+    
+    // Crear datos de prueba con la estructura exacta que envía Django
+    const testData = [
+      {
+        id: "debug-test-001",
+        search_timestamp: "2025-09-01T19:54:58.064000+00:00",
+        check_in_date: "2025-09-15",
+        check_out_date: "2025-09-17",
+        guests: 4,
+        client_info: {
+          id: "12345678-1234-1234-1234-123456789012",
+          first_name: "María",
+          last_name: "González",
+          email: "maria@example.com",
+          tel_number: "+51987654321"
+        },
+        property_info: {
+          id: "prop-987654321-abcd-efgh-ijkl-123456789012",
+          name: "Casa Austin Villa Principal"
+        },
+        technical_data: {
+          ip_address: "192.168.1.100",
+          session_key: "abc123session456",
+          user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          referrer: "https://casaaustin.com/search"
+        },
+        created: "2025-09-01T19:54:50.000000+00:00"
+      }
+    ];
+    
+    // Probar inserción
+    const result = insertSearchTrackingData(testData);
+    console.log('Resultado del test:', JSON.stringify(result, null, 2));
+    
+    return result;
+    
+  } catch (error) {
+    console.error('Error en función debug:', error);
+    throw error;
+  }
 }
 
 /**
