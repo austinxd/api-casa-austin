@@ -5,7 +5,7 @@
  */
 
 // Configuración
-const SHEET_ID = 'TU_ID_REAL_DE_GOOGLE_SHEETS'; // ⚠️ REEMPLAZA ESTO CON EL ID REAL DE TU HOJA
+const SHEET_ID = '1CxliaXMZPmLOc_OkPRezdpdTw2ix9r9Fw4oQNkCR4J0'; // ✅ ID real de tu Google Sheets
 const SHEET_NAME = 'SearchTracking'; // Nombre de la hoja donde se guardarán los datos
 
 /**
