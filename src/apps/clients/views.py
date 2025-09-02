@@ -2212,8 +2212,8 @@ class SearchTrackingExportView(APIView):
                 data = {
                     'id': str(tracking.id),
                     'search_timestamp': tracking.search_timestamp.isoformat() if tracking.search_timestamp else None,
-                    'check_in_date': tracking.check_in_date.isoformat() if tracking.check_in_date else None,
-                    'check_out_date': tracking.check_out_date.isoformat() if tracking.check_out_date else None,
+                    'check_in_date': tracking.check_in_date.strftime('%Y-%m-%d') if tracking.check_in_date else None,
+                    'check_out_date': tracking.check_out_date.strftime('%Y-%m-%d') if tracking.check_out_date else None,
                     'guests': tracking.guests,
                     'client_info': {
                         'id': str(tracking.client.id) if tracking.client else 'ANONIMO',
@@ -2241,7 +2241,7 @@ class SearchTrackingExportView(APIView):
                         'user_agent': str(tracking.user_agent) if tracking.user_agent else None,
                         'referrer': str(tracking.referrer) if tracking.referrer else None,
                     },
-                    'created': tracking.created.isoformat() if hasattr(tracking, 'created') and tracking.created else None,
+                    'created': tracking.created.strftime('%Y-%m-%d') if hasattr(tracking, 'created') and tracking.created else None,
                 }
                 
                 export_data.append(data)

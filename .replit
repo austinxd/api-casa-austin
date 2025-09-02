@@ -24,3 +24,6 @@ args = "cd src && python manage.py makemigrations && python manage.py migrate &&
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[agent]
+expertMode = true
