@@ -163,30 +163,40 @@ def check_and_assign_achievements(client):
         # Obtener todos los logros activos
         achievements = Achievement.objects.filter(is_active=True, deleted=False)
 
+        # Variable para contar logros asignados
+        achievements_assigned = 0
+
         for achievement in achievements:
             # Verificar si el cliente cumple los requisitos
-            qualifies = achievement.check_client_qualifies(client)
-
-            # Verificar si ya tiene el logro
-            client_achievement = ClientAchievement.objects.filter(
-                client=client,
-                achievement=achievement,
-                deleted=False
-            ).first()
-
-            if qualifies and not client_achievement:
-                # Asignar nuevo logro
-                ClientAchievement.objects.create(
+            if achievement.check_client_qualifies(client):
+                # Usar get_or_create para evitar duplicados
+                client_achievement, created = ClientAchievement.objects.get_or_create(
                     client=client,
-                    achievement=achievement
+                    achievement=achievement,
+                    defaults={
+                        'achieved_date': timezone.now().date(),
+                        'deleted': False
+                    }
                 )
-                logger.info(f"✅ Logro '{achievement.name}' asignado a {client.first_name} {client.last_name}")
 
-            elif not qualifies and client_achievement:
-                # Remover logro que ya no merece
-                client_achievement.deleted = True
-                client_achievement.save()
-                logger.info(f"❌ Logro '{achievement.name}' removido de {client.first_name} {client.last_name} (ya no cumple requisitos)")
+                if created:
+                    logger.info(f"✅ Logro '{achievement.name}' asignado a cliente {client.id}")
+                    achievements_assigned += 1
+                else:
+                    logger.debug(f"🔄 Cliente {client.id} ya tiene el logro '{achievement.name}'")
+
+            # Si el cliente no califica y ya tiene el logro, removerlo
+            else:
+                client_achievement = ClientAchievement.objects.filter(
+                    client=client,
+                    achievement=achievement,
+                    deleted=False
+                ).first()
+                if client_achievement:
+                    client_achievement.deleted = True
+                    client_achievement.save()
+                    logger.info(f"❌ Logro '{achievement.name}' removido de {client.id} (ya no cumple requisitos)")
+
 
     except Exception as e:
         logger.error(f"❌ Error verificando logros para cliente {client.id}: {e}")
