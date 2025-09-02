@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -103,8 +103,6 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
 
         # Verificar logros para ambos clientes después de procesar puntos y reservas
         try:
-            from apps.clients.signals import check_and_assign_achievements
-
             # Verificar logros para el cliente que hizo la reserva
             check_and_assign_achievements(instance.client)
 
@@ -114,3 +112,81 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
 
         except Exception as e:
             logger.error(f"Error verificando logros después de reserva: {str(e)}")
+
+
+@receiver(post_delete, sender=Reservation)
+def remove_points_after_delete(sender, instance, **kwargs):
+    """
+    Remueve puntos y logros asociados a una reserva eliminada.
+    """
+    if not instance.client:
+        return
+
+    # Solo procesar si la reserva es de Austin o Cliente Web
+    if instance.origin not in ['aus', 'client']:
+        return
+
+    # Solo remover puntos si se habían asignado previamente
+    from apps.clients.models import ClientPoints
+    points_to_remove = ClientPoints.objects.filter(
+        client=instance.client,
+        reservation=instance,
+        transaction_type=ClientPoints.TransactionType.EARNED,
+        deleted=False)
+
+    if points_to_remove.exists():
+        total_points_removed = 0
+        for point_entry in points_to_remove:
+            total_points_removed += point_entry.points
+            point_entry.deleted = True
+            point_entry.save()
+            logger.info(f"Puntos removidos por eliminación de reserva: {point_entry.points} puntos de la reserva #{instance.id} para {instance.client.first_name}")
+
+        print(f"Total de puntos removidos: {total_points_removed} puntos para el cliente {instance.client.first_name} {instance.client.last_name}")
+
+        # Re-verificar logros después de remover puntos
+        try:
+            check_and_assign_achievements(instance.client)
+            if instance.client.referred_by:
+                check_and_assign_achievements(instance.client.referred_by)
+        except Exception as e:
+            logger.error(f"Error verificando logros después de eliminar reserva: {str(e)}")
+
+
+# --- Funciones de Señales de Logros ---
+
+def check_and_assign_achievements(client):
+    """Verifica, asigna y remueve logros según las métricas actuales del cliente"""
+    try:
+        from apps.clients.models import Achievement, ClientAchievement
+
+        # Obtener todos los logros activos
+        achievements = Achievement.objects.filter(is_active=True, deleted=False)
+
+        for achievement in achievements:
+            # Verificar si el cliente cumple los requisitos
+            qualifies = achievement.check_client_qualifies(client)
+
+            # Verificar si ya tiene el logro
+            client_achievement = ClientAchievement.objects.filter(
+                client=client,
+                achievement=achievement,
+                deleted=False
+            ).first()
+
+            if qualifies and not client_achievement:
+                # Asignar nuevo logro
+                ClientAchievement.objects.create(
+                    client=client,
+                    achievement=achievement
+                )
+                logger.info(f"✅ Logro '{achievement.name}' asignado a {client.first_name} {client.last_name}")
+
+            elif not qualifies and client_achievement:
+                # Remover logro que ya no merece
+                client_achievement.deleted = True
+                client_achievement.save()
+                logger.info(f"❌ Logro '{achievement.name}' removido de {client.first_name} {client.last_name} (ya no cumple requisitos)")
+
+    except Exception as e:
+        logger.error(f"❌ Error verificando logros para cliente {client.id}: {e}")

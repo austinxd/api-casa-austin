@@ -4,6 +4,7 @@ from django.dispatch import receiver
 from .models import Reservation, RentalReceipt
 from ..core.telegram_notifier import send_telegram_message
 from django.conf import settings
+from .points_signals import check_and_assign_achievements
 from datetime import datetime, date
 import hashlib
 import requests
@@ -244,6 +245,16 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
             if not instance._original_full_payment and instance.full_payment:
                 logger.debug(f"Reserva {instance.id} marcada como pago completo - Enviando flujo ChatBot")
                 send_chatbot_flow_payment_complete(instance)
+        
+        # Verificar logros cuando cambie el estado de la reserva
+        if instance.client:
+            logger.debug(f"Verificando logros para cliente {instance.client.id} después de actualizar reserva {instance.id}")
+            check_and_assign_achievements(instance.client)
+            
+            # También verificar logros del cliente que refirió (si existe)
+            if instance.client.referred_by:
+                logger.debug(f"Verificando logros para cliente referidor {instance.client.referred_by.id}")
+                check_and_assign_achievements(instance.client.referred_by)
 
 def send_chatbot_flow_payment_complete(reservation):
     """Envía flujo de ChatBot Builder cuando el pago está completo"""

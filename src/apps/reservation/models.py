@@ -150,6 +150,23 @@ class Reservation(BaseModel):
                 description=f"Devolución de puntos por eliminación de reserva #{self.id} - {self.property.name if self.property else 'Propiedad'}"
             )
 
+        # Verificar logros después de eliminar la reserva
+        if self.client:
+            # Importar aquí para evitar imports circulares
+            from .points_signals import check_and_assign_achievements
+            import logging
+            
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Verificando logros para cliente {self.client.id} después de eliminar reserva {self.id}")
+            
+            # Verificar logros del cliente
+            check_and_assign_achievements(self.client)
+            
+            # También verificar logros del cliente que refirió (si existe)
+            if self.client.referred_by:
+                logger.debug(f"Verificando logros para cliente referidor {self.client.referred_by.id} después de eliminar reserva {self.id}")
+                check_and_assign_achievements(self.client.referred_by)
+
         self.deleted = True
         self.save()
 
