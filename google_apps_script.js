@@ -130,10 +130,10 @@ function insertSearchTrackingData(records) {
     if (sheet.getLastRow() === 0) {
       console.log('Hoja vacía, agregando headers...');
       const headers = [
-        'ID', 'Timestamp Búsqueda', 'Check-in', 'Check-out', 'Tipo de Día', 'Noches', 'Huéspedes',
+        'Fecha Creación', 'ID', 'Timestamp Búsqueda', 'Check-in', 'Check-out', 'Tipo de Día', 'Noches', 'Huéspedes',
         'Cliente ID', 'Cliente Nombre', 'Cliente Apellido', 'Cliente Email', 'Cliente Teléfono',
         'Propiedad ID', 'Propiedad Nombre',
-        'IP Address', 'Session Key', 'User Agent', 'Referrer', 'Fecha Creación'
+        'IP Address', 'Session Key', 'User Agent', 'Referrer'
       ];
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 
@@ -152,8 +152,8 @@ function insertSearchTrackingData(records) {
 
     // Empezar desde la fila 2 (skip headers)
     for (let i = 1; i < existingData.length; i++) {
-      if (existingData[i][0]) { // Columna ID (índice 0)
-        existingIds.add(existingData[i][0].toString());
+      if (existingData[i][1]) { // Columna ID (índice 1, ya que fecha creación es índice 0)
+        existingIds.add(existingData[i][1].toString());
       }
     }
 
@@ -239,6 +239,7 @@ function insertSearchTrackingData(records) {
       }
 
       const row = [
+        record.created || '',
         recordId,
         formatted_search_timestamp,
         record.check_in_date || '',
@@ -256,8 +257,7 @@ function insertSearchTrackingData(records) {
         technicalData.ip_address || '',
         technicalData.session_key || '',
         technicalData.user_agent || '',
-        technicalData.referrer || '',
-        record.created || ''
+        technicalData.referrer || ''
       ];
 
       console.log('Fila construida con', row.length, 'columnas');
@@ -327,10 +327,10 @@ function insertSingleRecord(record) {
     // Si la hoja está vacía, agregar headers
     if (sheet.getLastRow() === 0) {
       const headers = [
-        'ID', 'Timestamp Búsqueda', 'Check-in', 'Check-out', 'Tipo de Día', 'Noches', 'Huéspedes',
+        'Fecha Creación', 'ID', 'Timestamp Búsqueda', 'Check-in', 'Check-out', 'Tipo de Día', 'Noches', 'Huéspedes',
         'Cliente ID', 'Cliente Nombre', 'Cliente Apellido', 'Cliente Email', 'Cliente Teléfono',
         'Propiedad ID', 'Propiedad Nombre',
-        'IP Address', 'Session Key', 'User Agent', 'Referrer', 'Fecha Creación'
+        'IP Address', 'Session Key', 'User Agent', 'Referrer'
       ];
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 
@@ -343,7 +343,7 @@ function insertSingleRecord(record) {
     // Verificar si ya existe este registro
     const existingData = sheet.getDataRange().getValues();
     for (let i = 1; i < existingData.length; i++) {
-      if (existingData[i][0] === record.id) {
+      if (existingData[i][1] === record.id) { // Columna ID ahora está en índice 1
         console.log('Registro ya existe:', record.id);
         return {
           record_id: record.id,
@@ -410,6 +410,7 @@ function insertSingleRecord(record) {
 
     // Preparar fila de datos
     const row = [
+      record.created || '',
       record.id || '',
       formatted_search_timestamp,
       record.check_in_date || '',
@@ -427,8 +428,7 @@ function insertSingleRecord(record) {
       technicalData.ip_address || '',
       technicalData.session_key || '',
       technicalData.user_agent || '',
-      technicalData.referrer || '',
-      record.created || ''
+      technicalData.referrer || ''
     ];
 
     // Insertar fila
