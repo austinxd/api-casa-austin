@@ -293,7 +293,8 @@ class ClientReservationsListView(APIView):
 
         except Exception as e:
             logger.error(
-                f"ClientReservationsListView: Error getting reservations: {str(e)}")
+                f"ClientReservationsListView: Error getting reservations: {str(e)}"
+            )
             return Response(
                 {
                     'success': False,
@@ -633,6 +634,326 @@ class ReferralStatsView(APIView):
         return ip
 
 
+from datetime import datetime
+
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
+from rest_framework import filters, viewsets, status, permissions
+from rest_framework.views import APIView
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.generics import CreateAPIView, ListAPIView
+from django.contrib.auth.hashers import make_password, check_password
+from django.utils import timezone
+from datetime import datetime, timedelta
+from django.db.models import Q, Sum, Count
+from django.shortcuts import get_object_or_404
+
+from .models import Clients, MensajeFidelidad, TokenApiClients, ClientPoints, ReferralPointsConfig, SearchTracking, Achievement, ClientAchievement
+from .serializers import (
+    ClientsSerializer, MensajeFidelidadSerializer, TokenApiClienteSerializer,
+    ClientAuthVerifySerializer, ClientAuthRequestOTPSerializer,
+    ClientAuthSetPasswordSerializer, ClientAuthLoginSerializer,
+    ClientProfileSerializer, ClientPointsSerializer,
+    ClientPointsBalanceSerializer, RedeemPointsSerializer, SearchTrackingSerializer,
+    AchievementSerializer, ClientAchievementSerializer)
+from .twilio_service import send_sms
+from apps.core.utils import ExportCsvMixin
+from apps.reservation.models import Reservation
+from apps.reservation.serializers import ClientReservationSerializer
+
+from apps.core.paginator import CustomPagination
+
+
+def get_client_from_token(request):
+    """Helper function to get client from JWT token"""
+    try:
+        # Verificar que existe el header Authorization
+        auth_header = request.META.get('HTTP_AUTHORIZATION')
+        if not auth_header:
+            logger.error("get_client_from_token: No Authorization header found")
+            return None
+
+        if not auth_header.startswith('Bearer '):
+            logger.error(f"get_client_from_token: Invalid Authorization header format: {auth_header}")
+            return None
+
+        authenticator = ClientJWTAuthentication()
+        auth_result = authenticator.authenticate(request)
+
+        if auth_result is None:
+            logger.error("get_client_from_token: Authentication failed - no result from authenticator")
+            return None
+
+        client, validated_token = auth_result
+        if client:
+            logger.info(f"get_client_from_token: Client authenticated successfully - ID: {client.id}")
+            return client
+        else:
+            logger.error("get_client_from_token: No client found in auth result")
+            return None
+
+    except Exception as e:
+        logger.error(f"get_client_from_token: Error authenticating client: {str(e)}")
+        return None
+
+from apps.core.functions import generate_audit
+
+
+class MensajeFidelidadApiView(APIView):
+    serializer_class = MensajeFidelidadSerializer
+
+    def get(self, request):
+        content = self.serializer_class(
+            MensajeFidelidad.objects.exclude(activo=False).last()).data
+        return Response(content, status=200)
+
+
+class TokenApiClientApiView(APIView):
+    serializer_class = TokenApiClienteSerializer
+
+    def get(self, request):
+        content = self.serializer_class(
+            TokenApiClients.objects.exclude(
+                deleted=True).order_by("created").last()).data
+        return Response(content, status=200)
+
+
+class ClientsApiView(viewsets.ModelViewSet):
+    serializer_class = ClientsSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = [
+        "email", "number_doc", "first_name", "last_name", "tel_number"
+    ]
+    pagination_class = CustomPagination
+
+    def get_pagination_class(self):
+        """Determinar si usar o no paginación
+        - page_size = valor
+        - valor = un numero entero, será el tamaño de la pagina
+        - valor = none, no se pagina el resultado
+        """
+        if self.request.GET.get("page_size") == "none":
+            return None
+
+        return self.pagination_class
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "page_size",
+                OpenApiTypes.INT,
+                description=
+                "Enviar page_size=valor para determinar tamaño de la pagina, sino enviar page_size=none para no tener paginado",
+                required=False,
+            ),
+            OpenApiParameter(
+                "search",
+                OpenApiTypes.STR,
+                description="Busqueda por nombre, apellido o email",
+                required=False,
+            ),
+            OpenApiParameter(
+                "bd",
+                OpenApiTypes.STR,
+                description=
+                "bd=today para recuperar todos los clientes que tengan cumpleaños hoy",
+                required=False,
+            ),
+        ],
+        responses={200: ClientsSerializer},
+        methods=["GET"],
+    )
+    def list(self, request, *args, **kwargs):
+        self.pagination_class = self.get_pagination_class()
+        return super().list(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+        generate_audit(serializer.instance, self.request.user, "create",
+                       "Cliente creado")
+
+        # Verificar si hay código de referido
+        referral_code = self.request.data.get('referral_code')
+        if referral_code:
+            referrer = Clients.get_client_by_referral_code(referral_code)
+            if referrer:
+                serializer.instance.referred_by = referrer
+                logger.info(
+                    f"Cliente {serializer.instance.first_name} referido por {referrer.first_name} (Código: {referral_code})"
+                )
+            else:
+                logger.warning(
+                    f"Referente con código {referral_code} no encontrado")
+                pass  # No fallar el registro si el referente no existe
+        serializer.instance.save()
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance,
+                                         data=request.data,
+                                         partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        self.perform_update(serializer)
+
+        generate_audit(instance, self.request.user, "update",
+                       "Cliente actulizado")
+        return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+
+        instance.deleted = True
+        instance.save()
+
+        generate_audit(instance, self.request.user, "delete",
+                       "Cliente eliminado")
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def get_queryset(self):
+        queryset = Clients.objects.exclude(deleted=True).order_by(
+            "last_name", "first_name")
+
+        if not "admin" in self.request.user.groups.all().values_list(
+                'name', flat=True):
+            queryset = queryset.exclude(first_name="Mantenimiento")
+
+        if self.action == "search_clients":
+            params = self.request.GET
+            self.pagination_class = None
+            if not params:
+                return queryset.none()
+            return queryset
+
+        if self.request.query_params.get('bd') == 'today':
+            queryset = queryset.filter(date__month=datetime.now().month,
+                                       date__day=datetime.now().day)
+
+        return queryset
+
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_name="search",
+        url_path="search",
+    )
+    def search_clients(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+
+class ReferralConfigView(APIView):
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        """Obtener configuración actual del sistema de referidos"""
+        try:
+            # Usar exactamente la misma lógica que ClientReservationsView
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
+
+            if not client:
+                logger.error("ReferralConfigView: Authentication failed")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            config = ReferralPointsConfig.get_current_config()
+            if config:
+                return Response({
+                    'percentage': float(config.percentage),
+                    'is_active': config.is_active
+                })
+            else:
+                return Response({
+                    'percentage': 5.0,  # Valor por defecto
+                    'is_active': True
+                })
+        except Exception as e:
+            logger.error(f"Error getting referral config: {str(e)}")
+            return Response(
+                {
+                    'error': 'Error al obtener configuración de referidos',
+                    'detail': str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ReferralStatsView(APIView):
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        """Obtener estadísticas de referidos del cliente"""
+        try:
+            # Usar exactamente la misma lógica que ClientReservationsView
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
+
+            if not client:
+                logger.error("ReferralStatsView: Authentication failed")
+                return Response({'message': 'Token inválido'}, status=401)
+
+            # Obtener clientes referidos
+            referrals = Clients.objects.filter(
+                referred_by=client,
+                deleted=False).annotate(reservations_count=Count(
+                    'reservation', filter=Q(reservation__deleted=False)), )
+
+            # Calcular puntos ganados por referidos
+            referral_points = ClientPoints.objects.filter(
+                client=client,
+                transaction_type=ClientPoints.TransactionType.REFERRAL,
+                deleted=False).aggregate(
+                    total_points=Sum('points'))['total_points'] or 0
+
+            # Calcular total de reservas de referidos
+            referral_reservations = Reservation.objects.filter(
+                client__referred_by=client, deleted=False).count()
+
+            # Preparar datos de referidos para la respuesta
+            referrals_data = []
+            for referral in referrals:
+                # Calcular puntos ganados específicamente por este referido
+                points_from_referral = ClientPoints.objects.filter(
+                    client=client,
+                    referred_client=referral,
+                    transaction_type=ClientPoints.TransactionType.REFERRAL,
+                    deleted=False).aggregate(
+                        total_points=Sum('points'))['total_points'] or 0
+
+                referrals_data.append({
+                    'id':
+                    referral.id,
+                    'first_name':
+                    referral.first_name,
+                    'last_name':
+                    referral.last_name,
+                    'created_at':
+                    referral.created.isoformat() if hasattr(
+                        referral, 'created') else None,
+                    'reservations_count':
+                    referral.reservations_count,
+                    'points_earned':
+                    float(points_from_referral)
+                })
+
+            return Response({
+                'total_referrals': referrals.count(),
+                'referral_reservations': referral_reservations,
+                'referral_points': float(referral_points),
+                'referrals': referrals_data
+            })
+
+        except Exception as e:
+            logger.error(f"Error getting referral stats: {str(e)}")
+            return Response(
+                {
+                    'error': 'Error al obtener estadísticas de referidos',
+                    'detail': str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class SearchTrackingTestView(APIView):
     """Vista de prueba para debuggear tracking de búsquedas"""
     authentication_classes = [ClientJWTAuthentication]
@@ -666,7 +987,7 @@ class GoogleSheetsDebugView(APIView):
     def post(self, request):
         """Debuggear envío a Google Sheets con datos de prueba"""
         logger.info("GoogleSheetsDebugView: === INICIO DEBUG GOOGLE SHEETS ===")
-
+        
         try:
             # Crear datos de prueba
             test_data = [
@@ -721,22 +1042,22 @@ class GoogleSheetsDebugView(APIView):
                     'created': '2025-09-01T20:15:50.000000+00:00'
                 }
             ]
-
+            
             logger.info(f"GoogleSheetsDebugView: Datos de prueba creados: {len(test_data)} registros")
-
+            
             # Usar el mismo método de envío que SearchTrackingExportView
             export_view = SearchTrackingExportView()
             result = export_view.send_to_google_sheets(test_data)
-
+            
             logger.info(f"GoogleSheetsDebugView: Resultado del envío: {result}")
-
+            
             return Response({
                 'success': True,
                 'message': 'Debug de Google Sheets completado',
                 'test_data_sent': test_data,
                 'google_sheets_result': result
             })
-
+            
         except Exception as e:
             logger.error(f"GoogleSheetsDebugView: Error: {str(e)}")
             import traceback
@@ -944,7 +1265,7 @@ class PublicAchievementsListView(APIView):
     def get(self, request):
         """Obtener lista de todos los logros disponibles"""
         try:
-            # Obtener todos los logros activos
+            # Obtener todos los logros activos ordenados por requisitos
             achievements = Achievement.objects.filter(
                 is_active=True,
                 deleted=False
@@ -1050,7 +1371,7 @@ class ClientAchievementsView(APIView):
             return Response({
                 'success': True,
                 'data': {
-                    'total_achievements': all_achievements.count(),
+                    'total_achievements': client_achievements.count(),
                     'earned_achievements': achievements_serializer.data,
                     'available_achievements': available_serializer.data,
                     'new_achievements_count': len(new_achievements),
@@ -1773,56 +2094,116 @@ class SearchTrackingExportView(APIView):
     permission_classes = [AllowAny]
 
     def send_to_google_sheets(self, data):
-        """Envía datos a Google Sheets usando Google Apps Script webhook"""
+        """Enviar datos a Google Sheets usando Google Apps Script webhook"""
+        import requests
+        from django.conf import settings
+        
+        # URL del webhook de Google Apps Script
+        GOOGLE_SCRIPT_WEBHOOK = getattr(settings, 'GOOGLE_SCRIPT_WEBHOOK', None)
+        
+        if not GOOGLE_SCRIPT_WEBHOOK:
+            logger.warning("SearchTrackingExportView: GOOGLE_SCRIPT_WEBHOOK no configurado")
+            return {'success': False, 'message': 'Webhook no configurado'}
+        
         try:
-            webhook_url = settings.GOOGLE_SCRIPT_WEBHOOK
-
+            # DEBUGGING: Log detallado de los datos a enviar
+            logger.info(f"SearchTrackingExportView: === DEBUGGING ENVÍO A GOOGLE SHEETS ===")
+            logger.info(f"SearchTrackingExportView: Webhook URL: {GOOGLE_SCRIPT_WEBHOOK}")
+            logger.info(f"SearchTrackingExportView: Número de registros a enviar: {len(data)}")
+            logger.info(f"SearchTrackingExportView: Primer registro completo: {data[0] if data else 'DATOS VACÍOS'}")
+            
+            # Validar que tenemos datos
             if not data:
+                logger.error("SearchTrackingExportView: ¡DATOS VACÍOS! No hay nada que enviar")
+                return {'success': False, 'message': 'No hay datos para enviar'}
+            
+            # Enviar todos los datos en una sola request como array
+            payload = {
+                'action': 'insert_search_tracking',
+                'data': data,
+                'timestamp': timezone.now().isoformat()
+            }
+            
+            # DEBUGGING: Log del payload completo
+            logger.info(f"SearchTrackingExportView: === PAYLOAD COMPLETO ===")
+            logger.info(f"SearchTrackingExportView: Action: {payload['action']}")
+            logger.info(f"SearchTrackingExportView: Timestamp: {payload['timestamp']}")
+            logger.info(f"SearchTrackingExportView: Data length: {len(payload['data'])}")
+            logger.info(f"SearchTrackingExportView: Payload JSON string (primeros 1000 chars): {str(payload)[:1000]}...")
+            
+            # Validar estructura de cada registro
+            for i, record in enumerate(data[:3]):  # Solo los primeros 3 para no saturar logs
+                logger.info(f"SearchTrackingExportView: Registro {i+1} estructura:")
+                logger.info(f"  - ID: {record.get('id', 'MISSING')}")
+                logger.info(f"  - search_timestamp: {record.get('search_timestamp', 'MISSING')}")
+                logger.info(f"  - check_in_date: {record.get('check_in_date', 'MISSING')}")
+                logger.info(f"  - check_out_date: {record.get('check_out_date', 'MISSING')}")
+                logger.info(f"  - guests: {record.get('guests', 'MISSING')}")
+                logger.info(f"  - client_info: {record.get('client_info', 'MISSING')}")
+                logger.info(f"  - property_info: {record.get('property_info', 'MISSING')}")
+                logger.info(f"  - technical_data: {record.get('technical_data', 'MISSING')}")
+                logger.info(f"  - created: {record.get('created', 'MISSING')}")
+            
+            logger.info(f"SearchTrackingExportView: === ENVIANDO REQUEST ===")
+            
+            response = requests.post(
+                GOOGLE_SCRIPT_WEBHOOK,
+                json=payload,
+                headers={'Content-Type': 'application/json'},
+                timeout=60  # Timeout más largo para múltiples registros
+            )
+            
+            logger.info(f"SearchTrackingExportView: === RESPUESTA RECIBIDA ===")
+            logger.info(f"SearchTrackingExportView: Status Code: {response.status_code}")
+            logger.info(f"SearchTrackingExportView: Response Headers: {dict(response.headers)}")
+            logger.info(f"SearchTrackingExportView: Response Text (primeros 1000 chars): {response.text[:1000]}")
+            
+            if response.status_code == 200:
+                try:
+                    response_data = response.json()
+                    logger.info(f"SearchTrackingExportView: Response JSON: {response_data}")
+                    
+                    if response_data.get('success'):
+                        logger.info(f"SearchTrackingExportView: ✅ {len(data)} registros enviados exitosamente a Google Sheets")
+                        return {
+                            'success': True,
+                            'successful_sends': len(data),
+                            'failed_sends': 0,
+                            'total_records': len(data),
+                            'google_response': response_data
+                        }
+                    else:
+                        logger.error(f"SearchTrackingExportView: ❌ Google Apps Script retornó error: {response_data}")
+                        return {
+                            'success': False,
+                            'message': response_data.get('message', 'Error desde Google Apps Script')
+                        }
+                except ValueError as ve:
+                    # Si la respuesta no es JSON válido
+                    logger.warning(f"SearchTrackingExportView: ⚠️ Respuesta no es JSON válido: {response.text}")
+                    logger.warning(f"SearchTrackingExportView: ValueError: {str(ve)}")
+                    return {
+                        'success': True,
+                        'successful_sends': len(data),
+                        'failed_sends': 0,
+                        'total_records': len(data),
+                        'message': 'Datos enviados, respuesta no es JSON válido'
+                    }
+            else:
+                logger.error(f"SearchTrackingExportView: ❌ Error HTTP {response.status_code}: {response.text}")
                 return {
                     'success': False,
-                    'message': 'No hay datos para enviar'
+                    'message': f'Error HTTP {response.status_code}: {response.text}'
                 }
-
-            # Enviar datos en lotes para evitar timeouts
-            batch_size = 50
-            successful_sends = 0
-            failed_sends = 0
-
-            for i in range(0, len(data), batch_size):
-                batch = data[i:i + batch_size]
-
-                try:
-                    response = requests.post(
-                        webhook_url,
-                        json={'data': batch},
-                        headers={'Content-Type': 'application/json'},
-                        timeout=30
-                    )
-
-                    if response.status_code == 200:
-                        successful_sends += len(batch)
-                        logger.info(f"Lote de {len(batch)} registros enviado exitosamente a Google Sheets")
-                    else:
-                        failed_sends += len(batch)
-                        logger.error(f"Error enviando lote a Google Sheets: {response.status_code}")
-
-                except requests.exceptions.RequestException as e:
-                    failed_sends += len(batch)
-                    logger.error(f"Error de conexión enviando a Google Sheets: {str(e)}")
-
-            return {
-                'success': successful_sends > 0,
-                'message': f'Enviados {successful_sends} registros exitosamente',
-                'successful_sends': successful_sends,
-                'failed_sends': failed_sends
-            }
-
+            
+        except requests.exceptions.Timeout:
+            logger.error(f"SearchTrackingExportView: ❌ Timeout enviando a Google Sheets")
+            return {'success': False, 'message': 'Timeout al enviar datos'}
         except Exception as e:
-            logger.error(f"Error general en send_to_google_sheets: {str(e)}")
-            return {
-                'success': False,
-                'message': f'Error al enviar datos: {str(e)}'
-            }
+            logger.error(f"SearchTrackingExportView: ❌ Error enviando a Google Sheets: {str(e)}")
+            import traceback
+            logger.error(f"SearchTrackingExportView: Traceback: {traceback.format_exc()}")
+            return {'success': False, 'message': str(e)}
 
     def get(self, request):
         """Exportar todos los datos de SearchTracking en formato JSON y opcionalmente enviar a Google Sheets"""
@@ -1840,7 +2221,7 @@ class SearchTrackingExportView(APIView):
 
             if client_id:
                 search_tracking_queryset = search_tracking_queryset.filter(client_id=client_id)
-
+            
             if date_from:
                 try:
                     from datetime import datetime
@@ -1848,7 +2229,7 @@ class SearchTrackingExportView(APIView):
                     search_tracking_queryset = search_tracking_queryset.filter(search_timestamp__date__gte=date_from_parsed)
                 except ValueError:
                     pass
-
+            
             if date_to:
                 try:
                     from datetime import datetime
@@ -1856,13 +2237,33 @@ class SearchTrackingExportView(APIView):
                     search_tracking_queryset = search_tracking_queryset.filter(search_timestamp__date__lte=date_to_parsed)
                 except ValueError:
                     pass
-
+            
             if property_id:
                 search_tracking_queryset = search_tracking_queryset.filter(property_id=property_id)
 
             # Preparar datos para exportación
             export_data = []
             for tracking in search_tracking_queryset:
+                # DEBUGGING: Log detallado de cada registro
+                logger.info(f"SearchTrackingExportView: === PROCESANDO REGISTRO {tracking.id} ===")
+                logger.info(f"SearchTrackingExportView: tracking.client = {tracking.client}")
+                logger.info(f"SearchTrackingExportView: tracking.client type = {type(tracking.client)}")
+                
+                if tracking.client:
+                    logger.info(f"SearchTrackingExportView: client.id = {tracking.client.id}")
+                    logger.info(f"SearchTrackingExportView: client.first_name = {tracking.client.first_name}")
+                    logger.info(f"SearchTrackingExportView: client.last_name = {tracking.client.last_name}")
+                    logger.info(f"SearchTrackingExportView: client.email = {tracking.client.email}")
+                else:
+                    logger.warning(f"SearchTrackingExportView: ¡REGISTRO SIN CLIENTE! ID: {tracking.id}")
+                
+                logger.info(f"SearchTrackingExportView: tracking.property = {tracking.property}")
+                if tracking.property:
+                    logger.info(f"SearchTrackingExportView: property.id = {tracking.property.id}")
+                    logger.info(f"SearchTrackingExportView: property.name = {tracking.property.name}")
+                else:
+                    logger.warning(f"SearchTrackingExportView: ¡REGISTRO SIN PROPIEDAD! ID: {tracking.id}")
+                
                 data = {
                     'id': str(tracking.id),
                     'search_timestamp': tracking.search_timestamp.isoformat() if tracking.search_timestamp else None,
@@ -1870,16 +2271,25 @@ class SearchTrackingExportView(APIView):
                     'check_out_date': tracking.check_out_date.isoformat() if tracking.check_out_date else None,
                     'guests': tracking.guests,
                     'client_info': {
-                        'id': str(tracking.client.id) if tracking.client else None,
-                        'first_name': tracking.client.first_name if tracking.client else None,
-                        'last_name': tracking.client.last_name if tracking.client else None,
-                        'email': tracking.client.email if tracking.client else None,
-                        'tel_number': tracking.client.tel_number if tracking.client else None,
-                    } if tracking.client else None,
+                        'id': str(tracking.client.id) if tracking.client else 'ANONIMO',
+                        'first_name': tracking.client.first_name if tracking.client else 'Usuario',
+                        'last_name': tracking.client.last_name if tracking.client else 'Anónimo',
+                        'email': tracking.client.email if tracking.client else 'anonimo@casaaustin.pe',
+                        'tel_number': tracking.client.tel_number if tracking.client else 'Sin teléfono',
+                    } if tracking.client else {
+                        'id': 'ANONIMO',
+                        'first_name': 'Usuario',
+                        'last_name': 'Anónimo',
+                        'email': 'anonimo@casaaustin.pe',
+                        'tel_number': 'Sin teléfono',
+                    },
                     'property_info': {
-                        'id': str(tracking.property.id) if tracking.property else None,
-                        'name': tracking.property.name if tracking.property else None,
-                    } if tracking.property else None,
+                        'id': str(tracking.property.id) if tracking.property else 'SIN_PROPIEDAD',
+                        'name': tracking.property.name if tracking.property else 'Búsqueda general',
+                    } if tracking.property else {
+                        'id': 'SIN_PROPIEDAD',
+                        'name': 'Búsqueda general',
+                    },
                     'technical_data': {
                         'ip_address': str(tracking.ip_address) if tracking.ip_address else None,
                         'session_key': str(tracking.session_key) if tracking.session_key else None,
@@ -1888,6 +2298,12 @@ class SearchTrackingExportView(APIView):
                     },
                     'created': tracking.created.isoformat() if hasattr(tracking, 'created') and tracking.created else None,
                 }
+                
+                # DEBUGGING: Log de la estructura final
+                logger.info(f"SearchTrackingExportView: Estructura final del registro {tracking.id}:")
+                logger.info(f"  - client_info: {data['client_info']}")
+                logger.info(f"  - property_info: {data['property_info']}")
+                
                 export_data.append(data)
 
             # Preparar respuesta con metadatos
@@ -1903,7 +2319,7 @@ class SearchTrackingExportView(APIView):
                         'property_id': property_id,
                     },
                     'fields': [
-                        'id', 'search_timestamp', 'check_in_date', 'check_out_date',
+                        'id', 'search_timestamp', 'check_in_date', 'check_out_date', 
                         'guests', 'client_info', 'property_info', 'technical_data', 'created'
                     ]
                 },
@@ -1913,11 +2329,11 @@ class SearchTrackingExportView(APIView):
             # Verificar si se debe enviar a Google Sheets
             send_to_sheets = request.GET.get('send_to_sheets', 'false').lower() == 'true'
             google_sheets_result = None
-
+            
             if send_to_sheets:
                 google_sheets_result = self.send_to_google_sheets(export_data)
                 response_data['google_sheets_sync'] = google_sheets_result
-
+            
             logger.info(f"SearchTrackingExportView: Exported {len(export_data)} search tracking records")
             return Response(response_data)
 
@@ -2043,7 +2459,7 @@ class SearchTrackingView(APIView):
             session_key = request.session.session_key if hasattr(request, 'session') and request.session.session_key else None
             user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]  # Limitar longitud
             referrer = request.META.get('HTTP_REFERER', '')
-
+            
             logger.info(f"SearchTrackingView: Datos adicionales capturados - IP: {ip_address}, Session: {session_key}")
 
             # Guardar o actualizar el registro de SearchTracking
