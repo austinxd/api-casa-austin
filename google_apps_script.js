@@ -133,7 +133,7 @@ function insertSearchTrackingData(records) {
         'Timestamp Búsqueda', 'ID', 'Check-in', 'Check-out', 'Tipo de Día', 'Noches', 'Huéspedes',
         'Cliente ID', 'Cliente Nombre', 'Cliente Apellido', 'Cliente Email', 'Cliente Teléfono',
         'Propiedad ID', 'Propiedad Nombre',
-        'IP Address', 'Session Key', 'User Agent', 'Referrer', 'Fecha Creación'
+        'IP Address', 'Session Key', 'User Agent', 'Referrer', '0Fecha de búsqueda'
       ];
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 
@@ -189,19 +189,20 @@ function insertSearchTrackingData(records) {
       console.log('- Check-out:', record.check_out_date);
       console.log('- Huéspedes:', record.guests);
 
-      // Formatear timestamp de búsqueda solo fecha (PRIMERA COLUMNA)
+      // Formatear timestamp de búsqueda - formato timestamp completo
       const searchTimestamp = record.search_timestamp ?
-        formatDateOnly(record.search_timestamp) : 'Sin fecha';
+        formatDateToGMT5(record.search_timestamp) : 'Sin fecha';
 
-      // Formatear check-in y check-out con zona horaria GMT-5 para consistencia
+      // Formatear check-in y check-out - solo fecha
       const checkInFormatted = record.check_in_date ?
-        formatDateToGMT5(record.check_in_date) : 'Sin fecha';
-      const checkOutFormatted = record.check_out_date ?
-        formatDateToGMT5(record.check_out_date) : 'Sin fecha';
+        formatDateOnly(record.check_in_date) : 'Sin fecha';
 
-      // Formatear fecha de creación con zona horaria GMT-5
+      const checkOutFormatted = record.check_out_date ?
+        formatDateOnly(record.check_out_date) : 'Sin fecha';
+
+      // Formatear fecha de creación - solo fecha (renombrada a 0Fecha de búsqueda)
       const createdFormatted = record.created ?
-        formatDateToGMT5(record.created) : 'Sin fecha';
+        formatDateOnly(record.created) : 'Sin fecha';
 
       // Determinar tipo de día basado en check-in
       let tipoDia = 'Sin fecha';
@@ -239,7 +240,7 @@ function insertSearchTrackingData(records) {
         technicalData.session_key || 'Sin sesión',
         technicalData.user_agent || 'Sin user agent',
         technicalData.referrer || 'Sin referrer',
-        createdFormatted // Última columna: Fecha Creación
+        createdFormatted // Última columna: 0Fecha de búsqueda
       ];
 
       console.log('Fila construida con', row.length, 'columnas');
@@ -312,7 +313,7 @@ function insertSingleRecord(record) {
         'Timestamp Búsqueda', 'ID', 'Check-in', 'Check-out', 'Tipo de Día', 'Noches', 'Huéspedes',
         'Cliente ID', 'Cliente Nombre', 'Cliente Apellido', 'Cliente Email', 'Cliente Teléfono',
         'Propiedad ID', 'Propiedad Nombre',
-        'IP Address', 'Session Key', 'User Agent', 'Referrer', 'Fecha Creación'
+        'IP Address', 'Session Key', 'User Agent', 'Referrer', '0Fecha de búsqueda'
       ];
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 
@@ -340,19 +341,20 @@ function insertSingleRecord(record) {
     const propertyInfo = record.property_info || {};
     const technicalData = record.technical_data || {};
 
-    // Formatear timestamp de búsqueda solo fecha (PRIMERA COLUMNA)
+    // Formatear timestamp de búsqueda - formato timestamp completo
     const searchTimestamp = record.search_timestamp ?
-      formatDateOnly(record.search_timestamp) : 'Sin fecha';
+      formatDateToGMT5(record.search_timestamp) : 'Sin fecha';
 
-    // Formatear check-in y check-out con zona horaria GMT-5 para consistencia
+    // Formatear check-in y check-out - solo fecha
     const checkInFormatted = record.check_in_date ?
-      formatDateToGMT5(record.check_in_date) : 'Sin fecha';
-    const checkOutFormatted = record.check_out_date ?
-      formatDateToGMT5(record.check_out_date) : 'Sin fecha';
+      formatDateOnly(record.check_in_date) : 'Sin fecha';
 
-    // Formatear fecha de creación con zona horaria GMT-5
+    const checkOutFormatted = record.check_out_date ?
+      formatDateOnly(record.check_out_date) : 'Sin fecha';
+
+    // Formatear fecha de creación - solo fecha (renombrada a 0Fecha de búsqueda)
     const createdFormatted = record.created ?
-      formatDateToGMT5(record.created) : 'Sin fecha';
+      formatDateOnly(record.created) : 'Sin fecha';
 
     // Determinar Tipo de Día (Fin de semana o Día de semana)
     let tipoDeDia = 'Sin fecha';
@@ -401,7 +403,7 @@ function insertSingleRecord(record) {
       technicalData.session_key || 'Sin sesión',
       technicalData.user_agent || 'Sin user agent',
       technicalData.referrer || 'Sin referrer',
-      createdFormatted // Última columna: Fecha Creación
+      createdFormatted // Última columna: 0Fecha de búsqueda
     ];
 
     // Insertar fila
