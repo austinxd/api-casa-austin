@@ -130,10 +130,10 @@ function insertSearchTrackingData(records) {
     if (sheet.getLastRow() === 0) {
       console.log('Hoja vacía, agregando headers...');
       const headers = [
-        'Fecha Creación', 'ID', 'Timestamp Búsqueda', 'Check-in', 'Check-out', 'Tipo de Día', 'Noches', 'Huéspedes',
+        'Timestamp Búsqueda', 'ID', 'Check-in', 'Check-out', 'Tipo de Día', 'Noches', 'Huéspedes',
         'Cliente ID', 'Cliente Nombre', 'Cliente Apellido', 'Cliente Email', 'Cliente Teléfono',
         'Propiedad ID', 'Propiedad Nombre',
-        'IP Address', 'Session Key', 'User Agent', 'Referrer'
+        'IP Address', 'Session Key', 'User Agent', 'Referrer', 'Fecha Creación'
       ];
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 
@@ -152,7 +152,7 @@ function insertSearchTrackingData(records) {
 
     // Empezar desde la fila 2 (skip headers)
     for (let i = 1; i < existingData.length; i++) {
-      if (existingData[i][1]) { // Columna ID (índice 1, ya que fecha creación es índice 0)
+      if (existingData[i][1]) { // Columna ID (índice 1)
         existingIds.add(existingData[i][1].toString());
       }
     }
@@ -189,75 +189,57 @@ function insertSearchTrackingData(records) {
       console.log('- Check-out:', record.check_out_date);
       console.log('- Huéspedes:', record.guests);
 
-      // Determinar Tipo de Día (Fin de semana o Día de semana)
-      let tipoDeDia = 'Día de semana';
+      // Formatear timestamp de búsqueda con zona horaria GMT-5 (PRIMERA COLUMNA)
+      const searchTimestamp = record.search_timestamp ?
+        formatDateToGMT5(record.search_timestamp) : 'Sin fecha';
+
+      // Formatear check-in y check-out con zona horaria GMT-5 para consistencia
+      const checkInFormatted = record.check_in_date ?
+        formatDateToGMT5(record.check_in_date) : 'Sin fecha';
+      const checkOutFormatted = record.check_out_date ?
+        formatDateToGMT5(record.check_out_date) : 'Sin fecha';
+
+      // Formatear fecha de creación con zona horaria GMT-5
+      const createdFormatted = record.created ?
+        formatDateToGMT5(record.created) : 'Sin fecha';
+
+      // Determinar tipo de día basado en check-in
+      let tipoDia = 'Sin fecha';
       if (record.check_in_date) {
-        try {
-          const checkInDate = new Date(record.check_in_date);
-          const dayOfWeek = checkInDate.getDay(); // 0 = Domingo, 6 = Sábado
-          if (dayOfWeek === 5 || dayOfWeek === 6) { // Viernes o Sábado
-            tipoDeDia = 'Fin de semana';
-          }
-        } catch (e) {
-          console.error('Error al determinar tipo de día:', e);
-        }
+        const checkInDate = new Date(record.check_in_date);
+        const dayOfWeek = checkInDate.getDay(); // 0=Domingo, 1=Lunes, ..., 6=Sábado
+        tipoDia = (dayOfWeek === 5 || dayOfWeek === 6) ? 'Fin de semana' : 'Día de semana';
       }
 
-      // Calcular Cantidad de Noches
-      let noches = '';
+      // Calcular número de noches
+      let noches = 0;
       if (record.check_in_date && record.check_out_date) {
-        try {
-          const checkIn = new Date(record.check_in_date);
-          const checkOut = new Date(record.check_out_date);
-          const timeDiff = checkOut.getTime() - checkIn.getTime();
-          noches = Math.ceil(timeDiff / (1000 * 3600 * 24));
-        } catch (e) {
-          console.error('Error al calcular noches:', e);
-        }
+        const checkIn = new Date(record.check_in_date);
+        const checkOut = new Date(record.check_out_date);
+        noches = Math.max(0, Math.floor((checkOut - checkIn) / (1000 * 60 * 60 * 24)));
       }
 
-      // Formatear timestamp de búsqueda para mejor legibilidad
-      let formatted_search_timestamp = '';
-      if (record.search_timestamp) {
-        try {
-          // Convertir string ISO a Date object
-          const searchDate = new Date(record.search_timestamp);
-
-          // Verificar que la fecha sea válida
-          if (!isNaN(searchDate.getTime())) {
-            // Formato: DD/MM/YYYY HH:MM:SS en zona horaria GMT-5 (Perú)
-            formatted_search_timestamp = Utilities.formatDate(searchDate, 'GMT-5', 'dd/MM/yyyy HH:mm:ss');
-            console.log(`Timestamp convertido: ${record.search_timestamp} → ${formatted_search_timestamp}`);
-          } else {
-            console.error('Fecha inválida recibida:', record.search_timestamp);
-            formatted_search_timestamp = record.search_timestamp; // Fallback al original
-          }
-        } catch (e) {
-          console.error('Error formateando timestamp:', e);
-          formatted_search_timestamp = record.search_timestamp; // Fallback al original
-        }
-      }
-
+      // Preparar fila con timestamp de búsqueda como primera columna
       const row = [
-        record.created || '',
-        recordId,
-        formatted_search_timestamp,
-        record.check_in_date || '',
-        record.check_out_date || '',
-        tipoDeDia, // Nueva columna: Tipo de Día
-        noches,    // Nueva columna: Noches
+        searchTimestamp, // Primera columna: Timestamp Búsqueda
+        record.id || 'Sin ID',
+        checkInFormatted,
+        checkOutFormatted,
+        tipoDia,
+        noches,
         record.guests || 0,
-        clientInfo.id || '',
-        clientInfo.first_name || '',
-        clientInfo.last_name || '',
-        clientInfo.email || '',
-        clientInfo.tel_number || '',
-        propertyInfo.id || '',
-        propertyInfo.name || '',
-        technicalData.ip_address || '',
-        technicalData.session_key || '',
-        technicalData.user_agent || '',
-        technicalData.referrer || ''
+        clientInfo.id || 'ANONIMO',
+        clientInfo.first_name || 'Usuario',
+        clientInfo.last_name || 'Anónimo',
+        clientInfo.email || 'anonimo@casaaustin.pe',
+        clientInfo.tel_number || 'Sin teléfono',
+        propertyInfo.id || 'SIN_PROPIEDAD',
+        propertyInfo.name || 'Búsqueda general',
+        technicalData.ip_address || 'Sin IP',
+        technicalData.session_key || 'Sin sesión',
+        technicalData.user_agent || 'Sin user agent',
+        technicalData.referrer || 'Sin referrer',
+        createdFormatted // Última columna: Fecha Creación
       ];
 
       console.log('Fila construida con', row.length, 'columnas');
@@ -327,10 +309,10 @@ function insertSingleRecord(record) {
     // Si la hoja está vacía, agregar headers
     if (sheet.getLastRow() === 0) {
       const headers = [
-        'Fecha Creación', 'ID', 'Timestamp Búsqueda', 'Check-in', 'Check-out', 'Tipo de Día', 'Noches', 'Huéspedes',
+        'Timestamp Búsqueda', 'ID', 'Check-in', 'Check-out', 'Tipo de Día', 'Noches', 'Huéspedes',
         'Cliente ID', 'Cliente Nombre', 'Cliente Apellido', 'Cliente Email', 'Cliente Teléfono',
         'Propiedad ID', 'Propiedad Nombre',
-        'IP Address', 'Session Key', 'User Agent', 'Referrer'
+        'IP Address', 'Session Key', 'User Agent', 'Referrer', 'Fecha Creación'
       ];
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 
@@ -358,8 +340,22 @@ function insertSingleRecord(record) {
     const propertyInfo = record.property_info || {};
     const technicalData = record.technical_data || {};
 
+    // Formatear timestamp de búsqueda con zona horaria GMT-5 (PRIMERA COLUMNA)
+    const searchTimestamp = record.search_timestamp ?
+      formatDateToGMT5(record.search_timestamp) : 'Sin fecha';
+
+    // Formatear check-in y check-out con zona horaria GMT-5 para consistencia
+    const checkInFormatted = record.check_in_date ?
+      formatDateToGMT5(record.check_in_date) : 'Sin fecha';
+    const checkOutFormatted = record.check_out_date ?
+      formatDateToGMT5(record.check_out_date) : 'Sin fecha';
+
+    // Formatear fecha de creación con zona horaria GMT-5
+    const createdFormatted = record.created ?
+      formatDateToGMT5(record.created) : 'Sin fecha';
+
     // Determinar Tipo de Día (Fin de semana o Día de semana)
-    let tipoDeDia = 'Día de semana';
+    let tipoDeDia = 'Sin fecha';
     if (record.check_in_date) {
       try {
         const checkInDate = new Date(record.check_in_date);
@@ -385,50 +381,27 @@ function insertSingleRecord(record) {
       }
     }
 
-
-    // Formatear timestamp de búsqueda
-    let formatted_search_timestamp = '';
-    if (record.search_timestamp) {
-      try {
-        // Convertir string ISO a Date object
-        const searchDate = new Date(record.search_timestamp);
-
-        // Verificar que la fecha sea válida
-        if (!isNaN(searchDate.getTime())) {
-          // Formato: DD/MM/YYYY HH:MM:SS en zona horaria GMT-5 (Perú)
-          formatted_search_timestamp = Utilities.formatDate(searchDate, 'GMT-5', 'dd/MM/yyyy HH:mm:ss');
-          console.log(`Timestamp individual convertido: ${record.search_timestamp} → ${formatted_search_timestamp}`);
-        } else {
-          console.error('Fecha inválida recibida:', record.search_timestamp);
-          formatted_search_timestamp = record.search_timestamp; // Fallback al original
-        }
-      } catch (e) {
-        console.error('Error formateando timestamp:', e);
-        formatted_search_timestamp = record.search_timestamp; // Fallback al original
-      }
-    }
-
     // Preparar fila de datos
     const row = [
-      record.created || '',
-      record.id || '',
-      formatted_search_timestamp,
-      record.check_in_date || '',
-      record.check_out_date || '',
-      tipoDeDia, // Nueva columna: Tipo de Día
-      noches,    // Nueva columna: Noches
+      searchTimestamp,   // Primera columna: Timestamp Búsqueda
+      record.id || 'Sin ID',
+      checkInFormatted,
+      checkOutFormatted,
+      tipoDeDia,
+      noches,
       record.guests || '',
-      clientInfo.id || '',
-      clientInfo.first_name || '',
-      clientInfo.last_name || '',
-      clientInfo.email || '',
-      clientInfo.tel_number || '',
-      propertyInfo.id || '',
-      propertyInfo.name || '',
-      technicalData.ip_address || '',
-      technicalData.session_key || '',
-      technicalData.user_agent || '',
-      technicalData.referrer || ''
+      clientInfo.id || 'ANONIMO',
+      clientInfo.first_name || 'Usuario',
+      clientInfo.last_name || 'Anónimo',
+      clientInfo.email || 'anonimo@casaaustin.pe',
+      clientInfo.tel_number || 'Sin teléfono',
+      propertyInfo.id || 'SIN_PROPIEDAD',
+      propertyInfo.name || 'Búsqueda general',
+      technicalData.ip_address || 'Sin IP',
+      technicalData.session_key || 'Sin sesión',
+      technicalData.user_agent || 'Sin user agent',
+      technicalData.referrer || 'Sin referrer',
+      createdFormatted // Última columna: Fecha Creación
     ];
 
     // Insertar fila
@@ -615,5 +588,51 @@ function getSheetInfo() {
   } catch (error) {
     console.error('Error obteniendo info de la hoja:', error);
     throw error;
+  }
+}
+
+/**
+ * Formatea una fecha a formato DD/MM/YYYY HH:MM:SS en zona horaria GMT-5
+ * @param {string} isoString Fecha en formato ISO (ej. "2023-10-27T10:00:00.000Z")
+ * @returns {string} Fecha formateada o 'Sin fecha' si la entrada es inválida.
+ */
+function formatDateToGMT5(isoString) {
+  if (!isoString) {
+    return 'Sin fecha';
+  }
+  try {
+    const date = new Date(isoString);
+    // Verificar si la fecha es válida
+    if (isNaN(date.getTime())) {
+      console.warn(`Fecha inválida recibida para formatear: ${isoString}`);
+      return isoString; // Devolver la cadena original si no es una fecha válida
+    }
+    // Utiliza Utilities.formatDate para manejar zonas horarias correctamente
+    return Utilities.formatDate(date, 'GMT-5', 'dd/MM/yyyy HH:mm:ss');
+  } catch (e) {
+    console.error(`Error formateando fecha ${isoString}: ${e}`);
+    return isoString; // Devolver la cadena original en caso de error
+  }
+}
+
+/**
+ * Formatea una fecha a formato DD/MM/YYYY (solo fecha)
+ * @param {string} isoString Fecha en formato ISO
+ * @returns {string} Fecha formateada o 'Sin fecha'.
+ */
+function formatDateOnly(isoString) {
+  if (!isoString) {
+    return 'Sin fecha';
+  }
+  try {
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) {
+      console.warn(`Fecha inválida recibida para formatear (solo fecha): ${isoString}`);
+      return isoString;
+    }
+    return Utilities.formatDate(date, Session.getScriptTimeZone(), 'dd/MM/yyyy');
+  } catch (e) {
+    console.error(`Error formateando fecha (solo fecha) ${isoString}: ${e}`);
+    return isoString;
   }
 }
