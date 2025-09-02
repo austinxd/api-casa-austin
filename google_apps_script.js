@@ -189,9 +189,9 @@ function insertSearchTrackingData(records) {
       console.log('- Check-out:', record.check_out_date);
       console.log('- Huéspedes:', record.guests);
 
-      // Formatear timestamp de búsqueda con zona horaria GMT-5 (PRIMERA COLUMNA)
+      // Formatear timestamp de búsqueda solo fecha (PRIMERA COLUMNA)
       const searchTimestamp = record.search_timestamp ?
-        formatDateToGMT5(record.search_timestamp) : 'Sin fecha';
+        formatDateOnly(record.search_timestamp) : 'Sin fecha';
 
       // Formatear check-in y check-out con zona horaria GMT-5 para consistencia
       const checkInFormatted = record.check_in_date ?
@@ -340,9 +340,9 @@ function insertSingleRecord(record) {
     const propertyInfo = record.property_info || {};
     const technicalData = record.technical_data || {};
 
-    // Formatear timestamp de búsqueda con zona horaria GMT-5 (PRIMERA COLUMNA)
+    // Formatear timestamp de búsqueda solo fecha (PRIMERA COLUMNA)
     const searchTimestamp = record.search_timestamp ?
-      formatDateToGMT5(record.search_timestamp) : 'Sin fecha';
+      formatDateOnly(record.search_timestamp) : 'Sin fecha';
 
     // Formatear check-in y check-out con zona horaria GMT-5 para consistencia
     const checkInFormatted = record.check_in_date ?
@@ -616,7 +616,7 @@ function formatDateToGMT5(isoString) {
 }
 
 /**
- * Formatea una fecha a formato DD/MM/YYYY (solo fecha)
+ * Formatea una fecha a formato DD/MM/YYYY (solo fecha) en GMT-5
  * @param {string} isoString Fecha en formato ISO
  * @returns {string} Fecha formateada o 'Sin fecha'.
  */
@@ -630,7 +630,7 @@ function formatDateOnly(isoString) {
       console.warn(`Fecha inválida recibida para formatear (solo fecha): ${isoString}`);
       return isoString;
     }
-    return Utilities.formatDate(date, Session.getScriptTimeZone(), 'dd/MM/yyyy');
+    return Utilities.formatDate(date, 'GMT-5', 'dd/MM/yyyy');
   } catch (e) {
     console.error(`Error formateando fecha (solo fecha) ${isoString}: ${e}`);
     return isoString;
