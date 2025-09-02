@@ -329,8 +329,6 @@ from apps.reservation.models import Reservation
 from apps.reservation.serializers import ClientReservationSerializer
 
 from apps.core.paginator import CustomPagination
-from django.conf import settings
-import requests
 
 
 def get_client_from_token(request):

@@ -17,11 +17,11 @@ env.read_env(env_file=env_file)
 SECRET_KEY_DEFAULT = "django-insecure-3**i%5(i9m$3&m)&js8m^(m96!+^*t8u#r#aiq_^z-%f38hy)u"
 SECRET_KEY = env("DJANGO_SECRET_KEY", default=SECRET_KEY_DEFAULT)
 
-# Twilio Configuration - All using env() for consistency
-TWILIO_ACCOUNT_SID = env('TWILIO_ACCOUNT_SID', default='')
-TWILIO_AUTH_TOKEN = env('TWILIO_AUTH_TOKEN', default='')
-TWILIO_PHONE_NUMBER = env('TWILIO_PHONE_NUMBER', default='')
-TWILIO_VERIFY_SERVICE_SID = env('TWILIO_VERIFY_SERVICE_SID', default='')
+# Twilio Configuration
+TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
+TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER')
+TWILIO_VERIFY_SERVICE_SID = os.environ.get('TWILIO_VERIFY_SERVICE_SID')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DJANGO_DEBUG', default=True)
@@ -326,17 +326,23 @@ LOGGING = {
     },
 }
 
-# Telegram settings - All using env() for consistency
-TELEGRAM_BOT_TOKEN = env('TELEGRAM_BOT_TOKEN', default='')
-CHAT_ID = env('CHAT_ID', default='')
-SECOND_CHAT_ID = env('SECOND_CHAT_ID', default='')
-PERSONAL_CHAT_ID = env('PERSONAL_CHAT_ID', default='')
-CLIENTS_CHAT_ID = env('CLIENTS_CHAT_ID', default='')
+# Telegram settings
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 # Google Apps Script webhook for Google Sheets integration
 GOOGLE_SCRIPT_WEBHOOK = env('GOOGLE_SCRIPT_WEBHOOK', default='https://script.google.com/macros/s/AKfycbyEtAbn0gB0UWAQ1KbCaYg7z7TCRCPHRPsD4paxMb8ajaAnutJN8siPVIYTzhaRE37voQ/exec')
 
+# Telegram settings
+SECOND_CHAT_ID = env('SECOND_CHAT_ID', default='No second chat ID')
+PERSONAL_CHAT_ID = env('PERSONAL_CHAT_ID', default='No personal chat ID')
+CLIENTS_CHAT_ID = env('CLIENTS_CHAT_ID', default='No clients chat ID')
 
+# Twilio settings for OTP (using env function for consistency)
+TWILIO_ACCOUNT_SID = env('TWILIO_ACCOUNT_SID', default='No SID')
+TWILIO_AUTH_TOKEN = env('TWILIO_AUTH_TOKEN', default='No token')
+TWILIO_VERIFY_SID = env('TWILIO_VERIFY_SID', default='No verify SID')
+TWILIO_PHONE_NUMBER = env('TWILIO_PHONE_NUMBER', default='No phone')
 
 # OpenPay Configuration
 OPENPAY_MERCHANT_ID = env('OPENPAY_MERCHANT_ID', default='No merchant ID')
@@ -376,10 +382,10 @@ import logging
 
 logger = logging.getLogger('apps')
 logger.debug(f"TELEGRAM_BOT_TOKEN: {TELEGRAM_BOT_TOKEN}")
-logger.debug(f"CHAT_ID: {CHAT_ID}")
+logger.debug(f"CHAT_ID: {TELEGRAM_CHAT_ID}")
 logger.debug(f"SECOND_CHAT_ID: {SECOND_CHAT_ID}")
 logger.debug(f"PERSONAL_CHAT_ID: {PERSONAL_CHAT_ID}")
 logger.debug(f"CLIENTS_CHAT_ID: {CLIENTS_CHAT_ID}")
 logger.debug(f"TWILIO_ACCOUNT_SID: {TWILIO_ACCOUNT_SID}")
-logger.debug(f"TWILIO_VERIFY_SERVICE_SID: {TWILIO_VERIFY_SERVICE_SID}")
+logger.debug(f"TWILIO_VERIFY_SID: {TWILIO_VERIFY_SID}")
 logger.debug(f"GOOGLE_SCRIPT_WEBHOOK: {GOOGLE_SCRIPT_WEBHOOK}")
