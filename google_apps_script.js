@@ -194,10 +194,20 @@ function insertSearchTrackingData(records) {
       let formatted_search_timestamp = '';
       if (record.search_timestamp) {
         try {
+          // Convertir string ISO a Date object
           const searchDate = new Date(record.search_timestamp);
-          // Formato: DD/MM/YYYY HH:MM:SS
-          formatted_search_timestamp = Utilities.formatDate(searchDate, 'GMT-5', 'dd/MM/yyyy HH:mm:ss');
+          
+          // Verificar que la fecha sea válida
+          if (!isNaN(searchDate.getTime())) {
+            // Formato: DD/MM/YYYY HH:MM:SS en zona horaria GMT-5 (Perú)
+            formatted_search_timestamp = Utilities.formatDate(searchDate, 'GMT-5', 'dd/MM/yyyy HH:mm:ss');
+            console.log(`Timestamp convertido: ${record.search_timestamp} → ${formatted_search_timestamp}`);
+          } else {
+            console.error('Fecha inválida recibida:', record.search_timestamp);
+            formatted_search_timestamp = record.search_timestamp; // Fallback al original
+          }
         } catch (e) {
+          console.error('Error formateando timestamp:', e);
           formatted_search_timestamp = record.search_timestamp; // Fallback al original
         }
       }
@@ -324,10 +334,20 @@ function insertSingleRecord(record) {
     let formatted_search_timestamp = '';
     if (record.search_timestamp) {
       try {
+        // Convertir string ISO a Date object
         const searchDate = new Date(record.search_timestamp);
-        // Formato: DD/MM/YYYY HH:MM:SS
-        formatted_search_timestamp = Utilities.formatDate(searchDate, 'GMT-5', 'dd/MM/yyyy HH:mm:ss');
+        
+        // Verificar que la fecha sea válida
+        if (!isNaN(searchDate.getTime())) {
+          // Formato: DD/MM/YYYY HH:MM:SS en zona horaria GMT-5 (Perú)
+          formatted_search_timestamp = Utilities.formatDate(searchDate, 'GMT-5', 'dd/MM/yyyy HH:mm:ss');
+          console.log(`Timestamp individual convertido: ${record.search_timestamp} → ${formatted_search_timestamp}`);
+        } else {
+          console.error('Fecha inválida recibida:', record.search_timestamp);
+          formatted_search_timestamp = record.search_timestamp; // Fallback al original
+        }
       } catch (e) {
+        console.error('Error formateando timestamp:', e);
         formatted_search_timestamp = record.search_timestamp; // Fallback al original
       }
     }
