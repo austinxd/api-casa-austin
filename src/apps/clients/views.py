@@ -1594,11 +1594,15 @@ class ClientProfileView(APIView):
             profile_data['upcoming_reservations'] = upcoming_reservations_data
 
             # Obtener última búsqueda del cliente (si existe)
-            try:
-                search_tracking = SearchTracking.objects.get(client=client, deleted=False)
+            search_tracking = SearchTracking.objects.filter(
+                client=client, 
+                deleted=False
+            ).order_by('-search_timestamp').first()
+            
+            if search_tracking:
                 search_serializer = SearchTrackingSerializer(search_tracking)
                 profile_data['last_search'] = search_serializer.data
-            except SearchTracking.DoesNotExist:
+            else:
                 profile_data['last_search'] = None
                 logger.info(f"ClientProfileView: No hay búsquedas registradas para el cliente {client.id}")
 
@@ -2398,42 +2402,25 @@ class SearchTrackingView(APIView):
             
             logger.info(f"SearchTrackingView: Datos adicionales capturados - IP: {ip_address}, Session: {session_key}")
 
-            # Guardar o actualizar el registro de SearchTracking
-            search_tracking = None
-            if client: # Si hay cliente autenticado
-                search_tracking, created = SearchTracking.objects.update_or_create(
-                    client=client,
-                    defaults={
-                        'check_in_date': check_in_date,
-                        'check_out_date': check_out_date,
-                        'guests': guests,
-                        'property': property_obj,
-                        'search_timestamp': timezone.now(),
-                        'ip_address': ip_address,
-                        'session_key': session_key,
-                        'user_agent': user_agent,
-                        'referrer': referrer,
-                        'deleted': False
-                    }
-                )
-                action_taken = "actualizado" if not created else "creado"
-                logger.info(f"SearchTrackingView: Registro para cliente {client.id} {action_taken}: {search_tracking.id}")
-
-            else: # Si es un usuario anónimo (sin cliente autenticado)
-                search_tracking = SearchTracking.objects.create(
-                    client=None,
-                    check_in_date=check_in_date,
-                    check_out_date=check_out_date,
-                    guests=guests,
-                    property=property_obj,
-                    search_timestamp=timezone.now(),
-                    ip_address=ip_address,
-                    session_key=session_key,
-                    user_agent=user_agent,
-                    referrer=referrer,
-                    deleted=False
-                )
-                logger.info(f"SearchTrackingView: Registro anónimo creado: {search_tracking.id} para IP {ip_address}")
+            # Guardar registro de SearchTracking (siempre crear nuevo)
+            search_tracking = SearchTracking.objects.create(
+                client=client,  # Puede ser None para usuarios anónimos
+                check_in_date=check_in_date,
+                check_out_date=check_out_date,
+                guests=guests,
+                property=property_obj,
+                search_timestamp=timezone.now(),
+                ip_address=ip_address,
+                session_key=session_key,
+                user_agent=user_agent,
+                referrer=referrer,
+                deleted=False
+            )
+            
+            if client:
+                logger.info(f"SearchTrackingView: Nuevo registro creado para cliente {client.id}: {search_tracking.id}")
+            else:
+                logger.info(f"SearchTrackingView: Nuevo registro anónimo creado: {search_tracking.id} para IP {ip_address}")
 
             # Serializar la respuesta
             serializer = SearchTrackingSerializer(search_tracking)
@@ -2477,23 +2464,34 @@ class SearchTrackingView(APIView):
                 logger.error("SearchTrackingView: Authentication failed - no client")
                 return Response({'message': 'Token inválido'}, status=401)
 
-            # Obtener registro de tracking asociado al cliente
+            # Obtener la búsqueda más reciente del cliente
             try:
-                search_tracking = SearchTracking.objects.get(client=client, deleted=False)
-                serializer = SearchTrackingSerializer(search_tracking)
-                logger.info(f"SearchTrackingView: Última búsqueda para cliente {client.id} encontrada.")
-                return Response({
-                    'success': True,
-                    'data': serializer.data
-                }, status=200)
+                search_tracking = SearchTracking.objects.filter(
+                    client=client, 
+                    deleted=False
+                ).order_by('-search_timestamp').first()
+                
+                if search_tracking:
+                    serializer = SearchTrackingSerializer(search_tracking)
+                    logger.info(f"SearchTrackingView: Última búsqueda para cliente {client.id} encontrada.")
+                    return Response({
+                        'success': True,
+                        'data': serializer.data
+                    }, status=200)
+                else:
+                    logger.info(f"SearchTrackingView: No hay búsquedas registradas para el cliente {client.id}")
+                    return Response({
+                        'success': True,
+                        'message': 'No hay búsquedas registradas',
+                        'data': None
+                    }, status=200)
 
-            except SearchTracking.DoesNotExist:
-                logger.info(f"SearchTrackingView: No hay búsquedas registradas para el cliente {client.id}")
+            except Exception as get_error:
+                logger.error(f"SearchTrackingView: Error obteniendo búsqueda: {str(get_error)}")
                 return Response({
-                    'success': True,
-                    'message': 'No hay búsquedas registradas',
-                    'data': None
-                }, status=200)
+                    'success': False,
+                    'message': 'Error interno del servidor'
+                }, status=500)
 
         except Exception as e:
             logger.error(f"SearchTrackingView: Error getting search: {str(e)}")
