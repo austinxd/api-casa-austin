@@ -190,9 +190,21 @@ function insertSearchTrackingData(records) {
       console.log('- Check-out:', record.check_out_date);
       console.log('- Huéspedes:', record.guests);
       
+      // Formatear timestamp de búsqueda para mejor legibilidad
+      let formatted_search_timestamp = '';
+      if (record.search_timestamp) {
+        try {
+          const searchDate = new Date(record.search_timestamp);
+          // Formato: DD/MM/YYYY HH:MM:SS
+          formatted_search_timestamp = Utilities.formatDate(searchDate, 'GMT-5', 'dd/MM/yyyy HH:mm:ss');
+        } catch (e) {
+          formatted_search_timestamp = record.search_timestamp; // Fallback al original
+        }
+      }
+      
       const row = [
         recordId,
-        record.search_timestamp || '',
+        formatted_search_timestamp,
         record.check_in_date || '',
         record.check_out_date || '',
         record.guests || 0,
@@ -308,10 +320,22 @@ function insertSingleRecord(record) {
     const propertyInfo = record.property_info || {};
     const technicalData = record.technical_data || {};
     
+    // Formatear timestamp de búsqueda
+    let formatted_search_timestamp = '';
+    if (record.search_timestamp) {
+      try {
+        const searchDate = new Date(record.search_timestamp);
+        // Formato: DD/MM/YYYY HH:MM:SS
+        formatted_search_timestamp = Utilities.formatDate(searchDate, 'GMT-5', 'dd/MM/yyyy HH:mm:ss');
+      } catch (e) {
+        formatted_search_timestamp = record.search_timestamp; // Fallback al original
+      }
+    }
+    
     // Preparar fila de datos
     const row = [
       record.id || '',
-      record.search_timestamp || '',
+      formatted_search_timestamp,
       record.check_in_date || '',
       record.check_out_date || '',
       record.guests || '',
