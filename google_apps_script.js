@@ -1,4 +1,3 @@
-
 /**
  * Google Apps Script para recibir datos de SearchTracking desde Django
  * y escribirlos en Google Sheets
@@ -17,7 +16,7 @@ function doPost(e) {
     console.log('Content type:', e.postData ? e.postData.type : 'NO POST DATA');
     console.log('Raw data length:', e.postData ? e.postData.contents.length : 0);
     console.log('Raw data (primeros 500 chars):', e.postData ? e.postData.contents.substring(0, 500) : 'NO DATA');
-    
+
     if (!e.postData || !e.postData.contents) {
       console.error('ERROR: No se recibieron datos POST');
       return ContentService
@@ -28,7 +27,7 @@ function doPost(e) {
         }))
         .setMimeType(ContentService.MimeType.JSON);
     }
-    
+
     // Parsear datos JSON
     let data;
     try {
@@ -50,11 +49,11 @@ function doPost(e) {
         }))
         .setMimeType(ContentService.MimeType.JSON);
     }
-    
+
     // Verificar que sea una request de insert_search_tracking
     if (data.action === 'insert_search_tracking') {
       console.log('=== ACCIÓN RECONOCIDA: insert_search_tracking ===');
-      
+
       if (!data.data || !Array.isArray(data.data)) {
         console.error('ERROR: data.data no es un array válido');
         return ContentService
@@ -66,10 +65,10 @@ function doPost(e) {
           }))
           .setMimeType(ContentService.MimeType.JSON);
       }
-      
+
       console.log(`Procesando ${data.data.length} registros...`);
       const result = insertSearchTrackingData(data.data);
-      
+
       return ContentService
         .createTextOutput(JSON.stringify({
           success: true,
@@ -80,10 +79,10 @@ function doPost(e) {
         }))
         .setMimeType(ContentService.MimeType.JSON);
     }
-    
+
     // Para otras acciones o datos individuales
     const result = insertSingleRecord(data);
-    
+
     return ContentService
       .createTextOutput(JSON.stringify({
         success: true,
@@ -91,10 +90,10 @@ function doPost(e) {
         record_id: result.record_id
       }))
       .setMimeType(ContentService.MimeType.JSON);
-      
+
   } catch (error) {
     console.error('Error en doPost:', error);
-    
+
     return ContentService
       .createTextOutput(JSON.stringify({
         success: false,
@@ -112,7 +111,7 @@ function insertSearchTrackingData(records) {
   try {
     console.log('=== INICIANDO INSERCIÓN ===');
     console.log('Número de registros recibidos:', records.length);
-    
+
     if (!records || records.length === 0) {
       console.log('No hay registros para procesar');
       return {
@@ -121,23 +120,23 @@ function insertSearchTrackingData(records) {
         total_records: 0
       };
     }
-    
+
     console.log('Primer registro completo:', JSON.stringify(records[0], null, 2));
-    
+
     // Abrir la hoja de cálculo
     const sheet = getOrCreateSheet();
-    
+
     // Preparar headers si la hoja está vacía
     if (sheet.getLastRow() === 0) {
       console.log('Hoja vacía, agregando headers...');
       const headers = [
-        'ID', 'Timestamp Búsqueda', 'Check-in', 'Check-out', 'Huéspedes',
+        'ID', 'Timestamp Búsqueda', 'Check-in', 'Check-out', 'Tipo de Día', 'Noches', 'Huéspedes',
         'Cliente ID', 'Cliente Nombre', 'Cliente Apellido', 'Cliente Email', 'Cliente Teléfono',
         'Propiedad ID', 'Propiedad Nombre',
         'IP Address', 'Session Key', 'User Agent', 'Referrer', 'Fecha Creación'
       ];
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-      
+
       // Formatear headers
       const headerRange = sheet.getRange(1, 1, 1, headers.length);
       headerRange.setFontWeight('bold');
@@ -146,41 +145,41 @@ function insertSearchTrackingData(records) {
     } else {
       console.log('Hoja ya tiene datos, ultima fila:', sheet.getLastRow());
     }
-    
+
     // Obtener IDs existentes para evitar duplicados
     const existingData = sheet.getDataRange().getValues();
     const existingIds = new Set();
-    
+
     // Empezar desde la fila 2 (skip headers)
     for (let i = 1; i < existingData.length; i++) {
       if (existingData[i][0]) { // Columna ID (índice 0)
         existingIds.add(existingData[i][0].toString());
       }
     }
-    
+
     console.log('IDs existentes en la hoja:', existingIds.size);
-    
+
     // Preparar datos para insertar (solo los nuevos)
     const rows = [];
     let skipped = 0;
-    
+
     records.forEach((record, index) => {
       console.log(`=== PROCESANDO REGISTRO ${index + 1}/${records.length} ===`);
-      
+
       // Verificar si ya existe este ID
       const recordId = record.id ? record.id.toString() : `temp-${Date.now()}-${index}`;
-      
+
       if (existingIds.has(recordId)) {
         console.log('Saltando registro duplicado:', recordId);
         skipped++;
         return;
       }
-      
+
       // Extraer datos con validación mejorada
       const clientInfo = record.client_info || {};
       const propertyInfo = record.property_info || {};
       const technicalData = record.technical_data || {};
-      
+
       console.log('Datos del registro:');
       console.log('- ID:', recordId);
       console.log('- Cliente:', clientInfo.first_name, clientInfo.last_name);
@@ -189,14 +188,41 @@ function insertSearchTrackingData(records) {
       console.log('- Check-in:', record.check_in_date);
       console.log('- Check-out:', record.check_out_date);
       console.log('- Huéspedes:', record.guests);
-      
+
+      // Determinar Tipo de Día (Fin de semana o Día de semana)
+      let tipoDeDia = 'Día de semana';
+      if (record.check_in_date) {
+        try {
+          const checkInDate = new Date(record.check_in_date);
+          const dayOfWeek = checkInDate.getDay(); // 0 = Domingo, 6 = Sábado
+          if (dayOfWeek === 5 || dayOfWeek === 6) { // Viernes o Sábado
+            tipoDeDia = 'Fin de semana';
+          }
+        } catch (e) {
+          console.error('Error al determinar tipo de día:', e);
+        }
+      }
+
+      // Calcular Cantidad de Noches
+      let noches = '';
+      if (record.check_in_date && record.check_out_date) {
+        try {
+          const checkIn = new Date(record.check_in_date);
+          const checkOut = new Date(record.check_out_date);
+          const timeDiff = checkOut.getTime() - checkIn.getTime();
+          noches = Math.ceil(timeDiff / (1000 * 3600 * 24));
+        } catch (e) {
+          console.error('Error al calcular noches:', e);
+        }
+      }
+
       // Formatear timestamp de búsqueda para mejor legibilidad
       let formatted_search_timestamp = '';
       if (record.search_timestamp) {
         try {
           // Convertir string ISO a Date object
           const searchDate = new Date(record.search_timestamp);
-          
+
           // Verificar que la fecha sea válida
           if (!isNaN(searchDate.getTime())) {
             // Formato: DD/MM/YYYY HH:MM:SS en zona horaria GMT-5 (Perú)
@@ -211,12 +237,14 @@ function insertSearchTrackingData(records) {
           formatted_search_timestamp = record.search_timestamp; // Fallback al original
         }
       }
-      
+
       const row = [
         recordId,
         formatted_search_timestamp,
         record.check_in_date || '',
         record.check_out_date || '',
+        tipoDeDia, // Nueva columna: Tipo de Día
+        noches,    // Nueva columna: Noches
         record.guests || 0,
         clientInfo.id || '',
         clientInfo.first_name || '',
@@ -231,36 +259,36 @@ function insertSearchTrackingData(records) {
         technicalData.referrer || '',
         record.created || ''
       ];
-      
+
       console.log('Fila construida con', row.length, 'columnas');
       rows.push(row);
     });
-    
+
     console.log('=== RESUMEN DE PROCESAMIENTO ===');
     console.log('Registros nuevos a insertar:', rows.length);
     console.log('Registros saltados (duplicados):', skipped);
-    
+
     // Insertar todas las filas nuevas de una vez
     if (rows.length > 0) {
       const startRow = sheet.getLastRow() + 1;
       console.log('Insertando en fila:', startRow);
       console.log('Número de filas a insertar:', rows.length);
       console.log('Número de columnas por fila:', rows[0].length);
-      
+
       try {
         // Insertar los datos
         sheet.getRange(startRow, 1, rows.length, rows[0].length).setValues(rows);
         console.log('✅ DATOS INSERTADOS EXITOSAMENTE!');
-        
+
         // Aplicar formato a las nuevas filas
         const newDataRange = sheet.getRange(startRow, 1, rows.length, rows[0].length);
         newDataRange.setBorder(true, true, true, true, true, true);
-        
+
         // Ajustar ancho de columnas automáticamente
         sheet.autoResizeColumns(1, rows[0].length);
-        
+
         console.log('✅ FORMATO APLICADO EXITOSAMENTE!');
-        
+
       } catch (insertError) {
         console.error('❌ ERROR AL INSERTAR DATOS:', insertError);
         throw insertError;
@@ -268,7 +296,7 @@ function insertSearchTrackingData(records) {
     } else {
       console.log('⚠️ No hay registros nuevos para insertar');
     }
-    
+
     const result = {
       records_processed: rows.length,
       records_skipped: skipped,
@@ -276,10 +304,10 @@ function insertSearchTrackingData(records) {
       sheet_name: SHEET_NAME,
       sheet_last_row: sheet.getLastRow()
     };
-    
+
     console.log('=== RESULTADO FINAL ===', result);
     return result;
-    
+
   } catch (error) {
     console.error('❌ ERROR CRÍTICO insertando datos:', error);
     console.error('Error stack:', error.stack);
@@ -293,25 +321,25 @@ function insertSearchTrackingData(records) {
 function insertSingleRecord(record) {
   try {
     console.log('Insertando registro individual:', record.id);
-    
+
     const sheet = getOrCreateSheet();
-    
+
     // Si la hoja está vacía, agregar headers
     if (sheet.getLastRow() === 0) {
       const headers = [
-        'ID', 'Timestamp Búsqueda', 'Check-in', 'Check-out', 'Huéspedes',
+        'ID', 'Timestamp Búsqueda', 'Check-in', 'Check-out', 'Tipo de Día', 'Noches', 'Huéspedes',
         'Cliente ID', 'Cliente Nombre', 'Cliente Apellido', 'Cliente Email', 'Cliente Teléfono',
         'Propiedad ID', 'Propiedad Nombre',
         'IP Address', 'Session Key', 'User Agent', 'Referrer', 'Fecha Creación'
       ];
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-      
+
       // Formatear headers
       const headerRange = sheet.getRange(1, 1, 1, headers.length);
       headerRange.setFontWeight('bold');
       headerRange.setBackground('#e1f5fe');
     }
-    
+
     // Verificar si ya existe este registro
     const existingData = sheet.getDataRange().getValues();
     for (let i = 1; i < existingData.length; i++) {
@@ -324,19 +352,47 @@ function insertSingleRecord(record) {
         };
       }
     }
-    
+
     // Extraer datos correctamente desde la estructura anidada
     const clientInfo = record.client_info || {};
     const propertyInfo = record.property_info || {};
     const technicalData = record.technical_data || {};
-    
+
+    // Determinar Tipo de Día (Fin de semana o Día de semana)
+    let tipoDeDia = 'Día de semana';
+    if (record.check_in_date) {
+      try {
+        const checkInDate = new Date(record.check_in_date);
+        const dayOfWeek = checkInDate.getDay(); // 0 = Domingo, 6 = Sábado
+        if (dayOfWeek === 5 || dayOfWeek === 6) { // Viernes o Sábado
+          tipoDeDia = 'Fin de semana';
+        }
+      } catch (e) {
+        console.error('Error al determinar tipo de día:', e);
+      }
+    }
+
+    // Calcular Cantidad de Noches
+    let noches = '';
+    if (record.check_in_date && record.check_out_date) {
+      try {
+        const checkIn = new Date(record.check_in_date);
+        const checkOut = new Date(record.check_out_date);
+        const timeDiff = checkOut.getTime() - checkIn.getTime();
+        noches = Math.ceil(timeDiff / (1000 * 3600 * 24));
+      } catch (e) {
+        console.error('Error al calcular noches:', e);
+      }
+    }
+
+
     // Formatear timestamp de búsqueda
     let formatted_search_timestamp = '';
     if (record.search_timestamp) {
       try {
         // Convertir string ISO a Date object
         const searchDate = new Date(record.search_timestamp);
-        
+
         // Verificar que la fecha sea válida
         if (!isNaN(searchDate.getTime())) {
           // Formato: DD/MM/YYYY HH:MM:SS en zona horaria GMT-5 (Perú)
@@ -351,13 +407,15 @@ function insertSingleRecord(record) {
         formatted_search_timestamp = record.search_timestamp; // Fallback al original
       }
     }
-    
+
     // Preparar fila de datos
     const row = [
       record.id || '',
       formatted_search_timestamp,
       record.check_in_date || '',
       record.check_out_date || '',
+      tipoDeDia, // Nueva columna: Tipo de Día
+      noches,    // Nueva columna: Noches
       record.guests || '',
       clientInfo.id || '',
       clientInfo.first_name || '',
@@ -372,21 +430,21 @@ function insertSingleRecord(record) {
       technicalData.referrer || '',
       record.created || ''
     ];
-    
+
     // Insertar fila
     sheet.appendRow(row);
-    
+
     // Aplicar formato a la nueva fila
     const lastRow = sheet.getLastRow();
     const newRowRange = sheet.getRange(lastRow, 1, 1, row.length);
     newRowRange.setBorder(true, true, true, true, true, true);
-    
+
     return {
       record_id: record.id,
       sheet_name: SHEET_NAME,
       action: 'inserted'
     };
-    
+
   } catch (error) {
     console.error('Error insertando registro individual:', error);
     throw error;
@@ -401,18 +459,18 @@ function getOrCreateSheet() {
     console.log('=== ACCEDIENDO A GOOGLE SHEETS ===');
     console.log('SHEET_ID:', SHEET_ID);
     console.log('SHEET_NAME:', SHEET_NAME);
-    
+
     const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
     console.log('✅ Spreadsheet abierto exitosamente');
     console.log('Nombre del spreadsheet:', spreadsheet.getName());
-    
+
     // Intentar obtener la hoja existente
     let sheet = spreadsheet.getSheetByName(SHEET_NAME);
-    
+
     if (!sheet) {
       console.log('❌ Hoja no encontrada, creando nueva hoja:', SHEET_NAME);
       sheet = spreadsheet.insertSheet(SHEET_NAME);
-      
+
       // Configurar formato inicial de la hoja
       sheet.setFrozenRows(1); // Congelar fila de headers
       console.log('✅ Nueva hoja creada y configurada');
@@ -420,9 +478,9 @@ function getOrCreateSheet() {
       console.log('✅ Hoja existente encontrada:', SHEET_NAME);
       console.log('Última fila con datos:', sheet.getLastRow());
     }
-    
+
     return sheet;
-    
+
   } catch (error) {
     console.error('❌ ERROR CRÍTICO accediendo a Google Sheet:', error);
     console.error('Error stack:', error.stack);
@@ -437,7 +495,7 @@ function doGet(e) {
   try {
     console.log('=== TEST doGet ===');
     const sheet = getOrCreateSheet();
-    
+
     return ContentService
       .createTextOutput(JSON.stringify({
         success: true,
@@ -468,7 +526,7 @@ function testInsertData() {
     {
       id: "test-manual-" + new Date().getTime(),
       search_timestamp: new Date().toISOString(),
-      check_in_date: "2025-01-15",
+      check_in_date: "2025-01-15", // Miércoles
       check_out_date: "2025-01-17",
       guests: 2,
       client_info: {
@@ -489,9 +547,34 @@ function testInsertData() {
         referrer: "https://test-manual.com"
       },
       created: new Date().toISOString()
+    },
+    {
+      id: "test-manual-weekend-" + new Date().getTime(),
+      search_timestamp: new Date().toISOString(),
+      check_in_date: "2025-01-17", // Viernes
+      check_out_date: "2025-01-20", // Lunes
+      guests: 4,
+      client_info: {
+        id: "client-789",
+        first_name: "Ana",
+        last_name: "García",
+        email: "ana@example.com",
+        tel_number: "+51888777666"
+      },
+      property_info: {
+        id: "prop-123",
+        name: "Casa Fin de Semana"
+      },
+      technical_data: {
+        ip_address: "192.168.1.2",
+        session_key: "test-session-weekend",
+        user_agent: "Mozilla/5.0 Test Weekend",
+        referrer: "https://test-weekend.com"
+      },
+      created: new Date().toISOString()
     }
   ];
-  
+
   console.log('=== EJECUTANDO TEST MANUAL ===');
   const result = insertSearchTrackingData(testData);
   console.log('✅ Test result:', result);
@@ -520,7 +603,7 @@ function getSheetInfo() {
   try {
     const sheet = getOrCreateSheet();
     const spreadsheet = SpreadsheetApp.openById(SHEET_ID);
-    
+
     return {
       spreadsheet_name: spreadsheet.getName(),
       sheet_name: sheet.getName(),
