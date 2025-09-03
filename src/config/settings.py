@@ -334,6 +334,10 @@ CHAT_ID = os.getenv('CHAT_ID')
 # Google Apps Script webhook for Google Sheets integration
 GOOGLE_SCRIPT_WEBHOOK = env('GOOGLE_SCRIPT_WEBHOOK', default='https://script.google.com/macros/s/AKfycbyTI_T8r1LZLOEbJBMqp9UL88DdOjwCeOWECMGkTvNzG4ClX6w3tH1_h0vZPp-ytkxugg/exec')
 
+# MercadoPago settings
+MERCADOPAGO_ACCESS_TOKEN = env('MERCADOPAGO_ACCESS_TOKEN')
+MERCADOPAGO_SANDBOX = env('MERCADOPAGO_SANDBOX', default=True, cast=bool)
+
 # Telegram settings
 SECOND_CHAT_ID = env('SECOND_CHAT_ID', default='No second chat ID')
 PERSONAL_CHAT_ID = env('PERSONAL_CHAT_ID', default='No personal chat ID')

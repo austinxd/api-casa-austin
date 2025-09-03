@@ -7,43 +7,39 @@ from django.conf import settings
 from .models import Reservation
 from apps.clients.auth_views import ClientJWTAuthentication
 import requests
-import base64
 import logging
 import time
 import random
+import uuid
 
 logger = logging.getLogger(__name__)
 
 class ProcessPaymentView(APIView):
     """
-    Endpoint para procesar pagos con OpenPay
+    Endpoint para procesar pagos con MercadoPago API
     """
     authentication_classes = [ClientJWTAuthentication]
     permission_classes = [AllowAny]
 
     def __init__(self):
         super().__init__()
-        # Configurar OpenPay API
-        self.merchant_id = settings.OPENPAY_MERCHANT_ID
-        self.private_key = settings.OPENPAY_PRIVATE_KEY
-        self.is_sandbox = settings.OPENPAY_SANDBOX
+        # Configurar MercadoPago API
+        self.access_token = settings.MERCADOPAGO_ACCESS_TOKEN
+        self.is_sandbox = settings.MERCADOPAGO_SANDBOX
 
         # URL base según el entorno
         if self.is_sandbox:
-            self.base_url = "https://sandbox-api.openpay.pe/v1"
+            self.base_url = "https://api.mercadopago.com"
         else:
-            self.base_url = "https://api.openpay.pe/v1"
+            self.base_url = "https://api.mercadopago.com"
 
         # Debugging inicial de credenciales
-        logger.info(f"🔧 OPENPAY INIT - Merchant: {self.merchant_id}")
-        logger.info(f"🔧 OPENPAY INIT - Private Key length: {len(self.private_key) if self.private_key else 0}")
-        logger.info(f"🔧 OPENPAY INIT - Sandbox: {self.is_sandbox}")
+        logger.info(f"🔧 MERCADOPAGO INIT - Access Token length: {len(self.access_token) if self.access_token else 0}")
+        logger.info(f"🔧 MERCADOPAGO INIT - Sandbox: {self.is_sandbox}")
 
     def _get_auth_header(self):
-        """Crear header de autenticación para OpenPay"""
-        credentials = f"{self.private_key}:"
-        encoded_credentials = base64.b64encode(credentials.encode()).decode()
-        return f"Basic {encoded_credentials}"
+        """Crear header de autenticación para MercadoPago"""
+        return f"Bearer {self.access_token}"
 
     def _format_phone_number(self, phone_number):
         """Formatear número de teléfono para OpenPay"""
@@ -68,10 +64,9 @@ class ProcessPaymentView(APIView):
 
     def post(self, request, reservation_id):
         try:
-            # Debug de credenciales OpenPay
-            logger.info(f"=== DEBUGGING OPENPAY CREDENTIALS ===")
-            logger.info(f"Merchant ID: {self.merchant_id}")
-            logger.info(f"Private Key (masked): {self.private_key[:8]}...{self.private_key[-4:]}")
+            # Debug de credenciales MercadoPago
+            logger.info(f"=== DEBUGGING MERCADOPAGO CREDENTIALS ===")
+            logger.info(f"Access Token (masked): {self.access_token[:15]}...{self.access_token[-8:]}")
             logger.info(f"Is Sandbox: {self.is_sandbox}")
             logger.info(f"Base URL: {self.base_url}")
 
@@ -93,13 +88,15 @@ class ProcessPaymentView(APIView):
             )
 
             # Datos del pago desde el frontend
-            token = request.data.get('token')  # Token de OpenPay
+            token = request.data.get('token')  # Token de MercadoPago
             amount = float(request.data.get('amount', 0))
-            device_session_id = request.data.get('device_session_id')
+            payment_method_id = request.data.get('payment_method_id', 'visa')  # visa, mastercard, etc.
+            installments = int(request.data.get('installments', 1))
 
             logger.info(f"Token recibido: {token}")
             logger.info(f"Amount: {amount}")
-            logger.info(f"Device Session ID: {device_session_id}")
+            logger.info(f"Payment Method ID: {payment_method_id}")
+            logger.info(f"Installments: {installments}")
 
             # Verificar si el token ya fue usado anteriormente
             logger.info(f"=== VERIFICANDO TOKEN ===")
@@ -112,10 +109,10 @@ class ProcessPaymentView(APIView):
                     'message': 'Token y monto válido son requeridos'
                 }, status=400)
 
-            if not device_session_id:
+            if not payment_method_id:
                 return Response({
                     'success': False,
-                    'message': 'Device session ID es requerido'
+                    'message': 'Método de pago es requerido'
                 }, status=400)
 
             # Verificar si ya existe un pago con este token específico
@@ -149,131 +146,105 @@ class ProcessPaymentView(APIView):
 
             with transaction.atomic():
                 try:
-                    # Generar un order_id verdaderamente único con timestamp y microsegundos
+                    # Generar un external_reference único con timestamp y microsegundos
                     import time
                     import random
                     timestamp_micro = str(time.time()).replace('.', '')
                     random_suffix = random.randint(1000, 9999)
-                    unique_order_id = f"RES-{reservation.id}-{timestamp_micro}-{random_suffix}"
+                    unique_external_reference = f"RES-{reservation.id}-{timestamp_micro}-{random_suffix}"
 
-                    charge_data = {
-                        "source_id": token,
-                        "method": "card",
-                        "amount": amount,
-                        "currency": "PEN",
+                    # Datos del pago para MercadoPago API
+                    payment_data = {
+                        "transaction_amount": amount,
+                        "token": token,
                         "description": f"Pago reserva #{reservation.id} - {reservation.property.name}",
-                        "order_id": unique_order_id,
-                        "device_session_id": device_session_id,
-                        "customer": {
-                            "name": reservation.client.first_name if reservation.client else "Cliente",
-                            "last_name": reservation.client.last_name if reservation.client else "",
-                            "email": reservation.client.email if reservation.client else "",
-                            "phone_number": self._format_phone_number(reservation.client.tel_number) if reservation.client and reservation.client.tel_number else ""
+                        "external_reference": unique_external_reference,
+                        "payment_method_id": payment_method_id,
+                        "installments": installments,
+                        "payer": {
+                            "email": reservation.client.email if reservation.client else "cliente@casaaustin.pe",
+                            "first_name": reservation.client.first_name if reservation.client else "Cliente",
+                            "last_name": reservation.client.last_name if reservation.client else "Anónimo",
+                            "phone": {
+                                "area_code": "51",
+                                "number": self._format_phone_number(reservation.client.tel_number) if reservation.client and reservation.client.tel_number else "999888777"
+                            },
+                            "address": {
+                                "zip_code": "15001",
+                                "street_name": "Calle Principal",
+                                "street_number": 123
+                            }
+                        },
+                        "additional_info": {
+                            "items": [
+                                {
+                                    "id": str(reservation.property.id),
+                                    "title": reservation.property.name,
+                                    "quantity": 1,
+                                    "unit_price": amount
+                                }
+                            ]
                         }
                     }
 
                     # Headers para la API
                     headers = {
                         'Content-Type': 'application/json',
-                        'Authorization': self._get_auth_header()
+                        'Authorization': self._get_auth_header(),
+                        'X-Idempotency-Key': str(uuid.uuid4())  # Para evitar pagos duplicados
                     }
 
-                    # Validar credenciales primero con múltiples endpoints
-                    logger.info(f"=== VALIDANDO CREDENCIALES OPENPAY ===")
+                    # Validar credenciales primero con endpoint de MercadoPago
+                    logger.info(f"=== VALIDANDO CREDENCIALES MERCADOPAGO ===")
                     auth_header = self._get_auth_header()
-                    logger.info(f"Auth header creado: {auth_header[:20]}...")
-
-                    # Probar endpoint de merchant info
-                    validation_url = f"{self.base_url}/{self.merchant_id}"
-                    validation_response = requests.get(validation_url, headers={'Authorization': auth_header})
-                    logger.info(f"Merchant validation status: {validation_response.status_code}")
-
-                    if validation_response.status_code == 200:
-                        logger.info("✅ Credenciales válidas para consultar merchant")
-                    elif validation_response.status_code == 401:
-                        logger.error("❌ CREDENCIALES OPENPAY INVÁLIDAS - Error 401")
-                        logger.error(f"Response: {validation_response.text}")
-                        return Response({
-                            'success': False,
-                            'message': 'Credenciales de OpenPay inválidas'
-                        }, status=500)
-                    else:
-                        logger.warning(f"⚠️ Respuesta inesperada del merchant endpoint: {validation_response.status_code}")
-                        logger.warning(f"Response: {validation_response.text}")
-
-                    # Verificar si la cuenta tiene permisos para hacer charges
-                    charges_test_url = f"{self.base_url}/{self.merchant_id}/charges"
-                    test_headers = {'Authorization': auth_header}
-                    logger.info(f"Verificando permisos de charges en: {charges_test_url}")
-
-                    # Verificar límites de la cuenta sandbox
-                    try:
-                        account_info_url = f"{self.base_url}/{self.merchant_id}"
-                        account_response = requests.get(account_info_url, headers={'Authorization': auth_header})
-                        if account_response.status_code == 200:
-                            account_data = account_response.json()
-                            logger.info(f"📊 ACCOUNT INFO: {account_data}")
-                        else:
-                            logger.warning(f"No se pudo obtener info de cuenta: {account_response.status_code}")
-                    except Exception as account_error:
-                        logger.warning(f"Error obteniendo info de cuenta: {account_error}")
-
-                    # Procesar pago con OpenPay API
-                    url = f"{self.base_url}/{self.merchant_id}/charges"
+                    logger.info(f"Auth header creado: {auth_header[:25]}...")
 
                     # Validaciones adicionales antes del request
                     logger.info(f"=== VALIDACIONES PRE-REQUEST ===")
                     logger.info(f"Amount validation: {amount} > 0 = {amount > 0}")
-                    logger.info(f"Currency: {charge_data['currency']}")
-                    logger.info(f"Method: {charge_data['method']}")
+                    logger.info(f"Payment Method ID: {payment_data['payment_method_id']}")
+                    logger.info(f"Installments: {payment_data['installments']}")
                     logger.info(f"Token length: {len(token)}")
-                    logger.info(f"Order ID: {charge_data['order_id']}")
-                    logger.info(f"Customer email: {charge_data['customer']['email']}")
-                    logger.info(f"Customer phone: {charge_data['customer']['phone_number']}")
+                    logger.info(f"External Reference: {payment_data['external_reference']}")
+                    logger.info(f"Payer email: {payment_data['payer']['email']}")
+                    logger.info(f"Payer phone: {payment_data['payer']['phone']['number']}")
                     
-                    logger.info(f"Procesando pago para reserva {reservation.id} con order_id: {unique_order_id}")
-                    logger.info(f"DEBUGGING OPENPAY REQUEST:")
+                    # Procesar pago con MercadoPago API
+                    url = f"{self.base_url}/v1/payments"
+                    
+                    logger.info(f"Procesando pago para reserva {reservation.id} con external_reference: {unique_external_reference}")
+                    logger.info(f"DEBUGGING MERCADOPAGO REQUEST:")
                     logger.info(f"URL: {url}")
                     logger.info(f"Headers: {headers}")
-                    logger.info(f"Charge Data: {charge_data}")
+                    logger.info(f"Payment Data: {payment_data}")
 
-                    response = requests.post(url, json=charge_data, headers=headers, timeout=30)
+                    response = requests.post(url, json=payment_data, headers=headers, timeout=30)
 
-                    logger.info(f"OpenPay Response - Status: {response.status_code}")
-                    logger.info(f"OpenPay Response Headers: {dict(response.headers)}")
+                    logger.info(f"MercadoPago Response - Status: {response.status_code}")
+                    logger.info(f"MercadoPago Response Headers: {dict(response.headers)}")
 
-                    # OpenPay puede devolver 200 o 201 para pagos exitosos
+                    # MercadoPago puede devolver 200 o 201 para pagos exitosos
                     if response.status_code not in [200, 201]:
-                        logger.error(f"OpenPay Error Response: {response.text}")
-
-                        # Análisis específico del error 412 (o cualquier código que no sea 200/201)
-                        if response.status_code == 412:
-                            logger.error("🚨 ERROR 412 - POSIBLES CAUSAS:")
-                            logger.error("1. Private Key incorrecta o expirada")
-                            logger.error("2. Merchant ID incorrecto")
-                            logger.error("3. Cuenta sin permisos para charges")
-                            logger.error("4. Token ya utilizado anteriormente")
-                            logger.error("5. Configuración de sandbox incorrecta")
-                        elif response.status_code == 3006: # Error específico de OpenPay Perú
-                            logger.error("🚨 ERROR 3006 - 'Request not allowed' (OpenPay Perú)")
-                            logger.error("   Posibles causas:")
-                            logger.error("   1. El token de pago ya ha sido utilizado.")
-                            logger.error("   2. Problemas con la cuenta sandbox (permisos).")
-                            logger.error("   3. Configuración del método de pago.")
+                        logger.error(f"MercadoPago Error Response: {response.text}")
 
                         # Intentar parsear el JSON del error para obtener una descripción más clara
                         try:
                             error_details = response.json()
-                            error_msg_from_api = error_details.get('description', 'No se pudo obtener descripción del error.')
+                            error_msg_from_api = error_details.get('message', 'No se pudo obtener descripción del error.')
+                            error_cause = error_details.get('cause', [])
+                            
                             logger.error(f"   Descripción API: {error_msg_from_api}")
-                            if "The token is already used" in error_msg_from_api:
+                            logger.error(f"   Causas: {error_cause}")
+                            
+                            # Errores específicos de MercadoPago
+                            if any("already_used" in str(cause) for cause in error_cause):
                                 logger.error("   Detectado: El token ya ha sido usado.")
                                 return Response({
                                     'success': False,
                                     'message': 'Este token de pago ya fue utilizado. Por favor, ingrese nuevamente los datos de la tarjeta.',
                                     'error_code': 'TOKEN_ALREADY_USED'
                                 }, status=400)
-                            elif "Invalid token" in error_msg_from_api:
+                            elif any("invalid_token" in str(cause) for cause in error_cause):
                                 logger.error("   Detectado: Token inválido.")
                                 return Response({
                                     'success': False,
@@ -294,9 +265,10 @@ class ProcessPaymentView(APIView):
 
 
                     if response.status_code in [200, 201]:
-                        charge = response.json()
+                        payment = response.json()
 
-                        if charge.get('status') == 'completed':
+                        # Estados exitosos de MercadoPago: approved, authorized
+                        if payment.get('status') in ['approved', 'authorized']:
                             # Pago exitoso - actualizar reserva
                             reservation.full_payment = True
                             reservation.status = 'approved'
@@ -305,11 +277,12 @@ class ProcessPaymentView(APIView):
                             # Registrar el uso del token
                             try:
                                 from .models import PaymentToken
+                                from django.utils import timezone
                                 PaymentToken.objects.create(
                                     token=token,
                                     reservation=reservation,
                                     amount=amount,
-                                    transaction_id=charge.get('id'),
+                                    transaction_id=payment.get('id'),
                                     used_at=timezone.now()
                                 )
                                 logger.info(f"✅ Token {token} registrado como usado para la reserva {reservation.id}")
@@ -317,40 +290,42 @@ class ProcessPaymentView(APIView):
                                 logger.error(f"Error al registrar el uso del token {token}: {token_creation_error}")
 
 
-                            logger.info(f"Pago exitoso para reserva {reservation.id}. Transaction ID: {charge.get('id')}")
+                            logger.info(f"Pago exitoso para reserva {reservation.id}. Transaction ID: {payment.get('id')}")
 
                             return Response({
                                 'success': True,
                                 'message': 'Pago procesado exitosamente',
                                 'reservation_id': reservation.id,
-                                'transaction_id': charge.get('id')
+                                'transaction_id': payment.get('id'),
+                                'payment_status': payment.get('status')
                             })
                         else:
-                            logger.warning(f"Pago no completado para reserva {reservation.id}. Status: {charge.get('status')}")
+                            logger.warning(f"Pago no completado para reserva {reservation.id}. Status: {payment.get('status')}")
                             return Response({
                                 'success': False,
-                                'message': f"Pago no completado. Estado: {charge.get('status')}"
+                                'message': f"Pago no completado. Estado: {payment.get('status')}",
+                                'payment_detail': payment.get('status_detail', '')
                             }, status=400)
                     else:
                         # Solo llegar aquí si el status code no es 200 o 201
                         try:
-                            error_msg = response.json().get('description', 'Error desconocido') if response.content else 'Error de conexión'
+                            error_msg = response.json().get('message', 'Error desconocido') if response.content else 'Error de conexión'
                         except:
                             error_msg = 'Error de conexión'
-                        logger.error(f"Error de OpenPay para reserva {reservation.id}: {error_msg}")
+                        logger.error(f"Error de MercadoPago para reserva {reservation.id}: {error_msg}")
                         return Response({
                             'success': False,
                             'message': f'Error procesando el pago: {error_msg}'
                         }, status=400)
 
                 except requests.RequestException as e:
-                    logger.error(f"Error de conexión OpenPay para reserva {reservation.id}: {str(e)}")
+                    logger.error(f"Error de conexión MercadoPago para reserva {reservation.id}: {str(e)}")
                     return Response({
                         'success': False,
                         'message': 'Error de conexión con el procesador de pagos'
                     }, status=500)
                 except Exception as e:
-                    logger.error(f"Error general OpenPay para reserva {reservation.id}: {str(e)}")
+                    logger.error(f"Error general MercadoPago para reserva {reservation.id}: {str(e)}")
                     return Response({
                         'success': False,
                         'message': f'Error procesando el pago: {str(e)}'
@@ -362,7 +337,7 @@ class ProcessPaymentView(APIView):
                 'message': 'Reserva no encontrada'
             }, status=404)
         except Exception as e:
-            logger.error(f"Error procesando pago para reserva {reservation_id}: {str(e)}")
+            logger.error(f"Error procesando pago MercadoPago para reserva {reservation_id}: {str(e)}")
             return Response({
                 'success': False,
                 'message': 'Error interno del servidor'
