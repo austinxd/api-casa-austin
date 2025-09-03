@@ -603,23 +603,34 @@ function formatDateToGMT5(isoString) {
     return 'Sin fecha';
   }
   try {
-    const date = new Date(isoString);
-    // Verificar si la fecha es válida
-    if (isNaN(date.getTime())) {
-      console.warn(`Fecha inválida recibida para formatear: ${isoString}`);
-      return isoString; // Devolver la cadena original si no es una fecha válida
+    // Para fechas ISO que ya vienen en GMT-5, no aplicar conversión adicional
+    if (isoString.includes('+00:00') || isoString.includes('Z')) {
+      // Es una fecha UTC, convertir a GMT-5
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) {
+        console.warn(`Fecha inválida recibida para formatear: ${isoString}`);
+        return isoString;
+      }
+      return Utilities.formatDate(date, 'GMT-5', 'dd/MM/yyyy HH:mm:ss');
+    } else {
+      // Es una fecha que ya está en hora local, parsear directamente
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) {
+        console.warn(`Fecha inválida recibida para formatear: ${isoString}`);
+        return isoString;
+      }
+      // No aplicar conversión de zona horaria, usar la fecha tal como viene
+      return Utilities.formatDate(date, 'America/Lima', 'dd/MM/yyyy HH:mm:ss');
     }
-    // Utiliza Utilities.formatDate para manejar zonas horarias correctamente
-    return Utilities.formatDate(date, 'GMT-5', 'dd/MM/yyyy HH:mm:ss');
   } catch (e) {
     console.error(`Error formateando fecha ${isoString}: ${e}`);
-    return isoString; // Devolver la cadena original en caso de error
+    return isoString;
   }
 }
 
 /**
- * Formatea una fecha a formato DD/MM/YYYY (solo fecha) en GMT-5
- * @param {string} isoString Fecha en formato ISO
+ * Formatea una fecha a formato DD/MM/YYYY (solo fecha) sin conversión de zona horaria
+ * @param {string} isoString Fecha en formato ISO o YYYY-MM-DD
  * @returns {string} Fecha formateada o 'Sin fecha'.
  */
 function formatDateOnly(isoString) {
@@ -627,12 +638,34 @@ function formatDateOnly(isoString) {
     return 'Sin fecha';
   }
   try {
-    const date = new Date(isoString);
-    if (isNaN(date.getTime())) {
-      console.warn(`Fecha inválida recibida para formatear (solo fecha): ${isoString}`);
-      return isoString;
+    // Si es una fecha simple YYYY-MM-DD, parsear directamente sin conversión
+    if (isoString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const parts = isoString.split('-');
+      const day = parts[2];
+      const month = parts[1];
+      const year = parts[0];
+      return `${day}/${month}/${year}`;
     }
-    return Utilities.formatDate(date, 'GMT-5', 'dd/MM/yyyy');
+    
+    // Para fechas ISO completas
+    if (isoString.includes('+00:00') || isoString.includes('Z')) {
+      // Es una fecha UTC, convertir a GMT-5
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) {
+        console.warn(`Fecha inválida recibida para formatear (solo fecha): ${isoString}`);
+        return isoString;
+      }
+      return Utilities.formatDate(date, 'GMT-5', 'dd/MM/yyyy');
+    } else {
+      // Es una fecha que ya está en hora local
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) {
+        console.warn(`Fecha inválida recibida para formatear (solo fecha): ${isoString}`);
+        return isoString;
+      }
+      // No aplicar conversión de zona horaria
+      return Utilities.formatDate(date, 'America/Lima', 'dd/MM/yyyy');
+    }
   } catch (e) {
     console.error(`Error formateando fecha (solo fecha) ${isoString}: ${e}`);
     return isoString;
