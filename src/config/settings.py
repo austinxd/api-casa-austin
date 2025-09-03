@@ -332,7 +332,7 @@ TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 CHAT_ID = os.getenv('CHAT_ID')
 
 # Google Apps Script webhook for Google Sheets integration
-GOOGLE_SCRIPT_WEBHOOK = env('GOOGLE_SCRIPT_WEBHOOK', default='https://script.google.com/macros/s/AKfycbyxitNtUNBvB5e_CZ7wWQd5ms4GqdfmoyEH8U8hp7bZUpM2iegW0BdGylLEGHp8RS43xg/exec')
+GOOGLE_SCRIPT_WEBHOOK = env('GOOGLE_SCRIPT_WEBHOOK', default='https://script.google.com/macros/s/AKfycbyTI_T8r1LZLOEbJBMqp9UL88DdOjwCeOWECMGkTvNzG4ClX6w3tH1_h0vZPp-ytkxugg/exec')
 
 # Telegram settings
 SECOND_CHAT_ID = env('SECOND_CHAT_ID', default='No second chat ID')
