@@ -22,8 +22,6 @@ urlpatterns = [
     path("api/v1/reservations/", include("apps.reservation.urls")),
     path("api/v1/", include("apps.property.urls")),
     path("api/v1/", include("apps.dashboard.urls")),
-    # Backward compatibility for old calendar endpoints
-    path("api/v1/vistacalendario/", include("apps.reservation.urls")),
 ]
 
 # Serve media files in development

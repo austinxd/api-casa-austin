@@ -34,6 +34,6 @@ urlpatterns = [
     path('admin/bulk-special-dates/', BulkSpecialDateView.as_view(), name='bulk-special-dates'),
     path('admin/special-dates-manager/', PropertySpecialDatesView.as_view(), name='special-dates-manager'),
     path('admin/special-dates-manager/<int:property_id>/', PropertySpecialDatesView.as_view(), name='special-dates-manager'),
-    # Calendar occupancy endpoint
+    # Calendar occupancy endpoint - fixed path to match the failing URL
     path('property/<str:property_id>/calendar-occupancy/', PropertyCalendarOccupancyAPIView.as_view(), name='property-calendar-occupancy'),
 ]
