@@ -1,4 +1,3 @@
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -12,6 +11,7 @@ import logging
 import time
 import random
 import uuid
+import mercadopago # Import MercadoPago SDK
 
 logger = logging.getLogger(__name__)
 
@@ -22,71 +22,62 @@ class TestMercadoPagoCredentialsView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
+        """
+        Endpoint de prueba para verificar credenciales de MercadoPago
+        """
         try:
-            # Configurar MercadoPago API
-            access_token = settings.MERCADOPAGO_ACCESS_TOKEN
-            is_sandbox = settings.MERCADOPAGO_SANDBOX
-            
-            logger.info(f"🔧 TESTING MERCADOPAGO CREDENTIALS")
-            logger.info(f"Access Token length: {len(access_token) if access_token else 0}")
-            logger.info(f"Is Sandbox: {is_sandbox}")
-            
-            # URL base según el entorno
-            base_url = "https://api.mercadopago.com"
-            
-            # Headers para la API
-            headers = {
-                'Content-Type': 'application/json',
-                'Authorization': f'Bearer {access_token}'
-            }
-            
-            # Test 1: Verificar acceso a la API con endpoint de información de la cuenta
-            test_url = f"{base_url}/users/me"
-            
-            logger.info(f"Testing endpoint: {test_url}")
-            response = requests.get(test_url, headers=headers, timeout=10)
-            
-            logger.info(f"Response status: {response.status_code}")
-            logger.info(f"Response headers: {dict(response.headers)}")
-            
-            if response.status_code == 200:
-                user_info = response.json()
-                logger.info(f"✅ Credenciales válidas - Usuario: {user_info.get('email', 'N/A')}")
-                
+            # Verificar que el token esté configurado
+            if not hasattr(settings, 'MERCADOPAGO_ACCESS_TOKEN') or not settings.MERCADOPAGO_ACCESS_TOKEN:
                 return Response({
-                    'success': True,
-                    'message': 'Credenciales de MercadoPago válidas',
-                    'user_info': {
-                        'id': user_info.get('id'),
-                        'email': user_info.get('email'),
-                        'country_id': user_info.get('country_id'),
-                        'site_id': user_info.get('site_id'),
-                        'sandbox': is_sandbox
-                    },
-                    'environment': 'Sandbox' if is_sandbox else 'Production'
+                    "success": False,
+                    "message": "MERCADOPAGO_ACCESS_TOKEN no está configurado",
+                    "debug_info": "Verifica que el token esté en las variables de entorno"
+                }, status=400)
+
+            # Configurar SDK con las credenciales del entorno
+            mp = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
+
+            # Crear una preferencia de prueba simple
+            preference_data = {
+                "items": [
+                    {
+                        "title": "Test Item",
+                        "quantity": 1,
+                        "unit_price": 10.0,
+                        "currency_id": "USD"
+                    }
+                ],
+                "external_reference": "test-reference",
+                "notification_url": "https://webhook.site/test"
+            }
+
+            # Crear la preferencia para probar la conexión
+            response = mp.preference().create(preference_data)
+
+            if response["status"] == 201:
+                return Response({
+                    "success": True,
+                    "message": "✅ Credenciales de MercadoPago válidas y funcionando",
+                    "status_code": response["status"],
+                    "environment": "sandbox" if "TEST" in settings.MERCADOPAGO_ACCESS_TOKEN else "production",
+                    "preference_id": response["response"]["id"],
+                    "init_point": response["response"]["init_point"]
                 })
             else:
-                error_msg = response.text
-                logger.error(f"❌ Error de credenciales: {error_msg}")
-                
                 return Response({
-                    'success': False,
-                    'message': f'Error validando credenciales: {error_msg}',
-                    'status_code': response.status_code
+                    "success": False,
+                    "message": f"Error en la respuesta de MercadoPago: {response.get('message', 'Unknown error')}",
+                    "status_code": response["status"],
+                    "details": response
                 }, status=400)
-                
-        except requests.RequestException as e:
-            logger.error(f"❌ Error de conexión: {str(e)}")
-            return Response({
-                'success': False,
-                'message': f'Error de conexión: {str(e)}'
-            }, status=500)
+
         except Exception as e:
-            logger.error(f"❌ Error general: {str(e)}")
             return Response({
-                'success': False,
-                'message': f'Error interno: {str(e)}'
-            }, status=500)
+                "success": False,
+                "message": f"Error conectando con MercadoPago: {str(e)}",
+                "environment": "sandbox" if hasattr(settings, 'MERCADOPAGO_ACCESS_TOKEN') and "TEST" in str(settings.MERCADOPAGO_ACCESS_TOKEN) else "unknown",
+                "debug_info": "Verifica que el access token sea válido y tenga los permisos correctos"
+            }, status=400)
 
 
 from rest_framework.views import APIView
@@ -299,10 +290,10 @@ class ProcessPaymentView(APIView):
                     logger.info(f"External Reference: {payment_data['external_reference']}")
                     logger.info(f"Payer email: {payment_data['payer']['email']}")
                     logger.info(f"Payer phone: {payment_data['payer']['phone']['number']}")
-                    
+
                     # Procesar pago con MercadoPago API
                     url = f"{self.base_url}/v1/payments"
-                    
+
                     logger.info(f"Procesando pago para reserva {reservation.id} con external_reference: {unique_external_reference}")
                     logger.info(f"DEBUGGING MERCADOPAGO REQUEST:")
                     logger.info(f"URL: {url}")
@@ -323,10 +314,10 @@ class ProcessPaymentView(APIView):
                             error_details = response.json()
                             error_msg_from_api = error_details.get('message', 'No se pudo obtener descripción del error.')
                             error_cause = error_details.get('cause', [])
-                            
+
                             logger.error(f"   Descripción API: {error_msg_from_api}")
                             logger.error(f"   Causas: {error_cause}")
-                            
+
                             # Errores específicos de MercadoPago
                             if any("already_used" in str(cause) for cause in error_cause):
                                 logger.error("   Detectado: El token ya ha sido usado.")
