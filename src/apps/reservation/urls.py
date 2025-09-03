@@ -16,6 +16,7 @@ router.register(r'reservations', ReservationsApiView, basename='reservation')
 router.register(r'calendar', VistaCalendarioApiView, basename='calendar')
 
 urlpatterns = [
+    path('recipes/<int:pk>/', DeleteRecipeApiView.as_view(), name='delete-recipe'),
     path('calendar/property/<str:property_id>/', PropertyCalendarOccupancyAPIView.as_view(), name='property-calendar'),
     path('ics/', GetICSApiView.as_view(), name='get-ics'),
     path('ics/update/', UpdateICSApiView.as_view(), name='update-ics'),
