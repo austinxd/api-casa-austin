@@ -333,6 +333,13 @@ class ProcessPaymentView(APIView):
                                     'message': 'El token de pago proporcionado es inválido.',
                                     'error_code': 'INVALID_TOKEN'
                                 }, status=400)
+                            elif error_msg_from_api == "diff_param_bins" or any("Different parameters for the bin" in str(cause) for cause in error_cause):
+                                logger.error("   Detectado: Parámetros del token no coinciden con el pago.")
+                                return Response({
+                                    'success': False,
+                                    'message': 'Los datos de la tarjeta no coinciden con el método de pago seleccionado. Por favor, genera un nuevo token con los datos correctos.',
+                                    'error_code': 'TOKEN_BIN_MISMATCH'
+                                }, status=400)
                             else:
                                 return Response({
                                     'success': False,
