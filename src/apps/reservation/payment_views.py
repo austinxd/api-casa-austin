@@ -1,3 +1,94 @@
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+from django.db import transaction
+from django.conf import settings
+from .models import Reservation
+from apps.clients.auth_views import ClientJWTAuthentication
+import requests
+import logging
+import time
+import random
+import uuid
+
+logger = logging.getLogger(__name__)
+
+class TestMercadoPagoCredentialsView(APIView):
+    """
+    Endpoint para probar las credenciales de MercadoPago
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        try:
+            # Configurar MercadoPago API
+            access_token = settings.MERCADOPAGO_ACCESS_TOKEN
+            is_sandbox = settings.MERCADOPAGO_SANDBOX
+            
+            logger.info(f"🔧 TESTING MERCADOPAGO CREDENTIALS")
+            logger.info(f"Access Token length: {len(access_token) if access_token else 0}")
+            logger.info(f"Is Sandbox: {is_sandbox}")
+            
+            # URL base según el entorno
+            base_url = "https://api.mercadopago.com"
+            
+            # Headers para la API
+            headers = {
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {access_token}'
+            }
+            
+            # Test 1: Verificar acceso a la API con endpoint de información de la cuenta
+            test_url = f"{base_url}/users/me"
+            
+            logger.info(f"Testing endpoint: {test_url}")
+            response = requests.get(test_url, headers=headers, timeout=10)
+            
+            logger.info(f"Response status: {response.status_code}")
+            logger.info(f"Response headers: {dict(response.headers)}")
+            
+            if response.status_code == 200:
+                user_info = response.json()
+                logger.info(f"✅ Credenciales válidas - Usuario: {user_info.get('email', 'N/A')}")
+                
+                return Response({
+                    'success': True,
+                    'message': 'Credenciales de MercadoPago válidas',
+                    'user_info': {
+                        'id': user_info.get('id'),
+                        'email': user_info.get('email'),
+                        'country_id': user_info.get('country_id'),
+                        'site_id': user_info.get('site_id'),
+                        'sandbox': is_sandbox
+                    },
+                    'environment': 'Sandbox' if is_sandbox else 'Production'
+                })
+            else:
+                error_msg = response.text
+                logger.error(f"❌ Error de credenciales: {error_msg}")
+                
+                return Response({
+                    'success': False,
+                    'message': f'Error validando credenciales: {error_msg}',
+                    'status_code': response.status_code
+                }, status=400)
+                
+        except requests.RequestException as e:
+            logger.error(f"❌ Error de conexión: {str(e)}")
+            return Response({
+                'success': False,
+                'message': f'Error de conexión: {str(e)}'
+            }, status=500)
+        except Exception as e:
+            logger.error(f"❌ Error general: {str(e)}")
+            return Response({
+                'success': False,
+                'message': f'Error interno: {str(e)}'
+            }, status=500)
+
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status

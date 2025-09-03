@@ -1,32 +1,34 @@
-from django.urls import include, path
+from django.urls import path
+from .views import (
+    ReservationViewSet, 
+    ClientReservationViewSet, 
+    ReservationListByPropertyView,
+    ClientReservationDetailView,
+    ReservationPropertyAvailabilityView,
+    ReservationCreateView,
+    ClientReservationsView,
+    BulkUpdateReservationStatusView,
+    ReservationExportView,
+    ReservationAllView,
+    ReservationDashboardStats,
+)
+from .payment_views import ProcessPaymentView, TestMercadoPagoCredentialsView
 from rest_framework.routers import DefaultRouter
 
-from .views import (
-    ReservationsApiView,
-    DeleteRecipeApiView,
-    GetICSApiView,
-    UpdateICSApiView,
-    ProfitApiView,
-    VistaCalendarioApiView,
-    confirm_reservation,
-    PropertyCalendarOccupancyAPIView
-)
-from .payment_views import ProcessPaymentView
-
 router = DefaultRouter()
-
-router.register("reservations", ReservationsApiView, basename="reservations")
-router.register("vistacalendario", VistaCalendarioApiView, basename="vistacalendario")
-
+router.register(r'reservations', ReservationViewSet, basename='reservation')
+router.register(r'client-reservations', ClientReservationViewSet, basename='client-reservation')
 
 urlpatterns = [
-    path("", include(router.urls)),
-    path("recipt/<int:pk>/", DeleteRecipeApiView.as_view()),
-    path("get-ics/", GetICSApiView.as_view()),
-    path("update-ics/", UpdateICSApiView.as_view()),
-    path("profit/", ProfitApiView.as_view()),
-    path("profit-resume/", ProfitApiView.as_view(), name='profit-resume'),
-    path('confirm/<str:uuid>/', confirm_reservation, name='confirm_reservation'),
-    path('property/<str:property_id>/calendar-occupancy/', PropertyCalendarOccupancyAPIView.as_view(), name='property-calendar-occupancy'),
-    path('payment/process/<str:reservation_id>/', ProcessPaymentView.as_view(), name='process-payment'),
-]
+    path('reservations/property/<int:property_id>/', ReservationListByPropertyView.as_view(), name='reservations-by-property'),
+    path('client-reservations/<uuid:reservation_id>/', ClientReservationDetailView.as_view(), name='client-reservation-detail'),
+    path('reservations/availability/<int:property_id>/', ReservationPropertyAvailabilityView.as_view(), name='property-availability'),
+    path('reservations/create/', ReservationCreateView.as_view(), name='reservation-create'),
+    path('reservations/client/', ClientReservationsView.as_view(), name='client-reservations'),
+    path('reservations/bulk-update-status/', BulkUpdateReservationStatusView.as_view(), name='bulk-update-status'),
+    path('reservations/export/', ReservationExportView.as_view(), name='reservation-export'),
+    path('reservations/all/', ReservationAllView.as_view(), name='reservations-all'),
+    path('reservations/dashboard/stats/', ReservationDashboardStats.as_view(), name='reservation-dashboard-stats'),
+    path('payment/process/<uuid:reservation_id>/', ProcessPaymentView.as_view(), name='process-payment'),
+    path('payment/test-credentials/', TestMercadoPagoCredentialsView.as_view(), name='test-mercadopago-credentials'),
+] + router.urls
