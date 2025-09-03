@@ -361,6 +361,18 @@ class ProcessPaymentView(APIView):
                             # Pago exitoso - actualizar reserva
                             reservation.full_payment = True
                             reservation.status = 'approved'
+                            
+                            # Si el pago fue exitoso con tarjeta, actualizar el advance_payment con el monto pagado
+                            if reservation.advance_payment_currency == 'sol':
+                                reservation.advance_payment = amount
+                            else:
+                                # Si la moneda de advance_payment es USD, convertir el monto
+                                if reservation.price_usd and reservation.price_sol and float(reservation.price_usd) > 0 and float(reservation.price_sol) > 0:
+                                    exchange_rate = float(reservation.price_sol) / float(reservation.price_usd)
+                                    reservation.advance_payment = amount / exchange_rate
+                                else:
+                                    reservation.advance_payment = amount
+                            
                             reservation.save()
 
                             # Registrar el uso del token
