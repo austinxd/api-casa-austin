@@ -24,11 +24,3 @@ urlpatterns = [
     path('payment/process/<uuid:reservation_id>/', ProcessPaymentView.as_view(), name='process-payment'),
     path('payment/test-credentials/', TestMercadoPagoCredentialsView.as_view(), name='test-mercadopago-credentials'),
 ] + router.urls
-
-# Add backward compatibility URLs for old frontend endpoints
-from django.urls import re_path
-
-# This creates the missing /api/v1/vistacalendario/ endpoint that was failing
-urlpatterns += [
-    re_path(r'^../vistacalendario/', VistaCalendarioApiView.as_view({'get': 'list'}), name='vista-calendario-compat'),
-]

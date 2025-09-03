@@ -333,13 +333,6 @@ class ProcessPaymentView(APIView):
                                     'message': 'El token de pago proporcionado es inválido.',
                                     'error_code': 'INVALID_TOKEN'
                                 }, status=400)
-                            elif error_msg_from_api == "diff_param_bins" or any("Different parameters for the bin" in str(cause) for cause in error_cause):
-                                logger.error("   Detectado: Parámetros del token no coinciden con el pago.")
-                                return Response({
-                                    'success': False,
-                                    'message': 'Los datos de la tarjeta no coinciden con el método de pago seleccionado. Por favor, genera un nuevo token con los datos correctos.',
-                                    'error_code': 'TOKEN_BIN_MISMATCH'
-                                }, status=400)
                             else:
                                 return Response({
                                     'success': False,
@@ -361,18 +354,6 @@ class ProcessPaymentView(APIView):
                             # Pago exitoso - actualizar reserva
                             reservation.full_payment = True
                             reservation.status = 'approved'
-                            
-                            # Si el pago fue exitoso con tarjeta, actualizar el advance_payment con el monto pagado
-                            if reservation.advance_payment_currency == 'sol':
-                                reservation.advance_payment = amount
-                            else:
-                                # Si la moneda de advance_payment es USD, convertir el monto
-                                if reservation.price_usd and reservation.price_sol and float(reservation.price_usd) > 0 and float(reservation.price_sol) > 0:
-                                    exchange_rate = float(reservation.price_sol) / float(reservation.price_usd)
-                                    reservation.advance_payment = amount / exchange_rate
-                                else:
-                                    reservation.advance_payment = amount
-                            
                             reservation.save()
 
                             # Registrar el uso del token
