@@ -343,7 +343,8 @@ class ProcessPaymentView(APIView):
                                 'reservation_id': reservation.id,
                                 'transaction_id': payment.get('id'),
                                 'payment_status': payment.get('status'),
-                                'amount': amount
+                                'amount': amount,
+                                'currency': 'SOL'
                             })
                         else:
                             logger.warning(f"Pago no completado para reserva {reservation.id}. Status: {payment.get('status')}")
