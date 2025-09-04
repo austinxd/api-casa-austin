@@ -1,0 +1,40 @@
+[2025-09-04 08:45:58 -0500] [1286967] [INFO] Starting gunicorn 21.2.0
+[2025-09-04 08:45:58 -0500] [1286967] [INFO] Listening at: http://0.0.0.0:8000 (1286967)
+[2025-09-04 08:45:58 -0500] [1286967] [INFO] Using worker: sync
+[2025-09-04 08:45:58 -0500] [1286968] [INFO] Booting worker with pid: 1286968
+INFO 2025-09-04 08:46:29,431 payment_views 1286968 140090152269632 🔧 MERCADOPAGO INIT - Access Token length: 75
+INFO 2025-09-04 08:46:29,431 payment_views 1286968 140090152269632 🔧 MERCADOPAGO INIT - Sandbox: False
+INFO 2025-09-04 08:46:29,436 payment_views 1286968 140090152269632 === DEBUGGING MERCADOPAGO CREDENTIALS ===
+INFO 2025-09-04 08:46:29,436 payment_views 1286968 140090152269632 Access Token (masked): APP_USR-5242411...64032665
+INFO 2025-09-04 08:46:29,436 payment_views 1286968 140090152269632 Is Sandbox: False
+INFO 2025-09-04 08:46:29,436 payment_views 1286968 140090152269632 Base URL: https://api.mercadopago.com
+INFO 2025-09-04 08:46:29,438 payment_views 1286968 140090152269632 Token recibido: 2e83267f21bdc79ccb7c0de66608ec9e
+INFO 2025-09-04 08:46:29,438 payment_views 1286968 140090152269632 Amount: 0.07
+INFO 2025-09-04 08:46:29,438 payment_views 1286968 140090152269632 Payment Method ID: visa
+INFO 2025-09-04 08:46:29,438 payment_views 1286968 140090152269632 Installments: 1
+INFO 2025-09-04 08:46:29,438 payment_views 1286968 140090152269632 === VERIFICANDO TOKEN ===
+INFO 2025-09-04 08:46:29,438 payment_views 1286968 140090152269632 Token length: 32
+INFO 2025-09-04 08:46:29,438 payment_views 1286968 140090152269632 Token starts with: 2e83267f21
+INFO 2025-09-04 08:46:29,440 payment_views 1286968 140090152269632 ✅ Token 2e83267f21bdc79ccb7c0de66608ec9e no ha sido usado anteriormente
+INFO 2025-09-04 08:46:29,442 payment_views 1286968 140090152269632 === VALIDANDO CREDENCIALES MERCADOPAGO ===
+INFO 2025-09-04 08:46:29,442 payment_views 1286968 140090152269632 Auth header creado: Bearer APP_USR-5242411473...
+INFO 2025-09-04 08:46:29,442 payment_views 1286968 140090152269632 === VALIDACIONES PRE-REQUEST ===
+INFO 2025-09-04 08:46:29,442 payment_views 1286968 140090152269632 Amount validation: 0.07 > 0 = True
+INFO 2025-09-04 08:46:29,442 payment_views 1286968 140090152269632 Payment Method ID: visa
+INFO 2025-09-04 08:46:29,442 payment_views 1286968 140090152269632 Installments: 1
+INFO 2025-09-04 08:46:29,442 payment_views 1286968 140090152269632 Token length: 32
+INFO 2025-09-04 08:46:29,442 payment_views 1286968 140090152269632 External Reference: RES-853f2563-c4bc-4bf6-9536-d766b4bf3f0b-17569935894407983-2160
+INFO 2025-09-04 08:46:29,442 payment_views 1286968 140090152269632 Payer email: austin.xd@live.com
+INFO 2025-09-04 08:46:29,442 payment_views 1286968 140090152269632 Payer phone: +51986607686
+INFO 2025-09-04 08:46:29,442 payment_views 1286968 140090152269632 Procesando pago para reserva 853f2563-c4bc-4bf6-9536-d766b4bf3f0b con external_reference: RES-853f2563-c4bc-4bf6-9536-d766b4bf3f0b-17569935894407983-2160
+INFO 2025-09-04 08:46:29,442 payment_views 1286968 140090152269632 DEBUGGING MERCADOPAGO REQUEST:
+INFO 2025-09-04 08:46:29,442 payment_views 1286968 140090152269632 URL: https://api.mercadopago.com/v1/payments
+INFO 2025-09-04 08:46:29,442 payment_views 1286968 140090152269632 Headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer APP_USR-5242411473403421-090311-ff1e363ea601b4cfd296648e2ca7cd84-2664032665', 'X-Idempotency-Key': '76ad99ab-65fa-4c1c-85d7-69f341cb7d5a'}
+INFO 2025-09-04 08:46:29,442 payment_views 1286968 140090152269632 Payment Data: {'transaction_amount': 0.07, 'token': '2e83267f21bdc79ccb7c0de66608ec9e', 'description': 'Pago reserva #853f2563-c4bc-4bf6-9536-d766b4bf3f0b - Casa Austin 3', 'external_reference': 'RES-853f2563-c4bc-4bf6-9536-d766b4bf3f0b-17569935894407983-2160', 'payment_method_id': 'visa', 'installments': 1, 'payer': {'email': 'austin.xd@live.com', 'first_name': 'Augusto Ray Leonel', 'last_name': 'Tantalean Marcatoma', 'phone': {'area_code': '51', 'number': '+51986607686'}, 'address': {'zip_code': '15001', 'street_name': 'Calle Principal', 'street_number': 123}}, 'additional_info': {'items': [{'id': '0ff9b525-ff7c-4be3-b872-3937d958c1a6', 'title': 'Casa Austin 3', 'quantity': 1, 'unit_price': 0.07}]}}
+INFO 2025-09-04 08:46:29,910 payment_views 1286968 140090152269632 MercadoPago Response - Status: 400 (Intento 1)
+INFO 2025-09-04 08:46:29,911 payment_views 1286968 140090152269632 MercadoPago Response Headers: {'Date': 'Thu, 04 Sep 2025 13:46:29 GMT', 'Content-Type': 'application/json', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'x-site-id': 'MPE', 'X-Content-Type-Options': 'nosniff', 'X-Request-Id': '7aae4eb2-4b73-406c-ad2f-0282e3442522, e6648c7c-484d-4d36-83e8-8faad50e429d', 'X-XSS-Protection': '1; mode=block', 'Strict-Transport-Security': 'max-age=16070400; includeSubDomains; preload, max-age=31536000; includeSubDomains', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods': 'PUT, GET, POST, DELETE, OPTIONS', 'Access-Control-Max-Age': '86400', 'Timing-Allow-Origin': '*'}
+ERROR 2025-09-04 08:46:29,911 payment_views 1286968 140090152269632 MercadoPago Error Response: {"message":"Invalid transaction_amount","error":"bad_request","status":400,"cause":[{"code":4037,"description":"Invalid transaction_amount","data":"04-09-2025T13:46:29UTC;7aae4eb2-4b73-406c-ad2f-0282e3442522"}]}
+ERROR 2025-09-04 08:46:29,911 payment_views 1286968 140090152269632    Descripción API: Invalid transaction_amount
+ERROR 2025-09-04 08:46:29,911 payment_views 1286968 140090152269632    Causas: [{'code': 4037, 'description': 'Invalid transaction_amount', 'data': '04-09-2025T13:46:29UTC;7aae4eb2-4b73-406c-ad2f-0282e3442522'}]
+Bad Request: /api/v1/payment/process/853f2563-c4bc-4bf6-9536-d766b4bf3f0b/
+WARNING 2025-09-04 08:46:29,912 log 1286968 140090152269632 Bad Request: /api/v1/payment/process/853f2563-c4bc-4bf6-9536-d766b4bf3f0b/
