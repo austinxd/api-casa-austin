@@ -164,36 +164,48 @@ def notify_voucher_uploaded(reservation):
 def notify_payment_approved(reservation):
     """Notifica al cliente por WhatsApp cuando su pago es aprobado"""
     from ..clients.whatsapp_service import send_whatsapp_payment_approved
-    
+
     if not reservation.client or not reservation.client.tel_number:
         logger.warning(f"No se puede enviar WhatsApp para reserva {reservation.id}: cliente o teléfono no disponible")
         return
-    
+
     try:
         # Preparar datos para el template - solo primer nombre y primer apellido
         first_name = reservation.client.first_name.split()[0] if reservation.client.first_name else ""
-        
+
         # Obtener solo el primer apellido si existe
         first_last_name = ""
         if reservation.client.last_name:
             first_last_name = reservation.client.last_name.split()[0]
-        
+
         # Combinar primer nombre y primer apellido
         client_name = f"{first_name} {first_last_name}".strip()
-        
-        # Formatear información del pago
-        if reservation.advance_payment_currency == 'usd':
-            payment_info = f"${reservation.advance_payment:.2f}"
+
+        # Formatear información del pago según el origen de la reserva
+        if reservation.origin == 'client':
+            # Para reservas de cliente web (MercadoPago), SIEMPRE usar price_sol
+            # porque el pago con tarjeta es del monto total, no hay advance_payment
+            payment_info = f"S/{reservation.price_sol:.2f}" if reservation.price_sol else "S/0.00"
+            if not reservation.price_sol or reservation.price_sol <= 0:
+                logger.warning(f"Reserva de cliente sin price_sol para reserva {reservation.id}")
         else:
-            payment_info = f"S/{reservation.advance_payment:.2f}"
-        
+            # Para reservas manuales (austin, airbnb), usar advance_payment
+            if reservation.advance_payment and reservation.advance_payment > 0:
+                if reservation.advance_payment_currency == 'usd':
+                    payment_info = f"${reservation.advance_payment:.2f}"
+                else:
+                    payment_info = f"S/{reservation.advance_payment:.2f}"
+            else:
+                payment_info = "S/0.00"
+                logger.warning(f"Reserva manual sin advance_payment para reserva {reservation.id}")
+
         # Formatear fecha de check-in (formato dd/mm/yyyy)
         check_in_formatted = reservation.check_in_date.strftime("%d/%m/%Y")
         check_in_text = f"Para la reserva del {check_in_formatted}"
-        
+
         logger.info(f"Enviando WhatsApp de pago aprobado a {reservation.client.tel_number} para reserva {reservation.id}")
         logger.info(f"Datos: Nombre: {client_name}, Pago: {payment_info}, Check-in: {check_in_text}")
-        
+
         # Enviar WhatsApp
         success = send_whatsapp_payment_approved(
             phone_number=reservation.client.tel_number,
@@ -201,12 +213,12 @@ def notify_payment_approved(reservation):
             payment_info=payment_info,
             check_in_date=check_in_text
         )
-        
+
         if success:
             logger.info(f"WhatsApp de pago aprobado enviado exitosamente para reserva {reservation.id}")
         else:
             logger.error(f"Error al enviar WhatsApp de pago aprobado para reserva {reservation.id}")
-            
+
     except Exception as e:
         logger.error(f"Error al procesar notificación de pago aprobado para reserva {reservation.id}: {str(e)}")
 
@@ -221,7 +233,7 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
     if created:
         logger.debug(f"Nueva reserva creada: {instance.id} - Origen: {instance.origin}")
         notify_new_reservation(instance)
-        
+
         # Verificar si la nueva reserva tiene pago completo
         if instance.full_payment:
             logger.debug(f"Nueva reserva {instance.id} creada con pago completo - Enviando flujo ChatBot")
@@ -231,7 +243,7 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
         if instance.status == 'pending' and instance.origin == 'client':
             logger.debug(f"Reserva {instance.id} cambió a estado pending - Voucher subido")
             notify_voucher_uploaded(instance)
-        
+
         # Verificar si cambió a estado approved (pago aprobado) y no se ha enviado la notificación
         elif instance.status == 'approved' and instance.origin == 'client' and not instance.payment_approved_notification_sent:
             logger.debug(f"Reserva {instance.id} cambió a estado approved - Pago aprobado")
@@ -239,18 +251,18 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
             # Marcar como enviado para evitar duplicados
             instance.payment_approved_notification_sent = True
             instance.save(update_fields=['payment_approved_notification_sent'])
-        
+
         # Verificar si cambió el campo full_payment a True (pago completado)
         if hasattr(instance, '_original_full_payment'):
             if not instance._original_full_payment and instance.full_payment:
                 logger.debug(f"Reserva {instance.id} marcada como pago completo - Enviando flujo ChatBot")
                 send_chatbot_flow_payment_complete(instance)
-        
+
         # Verificar logros cuando cambie el estado de la reserva
         if instance.client:
             logger.debug(f"Verificando logros para cliente {instance.client.id} después de actualizar reserva {instance.id}")
             check_and_assign_achievements(instance.client)
-            
+
             # También verificar logros del cliente que refirió (si existe)
             if instance.client.referred_by:
                 logger.debug(f"Verificando logros para cliente referidor {instance.client.referred_by.id}")
@@ -261,21 +273,21 @@ def send_chatbot_flow_payment_complete(reservation):
     if not reservation.client or not reservation.client.id_manychat:
         logger.warning(f"No se puede enviar flujo ChatBot para reserva {reservation.id}: cliente o id_manychat no disponible")
         return
-    
+
     # Configuración de la API ChatBot Builder
     api_token = "1680437.Pgur5IA4kUXccspOK389nZugThdLB9h"
     flow_id = "1727388146335"  # Flujo para pago completo
     api_base_url = "https://app.chatgptbuilder.io/api"
-    
+
     # URL para enviar el flujo
     url = f"{api_base_url}/contacts/{reservation.client.id_manychat}/send/{flow_id}"
-    
+
     # Encabezados
     headers = {
         "X-ACCESS-TOKEN": api_token,
         "Content-Type": "application/json"
     }
-    
+
     try:
         response = requests.post(url, headers=headers)
         if response.status_code == 200:
