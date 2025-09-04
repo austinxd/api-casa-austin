@@ -218,10 +218,49 @@ class ProcessPaymentView(APIView):
                     logger.info(f"Headers: {headers}")
                     logger.info(f"Payment Data: {payment_data}")
 
-                    response = requests.post(url, json=payment_data, headers=headers, timeout=30)
-
-                    logger.info(f"MercadoPago Response - Status: {response.status_code}")
-                    logger.info(f"MercadoPago Response Headers: {dict(response.headers)}")
+                    # Reintentar hasta 3 veces en caso de error 500
+                    max_retries = 3
+                    retry_count = 0
+                    
+                    while retry_count < max_retries:
+                        try:
+                            response = requests.post(url, json=payment_data, headers=headers, timeout=30)
+                            
+                            logger.info(f"MercadoPago Response - Status: {response.status_code} (Intento {retry_count + 1})")
+                            logger.info(f"MercadoPago Response Headers: {dict(response.headers)}")
+                            
+                            # Si es error 500, reintentar
+                            if response.status_code == 500:
+                                retry_count += 1
+                                if retry_count < max_retries:
+                                    logger.warning(f"Error 500 de MercadoPago, reintentando... (intento {retry_count + 1}/{max_retries})")
+                                    import time
+                                    time.sleep(2)  # Esperar 2 segundos antes del reintento
+                                    continue
+                                else:
+                                    logger.error(f"Error 500 persistente después de {max_retries} intentos")
+                                    return Response({
+                                        'success': False,
+                                        'message': 'Error temporal del procesador de pagos. Por favor, intente nuevamente en unos minutos.',
+                                        'error_code': 'MERCADOPAGO_SERVER_ERROR'
+                                    }, status=503)
+                            else:
+                                # No es error 500, continuar con el procesamiento normal
+                                break
+                                
+                        except requests.RequestException as e:
+                            retry_count += 1
+                            if retry_count < max_retries:
+                                logger.warning(f"Error de conexión, reintentando... (intento {retry_count + 1}/{max_retries}): {str(e)}")
+                                import time
+                                time.sleep(2)
+                                continue
+                            else:
+                                logger.error(f"Error de conexión persistente después de {max_retries} intentos: {str(e)}")
+                                return Response({
+                                    'success': False,
+                                    'message': 'Error de conexión con el procesador de pagos'
+                                }, status=500)
 
                     # MercadoPago puede devolver 200 o 201 para pagos exitosos
                     if response.status_code not in [200, 201]:
