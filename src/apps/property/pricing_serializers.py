@@ -107,6 +107,7 @@ class AutomaticDiscountSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+        data['is_active'] = instance.is_active # Adding the active status
         return data
 
 
