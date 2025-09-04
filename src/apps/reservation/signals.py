@@ -181,11 +181,20 @@ def notify_payment_approved(reservation):
         # Combinar primer nombre y primer apellido
         client_name = f"{first_name} {first_last_name}".strip()
         
-        # Formatear información del pago
-        if reservation.advance_payment_currency == 'usd':
-            payment_info = f"${reservation.advance_payment:.2f}"
+        # Formatear información del pago - usar el precio actualizado de la reserva en soles
+        # Ya que MercadoPago procesa en soles y actualiza price_sol
+        if reservation.price_sol and reservation.price_sol > 0:
+            payment_info = f"S/{reservation.price_sol:.2f}"
+        elif reservation.advance_payment and reservation.advance_payment > 0:
+            # Fallback al advance_payment si price_sol no está disponible
+            if reservation.advance_payment_currency == 'usd':
+                payment_info = f"${reservation.advance_payment:.2f}"
+            else:
+                payment_info = f"S/{reservation.advance_payment:.2f}"
         else:
-            payment_info = f"S/{reservation.advance_payment:.2f}"
+            # Si no hay monto disponible, usar un valor por defecto
+            payment_info = "S/0.00"
+            logger.warning(f"No se encontró monto de pago para reserva {reservation.id}")
         
         # Formatear fecha de check-in (formato dd/mm/yyyy)
         check_in_formatted = reservation.check_in_date.strftime("%d/%m/%Y")
@@ -193,6 +202,7 @@ def notify_payment_approved(reservation):
         
         logger.info(f"Enviando WhatsApp de pago aprobado a {reservation.client.tel_number} para reserva {reservation.id}")
         logger.info(f"Datos: Nombre: {client_name}, Pago: {payment_info}, Check-in: {check_in_text}")
+        logger.info(f"Valores de reserva - price_sol: {reservation.price_sol}, advance_payment: {reservation.advance_payment}")
         
         # Enviar WhatsApp
         success = send_whatsapp_payment_approved(
