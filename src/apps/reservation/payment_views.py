@@ -342,7 +342,8 @@ class ProcessPaymentView(APIView):
                                 'message': 'Pago procesado exitosamente',
                                 'reservation_id': reservation.id,
                                 'transaction_id': payment.get('id'),
-                                'payment_status': payment.get('status')
+                                'payment_status': payment.get('status'),
+                                'amount': amount
                             })
                         else:
                             logger.warning(f"Pago no completado para reserva {reservation.id}. Status: {payment.get('status')}")
