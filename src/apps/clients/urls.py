@@ -71,7 +71,7 @@ urlpatterns = [
          auth_views.ClientResetPasswordView.as_view(),
          name='client-reset-password'),
     path('clients/client-auth/profile/',
-         views.ClientProfileView.as_view(),
+         auth_views.ClientProfileView.as_view(),
          name='client-profile'),
     path('clients/client-auth/reservations/',
          auth_views.ClientReservationsView.as_view(),
