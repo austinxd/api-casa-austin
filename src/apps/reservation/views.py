@@ -900,7 +900,6 @@ class PropertyCalendarOccupancyAPIView(APIView):
                         raise ValueError()
 
                     # Validar que el día sea válido para el mes y año especificados
-                    import calendar
                     max_day = calendar.monthrange(year, month)[1]
                     if day > max_day:
                         return Response({
