@@ -52,7 +52,7 @@ urlpatterns = [
          auth_views.ClientRequestOTPForRegistrationView.as_view(),
          name='client-request-otp-registration'),
 
-    # Bot endpoint - sin autenticación
+    # Bot endpoint - sin autenticación (acepta tel_number o DNI)
     path('bot/client/<str:tel_number>/',
          views.BotClientProfileView.as_view(),
          name='bot-client-profile'),

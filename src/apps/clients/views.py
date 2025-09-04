@@ -3,7 +3,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
-from django.db.models import Q
+from django.db.models import Q, Sum, Count
+from django.shortcuts import get_object_or_404
 
 from apps.reservation.models import Reservation
 from apps.reservation.serializers import ClientReservationSerializer, ReservationListSerializer, ReservationRetrieveSerializer
@@ -987,7 +988,7 @@ class GoogleSheetsDebugView(APIView):
     def post(self, request):
         """Debuggear envío a Google Sheets con datos de prueba"""
         logger.info("GoogleSheetsDebugView: === INICIO DEBUG GOOGLE SHEETS ===")
-        
+
         try:
             # Crear datos de prueba
             test_data = [
@@ -1042,22 +1043,22 @@ class GoogleSheetsDebugView(APIView):
                     'created': '2025-09-01T20:15:50.000000+00:00'
                 }
             ]
-            
+
             logger.info(f"GoogleSheetsDebugView: Datos de prueba creados: {len(test_data)} registros")
-            
+
             # Usar el mismo método de envío que SearchTrackingExportView
             export_view = SearchTrackingExportView()
             result = export_view.send_to_google_sheets(test_data)
-            
+
             logger.info(f"GoogleSheetsDebugView: Resultado del envío: {result}")
-            
+
             return Response({
                 'success': True,
                 'message': 'Debug de Google Sheets completado',
                 'test_data_sent': test_data,
                 'google_sheets_result': result
             })
-            
+
         except Exception as e:
             logger.error(f"GoogleSheetsDebugView: Error: {str(e)}")
             import traceback
@@ -1219,7 +1220,6 @@ class SearchTrackingView(APIView):
         logger.info("SearchTrackingView: Get last search request")
 
         try:
-            # Autenticar cliente
             authenticator = ClientJWTAuthentication()
             auth_result = authenticator.authenticate(request)
 
@@ -1265,7 +1265,7 @@ class PublicAchievementsListView(APIView):
     def get(self, request):
         """Obtener lista de todos los logros disponibles"""
         try:
-            # Obtener todos los logros activos ordenados por requisitos
+            # Obtener todos los logros activos
             achievements = Achievement.objects.filter(
                 is_active=True,
                 deleted=False
@@ -1353,7 +1353,7 @@ class ClientAchievementsView(APIView):
                     new_achievements.append(new_client_achievement)
                     logger.info(f"Nuevo logro otorgado: {achievement.name} a {client.first_name}")
 
-            # Actualizar lista de logros si se otorgaron nuevos
+            # Actualizar lista de logros si se otorgan nuevos
             if new_achievements:
                 client_achievements = ClientAchievement.objects.filter(
                     client=client,
@@ -1598,7 +1598,7 @@ class ClientProfileView(APIView):
                 client=client, 
                 deleted=False
             ).order_by('-search_timestamp').first()
-            
+
             if search_tracking:
                 search_serializer = SearchTrackingSerializer(search_tracking)
                 profile_data['last_search'] = search_serializer.data
@@ -2101,37 +2101,37 @@ class SearchTrackingExportView(APIView):
         """Enviar datos a Google Sheets usando Google Apps Script webhook"""
         import requests
         from django.conf import settings
-        
+
         # URL del webhook de Google Apps Script
         GOOGLE_SCRIPT_WEBHOOK = getattr(settings, 'GOOGLE_SCRIPT_WEBHOOK', None)
-        
+
         if not GOOGLE_SCRIPT_WEBHOOK:
             logger.warning("SearchTrackingExportView: GOOGLE_SCRIPT_WEBHOOK no configurado")
             return {'success': False, 'message': 'Webhook no configurado'}
-        
+
         try:
             # Validar que tenemos datos
             if not data:
                 return {'success': False, 'message': 'No hay datos para enviar'}
-            
+
             # Enviar todos los datos en una sola request como array
             payload = {
                 'action': 'insert_search_tracking',
                 'data': data,
                 'timestamp': timezone.now().isoformat()
             }
-            
+
             response = requests.post(
                 GOOGLE_SCRIPT_WEBHOOK,
                 json=payload,
                 headers={'Content-Type': 'application/json'},
                 timeout=60
             )
-            
+
             if response.status_code == 200:
                 try:
                     response_data = response.json()
-                    
+
                     if response_data.get('success'):
                         logger.info(f"SearchTrackingExportView: {len(data)} registros enviados exitosamente a Google Sheets")
                         return {
@@ -2162,7 +2162,7 @@ class SearchTrackingExportView(APIView):
                     'success': False,
                     'message': f'Error HTTP {response.status_code}'
                 }
-            
+
         except requests.exceptions.Timeout:
             logger.error("SearchTrackingExportView: Timeout enviando a Google Sheets")
             return {'success': False, 'message': 'Timeout al enviar datos'}
@@ -2186,7 +2186,7 @@ class SearchTrackingExportView(APIView):
 
             if client_id:
                 search_tracking_queryset = search_tracking_queryset.filter(client_id=client_id)
-            
+
             if date_from:
                 try:
                     from datetime import datetime
@@ -2194,7 +2194,7 @@ class SearchTrackingExportView(APIView):
                     search_tracking_queryset = search_tracking_queryset.filter(search_timestamp__date__gte=date_from_parsed)
                 except ValueError:
                     pass
-            
+
             if date_to:
                 try:
                     from datetime import datetime
@@ -2202,7 +2202,7 @@ class SearchTrackingExportView(APIView):
                     search_tracking_queryset = search_tracking_queryset.filter(search_timestamp__date__lte=date_to_parsed)
                 except ValueError:
                     pass
-            
+
             if property_id:
                 search_tracking_queryset = search_tracking_queryset.filter(property_id=property_id)
 
@@ -2243,7 +2243,7 @@ class SearchTrackingExportView(APIView):
                     },
                     'created': tracking.created.strftime('%Y-%m-%d') if hasattr(tracking, 'created') and tracking.created else None,
                 }
-                
+
                 export_data.append(data)
 
             # Preparar respuesta con metadatos
@@ -2269,11 +2269,11 @@ class SearchTrackingExportView(APIView):
             # Verificar si se debe enviar a Google Sheets
             send_to_sheets = request.GET.get('send_to_sheets', 'false').lower() == 'true'
             google_sheets_result = None
-            
+
             if send_to_sheets:
                 google_sheets_result = self.send_to_google_sheets(export_data)
                 response_data['google_sheets_sync'] = google_sheets_result
-            
+
             logger.info(f"SearchTrackingExportView: Exported {len(export_data)} search tracking records")
             return Response(response_data)
 
@@ -2399,7 +2399,7 @@ class SearchTrackingView(APIView):
             session_key = request.session.session_key if hasattr(request, 'session') and request.session.session_key else None
             user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]  # Limitar longitud
             referrer = request.META.get('HTTP_REFERER', '')
-            
+
             logger.info(f"SearchTrackingView: Datos adicionales capturados - IP: {ip_address}, Session: {session_key}")
 
             # Guardar registro de SearchTracking (siempre crear nuevo)
@@ -2416,7 +2416,7 @@ class SearchTrackingView(APIView):
                 referrer=referrer,
                 deleted=False
             )
-            
+
             if client:
                 logger.info(f"SearchTrackingView: Nuevo registro creado para cliente {client.id}: {search_tracking.id}")
             else:
@@ -2470,7 +2470,7 @@ class SearchTrackingView(APIView):
                     client=client, 
                     deleted=False
                 ).order_by('-search_timestamp').first()
-                
+
                 if search_tracking:
                     serializer = SearchTrackingSerializer(search_tracking)
                     logger.info(f"SearchTrackingView: Última búsqueda para cliente {client.id} encontrada.")
