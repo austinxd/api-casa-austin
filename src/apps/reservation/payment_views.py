@@ -138,6 +138,16 @@ class ProcessPaymentView(APIView):
                     }, status=400)
 
                 logger.info(f"✅ Token {token} no ha sido usado anteriormente")
+        
+        # Validar formato del token
+        import re
+        if not re.match(r'^[a-f0-9]{32}$', token):
+            logger.error(f"❌ Token format invalid: {token}")
+            return Response({
+                'success': False,
+                'error': 'Token de tarjeta con formato inválido',
+                'details': 'El token debe tener 32 caracteres hexadecimales'
+            }, status=400)
 
             except Exception as token_check_error:
                 logger.warning(f"No se pudo verificar token previo: {token_check_error}")
