@@ -798,6 +798,13 @@ class PropertyCalendarOccupancyAPIView(APIView):
                 description="Mes para filtrar las reservas (1-12). Si no se envía, devuelve todo el año",
                 location=OpenApiParameter.QUERY
             ),
+            OpenApiParameter(
+                "day",
+                OpenApiTypes.INT,
+                required=False,
+                description="Día para filtrar las reservas (1-31). Requiere que se especifique el mes",
+                location=OpenApiParameter.QUERY
+            ),
         ],
         responses={
             200: {
@@ -848,9 +855,10 @@ class PropertyCalendarOccupancyAPIView(APIView):
                     "error": "Propiedad no encontrada"
                 }, status=404)
 
-            # Obtener parámetros de consulta
+            # Validar parámetros
             year_param = request.query_params.get('year')
             month_param = request.query_params.get('month')
+            day_param = request.query_params.get('day')
 
             if not year_param:
                 return Response({
@@ -860,29 +868,58 @@ class PropertyCalendarOccupancyAPIView(APIView):
 
             try:
                 year = int(year_param)
-                if year < 1900 or year > 2100:
-                    raise ValueError("Año fuera de rango válido")
+                if year < 1:
+                    raise ValueError()
             except ValueError:
                 return Response({
                     "success": False,
-                    "error": "El parámetro 'year' debe ser un año válido"
+                    "error": "El parámetro 'year' debe ser un número entero positivo"
                 }, status=400)
 
-            # Validar mes si se proporciona
-            month = None
             if month_param:
                 try:
                     month = int(month_param)
                     if month < 1 or month > 12:
-                        raise ValueError("Mes fuera de rango")
+                        raise ValueError()
                 except ValueError:
                     return Response({
                         "success": False,
                         "error": "El parámetro 'month' debe ser un número entre 1 y 12"
                     }, status=400)
 
+            if day_param:
+                if not month_param:
+                    return Response({
+                        "success": False,
+                        "error": "El parámetro 'day' requiere que también se especifique 'month'"
+                    }, status=400)
+
+                try:
+                    day = int(day_param)
+                    if day < 1 or day > 31:
+                        raise ValueError()
+
+                    # Validar que el día sea válido para el mes y año especificados
+                    import calendar
+                    max_day = calendar.monthrange(year, month)[1]
+                    if day > max_day:
+                        return Response({
+                            "success": False,
+                            "error": f"El día {day} no es válido para {month}/{year}. El mes tiene {max_day} días"
+                        }, status=400)
+
+                except ValueError:
+                    return Response({
+                        "success": False,
+                        "error": "El parámetro 'day' debe ser un número entre 1 y 31"
+                    }, status=400)
+
             # Construir filtro de fechas
-            if month:
+            if day_param:
+                # Filtrar por día específico
+                start_date = datetime(year, month, day).date()
+                end_date = datetime(year, month, day).date()
+            elif month_param:
                 # Filtrar por mes específico
                 last_day_month = calendar.monthrange(year, month)[1]
                 start_date = datetime(year, month, 1).date()
