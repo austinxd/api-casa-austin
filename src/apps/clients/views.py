@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from django.db.models import Q, Sum, Count
 from django.shortcuts import get_object_or_404
-
+from datetime import datetime, timedelta
 from apps.reservation.models import Reservation
 from apps.reservation.serializers import ClientReservationSerializer, ReservationListSerializer, ReservationRetrieveSerializer
 from .auth_views import ClientJWTAuthentication
@@ -1102,118 +1102,113 @@ class SearchTrackingView(APIView):
             logger.info(f"SearchTrackingView: === PROCESANDO DATOS ===")
             logger.info(f"SearchTrackingView: raw_data = {raw_data}")
 
-            # Procesar datos antes de crear/actualizar el modelo
-            try:
-                from datetime import datetime
-                from django.utils import timezone
+            # Procesar check_in_date
+            check_in_date = None
+            if 'check_in_date' in raw_data and raw_data['check_in_date']:
+                check_in_str = raw_data['check_in_date']
+                logger.info(f"SearchTrackingView: Procesando check_in_date: {check_in_str}")
+                check_in_date = datetime.strptime(check_in_str, '%Y-%m-%d').date()
+                logger.info(f"SearchTrackingView: check_in_date procesado: {check_in_date}")
 
-                # Procesar check_in_date
-                check_in_date = None
-                if 'check_in_date' in raw_data and raw_data['check_in_date']:
-                    check_in_str = raw_data['check_in_date']
-                    logger.info(f"SearchTrackingView: Procesando check_in_date: {check_in_str}")
-                    check_in_date = datetime.strptime(check_in_str, '%Y-%m-%d').date()
-                    logger.info(f"SearchTrackingView: check_in_date procesado: {check_in_date}")
+            # Procesar check_out_date
+            check_out_date = None
+            if 'check_out_date' in raw_data and raw_data['check_out_date']:
+                check_out_str = raw_data['check_out_date']
+                logger.info(f"SearchTrackingView: Procesando check_out_date: {check_out_str}")
+                check_out_date = datetime.strptime(check_out_str, '%Y-%m-%d').date()
+                logger.info(f"SearchTrackingView: check_out_date procesado: {check_out_date}")
 
-                # Procesar check_out_date
-                check_out_date = None
-                if 'check_out_date' in raw_data and raw_data['check_out_date']:
-                    check_out_str = raw_data['check_out_date']
-                    logger.info(f"SearchTrackingView: Procesando check_out_date: {check_out_str}")
-                    check_out_date = datetime.strptime(check_out_str, '%Y-%m-%d').date()
-                    logger.info(f"SearchTrackingView: check_out_date procesado: {check_out_date}")
+            # Procesar guests
+            guests = None
+            if 'guests' in raw_data and raw_data['guests'] is not None:
+                guests = int(raw_data['guests'])
+                logger.info(f"SearchTrackingView: guests procesado: {guests}")
 
-                # Procesar guests
-                guests = None
-                if 'guests' in raw_data and raw_data['guests'] is not None:
-                    guests = int(raw_data['guests'])
-                    logger.info(f"SearchTrackingView: guests procesado: {guests}")
-
-                # Procesar property (opcional)
-                property_obj = None
-                if 'property' in raw_data and raw_data['property']:
-                    from apps.property.models import Property
-                    try:
-                        property_obj = Property.objects.get(id=raw_data['property'])
-                        logger.info(f"SearchTrackingView: property procesado: {property_obj}")
-                    except Property.DoesNotExist:
-                        logger.warning(f"SearchTrackingView: Property con ID {raw_data['property']} no encontrada")
-
-                # Ahora intentar obtener o crear el registro con los datos ya procesados
-                logger.info(f"SearchTrackingView: === CREANDO/ACTUALIZANDO CON DATOS PROCESADOS ===")
-                logger.info(f"SearchTrackingView: check_in_date = {check_in_date}")
-                logger.info(f"SearchTrackingView: check_out_date = {check_out_date}")
-                logger.info(f"SearchTrackingView: guests = {guests}")
-
-                # Verificar que tenemos los datos requeridos
-                if not check_in_date:
-                    raise ValueError("check_in_date es requerido")
-                if not check_out_date:
-                    raise ValueError("check_out_date es requerido")
-                if guests is None:
-                    raise ValueError("guests es requerido")
-
-                # Intentar actualizar si existe, o crear nuevo
+            # Procesar property (opcional)
+            property_obj = None
+            if 'property' in raw_data and raw_data['property']:
+                from apps.property.models import Property
                 try:
-                    search_tracking = SearchTracking.objects.get(client=client, deleted=False)
-                    logger.info(f"SearchTrackingView: Actualizando registro existente: {search_tracking.id}")
-                    # Actualizar con nuevos datos
-                    search_tracking.check_in_date = check_in_date
-                    search_tracking.check_out_date = check_out_date
-                    search_tracking.guests = guests
-                    search_tracking.property = property_obj
-                    search_tracking.search_timestamp = timezone.now()
-                    search_tracking.save()
-                    created = False
-                except SearchTracking.DoesNotExist:
-                    logger.info(f"SearchTrackingView: Creando nuevo registro")
-                    # Crear nuevo registro
-                    search_tracking = SearchTracking.objects.create(
-                        client=client,
-                        check_in_date=check_in_date,
-                        check_out_date=check_out_date,
-                        guests=guests,
-                        property=property_obj,
-                        search_timestamp=timezone.now(),
-                        deleted=False
-                    )
-                    created = True
+                    property_obj = Property.objects.get(id=raw_data['property'])
+                    logger.info(f"SearchTrackingView: property procesado: {property_obj}")
+                except Property.DoesNotExist:
+                    logger.warning(f"SearchTrackingView: Property con ID {raw_data['property']} no encontrada")
 
-                logger.info(f"SearchTrackingView: ¡ÉXITO! Búsqueda guardada correctamente (created: {created})")
+            # Ahora intentar obtener o crear el registro con los datos ya procesados
+            logger.info(f"SearchTrackingView: === CREANDO/ACTUALIZANDO CON DATOS PROCESADOS ===")
+            logger.info(f"SearchTrackingView: check_in_date = {check_in_date}")
+            logger.info(f"SearchTrackingView: check_out_date = {check_out_date}")
+            logger.info(f"SearchTrackingView: guests = {guests}")
 
-                # Serializar respuesta
-                serializer = SearchTrackingSerializer(search_tracking)
+            # Verificar que tenemos los datos requeridos
+            if not check_in_date:
+                raise ValueError("check_in_date es requerido")
+            if not check_out_date:
+                raise ValueError("check_out_date es requerido")
+            if guests is None:
+                raise ValueError("guests es requerido")
 
-                return Response({
-                    'success': True,
-                    'message': 'Búsqueda registrada exitosamente',
-                    'data': serializer.data
-                }, status=200)
+            # Intentar actualizar si existe, o crear nuevo
+            try:
+                search_tracking = SearchTracking.objects.get(client=client, deleted=False)
+                logger.info(f"SearchTrackingView: Actualizando registro existente: {search_tracking.id}")
+                # Actualizar con nuevos datos
+                search_tracking.check_in_date = check_in_date
+                search_tracking.check_out_date = check_out_date
+                search_tracking.guests = guests
+                search_tracking.property = property_obj
+                search_tracking.search_timestamp = timezone.now()
+                search_tracking.save()
+                created = False
+            except SearchTracking.DoesNotExist:
+                logger.info(f"SearchTrackingView: Creando nuevo registro")
+                # Crear nuevo registro
+                search_tracking = SearchTracking.objects.create(
+                    client=client,
+                    check_in_date=check_in_date,
+                    check_out_date=check_out_date,
+                    guests=guests,
+                    property=property_obj,
+                    search_timestamp=timezone.now(),
+                    deleted=False
+                )
+                created = True
 
-            except ValueError as ve:
-                logger.error(f"SearchTrackingView: Error de valor al procesar datos: {str(ve)}")
-                return Response({
-                    'success': False,
-                    'message': 'Error en formato de datos',
-                    'errors': str(ve)
-                }, status=400)
+            logger.info(f"SearchTrackingView: ¡ÉXITO! Búsqueda guardada correctamente (created: {created})")
 
-            except Exception as e:
-                logger.error(f"SearchTrackingView: Error al actualizar directamente: {str(e)}")
-                return Response({
-                    'success': False,
-                    'message': 'Error al guardar búsqueda',
-                    'errors': str(e)
-                }, status=500)
+            # Serializar respuesta
+            serializer = SearchTrackingSerializer(search_tracking)
 
-        except Exception as e:
-            logger.error(f"SearchTrackingView: EXCEPCIÓN: {str(e)}")
-            import traceback
-            logger.error(f"SearchTrackingView: TRACEBACK: {traceback.format_exc()}")
+            return Response({
+                'success': True,
+                'message': 'Búsqueda registrada exitosamente',
+                'data': serializer.data
+            }, status=200)
+
+        except ValueError as ve:
+            logger.error(f"SearchTrackingView: Error de valor al procesar datos: {str(ve)}")
             return Response({
                 'success': False,
-                'message': 'Error interno del servidor'
+                'message': 'Error en formato de datos',
+                'errors': str(ve)
+            }, status=400)
+
+        except Exception as e:
+            logger.error(f"SearchTrackingView: Error al actualizar directamente: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error al guardar búsqueda',
+                'errors': str(e)
             }, status=500)
+
+    except Exception as e:
+        logger.error(f"SearchTrackingView: EXCEPCIÓN: {str(e)}")
+        import traceback
+        logger.error(f"SearchTrackingView: TRACEBACK: {traceback.format_exc()}")
+        return Response({
+            'success': False,
+            'message': 'Error interno del servidor'
+        }, status=500)
 
     def get(self, request):
         """Obtener última búsqueda del cliente"""
@@ -1400,19 +1395,22 @@ class BotClientProfileView(APIView):
         logger.info(f"BotClientProfileView: Request for tel_number {tel_number}")
 
         try:
-            # Buscar cliente por número de teléfono
+            # Buscar cliente por número de teléfono o documento de identidad
             client = Clients.objects.filter(
-                tel_number=tel_number,
+                Q(tel_number=tel_number) | Q(number_doc=tel_number),
                 deleted=False
             ).first()
 
             if not client:
+                logger.warning(f"BotClientProfileView: Client not found for identifier {tel_number}")
                 return Response({
                     'success': False,
                     'message': 'Cliente no encontrado'
                 }, status=404)
 
-            # Obtener reservas futuras
+            logger.info(f"BotClientProfileView: Client found - ID: {client.id}, Name: {client.first_name}")
+
+            # Obtener reservas futuras aprobadas
             from datetime import date
             today = date.today()
 
@@ -2663,14 +2661,14 @@ class BotClientProfileView(APIView):
         logger.info(f"BotClientProfileView: Request for tel_number {tel_number}")
 
         try:
-            # Buscar cliente por número de teléfono, asegurándose de que no esté borrado
+            # Buscar cliente por número de teléfono o documento de identidad
             client = Clients.objects.filter(
-                tel_number=tel_number,
+                Q(tel_number=tel_number) | Q(number_doc=tel_number),
                 deleted=False
             ).first()
 
             if not client:
-                logger.warning(f"BotClientProfileView: Client not found for tel_number {tel_number}")
+                logger.warning(f"BotClientProfileView: Client not found for identifier {tel_number}")
                 return Response({
                     'success': False,
                     'message': 'Cliente no encontrado'
@@ -2681,14 +2679,15 @@ class BotClientProfileView(APIView):
             # Obtener reservas futuras aprobadas
             from datetime import date
             today = date.today()
+
             upcoming_reservations = Reservation.objects.filter(
                 client=client,
                 deleted=False,
-                check_out_date__gte=today, # Reservas que terminan hoy o después
+                check_out_date__gte=today,  # Reservas que terminan hoy o después
                 status='approved'
-            ).order_by('check_in_date') # Ordenar por fecha de check-in
+            ).order_by('check_in_date')
 
-            # Obtener el logro más alto del cliente
+            # Obtener nivel más alto (logro más importante)
             highest_achievement = None
             earned_achievements = ClientAchievement.objects.filter(
                 client=client,
@@ -2703,18 +2702,18 @@ class BotClientProfileView(APIView):
                 highest_achievement_obj = earned_achievements.first()
                 icon = highest_achievement_obj.achievement.icon or ""
                 name = highest_achievement_obj.achievement.name
-                # Formatear el nombre con icono si existe
                 name_with_icon = f"{icon} {name}" if icon else name
 
                 highest_achievement = {
                     'name_icono': name_with_icon,
                     'description': highest_achievement_obj.achievement.description,
-                    'earned_at': highest_achievement_obj.earned_at.isoformat() if highest_achievement_obj.earned_at else None
+                    'earned_at': highest_achievement_obj.earned_at.isoformat()
                 }
 
             # Serializar reservas futuras
-            upcoming_reservations_data = []
+            upcoming_reservations_data = None
             if upcoming_reservations.exists():
+                upcoming_reservations_data = []
                 for reservation in upcoming_reservations:
                     upcoming_reservations_data.append({
                         'id': reservation.id,
@@ -2723,7 +2722,7 @@ class BotClientProfileView(APIView):
                         'check_out_date': reservation.check_out_date.isoformat(),
                         'guests': reservation.guests,
                         'nights': (reservation.check_out_date - reservation.check_in_date).days,
-                        'price_sol': float(reservation.price_sol) if reservation.price_sol else 0.0,
+                        'price_sol': float(reservation.price_sol) if reservation.price_sol else 0,
                         'status': reservation.get_status_display() if hasattr(reservation, 'get_status_display') else reservation.status,
                         'payment_full': reservation.full_payment,
                         'temperature_pool': reservation.temperature_pool
@@ -2749,13 +2748,11 @@ class BotClientProfileView(APIView):
                 }
             }
 
-            logger.info(f"BotClientProfileView: Profile data retrieved successfully for {client.first_name} (ID: {client.id})")
+            logger.info(f"BotClientProfileView: Profile data retrieved successfully for {client.first_name}")
             return Response(response_data)
 
         except Exception as e:
             logger.error(f"BotClientProfileView: Error getting client profile: {str(e)}")
-            import traceback
-            logger.error(f"BotClientProfileView: TRACEBACK: {traceback.format_exc()}")
             return Response({
                 'success': False,
                 'message': 'Error interno del servidor'
