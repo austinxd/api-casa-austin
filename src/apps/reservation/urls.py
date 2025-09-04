@@ -1,26 +1,32 @@
-from django.urls import path
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
+
 from .views import (
-    ReservationsApiView, 
-    VistaCalendarioApiView, 
+    ReservationsApiView,
     DeleteRecipeApiView,
     GetICSApiView,
     UpdateICSApiView,
     ProfitApiView,
-    PropertyCalendarOccupancyAPIView,
+    VistaCalendarioApiView,
+    confirm_reservation,
+    PropertyCalendarOccupancyAPIView
 )
-from .payment_views import ProcessPaymentView, TestMercadoPagoCredentialsView
-from rest_framework.routers import DefaultRouter
+from .payment_views import ProcessPaymentView
 
 router = DefaultRouter()
-router.register(r'reservations', ReservationsApiView, basename='reservation')
-router.register(r'calendar', VistaCalendarioApiView, basename='calendar')
+
+router.register("reservations", ReservationsApiView, basename="reservations")
+router.register("vistacalendario", VistaCalendarioApiView, basename="vistacalendario")
+
 
 urlpatterns = [
-    path('recipes/<int:pk>/', DeleteRecipeApiView.as_view(), name='delete-recipe'),
-    path('calendar/property/<str:property_id>/', PropertyCalendarOccupancyAPIView.as_view(), name='property-calendar'),
-    path('ics/', GetICSApiView.as_view(), name='get-ics'),
-    path('ics/update/', UpdateICSApiView.as_view(), name='update-ics'),
-    path('profit/', ProfitApiView.as_view(), name='profit'),
-    path('payment/process/<uuid:reservation_id>/', ProcessPaymentView.as_view(), name='process-payment'),
-    path('payment/test-credentials/', TestMercadoPagoCredentialsView.as_view(), name='test-mercadopago-credentials'),
-] + router.urls
+    path("", include(router.urls)),
+    path("recipt/<int:pk>/", DeleteRecipeApiView.as_view()),
+    path("get-ics/", GetICSApiView.as_view()),
+    path("update-ics/", UpdateICSApiView.as_view()),
+    path("profit/", ProfitApiView.as_view()),
+    path("profit-resume/", ProfitApiView.as_view(), name='profit-resume'),
+    path('confirm/<str:uuid>/', confirm_reservation, name='confirm_reservation'),
+    path('property/<str:property_id>/calendar-occupancy/', PropertyCalendarOccupancyAPIView.as_view(), name='property-calendar-occupancy'),
+    path('payment/process/<str:reservation_id>/', ProcessPaymentView.as_view(), name='process-payment'),
+]
