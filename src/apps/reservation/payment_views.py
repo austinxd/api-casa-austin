@@ -337,6 +337,37 @@ class ProcessPaymentView(APIView):
 
                             logger.info(f"Pago exitoso para reserva {reservation.id}. Transaction ID: {payment.get('id')}")
 
+                            # Notificar pago con tarjeta por Telegram
+                            try:
+                                from ..core.telegram_notifier import send_telegram_message
+                                from django.conf import settings
+                                
+                                client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
+                                
+                                # Formatear fechas en español
+                                from .signals import format_date_es
+                                check_in_date = format_date_es(reservation.check_in_date)
+                                check_out_date = format_date_es(reservation.check_out_date)
+                                
+                                telegram_message = (
+                                    f"💳 **PAGO CON TARJETA PROCESADO** 💳\n"
+                                    f"Cliente: {client_name}\n"
+                                    f"Propiedad: {reservation.property.name}\n"
+                                    f"Check-in: {check_in_date}\n"
+                                    f"Check-out: {check_out_date}\n"
+                                    f"💰 Monto: S/{amount:.2f}\n"
+                                    f"🆔 Transaction ID: {payment.get('id')}\n"
+                                    f"📱 Teléfono: +{reservation.client.tel_number}\n"
+                                    f"✅ Estado: Aprobado automáticamente"
+                                )
+                                
+                                # Enviar al canal de clientes
+                                send_telegram_message(telegram_message, settings.CLIENTS_CHAT_ID)
+                                logger.info(f"Notificación de pago con tarjeta enviada por Telegram para reserva {reservation.id}")
+                                
+                            except Exception as telegram_error:
+                                logger.error(f"Error enviando notificación por Telegram para pago con tarjeta: {telegram_error}")
+
                             return Response({
                                 'success': True,
                                 'message': 'Pago procesado exitosamente',
