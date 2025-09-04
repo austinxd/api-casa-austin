@@ -311,6 +311,12 @@ class ProcessPaymentView(APIView):
                             # Pago exitoso - actualizar reserva
                             reservation.full_payment = True
                             reservation.status = 'approved'
+                            
+                            # Actualizar advance_payment para que el frontend calcule resta_pagar = 0
+                            # El pago con MercadoPago siempre es en soles (price_sol)
+                            reservation.advance_payment = amount  # amount ya viene en soles
+                            reservation.advance_payment_currency = 'sol'
+                            
                             reservation.save()
 
                             # Registrar el uso del token
