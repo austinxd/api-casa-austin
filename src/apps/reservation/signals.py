@@ -181,13 +181,20 @@ def notify_payment_approved(reservation):
         # Combinar primer nombre y primer apellido
         client_name = f"{first_name} {first_last_name}".strip()
 
-        # Formatear información del pago según el origen de la reserva
+        # Formatear información del pago según disponibilidad de montos
         if reservation.origin == 'client':
-            # Para reservas de cliente web (MercadoPago), SIEMPRE usar price_sol
-            # porque el pago con tarjeta es del monto total, no hay advance_payment
-            payment_info = f"S/{reservation.price_sol:.2f}" if reservation.price_sol else "S/0.00"
-            if not reservation.price_sol or reservation.price_sol <= 0:
-                logger.warning(f"Reserva de cliente sin price_sol para reserva {reservation.id}")
+            # Para reservas de cliente: priorizar price_sol (MercadoPago), luego advance_payment
+            if reservation.price_sol and reservation.price_sol > 0:
+                payment_info = f"S/{reservation.price_sol:.2f}"
+            elif reservation.advance_payment and reservation.advance_payment > 0:
+                # Fallback para clientes que pagan sin MercadoPago (transferencia, efectivo, etc.)
+                if reservation.advance_payment_currency == 'usd':
+                    payment_info = f"${reservation.advance_payment:.2f}"
+                else:
+                    payment_info = f"S/{reservation.advance_payment:.2f}"
+            else:
+                payment_info = "S/0.00"
+                logger.warning(f"Reserva de cliente sin price_sol ni advance_payment para reserva {reservation.id}")
         else:
             # Para reservas manuales (austin, airbnb), usar advance_payment
             if reservation.advance_payment and reservation.advance_payment > 0:
