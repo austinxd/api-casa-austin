@@ -208,10 +208,10 @@ class ProcessPaymentView(APIView):
                     logger.info(f"External Reference: {payment_data['external_reference']}")
                     logger.info(f"Payer email: {payment_data['payer']['email']}")
                     logger.info(f"Payer phone: {payment_data['payer']['phone']['number']}")
-                    
+
                     # Procesar pago con MercadoPago API
                     url = f"{self.base_url}/v1/payments"
-                    
+
                     logger.info(f"Procesando pago para reserva {reservation.id} con external_reference: {unique_external_reference}")
                     logger.info(f"DEBUGGING MERCADOPAGO REQUEST:")
                     logger.info(f"URL: {url}")
@@ -232,10 +232,10 @@ class ProcessPaymentView(APIView):
                             error_details = response.json()
                             error_msg_from_api = error_details.get('message', 'No se pudo obtener descripción del error.')
                             error_cause = error_details.get('cause', [])
-                            
+
                             logger.error(f"   Descripción API: {error_msg_from_api}")
                             logger.error(f"   Causas: {error_cause}")
-                            
+
                             # Errores específicos de MercadoPago
                             if any("already_used" in str(cause) for cause in error_cause):
                                 logger.error("   Detectado: El token ya ha sido usado.")
