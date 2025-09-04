@@ -1,0 +1,69 @@
+INFO 2025-09-03 20:39:55,455 payment_views 1269322 140505808344896 🔧 MERCADOPAGO INIT - Access Token length: 72
+INFO 2025-09-03 20:39:55,455 payment_views 1269322 140505808344896 🔧 MERCADOPAGO INIT - Sandbox: True
+INFO 2025-09-03 20:39:55,457 payment_views 1269322 140505808344896 === DEBUGGING MERCADOPAGO CREDENTIALS ===
+INFO 2025-09-03 20:39:55,457 payment_views 1269322 140505808344896 Access Token (masked): TEST-5242411473...64032665
+INFO 2025-09-03 20:39:55,457 payment_views 1269322 140505808344896 Is Sandbox: True
+INFO 2025-09-03 20:39:55,457 payment_views 1269322 140505808344896 Base URL: https://api.mercadopago.com
+INFO 2025-09-03 20:39:55,459 payment_views 1269322 140505808344896 Token recibido: a7daf8195195d7dab4d0aab1b8458046
+INFO 2025-09-03 20:39:55,459 payment_views 1269322 140505808344896 Amount: 414.0
+INFO 2025-09-03 20:39:55,459 payment_views 1269322 140505808344896 Payment Method ID: visa
+INFO 2025-09-03 20:39:55,459 payment_views 1269322 140505808344896 Installments: 1
+INFO 2025-09-03 20:39:55,459 payment_views 1269322 140505808344896 === VERIFICANDO TOKEN ===
+INFO 2025-09-03 20:39:55,459 payment_views 1269322 140505808344896 Token length: 32
+INFO 2025-09-03 20:39:55,460 payment_views 1269322 140505808344896 Token starts with: a7daf81951
+INFO 2025-09-03 20:39:55,461 payment_views 1269322 140505808344896 ✅ Token a7daf8195195d7dab4d0aab1b8458046 no ha sido usado anteriormente
+INFO 2025-09-03 20:39:55,462 payment_views 1269322 140505808344896 === VALIDANDO CREDENCIALES MERCADOPAGO ===
+INFO 2025-09-03 20:39:55,462 payment_views 1269322 140505808344896 Auth header creado: Bearer TEST-5242411473403...
+INFO 2025-09-03 20:39:55,462 payment_views 1269322 140505808344896 === VALIDACIONES PRE-REQUEST ===
+INFO 2025-09-03 20:39:55,462 payment_views 1269322 140505808344896 Amount validation: 414.0 > 0 = True
+INFO 2025-09-03 20:39:55,462 payment_views 1269322 140505808344896 Payment Method ID: visa
+INFO 2025-09-03 20:39:55,462 payment_views 1269322 140505808344896 Installments: 1
+INFO 2025-09-03 20:39:55,462 payment_views 1269322 140505808344896 Token length: 32
+INFO 2025-09-03 20:39:55,463 payment_views 1269322 140505808344896 External Reference: RES-8d3c954b-bb01-4678-a23e-1ec69a680f55-17569499954612396-3893
+INFO 2025-09-03 20:39:55,463 payment_views 1269322 140505808344896 Payer email: austin.xd@live.com
+INFO 2025-09-03 20:39:55,463 payment_views 1269322 140505808344896 Payer phone: +51986607686
+INFO 2025-09-03 20:39:55,463 payment_views 1269322 140505808344896 Procesando pago para reserva 8d3c954b-bb01-4678-a23e-1ec69a680f55 con external_reference: RES-8d3c954b-bb01-4678-a23e-1ec69a680f55-17569499954612396-3893
+INFO 2025-09-03 20:39:55,463 payment_views 1269322 140505808344896 DEBUGGING MERCADOPAGO REQUEST:
+INFO 2025-09-03 20:39:55,463 payment_views 1269322 140505808344896 URL: https://api.mercadopago.com/v1/payments
+INFO 2025-09-03 20:39:55,463 payment_views 1269322 140505808344896 Headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer TEST-5242411473403421-090311-f61c6c8fe87da4f7eb3baf013bf1b8a3-2664032665', 'X-Idempotency-Key': 'a4956c2d-d223-40ab-9e80-4e57bc9b200c'}
+INFO 2025-09-03 20:39:55,463 payment_views 1269322 140505808344896 Payment Data: {'transaction_amount': 414.0, 'token': 'a7daf8195195d7dab4d0aab1b8458046', 'description': 'Pago reserva #8d3c954b-bb01-4678-a23e-1ec69a680f55 - Casa Austin 3', 'external_reference': 'RES-8d3c954b-bb01-4678-a23e-1ec69a680f55-17569499954612396-3893', 'payment_method_id': 'visa', 'installments': 1, 'payer': {'email': 'austin.xd@live.com', 'first_name': 'Augusto Ray Leonel', 'last_name': 'Tantalean Marcatoma', 'phone': {'area_code': '51', 'number': '+51986607686'}, 'address': {'zip_code': '15001', 'street_name': 'Calle Principal', 'street_number': 123}}, 'additional_info': {'items': [{'id': '0ff9b525-ff7c-4be3-b872-3937d958c1a6', 'title': 'Casa Austin 3', 'quantity': 1, 'unit_price': 414.0}]}}
+INFO 2025-09-03 20:39:56,595 payment_views 1269322 140505808344896 MercadoPago Response - Status: 201 (Intento 1)
+INFO 2025-09-03 20:39:56,595 payment_views 1269322 140505808344896 MercadoPago Response Headers: {'Date': 'Thu, 04 Sep 2025 01:39:56 GMT', 'Content-Type': 'application/json;charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'x-site-id': 'MPE', 'x-response-status': 'approved/accredited', 'x-caller-id': '2664032665', 'vary': 'Accept,Accept-Encoding', 'cache-control': 'max-age=0', 'etag': '1ff2d0ca4776eb576807f0a5517b4c63', 'X-Content-Type-Options': 'nosniff', 'X-Request-Id': 'a5c25b51-a52b-48ad-bcd6-c1f64c3c375a, b23209e8-87e7-4a65-9eb7-5d1f45b0b45d', 'X-XSS-Protection': '1; mode=block', 'Strict-Transport-Security': 'max-age=16070400; includeSubDomains; preload, max-age=31536000; includeSubDomains', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods': 'PUT, GET, POST, DELETE, OPTIONS', 'Access-Control-Max-Age': '86400', 'Timing-Allow-Origin': '*'}
+DEBUG 2025-09-03 20:39:56,596 signals 1269322 140505808344896 Reserva 8d3c954b-bb01-4678-a23e-1ec69a680f55 cambió a estado approved - Pago aprobado
+INFO 2025-09-03 20:39:56,596 signals 1269322 140505808344896 Enviando WhatsApp de pago aprobado a 51986607686 para reserva 8d3c954b-bb01-4678-a23e-1ec69a680f55
+INFO 2025-09-03 20:39:56,596 signals 1269322 140505808344896 Datos: Nombre: Augusto Tantalean, Pago: S/1490.40, Check-in: Para la reserva del 23/10/2025
+INFO 2025-09-03 20:39:56,596 whatsapp_service 1269322 140505808344896 Enviando mensaje de pago aprobado por WhatsApp a: 51986607686
+INFO 2025-09-03 20:39:56,596 whatsapp_service 1269322 140505808344896 WhatsApp Payment Approved Template: pago_aprobado_ca
+INFO 2025-09-03 20:39:56,596 whatsapp_service 1269322 140505808344896 Payload: {'messaging_product': 'whatsapp', 'to': '51986607686', 'type': 'template', 'template': {'name': 'pago_aprobado_ca', 'language': {'code': 'es'}, 'components': [{'type': 'body', 'parameters': [{'type': 'text', 'text': 'Augusto Tantalean'}, {'type': 'text', 'text': 'S/1490.40'}, {'type': 'text', 'text': 'Para la reserva del 23/10/2025'}]}]}}
+INFO 2025-09-03 20:39:57,596 whatsapp_service 1269322 140505808344896 WhatsApp API Response Status: 200
+INFO 2025-09-03 20:39:57,596 whatsapp_service 1269322 140505808344896 WhatsApp API Response Body: {"messaging_product":"whatsapp","contacts":[{"input":"51986607686","wa_id":"51986607686"}],"messages":[{"id":"wamid.HBgLNTE5ODY2MDc2ODYVAgARGBI0NDM3NEQ1MTBFNDQ4Mzc5OUMA","message_status":"accepted"}]}
+INFO 2025-09-03 20:39:57,597 whatsapp_service 1269322 140505808344896 WhatsApp pago aprobado enviado exitosamente a 51986607686. Response: {'messaging_product': 'whatsapp', 'contacts': [{'input': '51986607686', 'wa_id': '51986607686'}], 'messages': [{'id': 'wamid.HBgLNTE5ODY2MDc2ODYVAgARGBI0NDM3NEQ1MTBFNDQ4Mzc5OUMA', 'message_status': 'accepted'}]}
+INFO 2025-09-03 20:39:57,597 signals 1269322 140505808344896 WhatsApp de pago aprobado enviado exitosamente para reserva 8d3c954b-bb01-4678-a23e-1ec69a680f55
+DEBUG 2025-09-03 20:39:57,598 signals 1269322 140505808344896 Reserva 8d3c954b-bb01-4678-a23e-1ec69a680f55 marcada como pago completo - Enviando flujo ChatBot
+INFO 2025-09-03 20:39:58,595 signals 1269322 140505808344896 ✅ Flujo de pago completo enviado a usuario 51986607686 para reserva 8d3c954b-bb01-4678-a23e-1ec69a680f55
+DEBUG 2025-09-03 20:39:58,596 signals 1269322 140505808344896 Verificando logros para cliente 405a0119-caba-467c-8f4c-835f45402367 después de actualizar reserva 8d3c954b-bb01-4678-a23e-1ec69a680f55
+DEBUG 2025-09-03 20:39:58,600 points_signals 1269322 140505808344896 🔄 Cliente 405a0119-caba-467c-8f4c-835f45402367 ya tiene el logro 'Curioso'
+DEBUG 2025-09-03 20:39:58,603 points_signals 1269322 140505808344896 🔄 Cliente 405a0119-caba-467c-8f4c-835f45402367 ya tiene el logro 'Cliente Casa Austin'
+DEBUG 2025-09-03 20:39:58,606 points_signals 1269322 140505808344896 🔄 Cliente 405a0119-caba-467c-8f4c-835f45402367 ya tiene el logro 'Cliente Recurrente'
+DEBUG 2025-09-03 20:39:58,613 signals 1269322 140505808344896 Verificando logros para cliente 405a0119-caba-467c-8f4c-835f45402367 después de actualizar reserva 8d3c954b-bb01-4678-a23e-1ec69a680f55
+DEBUG 2025-09-03 20:39:58,616 points_signals 1269322 140505808344896 🔄 Cliente 405a0119-caba-467c-8f4c-835f45402367 ya tiene el logro 'Curioso'
+DEBUG 2025-09-03 20:39:58,620 points_signals 1269322 140505808344896 🔄 Cliente 405a0119-caba-467c-8f4c-835f45402367 ya tiene el logro 'Cliente Casa Austin'
+DEBUG 2025-09-03 20:39:58,623 points_signals 1269322 140505808344896 🔄 Cliente 405a0119-caba-467c-8f4c-835f45402367 ya tiene el logro 'Cliente Recurrente'
+INFO 2025-09-03 20:39:58,629 payment_views 1269322 140505808344896 ✅ Token a7daf8195195d7dab4d0aab1b8458046 registrado como usado para la reserva 8d3c954b-bb01-4678-a23e-1ec69a680f55
+INFO 2025-09-03 20:39:58,629 payment_views 1269322 140505808344896 Pago exitoso para reserva 8d3c954b-bb01-4678-a23e-1ec69a680f55. Transaction ID: 1324645626
+INFO 2025-09-03 20:39:59,338 views 1269322 140505808344896 ClientReservationDetailView: Request for reservation 8d3c954b-bb01-4678-a23e-1ec69a680f55
+INFO 2025-09-03 20:39:59,338 views 1269322 140505808344896 ClientReservationDetailView: reservation_id type: <class 'str'>, content: '8d3c954b-bb01-4678-a23e-1ec69a680f55', is_digit: False
+INFO 2025-09-03 20:39:59,339 views 1269322 140505808344896 ClientReservationDetailView: Searching reservation 8d3c954b-bb01-4678-a23e-1ec69a680f55 for client 405a0119-caba-467c-8f4c-835f45402367
+INFO 2025-09-03 20:39:59,339 views 1269322 140505808344896 ClientReservationDetailView: Client object details - ID: 405a0119-caba-467c-8f4c-835f45402367, Name: Augusto Ray Leonel Tantalean Marcatoma, Email: austin.xd@live.com
+INFO 2025-09-03 20:39:59,339 views 1269322 140505808344896 ClientReservationDetailView: Searching by UUID: 8d3c954b-bb01-4678-a23e-1ec69a680f55
+INFO 2025-09-03 20:39:59,339 views 1269322 140505808344896 ClientReservationDetailView: Query will be: Reservation.objects.get(uuid_external='8d3c954b-bb01-4678-a23e-1ec69a680f55', client=405a0119-caba-467c-8f4c-835f45402367, deleted=False)
+INFO 2025-09-03 20:39:59,341 views 1269322 140505808344896 ClientReservationDetailView: Trying UUID without dashes: 8d3c954bbb014678a23e1ec69a680f55
+INFO 2025-09-03 20:39:59,341 views 1269322 140505808344896 ClientReservationDetailView: Query will be: Reservation.objects.get(uuid_external='8d3c954bbb014678a23e1ec69a680f55', client=405a0119-caba-467c-8f4c-835f45402367, deleted=False)
+ERROR 2025-09-03 20:39:59,342 views 1269322 140505808344896 ClientReservationDetailView: Reservation 8d3c954b-bb01-4678-a23e-1ec69a680f55 not found for client 405a0119-caba-467c-8f4c-835f45402367
+ERROR 2025-09-03 20:39:59,342 views 1269322 140505808344896 ClientReservationDetailView: === BÚSQUEDA DIRECTA POR ID ===
+ERROR 2025-09-03 20:39:59,343 views 1269322 140505808344896 ClientReservationDetailView: Direct search by ID results: 1
+ERROR 2025-09-03 20:39:59,344 views 1269322 140505808344896 ClientReservationDetailView: ENCONTRADO! Reserva ID 8d3c954b-bb01-4678-a23e-1ec69a680f55 pertenece al cliente 405a0119-caba-467c-8f4c-835f45402367, esperado: 405a0119-caba-467c-8f4c-835f45402367
+ERROR 2025-09-03 20:39:59,344 views 1269322 140505808344896 ClientReservationDetailView: Status: approved, UUID: None
+ERROR 2025-09-03 20:39:59,345 views 1269322 140505808344896 ClientReservationDetailView: ¡ES EL MISMO CLIENTE! Hay un problema con la query original.
+[2025-09-03 20:40:18 -0500] [1269321] [INFO] Handling signal: winch
+[2025-09-03 20:40:18 -0500] [1269321] [INFO] Handling signal: winch
