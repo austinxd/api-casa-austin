@@ -19,7 +19,8 @@ urlpatterns = [
     # urls endpoints
     # path('api/v1/clients/', include('apps.clients.urls')),
     path("api/v1/", include("apps.clients.urls")),
-    path("api/v1/reservations/", include("apps.reservation.urls")),
+    path("api/v1/", include("apps.reservation.urls")),  # Original endpoints: /api/v1/payment/process/...
+    path("api/v1/reservations/", include("apps.reservation.urls")),  # Frontend expected: /api/v1/reservations/payment/process/...
     path("api/v1/", include("apps.property.urls")),
     path("api/v1/", include("apps.dashboard.urls")),
 ]
