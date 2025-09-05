@@ -308,15 +308,15 @@ class PricingCalculationService:
 
                 # Buscar el código de descuento con búsqueda case-insensitive
                 code = DiscountCode.objects.filter(
-                    code__iexact=clean_code, 
-                    is_active=True, 
+                    code__iexact=clean_code,
+                    is_active=True,
                     deleted=False
                 ).first()
 
                 if not code:
                     # Debug: listar códigos disponibles
                     available_codes = DiscountCode.objects.filter(
-                        is_active=True, 
+                        is_active=True,
                         deleted=False
                     ).values_list('code', flat=True)
                     print(f"DEBUG: Código '{clean_code}' no encontrado. Códigos disponibles: {list(available_codes)}")
@@ -385,7 +385,7 @@ class PricingCalculationService:
                 logger.info(f"📅 Fecha de nacimiento: {client.date}")
                 logger.info(f"📅 Mes de check-in: {check_in_date.month}")
                 logger.info(f"📅 Fecha de check-in: {check_in_date}")
-                
+
                 # Mostrar logros del cliente
                 client_achievements = ClientAchievement.objects.filter(client=client)
                 if client_achievements.exists():
@@ -405,22 +405,22 @@ class PricingCalculationService:
 
             for auto_discount in automatic_discounts:
                 logger.info(f"🔍 Evaluando: '{auto_discount.name}' - Trigger: '{auto_discount.trigger}'")
-                
+
                 # Verificar si es un descuento global (todos los logros seleccionados)
                 from apps.clients.models import Achievement
                 all_achievements = Achievement.objects.filter(deleted=False)
                 required_achievements = auto_discount.required_achievements.all()
-                
+
                 is_global_discount = (
-                    required_achievements.count() > 0 and 
+                    required_achievements.count() > 0 and
                     required_achievements.count() == all_achievements.count() and
                     set(required_achievements.values_list('id', flat=True)) == set(all_achievements.values_list('id', flat=True))
                 )
-                
+
                 # También considerar como global si es trigger GLOBAL_PROMOTION o no requiere logros específicos
                 is_global_promotion = auto_discount.trigger == auto_discount.DiscountTrigger.GLOBAL_PROMOTION
                 no_achievements_required = not auto_discount.required_achievements.exists()
-                
+
                 if is_global_discount:
                     logger.info(f"🌍 '{auto_discount.name}' es un descuento GLOBAL (todos los niveles)")
                 elif is_global_promotion:
@@ -430,7 +430,7 @@ class PricingCalculationService:
                     logger.info(f"🎯 Logros requeridos para '{auto_discount.name}': {required_names}")
                 else:
                     logger.info(f"🎯 '{auto_discount.name}' no requiere logros específicos")
-                
+
                 try:
                     # Para descuentos globales, aplicar incluso sin cliente
                     if is_global_discount or is_global_promotion or (no_achievements_required and not client):
@@ -446,13 +446,13 @@ class PricingCalculationService:
                         # Sin cliente y no es global, no aplica
                         applies = False
                         message = "Requiere cliente registrado"
-                    
+
                     logger.info(f"✅ Resultado para '{auto_discount.name}': {applies} - '{message}'")
 
                     if applies:
                         discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
                         logger.info(f"💰 Descuento calculado para '{auto_discount.name}': ${discount_amount_usd} USD ({auto_discount.discount_percentage}%)")
-                        
+
                         applicable_discounts.append({
                             'discount': auto_discount,
                             'message': message,
@@ -651,7 +651,7 @@ class PricingCalculationService:
 
         # Generar MESSAGE1 (mensaje de encabezado/contexto)
         message1 = self._generate_message1(
-            estado_disponibilidad, fecha_inicio_str, fecha_fin_str, 
+            estado_disponibilidad, fecha_inicio_str, fecha_fin_str,
             available_properties, guests, nights, client, discount_info,
             check_in_date, check_out_date
         )

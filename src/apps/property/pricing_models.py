@@ -395,18 +395,23 @@ class DiscountCode(BaseModel):
         # Verificar restricciones por día de la semana (usar fecha de reserva si se proporciona)
         day_check_date = booking_check_date if booking_check_date else check_date
 
-        if self.restrict_weekdays and not self.restrict_weekends:
-            # Es noche de semana si el día es de Lunes (0) a Jueves (3)
-            if day_check_date.weekday() < 4: # Lunes a Jueves
-                pass # Válido
-            else:
-                return False, "Este código solo es válido para noches de semana (domingo a jueves)."
-        elif self.restrict_weekends and not self.restrict_weekdays:
-            # Es noche de fin de semana si el día es Viernes (4) o Sábado (5)
-            if day_check_date.weekday() >= 4: # Viernes y Sábado
-                pass # Válido
-            else:
-                return False, "Este código solo es válido para noches de fin de semana (viernes y sábado)."
+        # Verificar restricciones de días de la semana
+        weekday = day_check_date.weekday()  # 0=Lunes, 6=Domingo
+        is_weekend = weekday >= 5  # Sábado y Domingo (5=Sábado, 6=Domingo)
+        is_weekday = weekday < 5   # Lunes a Viernes (0=Lunes, 4=Viernes)
+
+        day_names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+        day_name = day_names[weekday]
+
+        logger.info(f"📅 Día de la semana: {weekday} ({day_name}) - {'Fin de semana' if is_weekend else 'Día de semana'}")
+
+        if self.restrict_weekdays and not is_weekday:
+            logger.info(f"❌ Restringido a días de semana pero {day_name} es fin de semana")
+            return False, f"Descuento solo válido para días de semana (Lunes a Viernes). Hoy es {day_name}."
+
+        if self.restrict_weekends and not is_weekend:
+            logger.info(f"❌ Restringido a fines de semana pero {day_name} es día de semana")
+            return False, f"Descuento solo válido para fines de semana (Sábado y Domingo). Hoy es {day_name}."
         elif self.restrict_weekdays and self.restrict_weekends:
              # Si ambos están marcados, es un error de configuración, pero por lógica no debería aplicar
              # o podría interpretarse como que aplica a ambos, pero es ambiguo.
@@ -643,16 +648,21 @@ class AutomaticDiscount(BaseModel):
 
         # Verificar restricciones de días de la semana
         weekday = booking_date.weekday()  # 0=Lunes, 6=Domingo
-        is_weekend = weekday >= 5  # Sábado y Domingo
-        logger.info(f"📅 Día de la semana: {weekday} ({'fin de semana' if is_weekend else 'día de semana'})")
+        is_weekend = weekday >= 5  # Sábado y Domingo (5=Sábado, 6=Domingo)
+        is_weekday = weekday < 5   # Lunes a Viernes (0=Lunes, 4=Viernes)
 
-        if self.restrict_weekdays and is_weekend:
-            logger.info(f"❌ Restringido a días de semana pero es fin de semana")
-            return False, "Descuento solo válido para días de semana"
+        day_names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+        day_name = day_names[weekday]
+
+        logger.info(f"📅 Día de la semana: {weekday} ({day_name}) - {'Fin de semana' if is_weekend else 'Día de semana'}")
+
+        if self.restrict_weekdays and not is_weekday:
+            logger.info(f"❌ Restringido a días de semana pero {day_name} es fin de semana")
+            return False, f"Descuento solo válido para días de semana (Lunes a Viernes). Hoy es {day_name}."
 
         if self.restrict_weekends and not is_weekend:
-            logger.info(f"❌ Restringido a fines de semana pero es día de semana")
-            return False, "Descuento solo válido para fines de semana"
+            logger.info(f"❌ Restringido a fines de semana pero {day_name} es día de semana")
+            return False, f"Descuento solo válido para fines de semana (Sábado y Domingo). Hoy es {day_name}."
 
         # NUEVA VALIDACIÓN: Verificar que no sea fecha especial
         if property_id:
@@ -801,16 +811,21 @@ class AutomaticDiscount(BaseModel):
 
         # Verificar restricciones de días de la semana
         weekday = booking_date.weekday()  # 0=Lunes, 6=Domingo
-        is_weekend = weekday >= 5  # Sábado y Domingo
-        logger.info(f"📅 Día de la semana: {weekday} ({'fin de semana' if is_weekend else 'día de semana'})")
+        is_weekend = weekday >= 5  # Sábado y Domingo (5=Sábado, 6=Domingo)
+        is_weekday = weekday < 5   # Lunes a Viernes (0=Lunes, 4=Viernes)
 
-        if self.restrict_weekdays and is_weekend:
-            logger.info(f"❌ Restringido a días de semana pero es fin de semana")
-            return False, "Descuento solo válido para días de semana"
+        day_names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+        day_name = day_names[weekday]
+
+        logger.info(f"📅 Día de la semana: {weekday} ({day_name}) - {'Fin de semana' if is_weekend else 'Día de semana'}")
+
+        if self.restrict_weekdays and not is_weekday:
+            logger.info(f"❌ Restringido a días de semana pero {day_name} es fin de semana")
+            return False, f"Descuento solo válido para días de semana (Lunes a Viernes). Hoy es {day_name}."
 
         if self.restrict_weekends and not is_weekend:
-            logger.info(f"❌ Restringido a fines de semana pero es día de semana")
-            return False, "Descuento solo válido para fines de semana"
+            logger.info(f"❌ Restringido a fines de semana pero {day_name} es día de semana")
+            return False, f"Descuento solo válido para fines de semana (Sábado y Domingo). Hoy es {day_name}."
 
         # Verificar que no sea fecha especial
         if property_id:
