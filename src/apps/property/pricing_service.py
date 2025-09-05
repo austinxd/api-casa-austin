@@ -280,9 +280,13 @@ class PricingCalculationService:
 
         # Verificar tipo de día
         weekday = date.weekday()
-        if weekday >= 4:  # Viernes, Sábado, Domingo
+        # DEFINICIÓN EMPRESARIAL: Domingo-Jueves = días de semana, Viernes-Sábado = fin de semana
+        is_weekend = weekday in [4, 5]  # Viernes=4, Sábado=5
+        is_weekday = weekday in [6, 0, 1, 2, 3]  # Domingo=6, Lunes=0, Martes=1, Miércoles=2, Jueves=3
+
+        if is_weekend:
             return "Fin de semana"
-        else:
+        else: # is_weekday
             return "Día de semana"
 
     def _apply_discounts(self, property, subtotal_usd, subtotal_sol, nights, guests, discount_code, client, check_in_date):
@@ -814,7 +818,9 @@ class PricingCalculationService:
                 current_date = check_in_date
                 has_friday_or_saturday = False
                 while current_date < check_out_date:
-                    if current_date.weekday() in [4, 5]:  # 4=Viernes, 5=Sábado
+                    # DEFINICIÓN EMPRESARIAL: Domingo-Jueves = días de semana, Viernes-Sábado = fin de semana
+                    weekday = current_date.weekday()
+                    if weekday in [4, 5]: # Viernes=4, Sábado=5
                         has_friday_or_saturday = True
                         break
                     current_date += timedelta(days=1)
