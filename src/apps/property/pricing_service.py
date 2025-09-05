@@ -380,29 +380,32 @@ class PricingCalculationService:
                     'code_used': discount_code.strip() if discount_code else None
                 })
 
-        # Evaluar descuentos automáticos si hay cliente y no hay descuento de código válido
+        # Evaluar descuentos automáticos si hay cliente Y TAMBIÉN descuentos globales (todos los niveles)
         # Aplicar descuentos automáticos si: no hay código, código inválido, o no hay descuento aplicado
-        if client and discount_info['type'] in ['none', 'error']:
+        if discount_info['type'] in ['none', 'error']:
             from .pricing_models import AutomaticDiscount
             from apps.clients.models import ClientAchievement
             import logging
             logger = logging.getLogger(__name__)
 
             logger.info(f"🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS")
-            logger.info(f"👤 Cliente: {client.first_name} {client.last_name or ''} (ID: {client.id})")
-            logger.info(f"📅 Fecha de nacimiento: {client.date}")
-            logger.info(f"📅 Mes de check-in: {check_in_date.month}")
-            logger.info(f"📅 Fecha de check-in: {check_in_date}")
-            
-            # Mostrar logros del cliente
-            client_achievements = ClientAchievement.objects.filter(client=client)
-            if client_achievements.exists():
-                achievement_names = list(client_achievements.values_list('achievement__name', flat=True))
-                logger.info(f"🏆 Logros del cliente: {achievement_names}")
+            if client:
+                logger.info(f"👤 Cliente: {client.first_name} {client.last_name or ''} (ID: {client.id})")
+                logger.info(f"📅 Fecha de nacimiento: {client.date}")
+                logger.info(f"📅 Mes de check-in: {check_in_date.month}")
+                logger.info(f"📅 Fecha de check-in: {check_in_date}")
+                
+                # Mostrar logros del cliente
+                client_achievements = ClientAchievement.objects.filter(client=client)
+                if client_achievements.exists():
+                    achievement_names = list(client_achievements.values_list('achievement__name', flat=True))
+                    logger.info(f"🏆 Logros del cliente: {achievement_names}")
+                else:
+                    logger.info(f"🏆 Cliente no tiene logros registrados")
             else:
-                logger.info(f"🏆 Cliente no tiene logros registrados")
+                logger.info(f"👤 Sin cliente - evaluando descuentos globales")
 
-            # Buscar descuentos automáticos aplicables al cliente
+            # Buscar descuentos automáticos aplicables
             automatic_discounts = AutomaticDiscount.objects.filter(is_active=True, deleted=False)
             logger.info(f"📋 Descuentos automáticos disponibles: {automatic_discounts.count()}")
 
@@ -412,21 +415,48 @@ class PricingCalculationService:
             for auto_discount in automatic_discounts:
                 logger.info(f"🔍 Evaluando: '{auto_discount.name}' - Trigger: '{auto_discount.trigger}'")
                 
-                # Mostrar logros requeridos
-                if auto_discount.required_achievements.exists():
+                # Verificar si es un descuento global (todos los logros seleccionados)
+                from apps.clients.models import Achievement
+                all_achievements = Achievement.objects.filter(deleted=False)
+                required_achievements = auto_discount.required_achievements.all()
+                
+                is_global_discount = (
+                    required_achievements.count() > 0 and 
+                    required_achievements.count() == all_achievements.count() and
+                    set(required_achievements.values_list('id', flat=True)) == set(all_achievements.values_list('id', flat=True))
+                )
+                
+                if is_global_discount:
+                    logger.info(f"🌍 '{auto_discount.name}' es un descuento GLOBAL (todos los niveles)")
+                elif auto_discount.required_achievements.exists():
                     required_names = list(auto_discount.required_achievements.values_list('name', flat=True))
                     logger.info(f"🎯 Logros requeridos para '{auto_discount.name}': {required_names}")
                 else:
                     logger.info(f"🎯 '{auto_discount.name}' no requiere logros específicos")
                 
                 try:
-                    # Aquí es donde se llama a applies_to_client que ahora incluye la verificación de logros y fechas especiales.
-                    applies, message = auto_discount.applies_to_client(client, check_in_date, property.id)
+                    # Para descuentos globales, aplicar incluso sin cliente
+                    if is_global_discount:
+                        # Evaluar el descuento global usando un cliente dummy o None
+                        applies, message = auto_discount.applies_to_client_global(check_in_date, property.id)
+                    elif client:
+                        # Para descuentos específicos, requiere cliente
+                        applies, message = auto_discount.applies_to_client(client, check_in_date, property.id)
+                    else:
+                        # Sin cliente y no es global, no aplica
+                        applies = False
+                        message = "Requiere cliente registrado"
+                    
                     logger.info(f"✅ Resultado para '{auto_discount.name}': {applies} - '{message}'")
 
                     if applies:
                         discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
                         logger.info(f"💰 Descuento calculado para '{auto_discount.name}': ${discount_amount_usd} USD ({auto_discount.discount_percentage}%)")
+                        
+                        # Si es descuento global, cambiar el mensaje
+                        if is_global_discount:
+                            message = "Descuento por tiempo limitado"
+                        
                         applicable_discounts.append({
                             'discount': auto_discount,
                             'message': message,

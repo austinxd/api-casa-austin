@@ -761,6 +761,85 @@ class AutomaticDiscount(BaseModel):
         logger.info(f"❌ Trigger '{self.trigger}' no reconocido")
         return False, "Trigger no reconocido"
 
+    def applies_to_client_global(self, booking_date, property_id=None):
+        """Verifica si el descuento automático global aplica (sin cliente específico)"""
+        from datetime import date, timedelta
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.info(f"🌍 Evaluando descuento GLOBAL '{self.name}' con trigger '{self.trigger}'")
+
+        if not self.is_active:
+            logger.info(f"❌ Descuento no está activo")
+            return False, "Descuento no activo"
+
+        # Verificar restricciones de días de la semana
+        weekday = booking_date.weekday()  # 0=Lunes, 6=Domingo
+        is_weekend = weekday >= 5  # Sábado y Domingo
+        logger.info(f"📅 Día de la semana: {weekday} ({'fin de semana' if is_weekend else 'día de semana'})")
+
+        if self.restrict_weekdays and is_weekend:
+            logger.info(f"❌ Restringido a días de semana pero es fin de semana")
+            return False, "Descuento solo válido para días de semana"
+
+        if self.restrict_weekends and not is_weekend:
+            logger.info(f"❌ Restringido a fines de semana pero es día de semana")
+            return False, "Descuento solo válido para fines de semana"
+
+        # Verificar que no sea fecha especial
+        if property_id:
+            special_date = SpecialDatePricing.objects.filter(
+                property_id=property_id,
+                month=booking_date.month,
+                day=booking_date.day,
+                is_active=True
+            ).first()
+            
+            if special_date:
+                logger.info(f"❌ Fecha especial detectada: {special_date.description}")
+                return False, f"Los descuentos automáticos no aplican en fechas especiales como {special_date.description} ({booking_date.strftime('%d/%m')})"
+        else:
+            special_dates = SpecialDatePricing.objects.filter(
+                month=booking_date.month,
+                day=booking_date.day,
+                is_active=True
+            )
+            
+            if special_dates.exists():
+                special_descriptions = list(special_dates.values_list('description', flat=True).distinct())
+                logger.info(f"❌ Fecha especial detectada: {special_descriptions}")
+                return False, f"Los descuentos automáticos no aplican en fechas especiales como {', '.join(special_descriptions)} ({booking_date.strftime('%d/%m')})"
+
+        # Para descuentos globales, solo evaluar triggers que no requieren cliente específico
+        logger.info(f"🎯 Evaluando trigger global: {self.trigger}")
+
+        if self.trigger == self.DiscountTrigger.LAST_MINUTE:
+            today = date.today()
+            tomorrow = today + timedelta(days=1)
+
+            logger.info(f"⏰ Último minuto - Hoy: {today}, Mañana: {tomorrow}, Booking: {booking_date}")
+
+            if booking_date == today:
+                return True, f"¡Reserva para hoy! {self.discount_percentage}% de descuento último minuto"
+            elif booking_date == tomorrow:
+                return True, f"¡Reserva para mañana! {self.discount_percentage}% de descuento último minuto"
+            else:
+                return False, f"No es reserva de último minuto (booking: {booking_date})"
+
+        elif self.trigger == self.DiscountTrigger.LOYALTY:
+            # Para descuentos globales de lealtad, siempre aplicar
+            logger.info(f"🏆 Descuento global de lealtad")
+            return True, f"Descuento por tiempo limitado: {self.discount_percentage}% de descuento"
+
+        # Otros triggers que podrían ser globales
+        elif self.trigger in [self.DiscountTrigger.FIRST_TIME, self.DiscountTrigger.RETURNING, self.DiscountTrigger.BIRTHDAY]:
+            # Estos triggers normalmente requieren cliente, pero si es global, aplicar como "tiempo limitado"
+            logger.info(f"🌍 Trigger {self.trigger} aplicado globalmente")
+            return True, f"Descuento por tiempo limitado: {self.discount_percentage}% de descuento"
+
+        logger.info(f"❌ Trigger '{self.trigger}' no reconocido para descuento global")
+        return False, "Trigger no reconocido para descuento global"
+
     def calculate_discount(self, total_amount_usd):
         """Calcula el descuento en USD"""
         discount = total_amount_usd * (self.discount_percentage / 100)
