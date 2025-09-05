@@ -607,6 +607,9 @@ class AutomaticDiscount(BaseModel):
         help_text="Si está activo, el descuento solo aplica para fines de semana (Sábado y Domingo)"
     )
     is_active = models.BooleanField(default=True)
+    start_date = models.DateField(null=True, blank=True, help_text="Fecha de inicio de validez del descuento (opcional)")
+    end_date = models.DateField(null=True, blank=True, help_text="Fecha de fin de validez del descuento (opcional)")
+
 
     class Meta:
         verbose_name = "🤖 Descuento Automático"
@@ -628,6 +631,15 @@ class AutomaticDiscount(BaseModel):
         if not self.is_active:
             logger.info(f"❌ Descuento no está activo")
             return False, "Descuento no activo"
+
+        # Verificar validez por fechas (si están definidas)
+        if self.start_date and booking_date < self.start_date:
+            logger.info(f"❌ Descuento no válido hasta: {self.start_date}")
+            return False, f"Descuento válido desde {self.start_date.strftime('%d/%m/%Y')}"
+
+        if self.end_date and booking_date > self.end_date:
+            logger.info(f"❌ Descuento expiró el: {self.end_date}")
+            return False, f"Descuento expiró el {self.end_date.strftime('%d/%m/%Y')}"
 
         # Verificar restricciones de días de la semana
         weekday = booking_date.weekday()  # 0=Lunes, 6=Domingo
@@ -777,6 +789,15 @@ class AutomaticDiscount(BaseModel):
         if not self.is_active:
             logger.info(f"❌ Descuento no está activo")
             return False, "Descuento no activo"
+
+        # Verificar validez por fechas (si están definidas)
+        if self.start_date and booking_date < self.start_date:
+            logger.info(f"❌ Descuento no válido hasta: {self.start_date}")
+            return False, f"Descuento válido desde {self.start_date.strftime('%d/%m/%Y')}"
+
+        if self.end_date and booking_date > self.end_date:
+            logger.info(f"❌ Descuento expiró el: {self.end_date}")
+            return False, f"Descuento expiró el {self.end_date.strftime('%d/%m/%Y')}"
 
         # Verificar restricciones de días de la semana
         weekday = booking_date.weekday()  # 0=Lunes, 6=Domingo
