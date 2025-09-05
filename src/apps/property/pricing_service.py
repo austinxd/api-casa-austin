@@ -439,6 +439,9 @@ class PricingCalculationService:
                     if is_global_discount:
                         # Evaluar el descuento global usando un cliente dummy o None
                         applies, message = auto_discount.applies_to_client_global(check_in_date, property.id)
+                        # Siempre cambiar el mensaje para descuentos globales
+                        if applies:
+                            message = "Descuento por tiempo limitado"
                     elif client:
                         # Para descuentos específicos, requiere cliente
                         applies, message = auto_discount.applies_to_client(client, check_in_date, property.id)
@@ -452,10 +455,6 @@ class PricingCalculationService:
                     if applies:
                         discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
                         logger.info(f"💰 Descuento calculado para '{auto_discount.name}': ${discount_amount_usd} USD ({auto_discount.discount_percentage}%)")
-                        
-                        # Si es descuento global, cambiar el mensaje
-                        if is_global_discount:
-                            message = "Descuento por tiempo limitado"
                         
                         applicable_discounts.append({
                             'discount': auto_discount,

@@ -353,7 +353,7 @@ class DiscountCode(BaseModel):
         today = date.today()
 
         # Para códigos de descuento, normally validamos si está vigente HOY
-        # Solo usar booking_date para restricciones de días de la semana
+        # Solo usar booking_date para restricciones de días
         check_date = today
 
         # Si se proporciona booking_date, convertirlo para restricciones de días
@@ -443,7 +443,7 @@ class DiscountCode(BaseModel):
                 day=booking_check_date.day,
                 is_active=True
             ).first()
-            
+
             if special_date:
                 return False, f"Los códigos de descuento no son válidos para fechas especiales como {special_date.description} ({booking_check_date.strftime('%d/%m')})"
 
@@ -650,7 +650,7 @@ class AutomaticDiscount(BaseModel):
                 day=booking_date.day,
                 is_active=True
             ).first()
-            
+
             if special_date:
                 logger.info(f"❌ Fecha especial detectada: {special_date.description}")
                 return False, f"Los descuentos automáticos no aplican en fechas especiales como {special_date.description} ({booking_date.strftime('%d/%m')})"
@@ -661,7 +661,7 @@ class AutomaticDiscount(BaseModel):
                 day=booking_date.day,
                 is_active=True
             )
-            
+
             if special_dates.exists():
                 special_descriptions = list(special_dates.values_list('description', flat=True).distinct())
                 logger.info(f"❌ Fecha especial detectada: {special_descriptions}")
@@ -794,7 +794,7 @@ class AutomaticDiscount(BaseModel):
                 day=booking_date.day,
                 is_active=True
             ).first()
-            
+
             if special_date:
                 logger.info(f"❌ Fecha especial detectada: {special_date.description}")
                 return False, f"Los descuentos automáticos no aplican en fechas especiales como {special_date.description} ({booking_date.strftime('%d/%m')})"
@@ -804,7 +804,7 @@ class AutomaticDiscount(BaseModel):
                 day=booking_date.day,
                 is_active=True
             )
-            
+
             if special_dates.exists():
                 special_descriptions = list(special_dates.values_list('description', flat=True).distinct())
                 logger.info(f"❌ Fecha especial detectada: {special_descriptions}")
@@ -820,9 +820,9 @@ class AutomaticDiscount(BaseModel):
             logger.info(f"⏰ Último minuto - Hoy: {today}, Mañana: {tomorrow}, Booking: {booking_date}")
 
             if booking_date == today:
-                return True, f"¡Reserva para hoy! {self.discount_percentage}% de descuento último minuto"
+                return True, "Descuento por tiempo limitado"
             elif booking_date == tomorrow:
-                return True, f"¡Reserva para mañana! {self.discount_percentage}% de descuento último minuto"
+                return True, "Descuento por tiempo limitado"
             else:
                 return False, f"No es reserva de último minuto (booking: {booking_date})"
 
@@ -833,7 +833,7 @@ class AutomaticDiscount(BaseModel):
 
         # Otros triggers que podrían ser globales
         elif self.trigger in [self.DiscountTrigger.FIRST_TIME, self.DiscountTrigger.RETURNING, self.DiscountTrigger.BIRTHDAY]:
-            # Estos triggers normalmente requieren cliente, pero si es global, aplicar como "tiempo limitado"
+            # Estos triggers normally requieren cliente, pero si es global, aplicar como "tiempo limitado"
             logger.info(f"🌍 Trigger {self.trigger} aplicado globalmente")
             return True, f"Descuento por tiempo limitado: {self.discount_percentage}% de descuento"
 
