@@ -370,6 +370,8 @@ class DiscountCode(BaseModel):
             else:
                 booking_check_date = booking_date
         else:
+            # Si no hay booking_date, usar fecha actual para validación general
+            # pero no aplicar restricciones de días específicos
             booking_check_date = today
 
         # Verificar si está activo y no eliminado
