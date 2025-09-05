@@ -343,7 +343,7 @@ class CancellationPolicyAdmin(admin.ModelAdmin):
 
 
 class AutomaticDiscountAdmin(admin.ModelAdmin):
-    list_display = ('name', 'trigger', 'discount_percentage', 'max_discount_usd', 'get_required_achievements', 'restrict_weekdays', 'restrict_weekends', 'is_active')
+    list_display = ('name', 'trigger', 'discount_percentage', 'max_discount_usd', 'get_date_validity', 'get_required_achievements', 'restrict_weekdays', 'restrict_weekends', 'is_active')
     list_filter = ('trigger', 'restrict_weekdays', 'restrict_weekends', 'is_active')
     search_fields = ('name', 'description')
     filter_horizontal = ('required_achievements',)
@@ -355,6 +355,10 @@ class AutomaticDiscountAdmin(admin.ModelAdmin):
         ('Configuración del Descuento', {
             'fields': ('trigger', 'discount_percentage', 'max_discount_usd')
         }),
+        ('Vigencia del Descuento', {
+            'fields': ('start_date', 'end_date'),
+            'description': 'Fechas de inicio y fin de validez del descuento (opcional). Si no se especifican, el descuento estará siempre activo.'
+        }),
         ('Logros Requeridos', {
             'fields': ('required_achievements',),
             'description': 'Selecciona los logros que debe tener el cliente para aplicar este descuento'
@@ -364,6 +368,18 @@ class AutomaticDiscountAdmin(admin.ModelAdmin):
             'description': 'Configurar si el descuento aplica solo para días específicos de la semana'
         }),
     )
+
+    def get_date_validity(self, obj):
+        """Muestra el periodo de validez del descuento"""
+        if obj.start_date and obj.end_date:
+            return f"📅 {obj.start_date.strftime('%d/%m/%Y')} - {obj.end_date.strftime('%d/%m/%Y')}"
+        elif obj.start_date:
+            return f"📅 Desde {obj.start_date.strftime('%d/%m/%Y')}"
+        elif obj.end_date:
+            return f"📅 Hasta {obj.end_date.strftime('%d/%m/%Y')}"
+        else:
+            return "♾️ Siempre activo"
+    get_date_validity.short_description = "Vigencia"
 
     def get_required_achievements(self, obj):
         """Muestra los logros requeridos de forma legible"""
