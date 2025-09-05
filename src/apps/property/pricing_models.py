@@ -571,6 +571,7 @@ class AutomaticDiscount(BaseModel):
         FIRST_TIME = "first_time", ("Primera Reserva")
         LOYALTY = "loyalty", ("Programa de Lealtad")
         LAST_MINUTE = "last_minute", ("Último Minuto")
+        GLOBAL_PROMOTION = "global_promotion", ("Promoción Global")
 
     name = models.CharField(max_length=100, help_text="Nombre del descuento automático")
     description = models.TextField(
@@ -758,6 +759,10 @@ class AutomaticDiscount(BaseModel):
             else:
                 return False, f"No es reserva de último minuto (booking: {booking_date})"
 
+        elif self.trigger == self.DiscountTrigger.GLOBAL_PROMOTION:
+            logger.info(f"🌍 Promoción global - Aplicable para todos los clientes")
+            return True, f"Descuento por tiempo limitado: {self.discount_percentage}% de descuento"
+
         logger.info(f"❌ Trigger '{self.trigger}' no reconocido")
         return False, "Trigger no reconocido"
 
@@ -830,6 +835,11 @@ class AutomaticDiscount(BaseModel):
             # Para descuentos globales de lealtad, siempre aplicar
             logger.info(f"🏆 Descuento global de lealtad")
             return True, f"Descuento por tiempo limitado: {self.discount_percentage}% de descuento"
+
+        elif self.trigger == self.DiscountTrigger.GLOBAL_PROMOTION:
+            # Para promociones globales, siempre aplicar
+            logger.info(f"🌍 Promoción global - Aplicable sin cliente")
+            return True, "Descuento por tiempo limitado"
 
         # Otros triggers que podrían ser globales
         elif self.trigger in [self.DiscountTrigger.FIRST_TIME, self.DiscountTrigger.RETURNING, self.DiscountTrigger.BIRTHDAY]:
