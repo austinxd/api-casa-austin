@@ -104,11 +104,11 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
         # Verificar logros para ambos clientes después de procesar puntos y reservas
         try:
             # Verificar logros para el cliente que hizo la reserva
-            check_and_assign_achievements(instance.client)
+            check_and_assign_achievements(instance.client.id)
 
             # Verificar logros para el cliente que refirió (si existe)
             if instance.client.referred_by:
-                check_and_assign_achievements(instance.client.referred_by)
+                check_and_assign_achievements(instance.client.referred_by.id)
 
         except Exception as e:
             logger.error(f"Error verificando logros después de reserva: {str(e)}")
@@ -146,59 +146,71 @@ def remove_points_after_delete(sender, instance, **kwargs):
 
         # Re-verificar logros después de remover puntos
         try:
-            check_and_assign_achievements(instance.client)
+            check_and_assign_achievements(instance.client.id)
             if instance.client.referred_by:
-                check_and_assign_achievements(instance.client.referred_by)
+                check_and_assign_achievements(instance.client.referred_by.id)
         except Exception as e:
             logger.error(f"Error verificando logros después de eliminar reserva: {str(e)}")
 
 
 # --- Funciones de Señales de Logros ---
 
-def check_and_assign_achievements(client):
-    """Verifica, asigna y remueve logros según las métricas actuales del cliente"""
+def check_and_assign_achievements(client_id):
+    """Verificar y asignar logros basados en las estadísticas actuales del cliente"""
+    from django.db import transaction
+
     try:
-        from apps.clients.models import Achievement, ClientAchievement
+        from apps.clients.models import Clients, Achievement, ClientAchievement
 
-        # Obtener todos los logros activos
-        achievements = Achievement.objects.filter(is_active=True, deleted=False)
+        with transaction.atomic():
+            client = Clients.objects.get(id=client_id, deleted=False)
+            logger.debug(f"🔄 Verificando logros para cliente {client_id}")
 
-        # Variable para contar logros asignados
-        achievements_assigned = 0
+            # Obtener todos los logros disponibles
+            achievements = Achievement.objects.filter(deleted=False, is_active=True)
 
-        for achievement in achievements:
-            # Verificar si el cliente ya tiene el logro
-            existing_achievement = ClientAchievement.objects.filter(
-                client=client,
-                achievement=achievement,
-                deleted=False
-            ).first()
+            achievements_assigned = 0
 
-            if achievement.check_client_qualifies(client):
-                if not existing_achievement:
-                    # Otorgar el logro
-                    new_achievement = ClientAchievement.objects.create(
-                        client=client,
-                        achievement=achievement
-                        # earned_at se asigna automáticamente por auto_now_add=True
-                    )
-                    logger.info(f"✅ Logro '{achievement.name}' asignado a cliente {client.id}")
-                    achievements_assigned += 1
-                else:
-                    logger.debug(f"🔄 Cliente {client.id} ya tiene el logro '{achievement.name}'")
-
-            # Si el cliente no califica y ya tiene el logro, removerlo
-            else:
-                client_achievement = ClientAchievement.objects.filter(
+            for achievement in achievements:
+                # Verificar si el cliente ya tiene el logro con select_for_update para evitar race conditions
+                existing_achievement = ClientAchievement.objects.select_for_update().filter(
                     client=client,
                     achievement=achievement,
                     deleted=False
                 ).first()
-                if client_achievement:
-                    client_achievement.deleted = True
-                    client_achievement.save()
-                    logger.info(f"❌ Logro '{achievement.name}' removido de {client.id} (ya no cumple requisitos)")
 
+                if achievement.check_client_qualifies(client):
+                    if not existing_achievement:
+                        try:
+                            # Usar get_or_create para manejar duplicados
+                            client_achievement, created = ClientAchievement.objects.get_or_create(
+                                client=client,
+                                achievement=achievement,
+                                defaults={'deleted': False}
+                            )
+
+                            if created:
+                                logger.info(f"✅ Logro '{achievement.name}' asignado a cliente {client.id}")
+                                achievements_assigned += 1
+                            else:
+                                logger.debug(f"🔄 Cliente {client.id} ya tiene el logro '{achievement.name}' (creado concurrentemente)")
+
+                        except Exception as create_error:
+                            logger.warning(f"⚠️ Error creando logro '{achievement.name}' para cliente {client.id}: {str(create_error)}")
+                            # Verificar si el logro ya existe después del error
+                            if ClientAchievement.objects.filter(
+                                client=client,
+                                achievement=achievement,
+                                deleted=False
+                            ).exists():
+                                logger.debug(f"🔄 Cliente {client.id} ya tiene el logro '{achievement.name}' (verificado después del error)")
+                    else:
+                        logger.debug(f"🔄 Cliente {client.id} ya tiene el logro '{achievement.name}'")
+                else:
+                    logger.debug(f"❌ Cliente {client.id} no cumple requisitos para '{achievement.name}'")
+
+            logger.info(f"📊 Verificación de logros completada para cliente {client_id}. Logros asignados: {achievements_assigned}")
 
     except Exception as e:
-        logger.error(f"❌ Error verificando logros para cliente {client.id}: {e}")
+        logger.error(f"❌ Error verificando logros para cliente {client_id}: {str(e)}")
+        # No propagar la excepción para evitar romper el flujo principal
