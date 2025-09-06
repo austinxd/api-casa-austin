@@ -167,19 +167,21 @@ def check_and_assign_achievements(client):
         achievements_assigned = 0
 
         for achievement in achievements:
-            # Verificar si el cliente cumple los requisitos
-            if achievement.check_client_qualifies(client):
-                # Usar get_or_create para evitar duplicados
-                client_achievement, created = ClientAchievement.objects.get_or_create(
-                    client=client,
-                    achievement=achievement,
-                    defaults={
-                        'achieved_date': timezone.now().date(),
-                        'deleted': False
-                    }
-                )
+            # Verificar si el cliente ya tiene el logro
+            existing_achievement = ClientAchievement.objects.filter(
+                client=client,
+                achievement=achievement,
+                deleted=False
+            ).first()
 
-                if created:
+            if achievement.check_client_qualifies(client):
+                if not existing_achievement:
+                    # Otorgar el logro
+                    new_achievement = ClientAchievement.objects.create(
+                        client=client,
+                        achievement=achievement
+                        # earned_at se asigna automáticamente por auto_now_add=True
+                    )
                     logger.info(f"✅ Logro '{achievement.name}' asignado a cliente {client.id}")
                     achievements_assigned += 1
                 else:
