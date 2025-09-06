@@ -162,9 +162,19 @@ def check_and_assign_achievements(client_id):
     try:
         from apps.clients.models import Clients, Achievement, ClientAchievement
 
+        # Verificar si client_id es un objeto o un ID
+        if hasattr(client_id, 'id'):
+            # Es un objeto cliente, extraer el ID
+            actual_client_id = client_id.id
+            client = client_id
+        else:
+            # Es un ID, obtener el cliente
+            actual_client_id = client_id
+            client = Clients.objects.get(id=actual_client_id, deleted=False)
+
+        logger.debug(f"🔄 Verificando logros para cliente {actual_client_id}")
+
         with transaction.atomic():
-            client = Clients.objects.get(id=client_id, deleted=False)
-            logger.debug(f"🔄 Verificando logros para cliente {client_id}")
 
             # Obtener todos los logros disponibles
             achievements = Achievement.objects.filter(deleted=False, is_active=True)
@@ -209,8 +219,10 @@ def check_and_assign_achievements(client_id):
                 else:
                     logger.debug(f"❌ Cliente {client.id} no cumple requisitos para '{achievement.name}'")
 
-            logger.info(f"📊 Verificación de logros completada para cliente {client_id}. Logros asignados: {achievements_assigned}")
+            logger.info(f"📊 Verificación de logros completada para cliente {actual_client_id}. Logros asignados: {achievements_assigned}")
 
     except Exception as e:
-        logger.error(f"❌ Error verificando logros para cliente {client_id}: {str(e)}")
+        # Usar el ID correcto en el logging de errores
+        error_client_id = getattr(client_id, 'id', client_id) if hasattr(client_id, 'id') else client_id
+        logger.error(f"❌ Error verificando logros para cliente {error_client_id}: {str(e)}")
         # No propagar la excepción para evitar romper el flujo principal

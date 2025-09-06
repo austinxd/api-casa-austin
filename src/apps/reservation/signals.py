@@ -265,15 +265,16 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
                 logger.debug(f"Reserva {instance.id} marcada como pago completo - Enviando flujo ChatBot")
                 send_chatbot_flow_payment_complete(instance)
 
-        # Verificar logros cuando cambie el estado de la reserva
-        if instance.client:
-            logger.debug(f"Verificando logros para cliente {instance.client.id} después de actualizar reserva {instance.id}")
-            check_and_assign_achievements(instance.client)
+        # Verificar logros después de actualizar el estado de la reserva
+        try:
+            if instance.client:
+                check_and_assign_achievements(instance.client.id)
 
-            # También verificar logros del cliente que refirió (si existe)
-            if instance.client.referred_by:
-                logger.debug(f"Verificando logros para cliente referidor {instance.client.referred_by.id}")
-                check_and_assign_achievements(instance.client.referred_by)
+                # También verificar logros del cliente que refirió si existe
+                if instance.client.referred_by:
+                    check_and_assign_achievements(instance.client.referred_by.id)
+        except Exception as e:
+            logger.error(f"Error verificando logros después de actualizar reserva: {str(e)}")
 
 def send_chatbot_flow_payment_complete(reservation):
     """Envía flujo de ChatBot Builder cuando el pago está completo"""
