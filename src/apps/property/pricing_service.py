@@ -126,7 +126,7 @@ class PricingCalculationService:
         # Calcular precio por personas extra
         extra_guests = max(0, guests - 1)  # Después de la primera persona
         extra_person_price_per_night_usd = property.precio_extra_persona or Decimal('0.00')
-        extra_person_price_usd = extra_person_price_per_night_usd  # Precio por noche por persona adicional
+        extra_person_price_per_night_usd = extra_person_price_per_night_usd  # Precio por noche por persona adicional
         extra_person_total_usd = extra_person_price_per_night_usd * extra_guests * nights  # Total por todas las noches y personas extra
 
         # Aplicar descuentos - pasar también base_total_usd y extra_person_total_usd
@@ -142,7 +142,7 @@ class PricingCalculationService:
 
         # Convertir a soles
         base_price_sol = base_total_usd * self.exchange_rate
-        extra_person_price_sol = extra_person_price_usd * self.exchange_rate
+        extra_person_price_sol = extra_person_price_per_night_usd * self.exchange_rate
         extra_person_total_sol = extra_person_total_usd * self.exchange_rate
         subtotal_sol = subtotal_usd * self.exchange_rate
         #final_price_sol = final_price_usd * self.exchange_rate # Ya calculado arriba
@@ -168,7 +168,7 @@ class PricingCalculationService:
             'property_slug': property.slug,
             'base_price_usd': round(float(base_total_usd), 2),
             'base_price_sol': round(float(base_price_sol), 2),
-            'extra_person_price_per_night_usd': round(float(extra_person_price_usd), 2),
+            'extra_person_price_per_night_usd': round(float(extra_person_price_per_night_usd), 2),
             'extra_person_price_per_night_sol': round(float(extra_person_price_sol), 2),
             'extra_person_total_usd': round(float(extra_person_total_usd), 2),
             'extra_person_total_sol': round(float(extra_person_total_sol), 2),
@@ -424,8 +424,8 @@ class PricingCalculationService:
                 # También considerar como global si es trigger GLOBAL_PROMOTION o NO requiere logros específicos
                 is_global_promotion = auto_discount.trigger == auto_discount.DiscountTrigger.GLOBAL_PROMOTION
                 no_achievements_required = not auto_discount.required_achievements.exists()
-                
-                # Triggers que pueden aplicar globalmente sin cliente específico
+
+                # Triggers that can apply globally without client specific
                 global_applicable_triggers = [
                     auto_discount.DiscountTrigger.GLOBAL_PROMOTION,
                     auto_discount.DiscountTrigger.LAST_MINUTE
