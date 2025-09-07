@@ -299,6 +299,13 @@ class CalculatePricingAPIView(APIView):
                 description='Código de descuento (opcional)',
                 required=False
             ),
+            OpenApiParameter(
+                name='additional_services',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='IDs de servicios adicionales separados por comas (ej: 1,3,5)',
+                required=False
+            ),
         ],
         responses={
             200: PricingCalculationSerializer,
@@ -363,6 +370,7 @@ class CalculatePricingAPIView(APIView):
             property_id = request.query_params.get('property_id')
             client_id = request.query_params.get('client_id')
             discount_code = request.query_params.get('discount_code')
+            additional_services_param = request.query_params.get('additional_services')
 
             # Validar property_id si se proporciona
             if property_id:
@@ -398,6 +406,33 @@ class CalculatePricingAPIView(APIView):
                         'error_message': 'client_id debe ser un UUID válido'
                     }, status=status.HTTP_400_BAD_REQUEST)
 
+            # Validar additional_services si se proporciona
+            additional_services_ids = []
+            if additional_services_param:
+                try:
+                    # Dividir por comas y convertir a enteros
+                    service_ids_str = additional_services_param.split(',')
+                    additional_services_ids = [int(sid.strip()) for sid in service_ids_str if sid.strip()]
+                    
+                    # Verificar que los servicios existen
+                    from .pricing_models import AdditionalService
+                    existing_services = AdditionalService.objects.filter(
+                        id__in=additional_services_ids,
+                        is_active=True
+                    ).count()
+                    
+                    if existing_services != len(additional_services_ids):
+                        return Response({
+                            'error': 11,
+                            'error_message': 'Uno o más servicios adicionales no existen o están inactivos'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                        
+                except (ValueError, TypeError):
+                    return Response({
+                        'error': 12,
+                        'error_message': 'additional_services debe contener IDs numéricos separados por comas (ej: 1,3,5)'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
             # Calcular precios usando el servicio
             pricing_service = PricingCalculationService()
             pricing_data = pricing_service.calculate_pricing(
@@ -406,7 +441,8 @@ class CalculatePricingAPIView(APIView):
                 guests=guests,
                 property_id=property_id,
                 client_id=client_id,
-                discount_code=discount_code
+                discount_code=discount_code,
+                additional_services_ids=additional_services_ids
             )
 
             return Response({

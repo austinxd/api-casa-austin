@@ -23,7 +23,7 @@ class PricingCalculationService:
     def __init__(self):
         self.exchange_rate = ExchangeRate.get_current_rate()
 
-    def calculate_pricing(self, check_in_date, check_out_date, guests, property_id=None, client_id=None, discount_code=None):
+    def calculate_pricing(self, check_in_date, check_out_date, guests, property_id=None, client_id=None, discount_code=None, additional_services_ids=None):
         """Calcula precios para una o todas las propiedades"""
 
         # Validaciones básicas
@@ -64,7 +64,7 @@ class PricingCalculationService:
 
         for property in properties:
             property_pricing = self._calculate_property_pricing(
-                property, check_in_date, check_out_date, guests, nights, client, discount_code
+                property, check_in_date, check_out_date, guests, nights, client, discount_code, additional_services_ids
             )
             results.append(property_pricing)
 
@@ -111,7 +111,7 @@ class PricingCalculationService:
 
         return general_info
 
-    def _calculate_property_pricing(self, property, check_in_date, check_out_date, guests, nights, client, discount_code):
+    def _calculate_property_pricing(self, property, check_in_date, check_out_date, guests, nights, client, discount_code, additional_services_ids=None):
         """Calcula precios para una propiedad específica"""
 
         # Verificar disponibilidad
@@ -149,6 +149,23 @@ class PricingCalculationService:
 
         # Servicios adicionales
         additional_services = self._get_additional_services(property, nights, guests)
+        
+        # Calcular precio de servicios adicionales seleccionados
+        selected_services_total_usd = Decimal('0.00')
+        selected_services_total_sol = Decimal('0.00')
+        selected_services_details = []
+        
+        if additional_services_ids:
+            for service_data in additional_services:
+                if service_data['id'] in additional_services_ids:
+                    selected_services_total_usd += Decimal(str(service_data['total_price_usd']))
+                    selected_services_total_sol += Decimal(str(service_data['total_price_sol']))
+                    selected_services_details.append({
+                        'id': service_data['id'],
+                        'name': service_data['name'],
+                        'total_price_usd': service_data['total_price_usd'],
+                        'total_price_sol': service_data['total_price_sol']
+                    })
 
         # Política de cancelación
         cancellation_policy = CancellationPolicy.get_applicable_policy(property.id)
@@ -160,6 +177,10 @@ class PricingCalculationService:
         recommendations = self._get_property_recommendations(
             property, guests, nights, subtotal_usd, available
         )
+
+        # Calcular precio final con servicios adicionales incluidos
+        final_price_with_services_usd = final_price_usd + selected_services_total_usd
+        final_price_with_services_sol = final_price_sol + selected_services_total_sol
 
         # Construir respuesta base
         response = {
@@ -185,6 +206,16 @@ class PricingCalculationService:
             'cancellation_policy': cancellation_policy,
             'recommendations': recommendations
         }
+        
+        # Si hay servicios adicionales seleccionados, incluir información adicional
+        if additional_services_ids and selected_services_details:
+            response.update({
+                'selected_additional_services': selected_services_details,
+                'selected_services_total_usd': round(float(selected_services_total_usd), 2),
+                'selected_services_total_sol': round(float(selected_services_total_sol), 2),
+                'final_price_with_services_usd': round(float(final_price_with_services_usd), 2),
+                'final_price_with_services_sol': round(float(final_price_with_services_sol), 2)
+            })
 
         # Solo incluir discount_applied si hay descuento aplicado o si se proporcionó un código
         if discount_applied['type'] != 'none' or discount_code:
