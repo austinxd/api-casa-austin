@@ -376,8 +376,8 @@ class PricingCalculationService:
                     'code_used': discount_code.strip() if discount_code else None
                 })
 
-        # Evaluar descuentos automáticos si: no hay código, código inválido, no hay descuento aplicado, o no hay cliente (para descuentos globales)
-        if discount_info['type'] in ['none', 'error'] or not client:
+        # Evaluar descuentos automáticos si: no hay código, código inválido, o no hay descuento aplicado
+        if discount_info['type'] in ['none', 'error']:
             from .pricing_models import AutomaticDiscount
             from apps.clients.models import ClientAchievement
             import logging
@@ -421,7 +421,7 @@ class PricingCalculationService:
                     set(required_achievements.values_list('id', flat=True)) == set(all_achievements.values_list('id', flat=True))
                 )
 
-                # También considerar como global si es trigger GLOBAL_PROMOTION o no requiere logros específicos
+                # También considerar como global si es trigger GLOBAL_PROMOTION o NO requiere logros específicos
                 is_global_promotion = auto_discount.trigger == auto_discount.DiscountTrigger.GLOBAL_PROMOTION
                 no_achievements_required = not auto_discount.required_achievements.exists()
 
@@ -433,23 +433,27 @@ class PricingCalculationService:
                     required_names = list(auto_discount.required_achievements.values_list('name', flat=True))
                     logger.info(f"🎯 Logros requeridos para '{auto_discount.name}': {required_names}")
                 else:
-                    logger.info(f"🎯 '{auto_discount.name}' no requiere logros específicos")
+                    logger.info(f"🌍 '{auto_discount.name}' NO requiere logros específicos - APLICA GLOBALMENTE")
 
                 try:
-                    # Para descuentos globales, aplicar incluso sin cliente
-                    if is_global_discount or is_global_promotion or (no_achievements_required and not client):
-                        # Evaluar el descuento global
-                        applies, message = auto_discount.applies_to_client_global(check_in_date, property.id)
-                        # Cambiar el mensaje para descuentos globales
-                        if applies:
-                            message = "Descuento por tiempo limitado"
+                    # Para descuentos globales o sin logros requeridos, aplicar incluso sin cliente
+                    if is_global_discount or is_global_promotion or no_achievements_required:
+                        if client:
+                            # Si hay cliente, usar lógica completa
+                            applies, message = auto_discount.applies_to_client(client, check_in_date, property.id)
+                        else:
+                            # Sin cliente, usar lógica global
+                            applies, message = auto_discount.applies_to_client_global(check_in_date, property.id)
+                            # Cambiar el mensaje para descuentos globales
+                            if applies:
+                                message = "Descuento por tiempo limitado"
                     elif client:
                         # Para descuentos específicos, requiere cliente
                         applies, message = auto_discount.applies_to_client(client, check_in_date, property.id)
                     else:
-                        # Sin cliente y no es global, no aplica
+                        # Sin cliente y requiere logros específicos, no aplica
                         applies = False
-                        message = "Requiere cliente registrado"
+                        message = "Requiere cliente registrado para este descuento específico"
 
                     logger.info(f"✅ Resultado para '{auto_discount.name}': {applies} - '{message}'")
 
@@ -492,7 +496,7 @@ class PricingCalculationService:
                     'apply_only_to_base_price': best_discount['discount'].apply_only_to_base_price
                 }
             else:
-                logger.info(f"❌ No se encontraron descuentos automáticos aplicables para este cliente")
+                logger.info(f"❌ No se encontraron descuentos automáticos aplicables")
 
         return discount_info
 
