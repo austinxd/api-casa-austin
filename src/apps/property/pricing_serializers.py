@@ -87,6 +87,7 @@ class AutomaticDiscountSerializer(serializers.ModelSerializer):
             'required_achievements_detail',
             'restrict_weekdays',
             'restrict_weekends',
+            'apply_only_to_base_price',
             'is_active',
             'created',
             'updated'

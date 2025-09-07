@@ -454,8 +454,16 @@ class PricingCalculationService:
                     logger.info(f"✅ Resultado para '{auto_discount.name}': {applies} - '{message}'")
 
                     if applies:
-                        discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
-                        logger.info(f"💰 Descuento calculado para '{auto_discount.name}': ${discount_amount_usd} USD ({auto_discount.discount_percentage}%)")
+                        # Verificar si es un descuento solo para precio base
+                        if auto_discount.apply_only_to_base_price or auto_discount.trigger == auto_discount.DiscountTrigger.BASE_PRICE_DISCOUNT:
+                            # Calcular descuento solo sobre el precio base
+                            base_price_for_discount = base_total_usd  # Precio base sin huéspedes adicionales
+                            discount_amount_usd = auto_discount.calculate_base_price_discount(base_price_for_discount, extra_person_total_usd)
+                            logger.info(f"💰 Descuento BASE calculado para '{auto_discount.name}': ${discount_amount_usd} USD sobre precio base ${base_price_for_discount} USD ({auto_discount.discount_percentage}%)")
+                        else:
+                            # Descuento normal sobre el total
+                            discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
+                            logger.info(f"💰 Descuento TOTAL calculado para '{auto_discount.name}': ${discount_amount_usd} USD ({auto_discount.discount_percentage}%)")
 
                         applicable_discounts.append({
                             'discount': auto_discount,
@@ -480,7 +488,8 @@ class PricingCalculationService:
                     'discount_percentage': round(float(best_discount['discount'].discount_percentage), 2),
                     'discount_amount_usd': best_discount['amount_usd'],
                     'discount_amount_sol': best_discount['amount_usd'] * self.exchange_rate,
-                    'code_used': None
+                    'code_used': None,
+                    'apply_only_to_base_price': best_discount['discount'].apply_only_to_base_price
                 }
             else:
                 logger.info(f"❌ No se encontraron descuentos automáticos aplicables para este cliente")

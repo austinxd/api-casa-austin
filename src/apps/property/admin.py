@@ -343,7 +343,7 @@ class CancellationPolicyAdmin(admin.ModelAdmin):
 
 
 class AutomaticDiscountAdmin(admin.ModelAdmin):
-    list_display = ('name', 'trigger', 'discount_percentage', 'max_discount_usd', 'get_date_validity', 'get_required_achievements', 'restrict_weekdays', 'restrict_weekends', 'is_active')
+    list_display = ('name', 'trigger', 'discount_percentage', 'max_discount_usd', 'get_date_validity', 'get_required_achievements', 'restrict_weekdays', 'restrict_weekends', 'apply_only_to_base_price', 'is_active')
     list_filter = ('trigger', 'restrict_weekdays', 'restrict_weekends', 'is_active')
     search_fields = ('name', 'description')
     filter_horizontal = ('required_achievements',)
@@ -353,7 +353,7 @@ class AutomaticDiscountAdmin(admin.ModelAdmin):
             'fields': ('name', 'description', 'is_active')
         }),
         ('Configuración del Descuento', {
-            'fields': ('trigger', 'discount_percentage', 'max_discount_usd')
+            'fields': ('trigger', 'discount_percentage', 'max_discount_usd', 'apply_only_to_base_price')
         }),
         ('Vigencia del Descuento', {
             'fields': ('start_date', 'end_date'),

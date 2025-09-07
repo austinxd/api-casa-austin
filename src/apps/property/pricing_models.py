@@ -582,6 +582,7 @@ class AutomaticDiscount(BaseModel):
         LOYALTY = "loyalty", ("Programa de Lealtad")
         LAST_MINUTE = "last_minute", ("Último Minuto")
         GLOBAL_PROMOTION = "global_promotion", ("Promoción Global")
+        BASE_PRICE_DISCOUNT = "base_price_discount", ("Descuento Solo Precio Base")
 
     name = models.CharField(max_length=100, help_text="Nombre del descuento automático")
     description = models.TextField(
@@ -619,6 +620,10 @@ class AutomaticDiscount(BaseModel):
     is_active = models.BooleanField(default=True)
     start_date = models.DateField(null=True, blank=True, help_text="Fecha de inicio de validez del descuento (opcional)")
     end_date = models.DateField(null=True, blank=True, help_text="Fecha de fin de validez del descuento (opcional)")
+    apply_only_to_base_price = models.BooleanField(
+        default=False, 
+        help_text="Si está activo, el descuento solo se aplica al precio base (sin incluir huéspedes adicionales)"
+    )
 
 
     class Meta:
@@ -790,6 +795,12 @@ class AutomaticDiscount(BaseModel):
         elif self.trigger == self.DiscountTrigger.GLOBAL_PROMOTION:
             logger.info(f"🌍 Promoción global - Aplicable para todos los clientes")
             return True, f"Descuento por tiempo limitado: {self.discount_percentage}% de descuento"
+        
+        elif self.trigger == self.DiscountTrigger.BASE_PRICE_DISCOUNT:
+            logger.info(f"💰 Descuento solo en precio base - Aplicable según criterios de logros/cliente")
+            # Este trigger puede combinarse con otros criterios (logros, etc.)
+            # Por sí solo, aplica descuento solo al precio base
+            return True, f"Descuento en precio base: {self.discount_percentage}% de descuento"
 
         logger.info(f"❌ Trigger '{self.trigger}' no reconocido")
         return False, "Trigger no reconocido"
@@ -885,9 +896,11 @@ class AutomaticDiscount(BaseModel):
             return True, "Descuento por tiempo limitado"
 
         # Otros triggers que podrían ser globales
-        elif self.trigger in [self.DiscountTrigger.FIRST_TIME, self.DiscountTrigger.RETURNING, self.DiscountTrigger.BIRTHDAY]:
+        elif self.trigger in [self.DiscountTrigger.FIRST_TIME, self.DiscountTrigger.RETURNING, self.DiscountTrigger.BIRTHDAY, self.DiscountTrigger.BASE_PRICE_DISCOUNT]:
             # Estos triggers normally requieren cliente, pero si es global, aplicar como "tiempo limitado"
             logger.info(f"🌍 Trigger {self.trigger} aplicado globalmente")
+            if self.trigger == self.DiscountTrigger.BASE_PRICE_DISCOUNT:
+                return True, "Descuento en precio base por tiempo limitado"
             return True, f"Descuento por tiempo limitado: {self.discount_percentage}% de descuento"
 
         logger.info(f"❌ Trigger '{self.trigger}' no reconocido para descuento global")
@@ -899,6 +912,26 @@ class AutomaticDiscount(BaseModel):
         if self.max_discount_usd:
             discount = min(discount, self.max_discount_usd)
         return discount
+    
+    def calculate_base_price_discount(self, base_price_usd, extra_person_total_usd):
+        """
+        Calcula el descuento aplicado SOLO al precio base (sin huéspedes adicionales)
+        
+        Args:
+            base_price_usd: Precio base de la estadía (sin huéspedes adicionales)
+            extra_person_total_usd: Precio total de huéspedes adicionales
+            
+        Returns:
+            Decimal: Monto del descuento aplicado solo al precio base
+        """
+        # Calcular descuento solo sobre el precio base
+        base_discount = base_price_usd * (self.discount_percentage / 100)
+        
+        # Aplicar límite máximo si existe
+        if self.max_discount_usd:
+            base_discount = min(base_discount, self.max_discount_usd)
+            
+        return base_discount
 
 
 class DynamicDiscountConfig(BaseModel):
