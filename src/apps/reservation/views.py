@@ -38,7 +38,6 @@ from .signals import send_purchase_event_to_meta
 from django.views.decorators.csrf import csrf_exempt
 import json
 from django.http import JsonResponse, HttpResponseBadRequest
-import xlsxwriter
 
 class ReservationsApiView(viewsets.ModelViewSet):
     serializer_class = ReservationSerializer
@@ -799,13 +798,6 @@ class MonthlyReservationsExportAPIView(APIView):
                 description="Mes de las reservas a exportar (1-12)",
                 location=OpenApiParameter.QUERY
             ),
-            OpenApiParameter(
-                "format",
-                OpenApiTypes.STR,
-                required=False,
-                description="Formato de exportación: 'json' o 'excel' (default: json)",
-                location=OpenApiParameter.QUERY
-            ),
         ],
         responses={
             200: {
@@ -864,7 +856,6 @@ class MonthlyReservationsExportAPIView(APIView):
             # Validar parámetros requeridos
             year_param = request.query_params.get('year')
             month_param = request.query_params.get('month')
-            format_param = request.query_params.get('format', 'json').lower()
 
             if not year_param or not month_param:
                 return Response({
@@ -892,13 +883,6 @@ class MonthlyReservationsExportAPIView(APIView):
                 return Response({
                     "success": False,
                     "error": "El parámetro 'month' debe ser un número entre 1 y 12"
-                }, status=400)
-
-            # Validar formato
-            if format_param not in ['json', 'excel']:
-                return Response({
-                    "success": False,
-                    "error": "El parámetro 'format' debe ser 'json' o 'excel'"
                 }, status=400)
 
             # Calcular rango de fechas para el mes
@@ -994,11 +978,6 @@ class MonthlyReservationsExportAPIView(APIView):
             }
             period_name = f"{month_names[month]} {year}"
 
-            # Si se solicita formato Excel, generar archivo Excel
-            if format_param == 'excel':
-                return self.generate_excel_response(reservations_data, period_name, year, month)
-
-            # Respuesta JSON por defecto
             return Response({
                 "success": True,
                 "data": {
@@ -1012,157 +991,6 @@ class MonthlyReservationsExportAPIView(APIView):
             return Response({
                 "success": False,
                 "error": f"Error interno del servidor: {str(e)}"
-            }, status=500)
-
-    def generate_excel_response(self, reservations_data, period_name, year, month):
-        """Genera un archivo Excel con los datos de reservas"""
-        try:
-            # Crear un buffer en memoria para el archivo Excel
-            output = io.BytesIO()
-            
-            # Crear un workbook y worksheet
-            workbook = xlsxwriter.Workbook(output, {'in_memory': True})
-            worksheet = workbook.add_worksheet('Reservas')
-            
-            # Definir formatos
-            header_format = workbook.add_format({
-                'bold': True,
-                'bg_color': '#4472C4',
-                'font_color': 'white',
-                'border': 1,
-                'align': 'center'
-            })
-            
-            data_format = workbook.add_format({
-                'border': 1,
-                'align': 'left'
-            })
-            
-            number_format = workbook.add_format({
-                'border': 1,
-                'align': 'right',
-                'num_format': '#,##0.00'
-            })
-            
-            date_format = workbook.add_format({
-                'border': 1,
-                'align': 'center',
-                'num_format': 'dd/mm/yyyy'
-            })
-            
-            # Escribir el título
-            worksheet.merge_range('A1:X1', f'Reporte de Reservas - {period_name}', header_format)
-            
-            # Definir las columnas y sus encabezados
-            headers = [
-                'ID', 'Cliente', 'Email', 'Teléfono', 'Propiedad', 
-                'Check-in', 'Check-out', 'Huéspedes', 'Precio USD', 'Precio PEN',
-                'Adelanto', 'Moneda Adelanto', 'Pago Completo', 'Piscina Temperada',
-                'Origen', 'Estado', 'Vendedor', 'Fecha Creación', 'Noches',
-                'Puntos Canjeados', 'Código Descuento', 'Teléfono Contacto', 'Comentarios'
-            ]
-            
-            # Escribir encabezados
-            for col, header in enumerate(headers):
-                worksheet.write(2, col, header, header_format)
-            
-            # Escribir datos
-            row = 3
-            for reservation in reservations_data:
-                col = 0
-                worksheet.write(row, col, reservation['id'], data_format)
-                col += 1
-                worksheet.write(row, col, reservation['client_name'], data_format)
-                col += 1
-                worksheet.write(row, col, reservation['client_email'], data_format)
-                col += 1
-                worksheet.write(row, col, reservation['client_phone'], data_format)
-                col += 1
-                worksheet.write(row, col, reservation['property_name'], data_format)
-                col += 1
-                # Convertir fechas
-                try:
-                    check_in = datetime.strptime(reservation['check_in_date'], '%Y-%m-%d')
-                    worksheet.write_datetime(row, col, check_in, date_format)
-                except:
-                    worksheet.write(row, col, reservation['check_in_date'], data_format)
-                col += 1
-                try:
-                    check_out = datetime.strptime(reservation['check_out_date'], '%Y-%m-%d')
-                    worksheet.write_datetime(row, col, check_out, date_format)
-                except:
-                    worksheet.write(row, col, reservation['check_out_date'], data_format)
-                col += 1
-                worksheet.write(row, col, reservation['guests'], data_format)
-                col += 1
-                worksheet.write(row, col, reservation['price_usd'], number_format)
-                col += 1
-                worksheet.write(row, col, reservation['price_sol'], number_format)
-                col += 1
-                worksheet.write(row, col, reservation['advance_payment'], number_format)
-                col += 1
-                worksheet.write(row, col, reservation['advance_payment_currency'], data_format)
-                col += 1
-                worksheet.write(row, col, 'Sí' if reservation['full_payment'] else 'No', data_format)
-                col += 1
-                worksheet.write(row, col, 'Sí' if reservation['temperature_pool'] else 'No', data_format)
-                col += 1
-                worksheet.write(row, col, reservation['origin'], data_format)
-                col += 1
-                worksheet.write(row, col, reservation['status'], data_format)
-                col += 1
-                worksheet.write(row, col, reservation['seller_name'], data_format)
-                col += 1
-                worksheet.write(row, col, reservation['created'][:10] if reservation['created'] else '', data_format)
-                col += 1
-                worksheet.write(row, col, reservation['number_nights'], data_format)
-                col += 1
-                worksheet.write(row, col, reservation['points_redeemed'], number_format)
-                col += 1
-                worksheet.write(row, col, reservation['discount_code_used'], data_format)
-                col += 1
-                worksheet.write(row, col, reservation['tel_contact_number'], data_format)
-                col += 1
-                worksheet.write(row, col, reservation['comentarios_reservas'], data_format)
-                
-                row += 1
-            
-            # Ajustar ancho de columnas
-            worksheet.set_column('A:A', 8)   # ID
-            worksheet.set_column('B:B', 25)  # Cliente
-            worksheet.set_column('C:C', 30)  # Email
-            worksheet.set_column('D:D', 15)  # Teléfono
-            worksheet.set_column('E:E', 20)  # Propiedad
-            worksheet.set_column('F:G', 12)  # Fechas
-            worksheet.set_column('H:H', 10)  # Huéspedes
-            worksheet.set_column('I:K', 12)  # Precios
-            worksheet.set_column('L:L', 8)   # Moneda
-            worksheet.set_column('M:N', 12)  # Booleanos
-            worksheet.set_column('O:Q', 15)  # Origen, Estado, Vendedor
-            worksheet.set_column('R:R', 12)  # Fecha creación
-            worksheet.set_column('S:S', 8)   # Noches
-            worksheet.set_column('T:T', 12)  # Puntos
-            worksheet.set_column('U:W', 20)  # Códigos y comentarios
-            
-            # Cerrar el workbook
-            workbook.close()
-            
-            # Preparar la respuesta HTTP
-            output.seek(0)
-            filename = f'reservas_{period_name.replace(" ", "_")}_{year}_{month:02d}.xlsx'
-            
-            response = HttpResponse(
-                output.getvalue(),
-                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
-            
-            return response
-            
-        except Exception as e:
-            return Response({
-                "success": False,
-                "error": f"Error generando archivo Excel: {str(e)}"
             }, status=500)
 
 
