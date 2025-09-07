@@ -30,10 +30,7 @@ ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=['*'])
 
 # Allow Replit hosts - add specific pattern for Replit domains
 if '*' not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.extend([
-        '.replit.dev',
-        '*.replit.dev'
-    ])
+    ALLOWED_HOSTS.extend(['.replit.dev', '*.replit.dev'])
 
 CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS",
                                 default=['http://localhost:8000'])
@@ -47,6 +44,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://reservas.casaaustin.pe",
     "https://6d9c1416-4d5a-43ff-b6d9-45dcb8a576cf-00-1qgg6m6ft27vv.riker.replit.dev:5000",
     "https://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.replit.dev",
+    "https://acceso.casaaustin.pe",
 ]
 
 # Permitir headers adicionales para autenticación
@@ -229,7 +227,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 # File upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024  # 20MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024   # 20MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024  # 20MB
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000
 
 # Additional file upload settings for better compatibility
@@ -332,7 +330,11 @@ TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 CHAT_ID = os.getenv('CHAT_ID')
 
 # Google Apps Script webhook for Google Sheets integration
-GOOGLE_SCRIPT_WEBHOOK = env('GOOGLE_SCRIPT_WEBHOOK', default='https://script.google.com/macros/s/AKfycbyTI_T8r1LZLOEbJBMqp9UL88DdOjwCeOWECMGkTvNzG4ClX6w3tH1_h0vZPp-ytkxugg/exec')
+GOOGLE_SCRIPT_WEBHOOK = env(
+    'GOOGLE_SCRIPT_WEBHOOK',
+    default=
+    'https://script.google.com/macros/s/AKfycbyTI_T8r1LZLOEbJBMqp9UL88DdOjwCeOWECMGkTvNzG4ClX6w3tH1_h0vZPp-ytkxugg/exec'
+)
 
 # MercadoPago settings
 MERCADOPAGO_ACCESS_TOKEN = env('MERCADOPAGO_ACCESS_TOKEN')
@@ -369,6 +371,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.replit.dev",
     # Permitir todos los dominios de Replit
     "https://*.replit.dev",
+    "https://acceso.casaaustin.pe",
 ]
 
 # Para desarrollo en Replit, también obtener el dominio actual automáticamente
