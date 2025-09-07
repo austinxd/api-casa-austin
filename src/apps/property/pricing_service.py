@@ -424,20 +424,33 @@ class PricingCalculationService:
                 # También considerar como global si es trigger GLOBAL_PROMOTION o NO requiere logros específicos
                 is_global_promotion = auto_discount.trigger == auto_discount.DiscountTrigger.GLOBAL_PROMOTION
                 no_achievements_required = not auto_discount.required_achievements.exists()
+                
+                # Triggers que pueden aplicar globalmente sin cliente específico
+                global_applicable_triggers = [
+                    auto_discount.DiscountTrigger.GLOBAL_PROMOTION,
+                    auto_discount.DiscountTrigger.BASE_PRICE_DISCOUNT,
+                    auto_discount.DiscountTrigger.LAST_MINUTE
+                ]
+                is_global_trigger = auto_discount.trigger in global_applicable_triggers
 
                 if is_global_discount:
                     logger.info(f"🌍 '{auto_discount.name}' es un descuento GLOBAL (todos los niveles)")
                 elif is_global_promotion:
                     logger.info(f"🌍 '{auto_discount.name}' es una PROMOCIÓN GLOBAL")
+                elif no_achievements_required and is_global_trigger:
+                    logger.info(f"🌍 '{auto_discount.name}' NO requiere logros específicos - DEBE APLICAR GLOBALMENTE")
                 elif auto_discount.required_achievements.exists():
                     required_names = list(auto_discount.required_achievements.values_list('name', flat=True))
                     logger.info(f"🎯 Logros requeridos para '{auto_discount.name}': {required_names}")
+                    if not client:
+                        logger.info(f"❌ Sin cliente - descuento requiere logros específicos")
+                        continue
                 else:
-                    logger.info(f"🌍 '{auto_discount.name}' NO requiere logros específicos - APLICA GLOBALMENTE")
+                    logger.info(f"🌍 '{auto_discount.name}' sin logros específicos")
 
                 try:
-                    # Para descuentos globales o sin logros requeridos, aplicar incluso sin cliente
-                    if is_global_discount or is_global_promotion or no_achievements_required:
+                    # Para descuentos globales o sin logros requeridos con triggers globales, aplicar incluso sin cliente
+                    if is_global_discount or is_global_promotion or (no_achievements_required and is_global_trigger):
                         if client:
                             # Si hay cliente, usar lógica completa
                             applies, message = auto_discount.applies_to_client(client, check_in_date, property.id)
@@ -446,7 +459,10 @@ class PricingCalculationService:
                             applies, message = auto_discount.applies_to_client_global(check_in_date, property.id)
                             # Cambiar el mensaje para descuentos globales
                             if applies:
-                                message = "Descuento por tiempo limitado"
+                                if auto_discount.trigger == auto_discount.DiscountTrigger.BASE_PRICE_DISCOUNT:
+                                    message = "Descuento en precio base por tiempo limitado"
+                                else:
+                                    message = "Descuento por tiempo limitado"
                     elif client:
                         # Para descuentos específicos, requiere cliente
                         applies, message = auto_discount.applies_to_client(client, check_in_date, property.id)
@@ -454,6 +470,7 @@ class PricingCalculationService:
                         # Sin cliente y requiere logros específicos, no aplica
                         applies = False
                         message = "Requiere cliente registrado para este descuento específico"
+                        continue
 
                     logger.info(f"✅ Resultado para '{auto_discount.name}': {applies} - '{message}'")
 
