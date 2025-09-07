@@ -182,7 +182,7 @@ def check_and_assign_achievements(client_id):
             achievements_assigned = 0
 
             for achievement in achievements:
-                # Verificar si el cliente ya tiene el logro con select_for_update para evitar race conditions
+                # Verificar si el cliente ya tiene el logro ACTIVO (no eliminado)
                 existing_achievement = ClientAchievement.objects.select_for_update().filter(
                     client=client,
                     achievement=achievement,
@@ -191,29 +191,40 @@ def check_and_assign_achievements(client_id):
 
                 if achievement.check_client_qualifies(client):
                     if not existing_achievement:
-                        try:
-                            # Usar get_or_create para manejar duplicados
-                            client_achievement, created = ClientAchievement.objects.get_or_create(
-                                client=client,
-                                achievement=achievement,
-                                defaults={'deleted': False}
-                            )
-
-                            if created:
+                        # Verificar si existe un logro eliminado que pueda reactivarse
+                        deleted_achievement = ClientAchievement.objects.filter(
+                            client=client,
+                            achievement=achievement,
+                            deleted=True
+                        ).first()
+                        
+                        if deleted_achievement:
+                            # Reactivar el logro existente
+                            deleted_achievement.deleted = False
+                            deleted_achievement.earned_at = timezone.now()
+                            deleted_achievement.save()
+                            logger.info(f"🔄 Logro '{achievement.name}' reactivado para cliente {client.id}")
+                            achievements_assigned += 1
+                        else:
+                            # Crear nuevo logro
+                            try:
+                                client_achievement = ClientAchievement.objects.create(
+                                    client=client,
+                                    achievement=achievement,
+                                    deleted=False
+                                )
                                 logger.info(f"✅ Logro '{achievement.name}' asignado a cliente {client.id}")
                                 achievements_assigned += 1
-                            else:
-                                logger.debug(f"🔄 Cliente {client.id} ya tiene el logro '{achievement.name}' (creado concurrentemente)")
 
-                        except Exception as create_error:
-                            logger.warning(f"⚠️ Error creando logro '{achievement.name}' para cliente {client.id}: {str(create_error)}")
-                            # Verificar si el logro ya existe después del error
-                            if ClientAchievement.objects.filter(
-                                client=client,
-                                achievement=achievement,
-                                deleted=False
-                            ).exists():
-                                logger.debug(f"🔄 Cliente {client.id} ya tiene el logro '{achievement.name}' (verificado después del error)")
+                            except Exception as create_error:
+                                logger.warning(f"⚠️ Error creando logro '{achievement.name}' para cliente {client.id}: {str(create_error)}")
+                                # Verificar si el logro se creó entre tanto
+                                if ClientAchievement.objects.filter(
+                                    client=client,
+                                    achievement=achievement,
+                                    deleted=False
+                                ).exists():
+                                    logger.debug(f"🔄 Cliente {client.id} ya tiene el logro '{achievement.name}' (creado concurrentemente)")
                     else:
                         logger.debug(f"🔄 Cliente {client.id} ya tiene el logro '{achievement.name}'")
                 else:
