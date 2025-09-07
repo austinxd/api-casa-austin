@@ -1,0 +1,22 @@
+INFO 2025-09-07 05:47:51,356 signals 1403989 139944712443712 WhatsApp de pago aprobado enviado exitosamente para reserva dc9e94b0-f52e-43f8-9811-45da093a5042
+DEBUG 2025-09-07 05:47:51,357 points_signals 1403989 139944712443712 🔄 Verificando logros para cliente 11296f60-9b26-46c9-a836-e964f2a83fa6
+DEBUG 2025-09-07 05:47:51,361 points_signals 1403989 139944712443712 🔄 Cliente 11296f60-9b26-46c9-a836-e964f2a83fa6 ya tiene el logro 'Curioso'
+DEBUG 2025-09-07 05:47:51,365 points_signals 1403989 139944712443712 🔄 Cliente 11296f60-9b26-46c9-a836-e964f2a83fa6 ya tiene el logro 'Cliente Casa Austin' (creado concurrentemente)
+DEBUG 2025-09-07 05:47:51,367 points_signals 1403989 139944712443712 ❌ Cliente 11296f60-9b26-46c9-a836-e964f2a83fa6 no cumple requisitos para 'Cliente Recurrente'
+DEBUG 2025-09-07 05:47:51,370 points_signals 1403989 139944712443712 ❌ Cliente 11296f60-9b26-46c9-a836-e964f2a83fa6 no cumple requisitos para 'Cliente Premium'
+DEBUG 2025-09-07 05:47:51,373 points_signals 1403989 139944712443712 ❌ Cliente 11296f60-9b26-46c9-a836-e964f2a83fa6 no cumple requisitos para 'Austin Legend'
+INFO 2025-09-07 05:47:51,373 points_signals 1403989 139944712443712 📊 Verificación de logros completada para cliente 11296f60-9b26-46c9-a836-e964f2a83fa6. Logros asignados: 0
+DEBUG 2025-09-07 05:47:51,374 points_signals 1403989 139944712443712 🔄 Verificando logros para cliente 11296f60-9b26-46c9-a836-e964f2a83fa6
+DEBUG 2025-09-07 05:47:51,378 points_signals 1403989 139944712443712 🔄 Cliente 11296f60-9b26-46c9-a836-e964f2a83fa6 ya tiene el logro 'Curioso'
+DEBUG 2025-09-07 05:47:51,381 points_signals 1403989 139944712443712 🔄 Cliente 11296f60-9b26-46c9-a836-e964f2a83fa6 ya tiene el logro 'Cliente Casa Austin' (creado concurrentemente)
+DEBUG 2025-09-07 05:47:51,384 points_signals 1403989 139944712443712 ❌ Cliente 11296f60-9b26-46c9-a836-e964f2a83fa6 no cumple requisitos para 'Cliente Recurrente'
+DEBUG 2025-09-07 05:47:51,387 points_signals 1403989 139944712443712 ❌ Cliente 11296f60-9b26-46c9-a836-e964f2a83fa6 no cumple requisitos para 'Cliente Premium'
+DEBUG 2025-09-07 05:47:51,390 points_signals 1403989 139944712443712 ❌ Cliente 11296f60-9b26-46c9-a836-e964f2a83fa6 no cumple requisitos para 'Austin Legend'
+INFO 2025-09-07 05:47:51,390 points_signals 1403989 139944712443712 📊 Verificación de logros completada para cliente 11296f60-9b26-46c9-a836-e964f2a83fa6. Logros asignados: 0
+DEBUG 2025-09-07 05:47:51,391 points_signals 1403989 139944712443712 🔄 Verificando logros para cliente 11296f60-9b26-46c9-a836-e964f2a83fa6
+DEBUG 2025-09-07 05:47:51,395 points_signals 1403989 139944712443712 🔄 Cliente 11296f60-9b26-46c9-a836-e964f2a83fa6 ya tiene el logro 'Curioso'
+DEBUG 2025-09-07 05:47:51,398 points_signals 1403989 139944712443712 🔄 Cliente 11296f60-9b26-46c9-a836-e964f2a83fa6 ya tiene el logro 'Cliente Casa Austin' (creado concurrentemente)
+DEBUG 2025-09-07 05:47:51,401 points_signals 1403989 139944712443712 ❌ Cliente 11296f60-9b26-46c9-a836-e964f2a83fa6 no cumple requisitos para 'Cliente Recurrente'
+DEBUG 2025-09-07 05:47:51,404 points_signals 1403989 139944712443712 ❌ Cliente 11296f60-9b26-46c9-a836-e964f2a83fa6 no cumple requisitos para 'Cliente Premium'
+DEBUG 2025-09-07 05:47:51,407 points_signals 1403989 139944712443712 ❌ Cliente 11296f60-9b26-46c9-a836-e964f2a83fa6 no cumple requisitos para 'Austin Legend'
+INFO 2025-09-07 05:47:51,407 points_signals 1403989 139944712443712 📊 Verificación de logros completada para cliente 11296f60-9b26-46c9-a836-e964f2a83fa6. Logros asignados: 0
