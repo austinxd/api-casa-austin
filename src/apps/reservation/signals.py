@@ -181,30 +181,16 @@ def notify_payment_approved(reservation):
         # Combinar primer nombre y primer apellido
         client_name = f"{first_name} {first_last_name}".strip()
 
-        # Formatear información del pago según disponibilidad de montos
-        if reservation.origin == 'client':
-            # Para reservas de cliente: priorizar price_sol (MercadoPago), luego advance_payment
-            if reservation.price_sol and reservation.price_sol > 0:
-                payment_info = f"S/{reservation.price_sol:.2f}"
-            elif reservation.advance_payment and reservation.advance_payment > 0:
-                # Fallback para clientes que pagan sin MercadoPago (transferencia, efectivo, etc.)
-                if reservation.advance_payment_currency == 'usd':
-                    payment_info = f"${reservation.advance_payment:.2f}"
-                else:
-                    payment_info = f"S/{reservation.advance_payment:.2f}"
+        # Formatear información del pago - siempre usar advance_payment para aprobaciones manuales
+        # El advance_payment representa lo que realmente pagó el cliente
+        if reservation.advance_payment and reservation.advance_payment > 0:
+            if reservation.advance_payment_currency == 'usd':
+                payment_info = f"${reservation.advance_payment:.2f}"
             else:
-                payment_info = "S/0.00"
-                logger.warning(f"Reserva de cliente sin price_sol ni advance_payment para reserva {reservation.id}")
+                payment_info = f"S/{reservation.advance_payment:.2f}"
         else:
-            # Para reservas manuales (austin, airbnb), usar advance_payment
-            if reservation.advance_payment and reservation.advance_payment > 0:
-                if reservation.advance_payment_currency == 'usd':
-                    payment_info = f"${reservation.advance_payment:.2f}"
-                else:
-                    payment_info = f"S/{reservation.advance_payment:.2f}"
-            else:
-                payment_info = "S/0.00"
-                logger.warning(f"Reserva manual sin advance_payment para reserva {reservation.id}")
+            payment_info = "S/0.00"
+            logger.warning(f"Reserva sin advance_payment para reserva {reservation.id}")
 
         # Formatear fecha de check-in (formato dd/mm/yyyy)
         check_in_formatted = reservation.check_in_date.strftime("%d/%m/%Y")
