@@ -46,3 +46,4 @@ babel
 docxtpl
 =======
 >>>>>>> fa21c69f89aa055284d5588e508edde3db2a1c70
+xlsxwriter
