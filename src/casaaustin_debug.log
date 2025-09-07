@@ -4465,3 +4465,76 @@ INFO 2025-09-02 08:01:10,720 views 3048 140317571581632 SearchTrackingExportView
 INFO 2025-09-02 08:06:21,545 views 3376 140373870679744 SearchTrackingExportView: Exported 0 search tracking records
 INFO 2025-09-02 08:07:38,928 views 3376 140373870679744 SearchTrackingExportView: Exported 0 search tracking records
 INFO 2025-09-02 08:11:18,319 views 4163 139954963519168 SearchTrackingExportView: Exported 0 search tracking records
+INFO 2025-09-07 13:36:35,899 pricing_service 4552 139876155688640 🔍 Validando protección de fechas especiales para casa 1
+INFO 2025-09-07 13:36:35,900 pricing_service 4552 139876155688640 📅 Check-in: 2025-09-17, Check-out: 2025-09-18, Noches: 1
+INFO 2025-09-07 13:36:35,906 pricing_service 4552 139876155688640 🎯 Fecha especial: 31/12/2025 (None)
+INFO 2025-09-07 13:36:35,907 pricing_service 4552 139876155688640 🛡️  Rango protegido: 31/12/2025 a 31/12/2025
+INFO 2025-09-07 13:36:35,907 pricing_service 4552 139876155688640 📏 Noches mínimas requeridas: 1
+INFO 2025-09-07 13:36:35,912 pricing_service 4552 139876155688640 🎯 Fecha especial: 31/12/2026 (None)
+INFO 2025-09-07 13:36:35,913 pricing_service 4552 139876155688640 🛡️  Rango protegido: 31/12/2026 a 31/12/2026
+INFO 2025-09-07 13:36:35,913 pricing_service 4552 139876155688640 📏 Noches mínimas requeridas: 1
+INFO 2025-09-07 13:36:35,914 pricing_service 4552 139876155688640 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-09-07 13:36:35,915 pricing_service 4552 139876155688640 🔍 Validando protección de fechas especiales para casa 2
+INFO 2025-09-07 13:36:35,916 pricing_service 4552 139876155688640 📅 Check-in: 2025-09-17, Check-out: 2025-09-18, Noches: 1
+INFO 2025-09-07 13:36:35,918 pricing_service 4552 139876155688640 🎯 Fecha especial: 28/07/2025 (Fiestas patrias)
+INFO 2025-09-07 13:36:35,919 pricing_service 4552 139876155688640 🛡️  Rango protegido: 28/07/2025 a 28/07/2025
+INFO 2025-09-07 13:36:35,919 pricing_service 4552 139876155688640 📏 Noches mínimas requeridas: 1
+INFO 2025-09-07 13:36:35,920 pricing_service 4552 139876155688640 🎯 Fecha especial: 31/12/2025 (Año nuevo)
+INFO 2025-09-07 13:36:35,921 pricing_service 4552 139876155688640 🛡️  Rango protegido: 29/12/2025 a 02/01/2026
+INFO 2025-09-07 13:36:35,922 pricing_service 4552 139876155688640 📏 Noches mínimas requeridas: 3
+INFO 2025-09-07 13:36:35,926 pricing_service 4552 139876155688640 🎯 Fecha especial: 28/07/2026 (Fiestas patrias)
+INFO 2025-09-07 13:36:35,926 pricing_service 4552 139876155688640 🛡️  Rango protegido: 28/07/2026 a 28/07/2026
+INFO 2025-09-07 13:36:35,927 pricing_service 4552 139876155688640 📏 Noches mínimas requeridas: 1
+INFO 2025-09-07 13:36:35,928 pricing_service 4552 139876155688640 🎯 Fecha especial: 31/12/2026 (Año nuevo)
+INFO 2025-09-07 13:36:35,928 pricing_service 4552 139876155688640 🛡️  Rango protegido: 29/12/2026 a 02/01/2027
+INFO 2025-09-07 13:36:35,929 pricing_service 4552 139876155688640 📏 Noches mínimas requeridas: 3
+INFO 2025-09-07 13:36:35,929 pricing_service 4552 139876155688640 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-09-07 13:36:35,944 pricing_service 4552 139876155688640 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-09-07 13:36:35,945 pricing_service 4552 139876155688640 👤 Sin cliente - evaluando descuentos globales
+INFO 2025-09-07 13:36:35,949 pricing_service 4552 139876155688640 📋 Descuentos automáticos disponibles: 4
+INFO 2025-09-07 13:36:35,950 pricing_service 4552 139876155688640 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-09-07 13:36:35,954 pricing_service 4552 139876155688640 🎯 Logros requeridos para 'Cumpleaños': ['VIP Casa Austin']
+INFO 2025-09-07 13:36:35,954 pricing_service 4552 139876155688640 ✅ Resultado para 'Cumpleaños': False - 'Requiere cliente registrado para este descuento específico'
+INFO 2025-09-07 13:36:35,954 pricing_service 4552 139876155688640 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-09-07 13:36:35,957 pricing_service 4552 139876155688640 🎯 Logros requeridos para 'clientefrecuente': ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente']
+INFO 2025-09-07 13:36:35,958 pricing_service 4552 139876155688640 ✅ Resultado para 'clientefrecuente': False - 'Requiere cliente registrado para este descuento específico'
+INFO 2025-09-07 13:36:35,958 pricing_service 4552 139876155688640 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-09-07 13:36:35,963 pricing_service 4552 139876155688640 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso']
+INFO 2025-09-07 13:36:35,963 pricing_service 4552 139876155688640 ✅ Resultado para '50off ultimo minuto': False - 'Requiere cliente registrado para este descuento específico'
+INFO 2025-09-07 13:36:35,963 pricing_service 4552 139876155688640 🔍 Evaluando: 'precio base' - Trigger: 'base_price_discount'
+INFO 2025-09-07 13:36:35,965 pricing_service 4552 139876155688640 🌍 'precio base' NO requiere logros específicos - APLICA GLOBALMENTE
+INFO 2025-09-07 13:36:35,965 pricing_models 4552 139876155688640 🌍 Evaluando descuento GLOBAL 'precio base' con trigger 'base_price_discount'
+INFO 2025-09-07 13:36:35,965 pricing_models 4552 139876155688640 📅 Día de la semana: 2 (Miércoles) - Día de semana
+INFO 2025-09-07 13:36:35,966 pricing_models 4552 139876155688640 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-09-07 13:36:35,967 pricing_models 4552 139876155688640 🎯 Evaluando trigger global: base_price_discount
+INFO 2025-09-07 13:36:35,967 pricing_models 4552 139876155688640 🌍 Trigger base_price_discount aplicado globalmente
+INFO 2025-09-07 13:36:35,967 pricing_service 4552 139876155688640 ✅ Resultado para 'precio base': True - 'Descuento por tiempo limitado'
+ERROR 2025-09-07 13:36:35,967 pricing_service 4552 139876155688640 ❌ Error evaluando descuento precio base: name 'base_total_usd' is not defined
+INFO 2025-09-07 13:36:35,968 pricing_service 4552 139876155688640 ❌ No se encontraron descuentos automáticos aplicables
+INFO 2025-09-07 13:36:35,990 pricing_service 4552 139876155688640 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-09-07 13:36:35,990 pricing_service 4552 139876155688640 👤 Sin cliente - evaluando descuentos globales
+INFO 2025-09-07 13:36:35,991 pricing_service 4552 139876155688640 📋 Descuentos automáticos disponibles: 4
+INFO 2025-09-07 13:36:35,992 pricing_service 4552 139876155688640 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-09-07 13:36:35,996 pricing_service 4552 139876155688640 🎯 Logros requeridos para 'Cumpleaños': ['VIP Casa Austin']
+INFO 2025-09-07 13:36:35,996 pricing_service 4552 139876155688640 ✅ Resultado para 'Cumpleaños': False - 'Requiere cliente registrado para este descuento específico'
+INFO 2025-09-07 13:36:35,997 pricing_service 4552 139876155688640 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-09-07 13:36:36,001 pricing_service 4552 139876155688640 🎯 Logros requeridos para 'clientefrecuente': ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente']
+INFO 2025-09-07 13:36:36,001 pricing_service 4552 139876155688640 ✅ Resultado para 'clientefrecuente': False - 'Requiere cliente registrado para este descuento específico'
+INFO 2025-09-07 13:36:36,002 pricing_service 4552 139876155688640 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-09-07 13:36:36,007 pricing_service 4552 139876155688640 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso']
+INFO 2025-09-07 13:36:36,007 pricing_service 4552 139876155688640 ✅ Resultado para '50off ultimo minuto': False - 'Requiere cliente registrado para este descuento específico'
+INFO 2025-09-07 13:36:36,007 pricing_service 4552 139876155688640 🔍 Evaluando: 'precio base' - Trigger: 'base_price_discount'
+INFO 2025-09-07 13:36:36,009 pricing_service 4552 139876155688640 🌍 'precio base' NO requiere logros específicos - APLICA GLOBALMENTE
+INFO 2025-09-07 13:36:36,010 pricing_models 4552 139876155688640 🌍 Evaluando descuento GLOBAL 'precio base' con trigger 'base_price_discount'
+INFO 2025-09-07 13:36:36,010 pricing_models 4552 139876155688640 📅 Día de la semana: 2 (Miércoles) - Día de semana
+INFO 2025-09-07 13:36:36,010 pricing_models 4552 139876155688640 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-09-07 13:36:36,012 pricing_models 4552 139876155688640 🎯 Evaluando trigger global: base_price_discount
+INFO 2025-09-07 13:36:36,012 pricing_models 4552 139876155688640 🌍 Trigger base_price_discount aplicado globalmente
+INFO 2025-09-07 13:36:36,012 pricing_service 4552 139876155688640 ✅ Resultado para 'precio base': True - 'Descuento por tiempo limitado'
+ERROR 2025-09-07 13:36:36,013 pricing_service 4552 139876155688640 ❌ Error evaluando descuento precio base: name 'base_total_usd' is not defined
+INFO 2025-09-07 13:36:36,013 pricing_service 4552 139876155688640 ❌ No se encontraron descuentos automáticos aplicables
+INFO 2025-09-07 13:37:25,525 pricing_models 5337 140450412895424 🌍 Evaluando descuento GLOBAL 'precio base' con trigger 'base_price_discount'
+INFO 2025-09-07 13:37:25,525 pricing_models 5337 140450412895424 📅 Día de la semana: 6 (Domingo) - Día de semana
+INFO 2025-09-07 13:37:25,526 pricing_models 5337 140450412895424 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-09-07 13:37:25,527 pricing_models 5337 140450412895424 🎯 Evaluando trigger global: base_price_discount
+INFO 2025-09-07 13:37:25,527 pricing_models 5337 140450412895424 🌍 Trigger base_price_discount aplicado globalmente
