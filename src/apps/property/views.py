@@ -1,5 +1,6 @@
 from django.db.models import Q
 from django.conf import settings
+from django import models
 
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, viewsets, status
@@ -414,6 +415,12 @@ class CalculatePricingAPIView(APIView):
                     service_ids_str = additional_services_param.split(',')
                     additional_services_ids = [sid.strip() for sid in service_ids_str if sid.strip()]
                     
+                    if not additional_services_ids:
+                        return Response({
+                            'error': 12,
+                            'error_message': 'additional_services no puede estar vacío'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                    
                     # Validar que sean UUIDs válidos
                     from uuid import UUID
                     validated_ids = []
@@ -429,23 +436,42 @@ class CalculatePricingAPIView(APIView):
                     
                     additional_services_ids = validated_ids
                     
-                    # Verificar que los servicios existen
+                    # Verificar que los servicios existen y están activos
                     from .pricing_models import AdditionalService
-                    existing_services = AdditionalService.objects.filter(
-                        id__in=additional_services_ids,
-                        is_active=True
-                    ).count()
                     
-                    if existing_services != len(additional_services_ids):
+                    # Si hay property_id específico, filtrar servicios disponibles para esa propiedad
+                    if property_id:
+                        # Servicios que están disponibles para esta propiedad específica o para todas las propiedades
+                        available_services = AdditionalService.objects.filter(
+                            models.Q(properties__isnull=True) | models.Q(properties__id=property_id),
+                            is_active=True
+                        ).distinct()
+                    else:
+                        # Si no hay propiedad específica, obtener todos los servicios activos
+                        available_services = AdditionalService.objects.filter(is_active=True)
+                    
+                    existing_service_ids = list(available_services.filter(
+                        id__in=additional_services_ids
+                    ).values_list('id', flat=True))
+                    
+                    # Convertir UUIDs a strings para comparación
+                    existing_service_ids_str = [str(sid) for sid in existing_service_ids]
+                    
+                    # Verificar que todos los servicios solicitados existen y están disponibles
+                    missing_services = [sid for sid in additional_services_ids if sid not in existing_service_ids_str]
+                    
+                    if missing_services:
+                        # Obtener nombres de servicios disponibles para mostrar en el error
+                        available_service_names = list(available_services.values_list('name', flat=True))
                         return Response({
                             'error': 11,
-                            'error_message': 'Uno o más servicios adicionales no existen o están inactivos'
+                            'error_message': f'Los siguientes servicios no existen, están inactivos o no están disponibles para esta propiedad: {", ".join(missing_services)}. Servicios disponibles: {", ".join(available_service_names)}'
                         }, status=status.HTTP_400_BAD_REQUEST)
                         
                 except Exception as e:
                     return Response({
                         'error': 12,
-                        'error_message': 'additional_services debe contener UUIDs válidos separados por comas'
+                        'error_message': f'Error procesando additional_services: {str(e)}'
                     }, status=status.HTTP_400_BAD_REQUEST)
 
             # Calcular precios usando el servicio

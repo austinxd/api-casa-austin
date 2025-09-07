@@ -156,17 +156,31 @@ class PricingCalculationService:
         selected_services_details = []
         
         if additional_services_ids:
+            # Crear un set con los IDs solicitados para comparación más eficiente
+            requested_service_ids = set(additional_services_ids)
+            
             for service_data in additional_services:
-                # Convertir UUID a string para comparación si es necesario
+                # Convertir UUID a string para comparación
                 service_id_str = str(service_data['id'])
-                if service_id_str in additional_services_ids:
-                    selected_services_total_usd += Decimal(str(service_data['total_price_usd']))
-                    selected_services_total_sol += Decimal(str(service_data['total_price_sol']))
+                
+                if service_id_str in requested_service_ids:
+                    service_total_usd = Decimal(str(service_data['total_price_usd']))
+                    service_total_sol = Decimal(str(service_data['total_price_sol']))
+                    
+                    selected_services_total_usd += service_total_usd
+                    selected_services_total_sol += service_total_sol
+                    
                     selected_services_details.append({
                         'id': service_data['id'],
                         'name': service_data['name'],
-                        'total_price_usd': service_data['total_price_usd'],
-                        'total_price_sol': service_data['total_price_sol']
+                        'description': service_data.get('description', ''),
+                        'service_type': service_data.get('service_type', ''),
+                        'is_per_night': service_data.get('is_per_night', False),
+                        'is_per_person': service_data.get('is_per_person', False),
+                        'price_per_unit_usd': service_data.get('price_usd', 0),
+                        'price_per_unit_sol': service_data.get('price_sol', 0),
+                        'total_price_usd': float(service_total_usd),
+                        'total_price_sol': float(service_total_sol)
                     })
 
         # Política de cancelación
@@ -210,14 +224,21 @@ class PricingCalculationService:
         }
         
         # Si hay servicios adicionales seleccionados, incluir información adicional
-        if additional_services_ids and selected_services_details:
+        if additional_services_ids:
             response.update({
                 'selected_additional_services': selected_services_details,
                 'selected_services_total_usd': round(float(selected_services_total_usd), 2),
                 'selected_services_total_sol': round(float(selected_services_total_sol), 2),
                 'final_price_with_services_usd': round(float(final_price_with_services_usd), 2),
-                'final_price_with_services_sol': round(float(final_price_with_services_sol), 2)
+                'final_price_with_services_sol': round(float(final_price_with_services_sol), 2),
+                'services_applied_count': len(selected_services_details)
             })
+            
+            # Si no se encontraron servicios válidos, agregar advertencia
+            if not selected_services_details:
+                response.update({
+                    'services_warning': 'No se encontraron servicios válidos con los IDs proporcionados'
+                })
 
         # Solo incluir discount_applied si hay descuento aplicado o si se proporcionó un código
         if discount_applied['type'] != 'none' or discount_code:
