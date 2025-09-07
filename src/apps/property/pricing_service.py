@@ -129,9 +129,9 @@ class PricingCalculationService:
         extra_person_price_usd = extra_person_price_per_night_usd  # Precio por noche por persona adicional
         extra_person_total_usd = extra_person_price_per_night_usd * extra_guests * nights  # Total por todas las noches y personas extra
 
-        # Aplicar descuentos
+        # Aplicar descuentos - pasar también base_total_usd y extra_person_total_usd
         discount_applied = self._apply_discounts(
-            property, subtotal_usd, subtotal_usd * self.exchange_rate, nights, guests, discount_code, client, check_in_date
+            property, subtotal_usd, subtotal_usd * self.exchange_rate, nights, guests, discount_code, client, check_in_date, base_total_usd, extra_person_total_usd
         )
 
         final_price_usd = subtotal_usd - Decimal(str(discount_applied['discount_amount_usd']))
@@ -289,7 +289,7 @@ class PricingCalculationService:
         else: # is_weekday
             return "Día de semana"
 
-    def _apply_discounts(self, property, subtotal_usd, subtotal_sol, nights, guests, discount_code, client, check_in_date):
+    def _apply_discounts(self, property, subtotal_usd, subtotal_sol, nights, guests, discount_code, client, check_in_date, base_total_usd=None, extra_person_total_usd=None):
         """Aplica descuentos automáticos o códigos de descuento"""
 
         # Si no hay código de descuento ni cliente, solo evaluar descuentos globales
@@ -461,9 +461,13 @@ class PricingCalculationService:
                         # Verificar si es un descuento solo para precio base
                         if auto_discount.apply_only_to_base_price or auto_discount.trigger == auto_discount.DiscountTrigger.BASE_PRICE_DISCOUNT:
                             # Calcular descuento solo sobre el precio base
-                            base_price_for_discount = base_total_usd  # Precio base sin huéspedes adicionales
-                            discount_amount_usd = auto_discount.calculate_base_price_discount(base_price_for_discount, extra_person_total_usd)
-                            logger.info(f"💰 Descuento BASE calculado para '{auto_discount.name}': ${discount_amount_usd} USD sobre precio base ${base_price_for_discount} USD ({auto_discount.discount_percentage}%)")
+                            if base_total_usd is not None:
+                                discount_amount_usd = auto_discount.calculate_base_price_discount(base_total_usd, extra_person_total_usd or Decimal('0.00'))
+                                logger.info(f"💰 Descuento BASE calculado para '{auto_discount.name}': ${discount_amount_usd} USD sobre precio base ${base_total_usd} USD ({auto_discount.discount_percentage}%)")
+                            else:
+                                # Fallback al descuento normal si no se proporciona base_total_usd
+                                discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
+                                logger.info(f"💰 Descuento TOTAL calculado para '{auto_discount.name}' (fallback): ${discount_amount_usd} USD ({auto_discount.discount_percentage}%)")
                         else:
                             # Descuento normal sobre el total
                             discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
