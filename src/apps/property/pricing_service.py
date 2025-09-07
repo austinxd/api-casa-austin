@@ -157,7 +157,9 @@ class PricingCalculationService:
         
         if additional_services_ids:
             for service_data in additional_services:
-                if service_data['id'] in additional_services_ids:
+                # Convertir UUID a string para comparación si es necesario
+                service_id_str = str(service_data['id'])
+                if service_id_str in additional_services_ids:
                     selected_services_total_usd += Decimal(str(service_data['total_price_usd']))
                     selected_services_total_sol += Decimal(str(service_data['total_price_sol']))
                     selected_services_details.append({

@@ -303,7 +303,7 @@ class CalculatePricingAPIView(APIView):
                 name='additional_services',
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description='IDs de servicios adicionales separados por comas (ej: 1,3,5)',
+                description='UUIDs de servicios adicionales separados por comas (ej: 6d3d74ed-54a1-422a-b244-582848a169d2,uuid2)',
                 required=False
             ),
         ],
@@ -410,9 +410,24 @@ class CalculatePricingAPIView(APIView):
             additional_services_ids = []
             if additional_services_param:
                 try:
-                    # Dividir por comas y convertir a enteros
+                    # Dividir por comas y limpiar espacios
                     service_ids_str = additional_services_param.split(',')
-                    additional_services_ids = [int(sid.strip()) for sid in service_ids_str if sid.strip()]
+                    additional_services_ids = [sid.strip() for sid in service_ids_str if sid.strip()]
+                    
+                    # Validar que sean UUIDs válidos
+                    from uuid import UUID
+                    validated_ids = []
+                    for sid in additional_services_ids:
+                        try:
+                            UUID(sid)  # Validar formato UUID
+                            validated_ids.append(sid)
+                        except ValueError:
+                            return Response({
+                                'error': 12,
+                                'error_message': f'ID de servicio inválido: {sid}. Los IDs deben ser UUIDs válidos.'
+                            }, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    additional_services_ids = validated_ids
                     
                     # Verificar que los servicios existen
                     from .pricing_models import AdditionalService
@@ -427,10 +442,10 @@ class CalculatePricingAPIView(APIView):
                             'error_message': 'Uno o más servicios adicionales no existen o están inactivos'
                         }, status=status.HTTP_400_BAD_REQUEST)
                         
-                except (ValueError, TypeError):
+                except Exception as e:
                     return Response({
                         'error': 12,
-                        'error_message': 'additional_services debe contener IDs numéricos separados por comas (ej: 1,3,5)'
+                        'error_message': 'additional_services debe contener UUIDs válidos separados por comas'
                     }, status=status.HTTP_400_BAD_REQUEST)
 
             # Calcular precios usando el servicio
