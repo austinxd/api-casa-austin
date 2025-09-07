@@ -78,8 +78,9 @@ class PropertyPricing(BaseModel):
         # Verificar si es temporada alta usando el nuevo método de SeasonPricing
         is_high_season = SeasonPricing.is_high_season(date)
 
-        # Verificar si es fin de semana (Viernes=4, Sábado=5, Domingo=6)
-        is_weekend = date.weekday() >= 4
+        # DEFINICIÓN EMPRESARIAL: Domingo-Jueves = días de semana, Viernes-Sábado = fin de semana
+        weekday = date.weekday()  # 0=Lunes, 6=Domingo
+        is_weekend = weekday in [4, 5]  # Viernes=4, Sábado=5
 
         if is_high_season:
             if is_weekend:
