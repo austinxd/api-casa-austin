@@ -228,9 +228,22 @@ def check_and_assign_achievements(client_id):
                     else:
                         logger.debug(f"🔄 Cliente {client.id} ya tiene el logro '{achievement.name}'")
                 else:
-                    logger.debug(f"❌ Cliente {client.id} no cumple requisitos para '{achievement.name}'")
+                    # ⚠️ NUEVA LÓGICA: Cliente YA NO cumple requisitos
+                    if existing_achievement:
+                        # Revocar el logro porque ya no cumple los requisitos
+                        existing_achievement.deleted = True
+                        existing_achievement.save()
+                        logger.info(f"🔴 Logro '{achievement.name}' REVOCADO para cliente {client.id} - Ya no cumple requisitos")
+                        achievements_assigned -= 1  # Restamos porque se revocó un logro
+                    else:
+                        logger.debug(f"❌ Cliente {client.id} no cumple requisitos para '{achievement.name}'")
 
-            logger.info(f"📊 Verificación de logros completada para cliente {actual_client_id}. Logros asignados: {achievements_assigned}")
+            if achievements_assigned > 0:
+                logger.info(f"📊 Verificación de logros completada para cliente {actual_client_id}. Logros asignados: {achievements_assigned}")
+            elif achievements_assigned < 0:
+                logger.info(f"📊 Verificación de logros completada para cliente {actual_client_id}. Logros revocados: {abs(achievements_assigned)}")
+            else:
+                logger.info(f"📊 Verificación de logros completada para cliente {actual_client_id}. Sin cambios en logros")
 
     except Exception as e:
         # Usar el ID correcto en el logging de errores
