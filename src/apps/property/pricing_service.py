@@ -428,7 +428,6 @@ class PricingCalculationService:
                 # Triggers que pueden aplicar globalmente sin cliente específico
                 global_applicable_triggers = [
                     auto_discount.DiscountTrigger.GLOBAL_PROMOTION,
-                    auto_discount.DiscountTrigger.BASE_PRICE_DISCOUNT,
                     auto_discount.DiscountTrigger.LAST_MINUTE
                 ]
                 is_global_trigger = auto_discount.trigger in global_applicable_triggers
@@ -476,7 +475,7 @@ class PricingCalculationService:
 
                     if applies:
                         # Verificar si es un descuento solo para precio base
-                        if auto_discount.apply_only_to_base_price or auto_discount.trigger == auto_discount.DiscountTrigger.BASE_PRICE_DISCOUNT:
+                        if auto_discount.apply_only_to_base_price:
                             # Calcular descuento solo sobre el precio base
                             if base_total_usd is not None:
                                 discount_amount_usd = auto_discount.calculate_base_price_discount(base_total_usd, extra_person_total_usd or Decimal('0.00'))

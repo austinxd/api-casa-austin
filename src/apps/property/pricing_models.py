@@ -582,7 +582,6 @@ class AutomaticDiscount(BaseModel):
         LOYALTY = "loyalty", ("Programa de Lealtad")
         LAST_MINUTE = "last_minute", ("Último Minuto")
         GLOBAL_PROMOTION = "global_promotion", ("Promoción Global")
-        BASE_PRICE_DISCOUNT = "base_price_discount", ("Descuento Solo Precio Base")
 
     name = models.CharField(max_length=100, help_text="Nombre del descuento automático")
     description = models.TextField(
@@ -796,11 +795,7 @@ class AutomaticDiscount(BaseModel):
             logger.info(f"🌍 Promoción global - Aplicable para todos los clientes")
             return True, f"Descuento por tiempo limitado: {self.discount_percentage}% de descuento"
         
-        elif self.trigger == self.DiscountTrigger.BASE_PRICE_DISCOUNT:
-            logger.info(f"💰 Descuento solo en precio base - Aplicable según criterios de logros/cliente")
-            # Este trigger puede combinarse con otros criterios (logros, etc.)
-            # Por sí solo, aplica descuento solo al precio base
-            return True, f"Descuento en precio base: {self.discount_percentage}% de descuento"
+        
 
         logger.info(f"❌ Trigger '{self.trigger}' no reconocido")
         return False, "Trigger no reconocido"
@@ -896,11 +891,9 @@ class AutomaticDiscount(BaseModel):
             return True, "Descuento por tiempo limitado"
 
         # Otros triggers que podrían ser globales
-        elif self.trigger in [self.DiscountTrigger.FIRST_TIME, self.DiscountTrigger.RETURNING, self.DiscountTrigger.BIRTHDAY, self.DiscountTrigger.BASE_PRICE_DISCOUNT]:
+        elif self.trigger in [self.DiscountTrigger.FIRST_TIME, self.DiscountTrigger.RETURNING, self.DiscountTrigger.BIRTHDAY]:
             # Estos triggers normally requieren cliente, pero si es global, aplicar como "tiempo limitado"
             logger.info(f"🌍 Trigger {self.trigger} aplicado globalmente")
-            if self.trigger == self.DiscountTrigger.BASE_PRICE_DISCOUNT:
-                return True, "Descuento en precio base por tiempo limitado"
             return True, f"Descuento por tiempo limitado: {self.discount_percentage}% de descuento"
 
         logger.info(f"❌ Trigger '{self.trigger}' no reconocido para descuento global")
