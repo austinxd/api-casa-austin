@@ -1,6 +1,6 @@
 from django.db.models import Q
 from django.conf import settings
-from django import models
+from django.db import models
 
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import filters, viewsets, status
