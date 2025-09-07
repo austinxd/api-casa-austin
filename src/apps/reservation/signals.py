@@ -14,15 +14,30 @@ logger = logging.getLogger('apps')
 
 # Diccionarios para fechas en español
 MONTHS_ES = {
-    1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
-    5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
-    9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
+    1: "enero",
+    2: "febrero",
+    3: "marzo",
+    4: "abril",
+    5: "mayo",
+    6: "junio",
+    7: "julio",
+    8: "agosto",
+    9: "septiembre",
+    10: "octubre",
+    11: "noviembre",
+    12: "diciembre"
 }
 
 DAYS_ES = {
-    0: "Lunes", 1: "Martes", 2: "Miércoles", 3: "Jueves",
-    4: "Viernes", 5: "Sábado", 6: "Domingo"
+    0: "Lunes",
+    1: "Martes",
+    2: "Miércoles",
+    3: "Jueves",
+    4: "Viernes",
+    5: "Sábado",
+    6: "Domingo"
 }
+
 
 def format_date_es(date):
     day = date.day
@@ -30,11 +45,14 @@ def format_date_es(date):
     week_day = DAYS_ES[date.weekday()]
     return f"{week_day} {day} de {month}"
 
+
 def calculate_upcoming_age(born):
     today = date.today()
     this_year_birthday = date(today.year, born.month, born.day)
-    next_birthday = this_year_birthday if today <= this_year_birthday else date(today.year + 1, born.month, born.day)
+    next_birthday = this_year_birthday if today <= this_year_birthday else date(
+        today.year + 1, born.month, born.day)
     return next_birthday.year - born.year
+
 
 def notify_new_reservation(reservation):
     client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
@@ -72,52 +90,57 @@ def notify_new_reservation(reservation):
         f"Precio (USD) : {price_usd}\n"
         f"Precio (Soles) : {price_sol}\n"
         f"Adelanto : {advance_payment}\n"
-        f"Teléfono : +{reservation.client.tel_number}"
-    )
+        f"Teléfono : +{reservation.client.tel_number}")
 
-    message_today = (
-        f"******PARA HOYYYY******\n"
-        f"Cliente: {client_name}\n"
-        f"Check-in : {check_in_date}\n"
-        f"Check-out : {check_out_date}\n"
-        f"Invitados : {reservation.guests}\n"
-        f"Temperado : {temperature_pool_status}\n"
-    )
+    message_today = (f"******PARA HOYYYY******\n"
+                     f"Cliente: {client_name}\n"
+                     f"Check-in : {check_in_date}\n"
+                     f"Check-out : {check_out_date}\n"
+                     f"Invitados : {reservation.guests}\n"
+                     f"Temperado : {temperature_pool_status}\n")
 
     full_image_url = None
-    rental_receipt = RentalReceipt.objects.filter(reservation=reservation).first()
+    rental_receipt = RentalReceipt.objects.filter(
+        reservation=reservation).first()
     if rental_receipt and rental_receipt.file and rental_receipt.file.name:
         image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
         full_image_url = f"http://api.casaaustin.pe{image_url}"
 
-    logger.debug(f"Enviando mensaje de Telegram: {message} con imagen: {full_image_url}")
+    logger.debug(
+        f"Enviando mensaje de Telegram: {message} con imagen: {full_image_url}"
+    )
 
     # Si es una reserva desde el panel del cliente, enviar solo al canal de clientes
     if reservation.origin == 'client':
-        client_message = (
-            f"*************************************************\n"
-            f"💻 RESERVA DESDE PANEL WEB 💻\n"
-            f"Cliente: {client_name}\n"
-            f"Propiedad: {reservation.property.name}\n"
-            f"Check-in : {check_in_date}\n"
-            f"Check-out : {check_out_date}\n"
-            f"Invitados : {reservation.guests}\n"
-            f"Temperado : {temperature_pool_status}\n"
-            f"💰 Total: {price_sol} soles\n"
-            f"📱 Teléfono: +{reservation.client.tel_number}\n"
-            f"*************************************************"
-        )
-        send_telegram_message(client_message, settings.CLIENTS_CHAT_ID, full_image_url)
+        client_message = (f"******************************************\n"
+                          f"💻 RESERVA DESDE PANEL WEB 💻\n"
+                          f"Cliente: {client_name}\n"
+                          f"Propiedad: {reservation.property.name}\n"
+                          f"Check-in : {check_in_date}\n"
+                          f"Check-out : {check_out_date}\n"
+                          f"Invitados : {reservation.guests}\n"
+                          f"Temperado : {temperature_pool_status}\n"
+                          f"💰 Total: {price_sol} soles\n"
+                          f"📱 Teléfono: +{reservation.client.tel_number}\n"
+                          f"******************************************")
+        send_telegram_message(client_message, settings.CLIENTS_CHAT_ID,
+                              full_image_url)
     else:
         # Para todas las demás reservas (airbnb, austin, mantenimiento), enviar al canal principal
         send_telegram_message(message, settings.CHAT_ID, full_image_url)
 
     if reservation.check_in_date == datetime.today().date():
-        logger.debug("Reserva para el mismo día detectada, enviando al segundo canal.")
-        send_telegram_message(message_today, settings.SECOND_CHAT_ID, full_image_url)
+        logger.debug(
+            "Reserva para el mismo día detectada, enviando al segundo canal.")
+        send_telegram_message(message_today, settings.SECOND_CHAT_ID,
+                              full_image_url)
 
-    birthday = format_date_es(reservation.client.date) if reservation.client and reservation.client.date else "No disponible"
-    upcoming_age = calculate_upcoming_age(reservation.client.date) if reservation.client and reservation.client.date else "No disponible"
+    birthday = format_date_es(
+        reservation.client.date
+    ) if reservation.client and reservation.client.date else "No disponible"
+    upcoming_age = calculate_upcoming_age(
+        reservation.client.date
+    ) if reservation.client and reservation.client.date else "No disponible"
     message_personal_channel = (
         f"******Reserva en {reservation.property.name}******\n"
         f"Cliente: {client_name}\n"
@@ -126,9 +149,10 @@ def notify_new_reservation(reservation):
         f"Check-out : {check_out_date}\n"
         f"Invitados : {reservation.guests}\n"
         f"Temperado : {temperature_pool_status}\n"
-        f"Teléfono : https://wa.me/{reservation.client.tel_number}"
-    )
-    send_telegram_message(message_personal_channel, settings.PERSONAL_CHAT_ID, full_image_url)
+        f"Teléfono : https://wa.me/{reservation.client.tel_number}")
+    send_telegram_message(message_personal_channel, settings.PERSONAL_CHAT_ID,
+                          full_image_url)
+
 
 def notify_voucher_uploaded(reservation):
     """Notifica cuando un cliente sube su voucher de pago"""
@@ -138,27 +162,29 @@ def notify_voucher_uploaded(reservation):
     check_out_date = format_date_es(reservation.check_out_date)
     price_sol = f"{reservation.price_sol:.2f} soles"
 
-    voucher_message = (
-        f"📄 **VOUCHER RECIBIDO** 📄\n"
-        f"Cliente: {client_name}\n"
-        f"Propiedad: {reservation.property.name}\n"
-        f"Check-in: {check_in_date}\n"
-        f"Check-out: {check_out_date}\n"
-        f"💰 Total: {price_sol}\n"
-        f"📱 Teléfono: +{reservation.client.tel_number}\n"
-        f"⏰ Estado: Pendiente de validación\n"
-        f"🆔 Reserva ID: {reservation.id}"
-    )
+    voucher_message = (f"📄 **VOUCHER RECIBIDO** 📄\n"
+                       f"Cliente: {client_name}\n"
+                       f"Propiedad: {reservation.property.name}\n"
+                       f"Check-in: {check_in_date}\n"
+                       f"Check-out: {check_out_date}\n"
+                       f"💰 Total: {price_sol}\n"
+                       f"📱 Teléfono: +{reservation.client.tel_number}\n"
+                       f"⏰ Estado: Pendiente de validación\n"
+                       f"🆔 Reserva ID: {reservation.id}")
 
     # Obtener la imagen del voucher de pago
     voucher_image_url = None
-    rental_receipt = RentalReceipt.objects.filter(reservation=reservation).first()
+    rental_receipt = RentalReceipt.objects.filter(
+        reservation=reservation).first()
     if rental_receipt and rental_receipt.file and rental_receipt.file.name:
         image_url = f"{settings.MEDIA_URL}{rental_receipt.file.name}"
         voucher_image_url = f"http://api.casaaustin.pe{image_url}"
 
-    logger.debug(f"Enviando notificación de voucher subido para reserva: {reservation.id} con imagen: {voucher_image_url}")
-    send_telegram_message(voucher_message, settings.CLIENTS_CHAT_ID, voucher_image_url)
+    logger.debug(
+        f"Enviando notificación de voucher subido para reserva: {reservation.id} con imagen: {voucher_image_url}"
+    )
+    send_telegram_message(voucher_message, settings.CLIENTS_CHAT_ID,
+                          voucher_image_url)
 
 
 def notify_payment_approved(reservation):
@@ -166,12 +192,15 @@ def notify_payment_approved(reservation):
     from ..clients.whatsapp_service import send_whatsapp_payment_approved
 
     if not reservation.client or not reservation.client.tel_number:
-        logger.warning(f"No se puede enviar WhatsApp para reserva {reservation.id}: cliente o teléfono no disponible")
+        logger.warning(
+            f"No se puede enviar WhatsApp para reserva {reservation.id}: cliente o teléfono no disponible"
+        )
         return
 
     try:
         # Preparar datos para el template - solo primer nombre y primer apellido
-        first_name = reservation.client.first_name.split()[0] if reservation.client.first_name else ""
+        first_name = reservation.client.first_name.split(
+        )[0] if reservation.client.first_name else ""
 
         # Obtener solo el primer apellido si existe
         first_last_name = ""
@@ -190,56 +219,75 @@ def notify_payment_approved(reservation):
                 payment_info = f"S/{reservation.advance_payment:.2f}"
         else:
             payment_info = "S/0.00"
-            logger.warning(f"Reserva sin advance_payment para reserva {reservation.id}")
+            logger.warning(
+                f"Reserva sin advance_payment para reserva {reservation.id}")
 
         # Formatear fecha de check-in (formato dd/mm/yyyy)
         check_in_formatted = reservation.check_in_date.strftime("%d/%m/%Y")
         check_in_text = f"Para la reserva del {check_in_formatted}"
 
-        logger.info(f"Enviando WhatsApp de pago aprobado a {reservation.client.tel_number} para reserva {reservation.id}")
-        logger.info(f"Datos: Nombre: {client_name}, Pago: {payment_info}, Check-in: {check_in_text}")
+        logger.info(
+            f"Enviando WhatsApp de pago aprobado a {reservation.client.tel_number} para reserva {reservation.id}"
+        )
+        logger.info(
+            f"Datos: Nombre: {client_name}, Pago: {payment_info}, Check-in: {check_in_text}"
+        )
 
         # Enviar WhatsApp
         success = send_whatsapp_payment_approved(
             phone_number=reservation.client.tel_number,
             client_name=client_name,
             payment_info=payment_info,
-            check_in_date=check_in_text
-        )
+            check_in_date=check_in_text)
 
         if success:
-            logger.info(f"WhatsApp de pago aprobado enviado exitosamente para reserva {reservation.id}")
+            logger.info(
+                f"WhatsApp de pago aprobado enviado exitosamente para reserva {reservation.id}"
+            )
         else:
-            logger.error(f"Error al enviar WhatsApp de pago aprobado para reserva {reservation.id}")
+            logger.error(
+                f"Error al enviar WhatsApp de pago aprobado para reserva {reservation.id}"
+            )
 
     except Exception as e:
-        logger.error(f"Error al procesar notificación de pago aprobado para reserva {reservation.id}: {str(e)}")
+        logger.error(
+            f"Error al procesar notificación de pago aprobado para reserva {reservation.id}: {str(e)}"
+        )
+
 
 def hash_data(data):
     if data:
         return hashlib.sha256(data.strip().lower().encode()).hexdigest()
     return None
 
+
 @receiver(post_save, sender=Reservation)
 def reservation_post_save_handler(sender, instance, created, **kwargs):
     """Maneja las notificaciones cuando se crea o actualiza una reserva"""
     if created:
-        logger.debug(f"Nueva reserva creada: {instance.id} - Origen: {instance.origin}")
+        logger.debug(
+            f"Nueva reserva creada: {instance.id} - Origen: {instance.origin}")
         notify_new_reservation(instance)
 
         # Verificar si la nueva reserva tiene pago completo
         if instance.full_payment:
-            logger.debug(f"Nueva reserva {instance.id} creada con pago completo - Enviando flujo ChatBot")
+            logger.debug(
+                f"Nueva reserva {instance.id} creada con pago completo - Enviando flujo ChatBot"
+            )
             send_chatbot_flow_payment_complete(instance)
     else:
         # Verificar si cambió a estado pending (voucher subido)
         if instance.status == 'pending' and instance.origin == 'client':
-            logger.debug(f"Reserva {instance.id} cambió a estado pending - Voucher subido")
+            logger.debug(
+                f"Reserva {instance.id} cambió a estado pending - Voucher subido"
+            )
             notify_voucher_uploaded(instance)
 
         # Verificar si cambió a estado approved (pago aprobado) y no se ha enviado la notificación
         elif instance.status == 'approved' and instance.origin == 'client' and not instance.payment_approved_notification_sent:
-            logger.debug(f"Reserva {instance.id} cambió a estado approved - Pago aprobado")
+            logger.debug(
+                f"Reserva {instance.id} cambió a estado approved - Pago aprobado"
+            )
             notify_payment_approved(instance)
             # Marcar como enviado para evitar duplicados
             instance.payment_approved_notification_sent = True
@@ -248,7 +296,9 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
         # Verificar si cambió el campo full_payment a True (pago completado)
         if hasattr(instance, '_original_full_payment'):
             if not instance._original_full_payment and instance.full_payment:
-                logger.debug(f"Reserva {instance.id} marcada como pago completo - Enviando flujo ChatBot")
+                logger.debug(
+                    f"Reserva {instance.id} marcada como pago completo - Enviando flujo ChatBot"
+                )
                 send_chatbot_flow_payment_complete(instance)
 
         # Verificar logros después de actualizar el estado de la reserva
@@ -258,14 +308,20 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
 
                 # También verificar logros del cliente que refirió si existe
                 if instance.client.referred_by:
-                    check_and_assign_achievements(instance.client.referred_by.id)
+                    check_and_assign_achievements(
+                        instance.client.referred_by.id)
         except Exception as e:
-            logger.error(f"Error verificando logros después de actualizar reserva: {str(e)}")
+            logger.error(
+                f"Error verificando logros después de actualizar reserva: {str(e)}"
+            )
+
 
 def send_chatbot_flow_payment_complete(reservation):
     """Envía flujo de ChatBot Builder cuando el pago está completo"""
     if not reservation.client or not reservation.client.id_manychat:
-        logger.warning(f"No se puede enviar flujo ChatBot para reserva {reservation.id}: cliente o id_manychat no disponible")
+        logger.warning(
+            f"No se puede enviar flujo ChatBot para reserva {reservation.id}: cliente o id_manychat no disponible"
+        )
         return
 
     # Configuración de la API ChatBot Builder
@@ -277,37 +333,41 @@ def send_chatbot_flow_payment_complete(reservation):
     url = f"{api_base_url}/contacts/{reservation.client.id_manychat}/send/{flow_id}"
 
     # Encabezados
-    headers = {
-        "X-ACCESS-TOKEN": api_token,
-        "Content-Type": "application/json"
-    }
+    headers = {"X-ACCESS-TOKEN": api_token, "Content-Type": "application/json"}
 
     try:
         response = requests.post(url, headers=headers)
         if response.status_code == 200:
-            logger.info(f"✅ Flujo de pago completo enviado a usuario {reservation.client.id_manychat} para reserva {reservation.id}")
+            logger.info(
+                f"✅ Flujo de pago completo enviado a usuario {reservation.client.id_manychat} para reserva {reservation.id}"
+            )
         else:
-            logger.error(f"❌ Error enviando flujo de pago completo a {reservation.client.id_manychat}. Código: {response.status_code}")
+            logger.error(
+                f"❌ Error enviando flujo de pago completo a {reservation.client.id_manychat}. Código: {response.status_code}"
+            )
             logger.error(f"Respuesta: {response.text}")
     except Exception as e:
-        logger.error(f"⚠️ Error enviando flujo ChatBot para reserva {reservation.id}: {e}")
+        logger.error(
+            f"⚠️ Error enviando flujo ChatBot para reserva {reservation.id}: {e}"
+        )
+
 
 def send_purchase_event_to_meta(
-    phone,
-    email,
-    first_name,
-    last_name,
-    amount,
-    currency="USD",
-    ip=None,
-    user_agent=None,
-    fbc=None,
-    fbp=None,
-    fbclid=None,
-    utm_source=None,
-    utm_medium=None,
-    utm_campaign=None,
-    birthday=None  # <-- Se añade aquí
+        phone,
+        email,
+        first_name,
+        last_name,
+        amount,
+        currency="USD",
+        ip=None,
+        user_agent=None,
+        fbc=None,
+        fbp=None,
+        fbclid=None,
+        utm_source=None,
+        utm_medium=None,
+        utm_campaign=None,
+        birthday=None  # <-- Se añade aquí
 ):
     user_data = {}
 
@@ -330,7 +390,8 @@ def send_purchase_event_to_meta(
             logger.debug(f"Fecha de nacimiento sin hash: {bday}")
             user_data["db"] = [hash_data(bday)]
         except Exception as e:
-            logger.warning(f"Error procesando fecha de nacimiento '{birthday}': {e}")
+            logger.warning(
+                f"Error procesando fecha de nacimiento '{birthday}': {e}")
 
     # Datos del navegador
     if ip:
@@ -344,26 +405,26 @@ def send_purchase_event_to_meta(
     if fbp:
         user_data["fbp"] = fbp
     if fbclid:
-        user_data["click_id"] = fbclid  # Usualmente no obligatorio si ya tienes fbc/fbp
+        user_data[
+            "click_id"] = fbclid  # Usualmente no obligatorio si ya tienes fbc/fbp
 
     # Armamos el payload
     payload = {
-        "data": [
-            {
-                "event_name": "Purchase",
-                "event_time": int(datetime.now().timestamp()),
-                "action_source": "website",
-                "user_data": user_data,
-                "custom_data": {
-                    "value": float(amount),
-                    "currency": currency,
-                    "utm_source": utm_source,
-                    "utm_medium": utm_medium,
-                    "utm_campaign": utm_campaign,
-                }
+        "data": [{
+            "event_name": "Purchase",
+            "event_time": int(datetime.now().timestamp()),
+            "action_source": "website",
+            "user_data": user_data,
+            "custom_data": {
+                "value": float(amount),
+                "currency": currency,
+                "utm_source": utm_source,
+                "utm_medium": utm_medium,
+                "utm_campaign": utm_campaign,
             }
-        ],
-        "access_token": settings.META_PIXEL_TOKEN
+        }],
+        "access_token":
+        settings.META_PIXEL_TOKEN
     }
 
     # Logging completo para depuración
@@ -373,10 +434,13 @@ def send_purchase_event_to_meta(
     response = requests.post(
         "https://graph.facebook.com/v18.0/7378335482264695/events",
         json=payload,
-        headers={"Content-Type": "application/json"}
-    )
+        headers={"Content-Type": "application/json"})
 
     if response.status_code == 200:
-        logger.debug(f"Evento de conversión enviado correctamente a Meta. Respuesta: {response.text}")
+        logger.debug(
+            f"Evento de conversión enviado correctamente a Meta. Respuesta: {response.text}"
+        )
     else:
-        logger.warning(f"Error al enviar evento a Meta. Código: {response.status_code} Respuesta: {response.text}")
+        logger.warning(
+            f"Error al enviar evento a Meta. Código: {response.status_code} Respuesta: {response.text}"
+        )
