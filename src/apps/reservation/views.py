@@ -776,6 +776,224 @@ def confirm_reservation(request, uuid):
     return JsonResponse({"message": "✅ ¡Reserva confirmada correctamente!"})
 
 
+class MonthlyReservationsExportAPIView(APIView):
+    """
+    Endpoint para exportar datos de reservas por mes
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "year",
+                OpenApiTypes.INT,
+                required=True,
+                description="Año de las reservas a exportar",
+                location=OpenApiParameter.QUERY
+            ),
+            OpenApiParameter(
+                "month",
+                OpenApiTypes.INT,
+                required=True,
+                description="Mes de las reservas a exportar (1-12)",
+                location=OpenApiParameter.QUERY
+            ),
+        ],
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "success": {"type": "boolean"},
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "period": {"type": "string"},
+                            "total_reservations": {"type": "integer"},
+                            "reservations": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {"type": "integer"},
+                                        "client_name": {"type": "string"},
+                                        "client_email": {"type": "string"},
+                                        "client_phone": {"type": "string"},
+                                        "property_name": {"type": "string"},
+                                        "check_in_date": {"type": "string", "format": "date"},
+                                        "check_out_date": {"type": "string", "format": "date"},
+                                        "guests": {"type": "integer"},
+                                        "price_usd": {"type": "number"},
+                                        "price_sol": {"type": "number"},
+                                        "advance_payment": {"type": "number"},
+                                        "advance_payment_currency": {"type": "string"},
+                                        "full_payment": {"type": "boolean"},
+                                        "temperature_pool": {"type": "boolean"},
+                                        "origin": {"type": "string"},
+                                        "status": {"type": "string"},
+                                        "seller_name": {"type": "string"},
+                                        "created": {"type": "string", "format": "date-time"},
+                                        "number_nights": {"type": "integer"},
+                                        "points_redeemed": {"type": "number"},
+                                        "discount_code_used": {"type": "string"}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            400: {
+                "type": "object",
+                "properties": {
+                    "success": {"type": "boolean"},
+                    "error": {"type": "string"}
+                }
+            }
+        }
+    )
+    def get(self, request):
+        try:
+            # Validar parámetros requeridos
+            year_param = request.query_params.get('year')
+            month_param = request.query_params.get('month')
+
+            if not year_param or not month_param:
+                return Response({
+                    "success": False,
+                    "error": "Los parámetros 'year' y 'month' son requeridos"
+                }, status=400)
+
+            # Validar año
+            try:
+                year = int(year_param)
+                if year < 2020 or year > 2030:
+                    raise ValueError()
+            except ValueError:
+                return Response({
+                    "success": False,
+                    "error": "El parámetro 'year' debe ser un número válido entre 2020 y 2030"
+                }, status=400)
+
+            # Validar mes
+            try:
+                month = int(month_param)
+                if month < 1 or month > 12:
+                    raise ValueError()
+            except ValueError:
+                return Response({
+                    "success": False,
+                    "error": "El parámetro 'month' debe ser un número entre 1 y 12"
+                }, status=400)
+
+            # Calcular rango de fechas para el mes
+            last_day_month = calendar.monthrange(year, month)[1]
+            start_date = datetime(year, month, 1).date()
+            end_date = datetime(year, month, last_day_month).date()
+
+            # Obtener reservas del mes
+            reservations = Reservation.objects.filter(
+                check_in_date__gte=start_date,
+                check_in_date__lte=end_date,
+                deleted=False
+            ).select_related('client', 'property', 'seller').order_by('check_in_date')
+
+            # Formatear datos de reservas
+            reservations_data = []
+            for reservation in reservations:
+                # Calcular número de noches
+                if reservation.check_in_date and reservation.check_out_date:
+                    delta = reservation.check_out_date - reservation.check_in_date
+                    number_nights = delta.days
+                else:
+                    number_nights = 0
+
+                # Formatear nombre del cliente
+                client_name = ""
+                client_email = ""
+                client_phone = ""
+                if reservation.client:
+                    first_name = reservation.client.first_name or ""
+                    last_name = reservation.client.last_name or ""
+                    client_name = f"{first_name} {last_name}".strip()
+                    client_email = reservation.client.email or ""
+                    client_phone = reservation.client.tel_number or ""
+
+                # Formatear nombre del vendedor
+                seller_name = ""
+                if reservation.seller:
+                    seller_first = reservation.seller.first_name or ""
+                    seller_last = reservation.seller.last_name or ""
+                    seller_name = f"{seller_first} {seller_last}".strip()
+
+                # Mapear status para mejor legibilidad
+                status_mapping = {
+                    'approved': 'Aprobada',
+                    'pending': 'Pendiente',
+                    'incomplete': 'Incompleta',
+                    'rejected': 'Rechazada',
+                    'cancelled': 'Cancelada'
+                }
+                status_display = status_mapping.get(reservation.status, reservation.status)
+
+                # Mapear origen para mejor legibilidad
+                origin_mapping = {
+                    'air': 'Airbnb',
+                    'aus': 'Austin',
+                    'man': 'Mantenimiento',
+                    'client': 'Cliente Web'
+                }
+                origin_display = origin_mapping.get(reservation.origin, reservation.origin)
+
+                reservations_data.append({
+                    "id": reservation.id,
+                    "client_name": client_name,
+                    "client_email": client_email,
+                    "client_phone": client_phone,
+                    "property_name": reservation.property.name if reservation.property else "",
+                    "check_in_date": reservation.check_in_date.strftime('%Y-%m-%d'),
+                    "check_out_date": reservation.check_out_date.strftime('%Y-%m-%d'),
+                    "guests": reservation.guests,
+                    "price_usd": float(reservation.price_usd or 0),
+                    "price_sol": float(reservation.price_sol or 0),
+                    "advance_payment": float(reservation.advance_payment or 0),
+                    "advance_payment_currency": reservation.advance_payment_currency,
+                    "full_payment": reservation.full_payment,
+                    "temperature_pool": reservation.temperature_pool,
+                    "origin": origin_display,
+                    "status": status_display,
+                    "seller_name": seller_name,
+                    "created": reservation.created.isoformat() if reservation.created else "",
+                    "number_nights": number_nights,
+                    "points_redeemed": float(reservation.points_redeemed or 0),
+                    "discount_code_used": reservation.discount_code_used or "",
+                    "tel_contact_number": reservation.tel_contact_number or "",
+                    "comentarios_reservas": reservation.comentarios_reservas or ""
+                })
+
+            # Formatear nombre del período
+            month_names = {
+                1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+                5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+                9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+            }
+            period_name = f"{month_names[month]} {year}"
+
+            return Response({
+                "success": True,
+                "data": {
+                    "period": period_name,
+                    "total_reservations": len(reservations_data),
+                    "reservations": reservations_data
+                }
+            })
+
+        except Exception as e:
+            return Response({
+                "success": False,
+                "error": f"Error interno del servidor: {str(e)}"
+            }, status=500)
+
+
 class PropertyCalendarOccupancyAPIView(APIView):
     """
     Endpoint para obtener la ocupación del calendario de una propiedad

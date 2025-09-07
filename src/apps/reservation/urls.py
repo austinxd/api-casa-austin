@@ -9,7 +9,8 @@ from .views import (
     ProfitApiView,
     VistaCalendarioApiView,
     confirm_reservation,
-    PropertyCalendarOccupancyAPIView
+    PropertyCalendarOccupancyAPIView,
+    MonthlyReservationsExportAPIView
 )
 from .payment_views import ProcessPaymentView
 
@@ -29,4 +30,5 @@ urlpatterns = [
     path('confirm/<str:uuid>/', confirm_reservation, name='confirm_reservation'),
     path('property/<str:property_id>/calendar-occupancy/', PropertyCalendarOccupancyAPIView.as_view(), name='property-calendar-occupancy'),
     path('payment/process/<str:reservation_id>/', ProcessPaymentView.as_view(), name='process-payment'),
+    path('export/monthly/', MonthlyReservationsExportAPIView.as_view(), name='monthly-reservations-export'),
 ]
