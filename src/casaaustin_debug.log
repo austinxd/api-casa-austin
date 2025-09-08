@@ -4568,3 +4568,33 @@ INFO 2025-09-08 09:29:01,042 pricing_models 1375 139749468837568 🎯 Evaluando 
 INFO 2025-09-08 09:29:01,043 pricing_models 1375 139749468837568 🌍 Promoción global - Aplicable sin cliente
 ERROR 2025-09-08 09:29:01,044 pricing_service 1375 139749468837568 ❌ Error evaluando descuento precio base: type object 'DiscountTrigger' has no attribute 'BASE_PRICE_DISCOUNT'
 INFO 2025-09-08 09:29:01,044 pricing_service 1375 139749468837568 ❌ No se encontraron descuentos automáticos aplicables
+INFO 2025-09-08 09:52:50,045 pricing_service 2825 139806298511040 🔍 Validando protección de fechas especiales para casa 1
+INFO 2025-09-08 09:52:50,046 pricing_service 2825 139806298511040 📅 Check-in: 2025-09-24, Check-out: 2025-09-26, Noches: 2
+INFO 2025-09-08 09:52:50,047 pricing_service 2825 139806298511040 🎯 Fecha especial: 31/12/2025 (None)
+INFO 2025-09-08 09:52:50,047 pricing_service 2825 139806298511040 🛡️  Rango protegido: 31/12/2025 a 31/12/2025
+INFO 2025-09-08 09:52:50,047 pricing_service 2825 139806298511040 📏 Noches mínimas requeridas: 1
+INFO 2025-09-08 09:52:50,048 pricing_service 2825 139806298511040 🎯 Fecha especial: 31/12/2026 (None)
+INFO 2025-09-08 09:52:50,048 pricing_service 2825 139806298511040 🛡️  Rango protegido: 31/12/2026 a 31/12/2026
+INFO 2025-09-08 09:52:50,049 pricing_service 2825 139806298511040 📏 Noches mínimas requeridas: 1
+INFO 2025-09-08 09:52:50,049 pricing_service 2825 139806298511040 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-09-08 09:52:50,069 pricing_service 2825 139806298511040 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-09-08 09:52:50,069 pricing_service 2825 139806298511040 👤 Sin cliente - evaluando descuentos globales
+INFO 2025-09-08 09:52:50,070 pricing_service 2825 139806298511040 📋 Descuentos automáticos disponibles: 4
+INFO 2025-09-08 09:52:50,071 pricing_service 2825 139806298511040 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-09-08 09:52:50,075 pricing_service 2825 139806298511040 🎯 Logros requeridos para 'Cumpleaños': ['VIP Casa Austin']
+INFO 2025-09-08 09:52:50,075 pricing_service 2825 139806298511040 ❌ Sin cliente - descuento requiere logros específicos
+INFO 2025-09-08 09:52:50,075 pricing_service 2825 139806298511040 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-09-08 09:52:50,079 pricing_service 2825 139806298511040 🎯 Logros requeridos para 'clientefrecuente': ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente']
+INFO 2025-09-08 09:52:50,079 pricing_service 2825 139806298511040 ❌ Sin cliente - descuento requiere logros específicos
+INFO 2025-09-08 09:52:50,079 pricing_service 2825 139806298511040 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-09-08 09:52:50,083 pricing_service 2825 139806298511040 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso']
+INFO 2025-09-08 09:52:50,083 pricing_service 2825 139806298511040 ❌ Sin cliente - descuento requiere logros específicos
+INFO 2025-09-08 09:52:50,083 pricing_service 2825 139806298511040 🔍 Evaluando: 'precio base' - Trigger: 'global_promotion'
+INFO 2025-09-08 09:52:50,084 pricing_service 2825 139806298511040 🌍 'precio base' es una PROMOCIÓN GLOBAL
+INFO 2025-09-08 09:52:50,085 pricing_models 2825 139806298511040 🌍 Evaluando descuento GLOBAL 'precio base' con trigger 'global_promotion'
+INFO 2025-09-08 09:52:50,085 pricing_models 2825 139806298511040 📅 Día de la semana: 2 (Miércoles) - Día de semana
+INFO 2025-09-08 09:52:50,085 pricing_models 2825 139806298511040 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-09-08 09:52:50,086 pricing_models 2825 139806298511040 🎯 Evaluando trigger global: global_promotion
+INFO 2025-09-08 09:52:50,086 pricing_models 2825 139806298511040 🌍 Promoción global - Aplicable sin cliente
+ERROR 2025-09-08 09:52:50,086 pricing_service 2825 139806298511040 ❌ Error evaluando descuento precio base: type object 'DiscountTrigger' has no attribute 'BASE_PRICE_DISCOUNT'
+INFO 2025-09-08 09:52:50,087 pricing_service 2825 139806298511040 ❌ No se encontraron descuentos automáticos aplicables

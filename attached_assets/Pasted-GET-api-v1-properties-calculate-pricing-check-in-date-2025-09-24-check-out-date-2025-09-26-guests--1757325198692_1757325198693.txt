@@ -1,0 +1,66 @@
+GET /api/v1/properties/calculate-pricing/?check_in_date=2025-09-24&check_out_date=2025-09-26&guests=2&property_id=29fb5053-13a0-43b4-b97e-e5ebdf207aba
+HTTP 200 OK
+Allow: GET, HEAD, OPTIONS
+Content-Type: application/json
+Vary: Accept
+
+{
+    "success": true,
+    "error": 0,
+    "data": {
+        "totalCasasDisponibles": 1,
+        "check_in_date": "2025-09-24",
+        "check_out_date": "2025-09-26",
+        "guests": 2,
+        "total_nights": 2,
+        "exchange_rate": 3.6,
+        "properties": [
+            {
+                "property_id": "29fb5053-13a0-43b4-b97e-e5ebdf207aba",
+                "property_name": "casa 1",
+                "property_slug": "casa-1",
+                "base_price_usd": 110.0,
+                "base_price_sol": 396.0,
+                "extra_person_price_per_night_usd": 10.0,
+                "extra_person_price_per_night_sol": 36.0,
+                "extra_person_total_usd": 20.0,
+                "extra_person_total_sol": 72.0,
+                "total_nights": 2,
+                "total_guests": 2,
+                "extra_guests": 1,
+                "subtotal_usd": 130.0,
+                "subtotal_sol": 468.0,
+                "final_price_usd": 130.0,
+                "final_price_sol": 468.0,
+                "available": true,
+                "availability_message": "Propiedad disponible",
+                "additional_services": [
+                    {
+                        "id": "78ac0a73-6e91-4457-bd2a-2bddd416f4d5",
+                        "name": "temperado",
+                        "description": "a",
+                        "price_usd": 20.0,
+                        "price_sol": 72.0,
+                        "service_type": "optional",
+                        "is_per_night": true,
+                        "is_per_person": false,
+                        "total_price_usd": 40.0,
+                        "total_price_sol": 144.0
+                    }
+                ],
+                "selected_additional_services": [],
+                "selected_services_total_usd": 0.0,
+                "selected_services_total_sol": 0.0,
+                "final_price_with_services_usd": 130.0,
+                "final_price_with_services_sol": 468.0,
+                "services_applied_count": 0,
+                "cancellation_policy": null,
+                "recommendations": []
+            }
+        ],
+        "general_recommendations": [],
+        "message1": "📅 Disponibilidad del 24 de septiembre de 2025 al 26 de septiembre de 2025",
+        "message2": "🏠 casa 1: $130.0 Dólares ó S/.468.0 Soles"
+    },
+    "message": "Cálculo de precios realizado exitosamente"
+}
