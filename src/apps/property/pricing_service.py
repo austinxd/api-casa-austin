@@ -180,7 +180,8 @@ class PricingCalculationService:
                         'price_per_unit_usd': service_data.get('price_usd', 0),
                         'price_per_unit_sol': service_data.get('price_sol', 0),
                         'total_price_usd': float(service_total_usd),
-                        'total_price_sol': float(service_total_sol)
+                        'total_price_sol': float(service_total_sol),
+                        'post_action': service_data.get('post_action', None)
                     })
 
         # Política de cancelación
