@@ -226,26 +226,21 @@ class PricingCalculationService:
             'available': available,
             'availability_message': availability_message,
             'additional_services': additional_services,
+            'selected_additional_services': selected_services_details,  # Siempre incluir, aunque esté vacío
+            'selected_services_total_usd': round(float(selected_services_total_usd), 2),
+            'selected_services_total_sol': round(float(selected_services_total_sol), 2),
+            'final_price_with_services_usd': round(float(final_price_with_services_usd), 2),
+            'final_price_with_services_sol': round(float(final_price_with_services_sol), 2),
+            'services_applied_count': len(selected_services_details),
             'cancellation_policy': cancellation_policy,
             'recommendations': recommendations
         }
         
-        # Si hay servicios adicionales seleccionados, incluir información adicional
-        if additional_services_ids:
+        # Si se encontraron servicios válidos pero algunos no se pudieron aplicar, agregar advertencia
+        if additional_services_ids and not selected_services_details:
             response.update({
-                'selected_additional_services': selected_services_details,
-                'selected_services_total_usd': round(float(selected_services_total_usd), 2),
-                'selected_services_total_sol': round(float(selected_services_total_sol), 2),
-                'final_price_with_services_usd': round(float(final_price_with_services_usd), 2),
-                'final_price_with_services_sol': round(float(final_price_with_services_sol), 2),
-                'services_applied_count': len(selected_services_details)
+                'services_warning': 'No se encontraron servicios válidos con los IDs proporcionados'
             })
-            
-            # Si no se encontraron servicios válidos, agregar advertencia
-            if not selected_services_details:
-                response.update({
-                    'services_warning': 'No se encontraron servicios válidos con los IDs proporcionados'
-                })
 
         # Solo incluir discount_applied si hay descuento aplicado o si se proporcionó un código
         if discount_applied['type'] != 'none' or discount_code:
