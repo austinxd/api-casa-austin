@@ -23,7 +23,7 @@ class PricingCalculationService:
     def __init__(self):
         self.exchange_rate = ExchangeRate.get_current_rate()
 
-    def calculate_pricing(self, check_in_date, check_out_date, guests, property_id=None, client_id=None, discount_code=None, additional_services_ids=None):
+    def calculate_pricing(self, check_in_date, check_out_date, guests, property_id=None, client_id=None, discount_code=None, additional_services_ids=None, late_checkout=False):
         """Calcula precios para una o todas las propiedades"""
 
         # Validaciones básicas
@@ -64,7 +64,7 @@ class PricingCalculationService:
 
         for property in properties:
             property_pricing = self._calculate_property_pricing(
-                property, check_in_date, check_out_date, guests, nights, client, discount_code, additional_services_ids
+                property, check_in_date, check_out_date, guests, nights, client, discount_code, additional_services_ids, late_checkout
             )
             results.append(property_pricing)
 
@@ -111,7 +111,7 @@ class PricingCalculationService:
 
         return general_info
 
-    def _calculate_property_pricing(self, property, check_in_date, check_out_date, guests, nights, client, discount_code, additional_services_ids=None):
+    def _calculate_property_pricing(self, property, check_in_date, check_out_date, guests, nights, client, discount_code, additional_services_ids=None, late_checkout=False):
         """Calcula precios para una propiedad específica"""
 
         # Verificar disponibilidad
@@ -201,9 +201,41 @@ class PricingCalculationService:
             property, guests, nights, subtotal_usd, available
         )
 
+        # Aplicar descuento por late checkout si aplica
+        late_checkout_discount_usd = Decimal('0.00')
+        late_checkout_discount_sol = Decimal('0.00')
+        late_checkout_info = None
+        
+        if late_checkout:
+            from .pricing_models import LateCheckoutConfig
+            
+            # Verificar si se permite late checkout para el día de checkout
+            if LateCheckoutConfig.allows_late_checkout_for_date(check_out_date):
+                late_checkout_discount_usd = LateCheckoutConfig.get_discount_for_date(check_out_date, final_price_usd)
+                late_checkout_discount_sol = late_checkout_discount_usd * self.exchange_rate
+                
+                late_checkout_info = {
+                    'is_available': True,
+                    'discount_usd': round(float(late_checkout_discount_usd), 2),
+                    'discount_sol': round(float(late_checkout_discount_sol), 2),
+                    'checkout_date': check_out_date,
+                    'checkout_day': check_out_date.strftime('%A')
+                }
+            else:
+                late_checkout_info = {
+                    'is_available': False,
+                    'reason': f'Late checkout no disponible para {check_out_date.strftime("%A")}s',
+                    'discount_usd': 0.00,
+                    'discount_sol': 0.00
+                }
+        
+        # Aplicar descuento de late checkout al precio final
+        final_price_after_late_checkout_usd = final_price_usd - late_checkout_discount_usd
+        final_price_after_late_checkout_sol = final_price_sol - late_checkout_discount_sol
+        
         # Calcular precio final con servicios adicionales incluidos
-        final_price_with_services_usd = final_price_usd + selected_services_total_usd
-        final_price_with_services_sol = final_price_sol + selected_services_total_sol
+        final_price_with_services_usd = final_price_after_late_checkout_usd + selected_services_total_usd
+        final_price_with_services_sol = final_price_after_late_checkout_sol + selected_services_total_sol
 
         # Construir respuesta base
         response = {
@@ -223,6 +255,8 @@ class PricingCalculationService:
             'subtotal_sol': round(float(subtotal_sol), 2),
             'final_price_usd': round(float(final_price_usd), 2),
             'final_price_sol': round(float(final_price_sol), 2),
+            'final_price_after_late_checkout_usd': round(float(final_price_after_late_checkout_usd), 2),
+            'final_price_after_late_checkout_sol': round(float(final_price_after_late_checkout_sol), 2),
             'available': available,
             'availability_message': availability_message,
             'additional_services': additional_services,
@@ -253,6 +287,10 @@ class PricingCalculationService:
         # Solo incluir client_benefits si hay un cliente
         if client:
             response['client_benefits'] = client_benefits
+        
+        # Incluir información de late checkout si se solicitó
+        if late_checkout and late_checkout_info:
+            response['late_checkout'] = late_checkout_info
 
         return response
 

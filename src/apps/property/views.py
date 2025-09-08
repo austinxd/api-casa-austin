@@ -307,6 +307,13 @@ class CalculatePricingAPIView(APIView):
                 description='UUIDs de servicios adicionales separados por comas (ej: 6d3d74ed-54a1-422a-b244-582848a169d2,uuid2)',
                 required=False
             ),
+            OpenApiParameter(
+                name='latecheckout',
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description='Indica si es una consulta de late checkout (true/false)',
+                required=False
+            ),
         ],
         responses={
             200: PricingCalculationSerializer,
@@ -372,6 +379,7 @@ class CalculatePricingAPIView(APIView):
             client_id = request.query_params.get('client_id')
             discount_code = request.query_params.get('discount_code')
             additional_services_param = request.query_params.get('additional_services')
+            late_checkout = request.query_params.get('latecheckout', 'false').lower() == 'true'
 
             # Validar property_id si se proporciona
             if property_id:
@@ -414,13 +422,13 @@ class CalculatePricingAPIView(APIView):
                     # Dividir por comas y limpiar espacios
                     service_ids_str = additional_services_param.split(',')
                     additional_services_ids = [sid.strip() for sid in service_ids_str if sid.strip()]
-                    
+
                     if not additional_services_ids:
                         return Response({
                             'error': 12,
                             'error_message': 'additional_services no puede estar vacío'
                         }, status=status.HTTP_400_BAD_REQUEST)
-                    
+
                     # Validar que sean UUIDs válidos
                     from uuid import UUID
                     validated_ids = []
@@ -433,12 +441,12 @@ class CalculatePricingAPIView(APIView):
                                 'error': 12,
                                 'error_message': f'ID de servicio inválido: {sid}. Los IDs deben ser UUIDs válidos.'
                             }, status=status.HTTP_400_BAD_REQUEST)
-                    
+
                     additional_services_ids = validated_ids
-                    
+
                     # Verificar que los servicios existen y están activos
                     from .pricing_models import AdditionalService
-                    
+
                     # Si hay property_id específico, filtrar servicios disponibles para esa propiedad
                     if property_id:
                         # Servicios que están disponibles para esta propiedad específica o para todas las propiedades
@@ -449,17 +457,17 @@ class CalculatePricingAPIView(APIView):
                     else:
                         # Si no hay propiedad específica, obtener todos los servicios activos
                         available_services = AdditionalService.objects.filter(is_active=True)
-                    
+
                     existing_service_ids = list(available_services.filter(
                         id__in=additional_services_ids
                     ).values_list('id', flat=True))
-                    
+
                     # Convertir UUIDs a strings para comparación
                     existing_service_ids_str = [str(sid) for sid in existing_service_ids]
-                    
+
                     # Verificar que todos los servicios solicitados existen y están disponibles
                     missing_services = [sid for sid in additional_services_ids if sid not in existing_service_ids_str]
-                    
+
                     if missing_services:
                         # Obtener nombres de servicios disponibles para mostrar en el error
                         available_service_names = list(available_services.values_list('name', flat=True))
@@ -467,7 +475,7 @@ class CalculatePricingAPIView(APIView):
                             'error': 11,
                             'error_message': f'Los siguientes servicios no existen, están inactivos o no están disponibles para esta propiedad: {", ".join(missing_services)}. Servicios disponibles: {", ".join(available_service_names)}'
                         }, status=status.HTTP_400_BAD_REQUEST)
-                        
+
                 except Exception as e:
                     return Response({
                         'error': 12,
@@ -483,7 +491,8 @@ class CalculatePricingAPIView(APIView):
                 property_id=property_id,
                 client_id=client_id,
                 discount_code=discount_code,
-                additional_services_ids=additional_services_ids
+                additional_services_ids=additional_services_ids,
+                late_checkout=late_checkout
             )
 
             return Response({
@@ -563,11 +572,11 @@ class GenerateSimpleDiscountAPIView(APIView):
             from datetime import date, timedelta
             import random
             import string
-            
+
             # Obtener parámetros con valores por defecto
             validity_days = request.data.get('validity_days', 7)
             discount_percentage = request.data.get('discount_percentage', 10)
-            
+
             # Validar parámetros
             try:
                 validity_days = int(validity_days)
@@ -583,7 +592,7 @@ class GenerateSimpleDiscountAPIView(APIView):
                     'error': 2,
                     'message': 'validity_days debe ser un número entero'
                 }, status=status.HTTP_400_BAD_REQUEST)
-            
+
             try:
                 discount_percentage = float(discount_percentage)
                 if discount_percentage < 1 or discount_percentage > 100:
@@ -598,17 +607,17 @@ class GenerateSimpleDiscountAPIView(APIView):
                     'error': 4,
                     'message': 'discount_percentage debe ser un número'
                 }, status=status.HTTP_400_BAD_REQUEST)
-            
+
             # Generar código único
             while True:
                 code = 'SIMPLE' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
                 if not DiscountCode.objects.filter(code=code).exists():
                     break
-            
+
             # Calcular fechas
             start_date = date.today()
             end_date = start_date + timedelta(days=validity_days)
-            
+
             # Crear el código de descuento
             discount_code = DiscountCode.objects.create(
                 code=code,
@@ -620,7 +629,7 @@ class GenerateSimpleDiscountAPIView(APIView):
                 usage_limit=1,  # Una sola vez por defecto
                 is_active=True
             )
-            
+
             return Response({
                 'success': True,
                 'data': {
@@ -634,7 +643,7 @@ class GenerateSimpleDiscountAPIView(APIView):
                 },
                 'message': f'Código de descuento {discount_code.code} generado exitosamente'
             }, status=status.HTTP_200_OK)
-            
+
         except Exception as e:
             return Response({
                 'success': False,
@@ -696,7 +705,7 @@ class GenerateDynamicDiscountAPIView(APIView):
     def post(self, request):
         try:
             config_name = request.data.get('config_name')
-            
+
             if not config_name:
                 return Response({
                     'success': False,
@@ -717,7 +726,7 @@ class GenerateDynamicDiscountAPIView(APIView):
                     is_active=True, 
                     deleted=False
                 ).values_list('name', flat=True)
-                
+
                 return Response({
                     'success': False,
                     'error': 2,
@@ -727,7 +736,7 @@ class GenerateDynamicDiscountAPIView(APIView):
 
             # Generar el código
             discount_code = config.generate_code()
-            
+
             # Calcular cuántas horas quedan hasta la expiración
             from datetime import datetime, timezone
             now = datetime.now().date()
@@ -795,7 +804,7 @@ class GenerateDynamicDiscountAPIView(APIView):
             'name', 'prefix', 'discount_percentage', 
             'validity_days', 'min_amount_usd', 'usage_limit'
         )
-        
+
         return Response({
             'success': True,
             'data': list(configs),
@@ -846,7 +855,7 @@ class AutomaticDiscountDetailAPIView(APIView):
 
             # Serializar y retornar
             serializer = AutomaticDiscountSerializer(automatic_discount)
-            
+
             return Response({
                 'success': True,
                 'is_active': automatic_discount.is_active,
@@ -861,5 +870,3 @@ class AutomaticDiscountDetailAPIView(APIView):
                 'message': 'Error interno del servidor',
                 'detail': str(e) if settings.DEBUG else None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-                

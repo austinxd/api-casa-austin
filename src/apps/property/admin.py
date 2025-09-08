@@ -10,7 +10,8 @@ from .pricing_models import (
     DynamicDiscountConfig,
     AdditionalService,
     CancellationPolicy,
-    AutomaticDiscount
+    AutomaticDiscount,
+    LateCheckoutConfig
 )
 
 
@@ -395,6 +396,31 @@ class AutomaticDiscountAdmin(admin.ModelAdmin):
         else:
             return "♾️ Siempre activo"
     get_date_validity.short_description = "Vigencia"
+
+
+
+@admin.register(LateCheckoutConfig)
+class LateCheckoutConfigAdmin(admin.ModelAdmin):
+    list_display = ('get_weekday_display', 'allows_late_checkout', 'discount_type', 'discount_value', 'is_active')
+    list_filter = ('allows_late_checkout', 'discount_type', 'is_active')
+    list_editable = ('allows_late_checkout', 'discount_value', 'is_active')
+    ordering = ['weekday']
+    
+    fieldsets = (
+        ('Configuración del Día', {
+            'fields': ('name', 'weekday', 'allows_late_checkout', 'is_active')
+        }),
+        ('Descuento para Late Checkout', {
+            'fields': ('discount_type', 'discount_value'),
+            'description': 'Descuento que se aplica cuando se cotiza un late checkout'
+        }),
+    )
+    
+    def get_weekday_display(self, obj):
+        """Muestra el día de la semana en formato legible"""
+        return obj.get_weekday_display()
+    get_weekday_display.short_description = "Día de la semana"
+    get_weekday_display.admin_order_field = 'weekday'
 
     def get_required_achievements(self, obj):
         """Muestra los logros requeridos de forma legible"""

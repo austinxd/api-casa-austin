@@ -998,6 +998,72 @@ class DynamicDiscountConfig(BaseModel):
         start_date = date.today()
         end_date = start_date + timedelta(days=self.validity_days)
 
+
+class LateCheckoutConfig(BaseModel):
+    """Configuración para late checkout por día de la semana"""
+    
+    WEEKDAY_CHOICES = [
+        (0, 'Lunes'),
+        (1, 'Martes'), 
+        (2, 'Miércoles'),
+        (3, 'Jueves'),
+        (4, 'Viernes'),
+        (5, 'Sábado'),
+        (6, 'Domingo'),
+    ]
+    
+    name = models.CharField(max_length=100, verbose_name="Nombre de configuración")
+    weekday = models.IntegerField(choices=WEEKDAY_CHOICES, verbose_name="Día de la semana")
+    allows_late_checkout = models.BooleanField(default=True, verbose_name="Permite late checkout")
+    discount_type = models.CharField(
+        max_length=10, 
+        choices=[('percentage', 'Porcentaje'), ('fixed', 'Monto fijo')],
+        default='percentage',
+        verbose_name="Tipo de descuento"
+    )
+    discount_value = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=Decimal('10.00'),
+        verbose_name="Valor del descuento"
+    )
+    is_active = models.BooleanField(default=True, verbose_name="Activo")
+    
+    class Meta:
+        verbose_name = "Configuración de Late Checkout"
+        verbose_name_plural = "Configuraciones de Late Checkout"
+        unique_together = ['weekday']
+    
+    def __str__(self):
+        return f"{self.get_weekday_display()} - {'Permite' if self.allows_late_checkout else 'No permite'} late checkout"
+    
+    @classmethod
+    def allows_late_checkout_for_date(cls, check_date):
+        """Verifica si se permite late checkout para una fecha específica"""
+        weekday = check_date.weekday()
+        config = cls.objects.filter(weekday=weekday, is_active=True).first()
+        
+        if not config:
+            # Por defecto, permitir late checkout excepto viernes y sábados
+            return weekday not in [4, 5]  # 4=Viernes, 5=Sábado
+        
+        return config.allows_late_checkout
+    
+    @classmethod
+    def get_discount_for_date(cls, check_date, base_amount):
+        """Calcula el descuento de late checkout para una fecha específica"""
+        weekday = check_date.weekday()
+        config = cls.objects.filter(weekday=weekday, is_active=True).first()
+        
+        if not config or not config.allows_late_checkout:
+            return Decimal('0.00')
+        
+        if config.discount_type == 'percentage':
+            return base_amount * (config.discount_value / Decimal('100'))
+        else:  # fixed
+            return config.discount_value
+
+
         # Crear el código de descuento
         discount_code = DiscountCode.objects.create(
             code=code,
