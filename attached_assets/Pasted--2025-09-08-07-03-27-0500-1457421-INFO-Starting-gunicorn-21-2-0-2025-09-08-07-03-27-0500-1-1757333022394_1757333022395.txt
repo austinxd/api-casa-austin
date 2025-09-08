@@ -1,0 +1,90 @@
+[2025-09-08 07:03:27 -0500] [1457421] [INFO] Starting gunicorn 21.2.0
+[2025-09-08 07:03:27 -0500] [1457421] [INFO] Listening at: http://0.0.0.0:8000 (1457421)
+[2025-09-08 07:03:27 -0500] [1457421] [INFO] Using worker: sync
+[2025-09-08 07:03:27 -0500] [1457422] [INFO] Booting worker with pid: 1457422
+Internal Server Error: /api/v1/vistacalendario/
+Traceback (most recent call last):
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/views/decorators/csrf.py", line 56, in wrapper_view
+    return view_func(*args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/viewsets.py", line 124, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 509, in dispatch
+    response = self.handle_exception(exc)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 469, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+    raise exc
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/views.py", line 612, in list
+    return Response(serializer.data)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 795, in data
+    ret = super().data
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 249, in data
+    self._data = self.to_representation(self.instance)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 713, in to_representation
+    return [
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 714, in <listcomp>
+    self.child.to_representation(item) for item in iterable
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 523, in to_representation
+    for field in fields:
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 384, in _readable_fields
+    for field in self.fields.values():
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/utils/functional.py", line 57, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 372, in fields
+    for key, value in self.get_fields().items():
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 1103, in get_fields
+    field_class, field_kwargs = self.build_field(
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 1249, in build_field
+    return self.build_unknown_field(field_name, model_class)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 1367, in build_unknown_field
+    raise ImproperlyConfigured(
+django.core.exceptions.ImproperlyConfigured: Field name `latecheckout` is not valid for model `Reservation` in `apps.reservation.serializers.CalendarReservationSerializer`.
+ERROR 2025-09-08 07:03:33,138 log 1457422 140177595598656 Internal Server Error: /api/v1/vistacalendario/
+Traceback (most recent call last):
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/views/decorators/csrf.py", line 56, in wrapper_view
+    return view_func(*args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/viewsets.py", line 124, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 509, in dispatch
+    response = self.handle_exception(exc)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 469, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+    raise exc
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/views.py", line 612, in list
+    return Response(serializer.data)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 795, in data
+    ret = super().data
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 249, in data
+    self._data = self.to_representation(self.instance)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 713, in to_representation
+    return [
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 714, in <listcomp>
+    self.child.to_representation(item) for item in iterable
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 523, in to_representation
+    for field in fields:
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 384, in _readable_fields
+    for field in self.fields.values():
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/utils/functional.py", line 57, in __get__
+    res = instance.__dict__[self.name] = self.func(instance)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 372, in fields
+    for key, value in self.get_fields().items():
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 1103, in get_fields
+    field_class, field_kwargs = self.build_field(
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 1249, in build_field
+    return self.build_unknown_field(field_name, model_class)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 1367, in build_unknown_field
+    raise ImproperlyConfigured(
+django.core.exceptions.ImproperlyConfigured: Field name `latecheckout` is not valid for model `Reservation` in `apps.reservation.serializers.CalendarReservationSerializer`.
