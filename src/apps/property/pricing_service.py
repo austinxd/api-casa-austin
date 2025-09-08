@@ -597,7 +597,8 @@ class PricingCalculationService:
                 'is_per_night': service.is_per_night,
                 'is_per_person': service.is_per_person,
                 'total_price_usd': round(float(total_price_usd), 2),
-                'total_price_sol': round(float(total_price_usd * self.exchange_rate), 2)
+                'total_price_sol': round(float(total_price_usd * self.exchange_rate), 2),
+                'post_action': service.post_action
             })
 
         return service_list
