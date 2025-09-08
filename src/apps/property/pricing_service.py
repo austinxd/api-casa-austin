@@ -156,6 +156,9 @@ class PricingCalculationService:
         selected_services_details = []
         
         if additional_services_ids:
+            # Importar AdditionalService para consultas directas
+            from .pricing_models import AdditionalService
+            
             # Crear un set con los IDs solicitados para comparación más eficiente
             requested_service_ids = set(additional_services_ids)
             
@@ -164,6 +167,9 @@ class PricingCalculationService:
                 service_id_str = str(service_data['id'])
                 
                 if service_id_str in requested_service_ids:
+                    # Obtener el objeto del servicio de la base de datos para asegurar post_action
+                    service_obj = AdditionalService.objects.filter(id=service_data['id']).first()
+                    
                     service_total_usd = Decimal(str(service_data['total_price_usd']))
                     service_total_sol = Decimal(str(service_data['total_price_sol']))
                     
@@ -181,7 +187,7 @@ class PricingCalculationService:
                         'price_per_unit_sol': service_data.get('price_sol', 0),
                         'total_price_usd': float(service_total_usd),
                         'total_price_sol': float(service_total_sol),
-                        'post_action': service_data.get('post_action', None)
+                        'post_action': service_obj.post_action if service_obj else None
                     })
 
         # Política de cancelación
