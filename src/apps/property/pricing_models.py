@@ -496,6 +496,12 @@ class AdditionalService(BaseModel):
         blank=True,
         help_text="Propiedades donde está disponible (vacío = todas)"
     )
+    post_action = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Acción post-reserva que debe realizar el frontend (ej: temperature_pool)"
+    )
 
     class Meta:
         verbose_name = "🛎️ Servicio Adicional"

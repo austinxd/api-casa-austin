@@ -15,7 +15,7 @@ class AdditionalServiceSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'description', 'price_usd', 'price_sol',
             'service_type', 'is_per_night', 'is_per_person',
-            'total_price_usd', 'total_price_sol'
+            'total_price_usd', 'total_price_sol', 'post_action'
         ]
 
     def get_price_sol(self, obj):

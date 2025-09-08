@@ -320,10 +320,25 @@ class DiscountCodeAdmin(admin.ModelAdmin):
 
 
 class AdditionalServiceAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price_usd', 'service_type', 'is_per_night', 'is_per_person', 'is_active')
+    list_display = ('name', 'price_usd', 'service_type', 'is_per_night', 'is_per_person', 'is_active', 'post_action')
     list_filter = ('service_type', 'is_per_night', 'is_per_person', 'is_active')
-    search_fields = ('name', 'description')
+    search_fields = ('name', 'description', 'post_action')
     filter_horizontal = ('properties',)
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'description', 'price_usd')
+        }),
+        ('Configuración', {
+            'fields': ('service_type', 'is_per_night', 'is_per_person', 'is_active')
+        }),
+        ('Propiedades', {
+            'fields': ('properties',)
+        }),
+        ('Acción Post-Reserva', {
+            'fields': ('post_action',),
+            'description': 'Acción que debe realizar el frontend después de la reserva (ej: temperature_pool)'
+        }),
+    )
 
 
 class CancellationPolicyAdmin(admin.ModelAdmin):

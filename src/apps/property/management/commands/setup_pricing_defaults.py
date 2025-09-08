@@ -85,7 +85,8 @@ class Command(BaseCommand):
                 'price_usd': Decimal('25.00'),
                 'service_type': 'optional',
                 'is_per_night': False,
-                'is_per_person': False
+                'is_per_person': False,
+                'post_action': None
             },
             {
                 'name': 'Desayuno',
@@ -93,7 +94,8 @@ class Command(BaseCommand):
                 'price_usd': Decimal('15.00'),
                 'service_type': 'optional',
                 'is_per_night': True,
-                'is_per_person': True
+                'is_per_person': True,
+                'post_action': None
             },
             {
                 'name': 'Transfer Aeropuerto',
@@ -101,7 +103,17 @@ class Command(BaseCommand):
                 'price_usd': Decimal('30.00'),
                 'service_type': 'optional',
                 'is_per_night': False,
-                'is_per_person': False
+                'is_per_person': False,
+                'post_action': None
+            },
+            {
+                'name': 'Calentamiento de Piscina',
+                'description': 'Servicio de calentamiento de piscina durante la estancia',
+                'price_usd': Decimal('50.00'),
+                'service_type': 'optional',
+                'is_per_night': True,
+                'is_per_person': False,
+                'post_action': 'temperature_pool'
             }
         ]
         
