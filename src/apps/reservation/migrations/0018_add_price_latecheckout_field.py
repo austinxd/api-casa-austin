@@ -11,8 +11,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(
-            sql="ALTER TABLE reservation_reservation ADD COLUMN IF NOT EXISTS price_latecheckout DECIMAL(10,2) NULL DEFAULT 0;",
-            reverse_sql="ALTER TABLE reservation_reservation DROP COLUMN IF EXISTS price_latecheckout;"
+        migrations.AddField(
+            model_name='reservation',
+            name='price_latecheckout',
+            field=models.DecimalField(blank=True, decimal_places=2, default=0, help_text='Precio adicional por late checkout', max_digits=10, null=True),
         ),
     ]
