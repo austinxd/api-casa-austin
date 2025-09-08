@@ -38,6 +38,12 @@ class ReservationSerializer(serializers.ModelSerializer):
         min_value=Decimal('0'),
         help_text="Puntos a canjear en esta reserva"
     )
+    price_latecheckout = serializers.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        required=False,
+        help_text="Precio adicional por late checkout"
+    )
 
     class Meta:
         model = Reservation
@@ -367,7 +373,7 @@ class ClientReservationSerializer(serializers.ModelSerializer):
             'property', 'check_in_date', 'check_out_date', 'guests', 
             'temperature_pool', 'points_to_redeem', 'tel_contact_number',
             'price_usd', 'price_sol', 'advance_payment_currency', 'comentarios_reservas',
-            'seller', 'origin', 'discount_code'
+            'seller', 'origin', 'discount_code', 'price_latecheckout'
         ]
         extra_kwargs = {
             'points_to_redeem': {'write_only': True, 'required': False},

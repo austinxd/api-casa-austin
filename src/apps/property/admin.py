@@ -481,5 +481,5 @@ admin.site.register(ExchangeRate, ExchangeRateAdmin)
 # SpecialDatePricing usa @admin.register decorator
 admin.site.register(AdditionalService, AdditionalServiceAdmin)
 admin.site.register(CancellationPolicy, CancellationPolicyAdmin)
-admin.site.register(AutomaticDiscount, AutomaticDiscountAdmin)
+
 # SpecialDatePricing ya no se registra aquí - se maneja solo a través de inlines
