@@ -94,6 +94,14 @@ class Reservation(BaseModel):
         blank=True,
         help_text="Código de descuento utilizado en esta reserva"
     )
+    price_latecheckout = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True,
+        blank=True,
+        default=0,
+        help_text="Precio adicional por late checkout"
+    )
     # Campos para voucher de pago
     payment_voucher_deadline = models.DateTimeField(
         null=True, 
