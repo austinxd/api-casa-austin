@@ -420,3 +420,283 @@ class ProcessPaymentView(APIView):
                 'success': False,
                 'message': 'Error interno del servidor'
             }, status=500)
+
+
+class ProcessAdditionalServicesPaymentView(APIView):
+    """
+    Endpoint para procesar pagos de servicios adicionales (temperado de piscina y late checkout)
+    """
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+
+    def __init__(self):
+        super().__init__()
+        # Usar la misma configuración de MercadoPago
+        self.access_token = settings.MERCADOPAGO_ACCESS_TOKEN
+        self.is_sandbox = settings.MERCADOPAGO_SANDBOX
+
+        if self.is_sandbox:
+            self.base_url = "https://api.mercadopago.com"
+        else:
+            self.base_url = "https://api.mercadopago.com"
+
+    def _get_auth_header(self):
+        """Crear header de autenticación para MercadoPago"""
+        return f"Bearer {self.access_token}"
+
+    def _format_phone_number(self, phone_number):
+        """Formatear número de teléfono"""
+        if not phone_number:
+            return ""
+
+        clean_number = ''.join(filter(str.isdigit, str(phone_number)))
+
+        if clean_number.startswith('51') and len(clean_number) >= 11:
+            return f"+{clean_number}"
+        elif len(clean_number) == 9:
+            return f"+51{clean_number}"
+        elif len(clean_number) > 9:
+            return f"+{clean_number}"
+        else:
+            return f"+51{clean_number}"
+
+    def post(self, request, reservation_id):
+        try:
+            # Autenticar cliente
+            authenticator = ClientJWTAuthentication()
+            client, validated_token = authenticator.authenticate(request)
+
+            if not client:
+                return Response({
+                    'success': False,
+                    'message': 'Token inválido'
+                }, status=401)
+
+            # Obtener la reserva
+            reservation = Reservation.objects.get(
+                id=reservation_id,
+                client=client,
+                deleted=False
+            )
+
+            # Datos del pago
+            token = request.data.get('token')
+            amount = float(request.data.get('amount', 0))
+            service_type = request.data.get('service_type')  # 'temperature_pool' o 'late_checkout'
+            payment_method_id = request.data.get('payment_method_id', 'visa')
+            installments = int(request.data.get('installments', 1))
+
+            # Validaciones
+            if not token or amount <= 0:
+                return Response({
+                    'success': False,
+                    'message': 'Token y monto válido son requeridos'
+                }, status=400)
+
+            if service_type not in ['temperature_pool', 'late_checkout']:
+                return Response({
+                    'success': False,
+                    'message': 'Tipo de servicio inválido. Debe ser temperature_pool o late_checkout'
+                }, status=400)
+
+            # Verificar si el servicio ya está pagado
+            if service_type == 'temperature_pool' and reservation.temperature_pool:
+                return Response({
+                    'success': False,
+                    'message': 'El temperado de piscina ya está activado para esta reserva'
+                }, status=400)
+
+            if service_type == 'late_checkout' and reservation.late_checkout:
+                return Response({
+                    'success': False,
+                    'message': 'El late checkout ya está activado para esta reserva'
+                }, status=400)
+
+            # Verificar token duplicado
+            from .models import PaymentToken
+            from django.utils import timezone
+            from datetime import timedelta
+
+            twenty_four_hours_ago = timezone.now() - timedelta(hours=24)
+            existing_token = PaymentToken.objects.filter(
+                token=token,
+                used_at__gte=twenty_four_hours_ago
+            ).first()
+
+            if existing_token:
+                return Response({
+                    'success': False,
+                    'message': 'Este token de pago ya fue utilizado. Por favor, ingrese nuevamente los datos de la tarjeta.',
+                    'error_code': 'TOKEN_ALREADY_USED'
+                }, status=400)
+
+            with transaction.atomic():
+                try:
+                    # Generar external_reference único
+                    import time
+                    import random
+                    timestamp_micro = str(time.time()).replace('.', '')
+                    random_suffix = random.randint(1000, 9999)
+                    service_description = "Temperado de piscina" if service_type == 'temperature_pool' else "Late checkout"
+                    unique_external_reference = f"RES-{reservation.id}-{service_type}-{timestamp_micro}-{random_suffix}"
+
+                    # Datos del pago para MercadoPago
+                    payment_data = {
+                        "transaction_amount": amount,
+                        "token": token,
+                        "description": f"{service_description} - Reserva #{reservation.id} - {reservation.property.name}",
+                        "external_reference": unique_external_reference,
+                        "payment_method_id": payment_method_id,
+                        "installments": installments,
+                        "payer": {
+                            "email": reservation.client.email if reservation.client else "cliente@casaaustin.pe",
+                            "first_name": reservation.client.first_name if reservation.client else "Cliente",
+                            "last_name": reservation.client.last_name if reservation.client else "Anónimo",
+                            "phone": {
+                                "area_code": "51",
+                                "number": self._format_phone_number(reservation.client.tel_number) if reservation.client and reservation.client.tel_number else "999888777"
+                            },
+                            "address": {
+                                "zip_code": "15001",
+                                "street_name": "Calle Principal",
+                                "street_number": 123
+                            }
+                        },
+                        "additional_info": {
+                            "items": [
+                                {
+                                    "id": f"{reservation.property.id}-{service_type}",
+                                    "title": f"{service_description} - {reservation.property.name}",
+                                    "quantity": 1,
+                                    "unit_price": amount
+                                }
+                            ]
+                        }
+                    }
+
+                    # Headers para la API
+                    headers = {
+                        'Content-Type': 'application/json',
+                        'Authorization': self._get_auth_header(),
+                        'X-Idempotency-Key': str(uuid.uuid4())
+                    }
+
+                    # Procesar pago con MercadoPago
+                    url = f"{self.base_url}/v1/payments"
+
+                    logger.info(f"Procesando pago de {service_description} para reserva {reservation.id}")
+
+                    response = requests.post(url, json=payment_data, headers=headers, timeout=30)
+
+                    if response.status_code in [200, 201]:
+                        payment = response.json()
+
+                        if payment.get('status') in ['approved', 'authorized']:
+                            # Pago exitoso - activar el servicio correspondiente
+                            if service_type == 'temperature_pool':
+                                reservation.temperature_pool = True
+                            elif service_type == 'late_checkout':
+                                reservation.late_checkout = True
+
+                            # Actualizar advance_payment sumando el adicional
+                            if reservation.advance_payment:
+                                reservation.advance_payment += amount
+                            else:
+                                reservation.advance_payment = amount
+
+                            reservation.advance_payment_currency = 'sol'
+                            reservation.save()
+
+                            # Registrar el uso del token
+                            try:
+                                PaymentToken.objects.create(
+                                    token=token,
+                                    reservation=reservation,
+                                    amount=amount,
+                                    transaction_id=payment.get('id'),
+                                    used_at=timezone.now()
+                                )
+                                logger.info(f"Token {token} registrado para {service_description} en reserva {reservation.id}")
+                            except Exception as token_creation_error:
+                                logger.error(f"Error al registrar token: {token_creation_error}")
+
+                            logger.info(f"Pago de {service_description} exitoso para reserva {reservation.id}. Transaction ID: {payment.get('id')}")
+
+                            # Notificar por Telegram
+                            try:
+                                from ..core.telegram_notifier import send_telegram_message
+                                from django.conf import settings
+
+                                client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
+
+                                from .signals import format_date_es
+                                check_in_date = format_date_es(reservation.check_in_date)
+                                check_out_date = format_date_es(reservation.check_out_date)
+
+                                telegram_message = (
+                                    f"🔥 **SERVICIO ADICIONAL PAGADO** 🔥\n"
+                                    f"Servicio: {service_description}\n"
+                                    f"Cliente: {client_name}\n"
+                                    f"Propiedad: {reservation.property.name}\n"
+                                    f"Check-in: {check_in_date}\n"
+                                    f"Check-out: {check_out_date}\n"
+                                    f"💰 Monto: S/{amount:.2f}\n"
+                                    f"🆔 Transaction ID: {payment.get('id')}\n"
+                                    f"📱 Teléfono: +{reservation.client.tel_number}\n"
+                                    f"✅ Estado: Aprobado automáticamente"
+                                )
+
+                                send_telegram_message(telegram_message, settings.CLIENTS_CHAT_ID)
+                                logger.info(f"Notificación de {service_description} enviada por Telegram para reserva {reservation.id}")
+
+                            except Exception as telegram_error:
+                                logger.error(f"Error enviando notificación por Telegram: {telegram_error}")
+
+                            return Response({
+                                'success': True,
+                                'message': f'{service_description} activado exitosamente',
+                                'reservation_id': reservation.id,
+                                'service_type': service_type,
+                                'transaction_id': payment.get('id'),
+                                'payment_status': payment.get('status'),
+                                'amount': amount,
+                                'currency': 'SOL'
+                            })
+                        else:
+                            logger.warning(f"Pago de {service_description} no completado para reserva {reservation.id}. Status: {payment.get('status')}")
+                            return Response({
+                                'success': False,
+                                'message': f"Pago no completado. Estado: {payment.get('status')}",
+                                'payment_detail': payment.get('status_detail', '')
+                            }, status=400)
+                    else:
+                        logger.error(f"Error de MercadoPago para {service_description}: {response.text}")
+                        try:
+                            error_details = response.json()
+                            error_msg = error_details.get('message', 'Error desconocido')
+                        except:
+                            error_msg = 'Error de conexión'
+
+                        return Response({
+                            'success': False,
+                            'message': f'Error procesando el pago: {error_msg}'
+                        }, status=400)
+
+                except requests.RequestException as e:
+                    logger.error(f"Error de conexión MercadoPago para {service_type}: {str(e)}")
+                    return Response({
+                        'success': False,
+                        'message': 'Error de conexión con el procesador de pagos'
+                    }, status=500)
+
+        except Reservation.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Reserva no encontrada'
+            }, status=404)
+        except Exception as e:
+            logger.error(f"Error procesando pago de servicio adicional para reserva {reservation_id}: {str(e)}")
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)

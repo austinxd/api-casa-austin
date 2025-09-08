@@ -12,7 +12,7 @@ from .views import (
     PropertyCalendarOccupancyAPIView,
     MonthlyReservationsExportAPIView
 )
-from .payment_views import ProcessPaymentView
+from .payment_views import ProcessPaymentView, ProcessAdditionalServicesPaymentView
 
 router = DefaultRouter()
 
@@ -30,5 +30,6 @@ urlpatterns = [
     path('confirm/<str:uuid>/', confirm_reservation, name='confirm_reservation'),
     path('property/<str:property_id>/calendar-occupancy/', PropertyCalendarOccupancyAPIView.as_view(), name='property-calendar-occupancy'),
     path('payment/process/<str:reservation_id>/', ProcessPaymentView.as_view(), name='process-payment'),
+    path('payment/additional-services/<str:reservation_id>/', ProcessAdditionalServicesPaymentView.as_view(), name='process-additional-services-payment'),
     path('export/monthly/', MonthlyReservationsExportAPIView.as_view(), name='monthly-reservations-export'),
 ]
