@@ -358,6 +358,7 @@ class CancellationPolicyAdmin(admin.ModelAdmin):
     make_default.short_description = "Marcar como política por defecto"
 
 
+@admin.register(AutomaticDiscount)
 class AutomaticDiscountAdmin(admin.ModelAdmin):
     list_display = ('name', 'trigger', 'discount_percentage', 'max_discount_usd', 'get_date_validity', 'get_required_achievements', 'restrict_weekdays', 'restrict_weekends', 'apply_only_to_base_price', 'is_active')
     list_filter = ('trigger', 'restrict_weekdays', 'restrict_weekends', 'is_active')
@@ -397,6 +398,14 @@ class AutomaticDiscountAdmin(admin.ModelAdmin):
             return "♾️ Siempre activo"
     get_date_validity.short_description = "Vigencia"
 
+    def get_required_achievements(self, obj):
+        """Muestra los logros requeridos de forma legible"""
+        achievements = obj.required_achievements.all()
+        if not achievements:
+            return "Sin restricciones de logros"
+        return ", ".join([achievement.name for achievement in achievements])
+    get_required_achievements.short_description = "Logros Requeridos"
+
 
 
 @admin.register(LateCheckoutConfig)
@@ -405,7 +414,7 @@ class LateCheckoutConfigAdmin(admin.ModelAdmin):
     list_filter = ('allows_late_checkout', 'discount_type', 'is_active')
     list_editable = ('allows_late_checkout', 'discount_value', 'is_active')
     ordering = ['weekday']
-    
+
     fieldsets = (
         ('Configuración del Día', {
             'fields': ('name', 'weekday', 'allows_late_checkout', 'is_active')
@@ -415,20 +424,12 @@ class LateCheckoutConfigAdmin(admin.ModelAdmin):
             'description': 'Descuento que se aplica cuando se cotiza un late checkout'
         }),
     )
-    
+
     def get_weekday_display(self, obj):
         """Muestra el día de la semana en formato legible"""
         return obj.get_weekday_display()
     get_weekday_display.short_description = "Día de la semana"
     get_weekday_display.admin_order_field = 'weekday'
-
-    def get_required_achievements(self, obj):
-        """Muestra los logros requeridos de forma legible"""
-        achievements = obj.required_achievements.all()
-        if not achievements:
-            return "Sin restricciones de logros"
-        return ", ".join([achievement.name for achievement in achievements])
-    get_required_achievements.short_description = "Logros Requeridos"
 
 
 @admin.register(DynamicDiscountConfig)
