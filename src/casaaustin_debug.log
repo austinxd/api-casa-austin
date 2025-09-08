@@ -4538,3 +4538,33 @@ INFO 2025-09-07 13:37:25,525 pricing_models 5337 140450412895424 📅 Día de la
 INFO 2025-09-07 13:37:25,526 pricing_models 5337 140450412895424 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
 INFO 2025-09-07 13:37:25,527 pricing_models 5337 140450412895424 🎯 Evaluando trigger global: base_price_discount
 INFO 2025-09-07 13:37:25,527 pricing_models 5337 140450412895424 🌍 Trigger base_price_discount aplicado globalmente
+INFO 2025-09-08 09:29:00,976 pricing_service 1375 139749468837568 🔍 Validando protección de fechas especiales para casa 1
+INFO 2025-09-08 09:29:00,981 pricing_service 1375 139749468837568 📅 Check-in: 2025-09-24, Check-out: 2025-09-25, Noches: 1
+INFO 2025-09-08 09:29:00,983 pricing_service 1375 139749468837568 🎯 Fecha especial: 31/12/2025 (None)
+INFO 2025-09-08 09:29:00,984 pricing_service 1375 139749468837568 🛡️  Rango protegido: 31/12/2025 a 31/12/2025
+INFO 2025-09-08 09:29:00,984 pricing_service 1375 139749468837568 📏 Noches mínimas requeridas: 1
+INFO 2025-09-08 09:29:00,985 pricing_service 1375 139749468837568 🎯 Fecha especial: 31/12/2026 (None)
+INFO 2025-09-08 09:29:00,985 pricing_service 1375 139749468837568 🛡️  Rango protegido: 31/12/2026 a 31/12/2026
+INFO 2025-09-08 09:29:00,985 pricing_service 1375 139749468837568 📏 Noches mínimas requeridas: 1
+INFO 2025-09-08 09:29:00,985 pricing_service 1375 139749468837568 ✅ Validación de protección de fechas especiales completada exitosamente
+INFO 2025-09-08 09:29:01,002 pricing_service 1375 139749468837568 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-09-08 09:29:01,003 pricing_service 1375 139749468837568 👤 Sin cliente - evaluando descuentos globales
+INFO 2025-09-08 09:29:01,005 pricing_service 1375 139749468837568 📋 Descuentos automáticos disponibles: 4
+INFO 2025-09-08 09:29:01,007 pricing_service 1375 139749468837568 🔍 Evaluando: 'Cumpleaños' - Trigger: 'birthday'
+INFO 2025-09-08 09:29:01,013 pricing_service 1375 139749468837568 🎯 Logros requeridos para 'Cumpleaños': ['VIP Casa Austin']
+INFO 2025-09-08 09:29:01,013 pricing_service 1375 139749468837568 ❌ Sin cliente - descuento requiere logros específicos
+INFO 2025-09-08 09:29:01,019 pricing_service 1375 139749468837568 🔍 Evaluando: 'clientefrecuente' - Trigger: 'returning'
+INFO 2025-09-08 09:29:01,024 pricing_service 1375 139749468837568 🎯 Logros requeridos para 'clientefrecuente': ['Curioso', 'Cliente Casa Austin', 'Huésped Frecuente']
+INFO 2025-09-08 09:29:01,024 pricing_service 1375 139749468837568 ❌ Sin cliente - descuento requiere logros específicos
+INFO 2025-09-08 09:29:01,025 pricing_service 1375 139749468837568 🔍 Evaluando: '50off ultimo minuto' - Trigger: 'last_minute'
+INFO 2025-09-08 09:29:01,030 pricing_service 1375 139749468837568 🎯 Logros requeridos para '50off ultimo minuto': ['Curioso']
+INFO 2025-09-08 09:29:01,030 pricing_service 1375 139749468837568 ❌ Sin cliente - descuento requiere logros específicos
+INFO 2025-09-08 09:29:01,032 pricing_service 1375 139749468837568 🔍 Evaluando: 'precio base' - Trigger: 'global_promotion'
+INFO 2025-09-08 09:29:01,035 pricing_service 1375 139749468837568 🌍 'precio base' es una PROMOCIÓN GLOBAL
+INFO 2025-09-08 09:29:01,036 pricing_models 1375 139749468837568 🌍 Evaluando descuento GLOBAL 'precio base' con trigger 'global_promotion'
+INFO 2025-09-08 09:29:01,037 pricing_models 1375 139749468837568 📅 Día de la semana: 2 (Miércoles) - Día de semana
+INFO 2025-09-08 09:29:01,040 pricing_models 1375 139749468837568 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-09-08 09:29:01,042 pricing_models 1375 139749468837568 🎯 Evaluando trigger global: global_promotion
+INFO 2025-09-08 09:29:01,043 pricing_models 1375 139749468837568 🌍 Promoción global - Aplicable sin cliente
+ERROR 2025-09-08 09:29:01,044 pricing_service 1375 139749468837568 ❌ Error evaluando descuento precio base: type object 'DiscountTrigger' has no attribute 'BASE_PRICE_DISCOUNT'
+INFO 2025-09-08 09:29:01,044 pricing_service 1375 139749468837568 ❌ No se encontraron descuentos automáticos aplicables
