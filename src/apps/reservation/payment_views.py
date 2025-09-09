@@ -88,8 +88,9 @@ class ProcessPaymentView(APIView):
             )
 
             # Datos del pago desde el frontend
+            from decimal import Decimal
             token = request.data.get('token')  # Token de MercadoPago
-            amount = float(request.data.get('amount', 0))
+            amount = Decimal(str(request.data.get('amount', 0)))
             payment_method_id = request.data.get('payment_method_id', 'visa')  # visa, mastercard, etc.
             installments = int(request.data.get('installments', 1))
 
@@ -480,8 +481,9 @@ class ProcessAdditionalServicesPaymentView(APIView):
             )
 
             # Datos del pago
+            from decimal import Decimal
             token = request.data.get('token')
-            amount = float(request.data.get('amount', 0))
+            amount = Decimal(str(request.data.get('amount', 0)))
             service_type = request.data.get('service_type')  # 'temperature_pool' o 'late_checkout'
             payment_method_id = request.data.get('payment_method_id', 'visa')
             installments = int(request.data.get('installments', 1))
