@@ -102,6 +102,14 @@ class Reservation(BaseModel):
         default=0,
         help_text="Precio cobrado por late checkout (uso extendido del día de salida)"
     )
+    price_temperature_pool = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True,
+        blank=True,
+        default=0,
+        help_text="Precio cobrado por temperado de piscina"
+    )
     # Campos para voucher de pago
     payment_voucher_deadline = models.DateTimeField(
         null=True, 

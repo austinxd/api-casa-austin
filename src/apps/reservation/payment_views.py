@@ -222,14 +222,14 @@ class ProcessPaymentView(APIView):
                     # Reintentar hasta 3 veces en caso de error 500
                     max_retries = 3
                     retry_count = 0
-                    
+
                     while retry_count < max_retries:
                         try:
                             response = requests.post(url, json=payment_data, headers=headers, timeout=30)
-                            
+
                             logger.info(f"MercadoPago Response - Status: {response.status_code} (Intento {retry_count + 1})")
                             logger.info(f"MercadoPago Response Headers: {dict(response.headers)}")
-                            
+
                             # Si es error 500, reintentar
                             if response.status_code == 500:
                                 retry_count += 1
@@ -248,7 +248,7 @@ class ProcessPaymentView(APIView):
                             else:
                                 # No es error 500, continuar con el procesamiento normal
                                 break
-                                
+
                         except requests.RequestException as e:
                             retry_count += 1
                             if retry_count < max_retries:
@@ -312,12 +312,12 @@ class ProcessPaymentView(APIView):
                             # Pago exitoso - actualizar reserva
                             reservation.full_payment = True
                             reservation.status = 'approved'
-                            
+
                             # Actualizar advance_payment para que el frontend calcule resta_pagar = 0
                             # El pago con MercadoPago siempre es en soles (price_sol)
                             reservation.advance_payment = amount  # amount ya viene en soles
                             reservation.advance_payment_currency = 'sol'
-                            
+
                             reservation.save()
 
                             # Registrar el uso del token
@@ -342,14 +342,14 @@ class ProcessPaymentView(APIView):
                             try:
                                 from ..core.telegram_notifier import send_telegram_message
                                 from django.conf import settings
-                                
+
                                 client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
-                                
+
                                 # Formatear fechas en español
                                 from .signals import format_date_es
                                 check_in_date = format_date_es(reservation.check_in_date)
                                 check_out_date = format_date_es(reservation.check_out_date)
-                                
+
                                 telegram_message = (
                                     f"💳 **PAGO CON TARJETA PROCESADO** 💳\n"
                                     f"Cliente: {client_name}\n"
@@ -361,11 +361,11 @@ class ProcessPaymentView(APIView):
                                     f"📱 Teléfono: +{reservation.client.tel_number}\n"
                                     f"✅ Estado: Aprobado automáticamente"
                                 )
-                                
+
                                 # Enviar al canal de clientes
                                 send_telegram_message(telegram_message, settings.CLIENTS_CHAT_ID)
                                 logger.info(f"Notificación de pago con tarjeta enviada por Telegram para reserva {reservation.id}")
-                                
+
                             except Exception as telegram_error:
                                 logger.error(f"Error enviando notificación por Telegram para pago con tarjeta: {telegram_error}")
 
@@ -379,7 +379,7 @@ class ProcessPaymentView(APIView):
                                 'currency': 'SOL'
                             })
                         else:
-                            logger.warning(f"Pago no completado para reserva {reservation.id}. Status: {payment.get('status')}")
+                            logger.warn(f"Pago no completado para reserva {reservation.id}. Status: {payment.get('status')}")
                             return Response({
                                 'success': False,
                                 'message': f"Pago no completado. Estado: {payment.get('status')}",
@@ -597,8 +597,27 @@ class ProcessAdditionalServicesPaymentView(APIView):
                             # Pago exitoso - activar el servicio correspondiente
                             if service_type == 'temperature_pool':
                                 reservation.temperature_pool = True
+                                # Guardar el precio del temperado pagado (en soles)
+                                reservation.price_temperature_pool = amount
+                                # Sumar el precio del temperado a los precios totales de la reserva
+                                reservation.price_sol += amount
+                                # Calcular equivalente en dólares usando tipo de cambio actual
+                                from apps.property.pricing_service import PricingCalculationService
+                                pricing_service = PricingCalculationService()
+                                amount_usd = amount / pricing_service.exchange_rate
+                                reservation.price_usd += amount_usd
+
                             elif service_type == 'late_checkout':
                                 reservation.late_checkout = True
+                                # Guardar el precio del late checkout pagado (en soles)
+                                reservation.price_latecheckout = amount
+                                # Sumar el precio del late checkout a los precios totales de la reserva
+                                reservation.price_sol += amount
+                                # Calcular equivalente en dólares usando tipo de cambio actual
+                                from apps.property.pricing_service import PricingCalculationService
+                                pricing_service = PricingCalculationService()
+                                amount_usd = amount / pricing_service.exchange_rate
+                                reservation.price_usd += amount_usd
 
                             # Actualizar advance_payment sumando el adicional
                             if reservation.advance_payment:
@@ -665,7 +684,7 @@ class ProcessAdditionalServicesPaymentView(APIView):
                                 'currency': 'SOL'
                             })
                         else:
-                            logger.warning(f"Pago de {service_description} no completado para reserva {reservation.id}. Status: {payment.get('status')}")
+                            logger.warn(f"Pago de {service_description} no completado para reserva {reservation.id}. Status: {payment.get('status')}")
                             return Response({
                                 'success': False,
                                 'message': f"Pago no completado. Estado: {payment.get('status')}",
@@ -690,6 +709,12 @@ class ProcessAdditionalServicesPaymentView(APIView):
                         'success': False,
                         'message': 'Error de conexión con el procesador de pagos'
                     }, status=500)
+                except Exception as e:
+                    logger.error(f"Error general MercadoPago para {service_type}: {str(e)}")
+                    return Response({
+                        'success': False,
+                        'message': f'Error procesando el pago: {str(e)}'
+                    }, status=400)
 
         except Reservation.DoesNotExist:
             return Response({
