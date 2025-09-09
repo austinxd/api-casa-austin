@@ -25,8 +25,8 @@ urlpatterns = [
     path("prop/check-avaible/", CheckAvaiblePorperty.as_view()),
     path('properties/<int:property_id>/photos/', PropertyPhotoViewSet.as_view({'get': 'list', 'post': 'create'}), name='property-photos'),
     # Endpoint para calcular precios
-    path('calculate-pricing/', CalculatePricingAPIView.as_view(), name='calculate-pricing'),
-    path('calculate-late-checkout/', CalculateLateCheckoutPricingAPIView.as_view(), name='calculate-late-checkout'), # Nuevo endpoint para late checkout
+    path('properties/calculate-pricing/', CalculatePricingAPIView.as_view(), name='calculate-pricing'),
+    path('properties/calculate-late-checkout/', CalculateLateCheckoutPricingAPIView.as_view(), name='calculate-late-checkout'), # Nuevo endpoint para late checkout
     path('properties/generate-simple-discount/', GenerateSimpleDiscountAPIView.as_view(), name='generate-simple-discount'),
     # Endpoint para generar códigos dinámicos
     path('properties/generate-discount/', GenerateDynamicDiscountAPIView.as_view(), name='generate-discount'),
