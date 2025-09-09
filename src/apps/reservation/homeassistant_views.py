@@ -37,7 +37,9 @@ class HomeAssistantReservationView(APIView):
                     "check_out_date": {"type": "string"},
                     "temperature_pool": {"type": "integer"},
                     "full_payment": {"type": "integer"},
-                    "property_name": {"type": "string"}
+                    "property_name": {"type": "string"},
+                    "highest_achievement": {"type": "string"},
+                    "points_balance": {"type": "integer"}
                 }
             },
             400: {
@@ -117,6 +119,29 @@ class HomeAssistantReservationView(APIView):
             check_in_formatted = active_reservation.check_in_date.strftime('%d de %B')
             check_out_formatted = active_reservation.check_out_date.strftime('%d de %B')
 
+            # Obtener el nivel más alto (logro más importante) del cliente
+            from apps.clients.models import ClientAchievement
+            highest_achievement = None
+            highest_achievement_name = ""
+            
+            earned_achievements = ClientAchievement.objects.filter(
+                client=active_reservation.client,
+                deleted=False
+            ).select_related('achievement').order_by(
+                '-achievement__required_reservations',
+                '-achievement__required_referrals',
+                '-achievement__required_referral_reservations'
+            )
+
+            if earned_achievements.exists():
+                highest_achievement_obj = earned_achievements.first()
+                icon = highest_achievement_obj.achievement.icon or ""
+                name = highest_achievement_obj.achievement.name
+                highest_achievement_name = f"{icon} {name}" if icon else name
+
+            # Obtener puntos disponibles del cliente
+            available_points = active_reservation.client.get_available_points()
+
             return Response({
                 "client_id": str(active_reservation.client.id),
                 "first_name": first_name,
@@ -126,7 +151,9 @@ class HomeAssistantReservationView(APIView):
                 "temperature_pool": 1 if active_reservation.temperature_pool else 0,
                 "full_payment": 1 if active_reservation.full_payment else 0,
                 "property_name": property_obj.name,
-                "reservation_id": str(active_reservation.id)
+                "reservation_id": str(active_reservation.id),
+                "highest_achievement": highest_achievement_name,
+                "points_balance": int(available_points)
             })
         else:
             # No hay reserva activa
@@ -139,5 +166,7 @@ class HomeAssistantReservationView(APIView):
                 "temperature_pool": 0,
                 "full_payment": 0,
                 "property_name": property_obj.name,
-                "reservation_id": "none"
+                "reservation_id": "none",
+                "highest_achievement": "Sin reserva activa",
+                "points_balance": 0
             })
