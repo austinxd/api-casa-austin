@@ -1,0 +1,151 @@
+<?php
+header('Content-Type: application/json');
+
+// Configuración de la base de datos
+$db_config = [
+    'user' => 'Reservas',
+    'password' => '!Leonel123',
+    'host' => 'localhost',
+    'database' => 'ReservasCA',
+];
+
+// Crear una conexión a la base de datos
+$conn = new mysqli($db_config['host'], $db_config['user'], $db_config['password'], $db_config['database']);
+
+// Verificar la conexión
+if ($conn->connect_error) {
+    http_response_code(500);
+    die(json_encode(['error' => 'Error de conexión a la base de datos: ' . $conn->connect_error]));
+}
+
+// Obtener los parámetros 'property', 'action', y 'set_temperature_pool' del GET
+$property = isset($_GET['property']) ? strtoupper($_GET['property']) : '';
+$action = isset($_GET['action']) ? $_GET['action'] : '';
+$set_temperature_pool = isset($_GET['set_temperature_pool']) ? intval($_GET['set_temperature_pool']) : null;
+
+if (empty($property)) {
+    http_response_code(400);
+    die(json_encode(['error' => 'El parámetro "property" es requerido']));
+}
+
+// Validar el valor de 'property'
+$valid_properties = [
+    'CA1' => '573c665065a74e81883a2b910159731b',
+    'CA2' => '9a04892a4ba54b1092b52a72f6d89d57',
+    'CA3' => '0ff9b525ff7c4be3b8723937d958c1a6',
+    'CA4' => 'd9d4e844c38f4adeaa5c5def19652ad0'
+];
+
+if (!array_key_exists($property, $valid_properties)) {
+    http_response_code(400);
+    die(json_encode(['error' => 'El parámetro "property" no es válido']));
+}
+
+$property_id = $valid_properties[$property];
+
+// Si se envía la acción 'update' y 'set_temperature_pool' está definido, actualiza el valor en la base de datos
+if ($action === 'update' && $set_temperature_pool !== null) {
+    // Asegurarse de que el valor sea 0 o 1
+    if ($set_temperature_pool !== 0 && $set_temperature_pool !== 1) {
+        http_response_code(400);
+        die(json_encode(['error' => 'El valor de "set_temperature_pool" debe ser 0 o 1']));
+    }
+
+    // Actualizar el valor de 'temperature_pool'
+    $update_query = "UPDATE reservation_reservation SET temperature_pool = ? WHERE property_id = ? AND (check_in_date + INTERVAL 13 HOUR <= NOW() AND NOW() < check_out_date + INTERVAL 11 HOUR)";
+    $stmt = $conn->prepare($update_query);
+
+    if ($stmt === false) {
+        http_response_code(500);
+        die(json_encode(['error' => 'Error al preparar la consulta SQL: ' . $conn->error]));
+    }
+
+    $stmt->bind_param('is', $set_temperature_pool, $property_id);
+    $stmt->execute();
+
+    if ($stmt->affected_rows > 0) {
+        echo json_encode(['status' => 'success', 'message' => 'El valor de "temperature_pool" se ha actualizado a ' . $set_temperature_pool]);
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'No se encontró ninguna reserva activa para actualizar']);
+    }
+
+    $stmt->close();
+    $conn->close();
+    exit(); // Termina aquí para evitar que se ejecute el código de consulta después
+}
+
+// Consulta para obtener las reservas activas por property_id considerando los horarios de check-in y check-out
+$query = "SELECT r.client_id, c.first_name, c.last_name, r.check_in_date, r.check_out_date, r.temperature_pool, r.full_payment 
+          FROM reservation_reservation r 
+          JOIN clients_clients c ON r.client_id = c.id 
+          WHERE (
+            (r.check_in_date + INTERVAL 13 HOUR <= NOW() AND NOW() < r.check_out_date + INTERVAL 11 HOUR)
+          )
+          AND r.deleted = 0
+          AND r.property_id = ?";
+
+$stmt = $conn->prepare($query);
+
+if ($stmt === false) {
+    http_response_code(500);
+    die(json_encode(['error' => 'Error al preparar la consulta SQL: ' . $conn->error]));
+}
+
+$stmt->bind_param('s', $property_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+// Función para formatear la fecha
+function format_date($date, $time) {
+    setlocale(LC_TIME, 'es_ES.UTF-8'); // Establecer la localización en español
+    return strftime('%d de %B', strtotime($date . ' ' . $time));
+}
+
+// Verificar si hay resultados
+$response = [];
+if ($result->num_rows > 0) {
+    $reservas_activas = [];
+    
+    while ($row = $result->fetch_assoc()) {
+        $first_name = explode(' ', $row['first_name'])[0];
+        $last_name = explode(' ', $row['last_name'])[0];
+        $check_in_date = format_date($row['check_in_date'], '15:00:00');
+        $check_out_date = format_date($row['check_out_date'], '11:00:00');
+        
+        $reservas_activas[] = [
+            'client_id' => $row['client_id'],
+            'first_name' => $first_name,
+            'last_name' => $last_name,
+            'check_in_date' => $check_in_date,
+            'check_out_date' => $check_out_date,
+            'temperature_pool' => $row['temperature_pool'],
+            'full_payment' => $row['full_payment']
+        ];
+    }
+    
+    $response['reservas_activas'] = $reservas_activas;
+} else {
+    $response['reservas_activas'] = [
+        [
+            'client_id' => 'Reserva no activa',
+            'first_name' => 'Reserva no activa',
+            'last_name' => 'Reserva no activa',
+            'check_in_date' => 'Reserva no activa',
+            'check_out_date' => 'Reserva no activa',
+            'temperature_pool' => 0,
+            'full_payment' => 0
+        ]
+    ];
+}
+
+// Depuración: Mostrar la consulta ejecutada y el número de filas encontradas
+$response['debug'] = [
+    'query' => $query,
+    'num_rows' => $result->num_rows
+];
+
+echo json_encode($response);
+
+$stmt->close();
+$conn->close();
+?>
