@@ -600,28 +600,31 @@ class ProcessAdditionalServicesPaymentView(APIView):
                                 # Guardar el precio del temperado pagado (en soles)
                                 reservation.price_temperature_pool = amount
                                 # Sumar el precio del temperado a los precios totales de la reserva
-                                reservation.price_sol += amount
+                                from decimal import Decimal
+                                reservation.price_sol = (reservation.price_sol or Decimal('0')) + amount
                                 # Calcular equivalente en dólares usando tipo de cambio actual
                                 from apps.property.pricing_service import PricingCalculationService
                                 pricing_service = PricingCalculationService()
-                                amount_usd = amount / pricing_service.exchange_rate
-                                reservation.price_usd += amount_usd
+                                amount_usd = amount / Decimal(str(pricing_service.exchange_rate))
+                                reservation.price_usd = (reservation.price_usd or Decimal('0')) + amount_usd
 
                             elif service_type == 'late_checkout':
                                 reservation.late_checkout = True
                                 # Guardar el precio del late checkout pagado (en soles)
                                 reservation.price_latecheckout = amount
                                 # Sumar el precio del late checkout a los precios totales de la reserva
-                                reservation.price_sol += amount
+                                from decimal import Decimal
+                                reservation.price_sol = (reservation.price_sol or Decimal('0')) + amount
                                 # Calcular equivalente en dólares usando tipo de cambio actual
                                 from apps.property.pricing_service import PricingCalculationService
                                 pricing_service = PricingCalculationService()
-                                amount_usd = amount / pricing_service.exchange_rate
-                                reservation.price_usd += amount_usd
+                                amount_usd = amount / Decimal(str(pricing_service.exchange_rate))
+                                reservation.price_usd = (reservation.price_usd or Decimal('0')) + amount_usd
 
                             # Actualizar advance_payment sumando el adicional
+                            from decimal import Decimal
                             if reservation.advance_payment:
-                                reservation.advance_payment += amount
+                                reservation.advance_payment = (reservation.advance_payment or Decimal('0')) + amount
                             else:
                                 reservation.advance_payment = amount
 
