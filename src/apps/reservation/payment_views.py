@@ -610,6 +610,11 @@ class ProcessAdditionalServicesPaymentView(APIView):
 
                             elif service_type == 'late_checkout':
                                 reservation.late_checkout = True
+                                # Guardar la fecha original de check-out antes de modificarla
+                                reservation.late_check_out_date = reservation.check_out_date
+                                # Extender el check-out en +1 día
+                                from datetime import timedelta
+                                reservation.check_out_date = reservation.check_out_date + timedelta(days=1)
                                 # Guardar el precio del late checkout pagado (en soles)
                                 reservation.price_latecheckout = amount
                                 # Sumar el precio del late checkout a los precios totales de la reserva
