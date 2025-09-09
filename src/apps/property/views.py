@@ -249,6 +249,141 @@ class PropertyPhotoViewSet(viewsets.ModelViewSet):
         return Response({"error": "No se recibió ningún archivo"}, status=400)
 
 
+class CalculateLateCheckoutPricingAPIView(APIView):
+    """
+    Endpoint específico para calcular precio de late checkout
+    GET /api/v1/properties/calculate-late-checkout/
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='property_id',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='UUID de la propiedad',
+                required=True
+            ),
+            OpenApiParameter(
+                name='checkout_date',
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                description='Fecha de checkout deseada (YYYY-MM-DD)',
+                required=True
+            ),
+            OpenApiParameter(
+                name='guests',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description='Número de huéspedes (por defecto: 1)',
+                required=False
+            ),
+        ],
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'data': {
+                        'type': 'object',
+                        'properties': {
+                            'is_available': {'type': 'boolean'},
+                            'property_name': {'type': 'string'},
+                            'checkout_date': {'type': 'string', 'format': 'date'},
+                            'checkout_day': {'type': 'string'},
+                            'base_price_usd': {'type': 'number'},
+                            'base_price_sol': {'type': 'number'},
+                            'discount_percentage': {'type': 'number'},
+                            'late_checkout_price_usd': {'type': 'number'},
+                            'late_checkout_price_sol': {'type': 'number'},
+                            'message': {'type': 'string'}
+                        }
+                    }
+                }
+            },
+            400: 'Bad Request - Parámetros inválidos',
+            404: 'Not Found - Propiedad no encontrada'
+        },
+        description='Calcula el precio para late checkout verificando disponibilidad y aplicando descuento'
+    )
+    def get(self, request):
+        try:
+            # Validar parámetros requeridos
+            property_id = request.query_params.get('property_id')
+            checkout_date_str = request.query_params.get('checkout_date')
+            guests_str = request.query_params.get('guests', '1')
+
+            if not all([property_id, checkout_date_str]):
+                return Response({
+                    'success': False,
+                    'error': 1,
+                    'message': 'Parámetros requeridos: property_id, checkout_date'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Validar property_id
+            try:
+                from uuid import UUID
+                UUID(property_id)
+                property_obj = Property.objects.filter(id=property_id, deleted=False).first()
+                if not property_obj:
+                    return Response({
+                        'success': False,
+                        'error': 2,
+                        'message': 'Propiedad no encontrada'
+                    }, status=status.HTTP_404_NOT_FOUND)
+            except ValueError:
+                return Response({
+                    'success': False,
+                    'error': 3,
+                    'message': 'property_id debe ser un UUID válido'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Parsear fecha de checkout
+            try:
+                from datetime import datetime
+                checkout_date = datetime.strptime(checkout_date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return Response({
+                    'success': False,
+                    'error': 4,
+                    'message': 'Formato de fecha inválido. Use YYYY-MM-DD'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Validar número de huéspedes
+            try:
+                guests = int(guests_str)
+                if guests < 1:
+                    raise ValueError()
+            except ValueError:
+                return Response({
+                    'success': False,
+                    'error': 5,
+                    'message': 'El número de huéspedes debe ser un entero mayor a 0'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Calcular precio de late checkout
+            pricing_service = PricingCalculationService()
+            late_checkout_data = pricing_service.calculate_late_checkout_pricing(
+                property_obj, checkout_date, guests
+            )
+
+            return Response({
+                'success': True,
+                'error': 0,
+                'data': late_checkout_data,
+                'message': 'Cálculo de late checkout realizado exitosamente'
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': 6,
+                'message': 'Error interno del servidor',
+                'detail': str(e) if settings.DEBUG else None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class CalculatePricingAPIView(APIView):
     """
     Endpoint público para calcular precios de propiedades
@@ -307,13 +442,7 @@ class CalculatePricingAPIView(APIView):
                 description='UUIDs de servicios adicionales separados por comas (ej: 6d3d74ed-54a1-422a-b244-582848a169d2,uuid2)',
                 required=False
             ),
-            OpenApiParameter(
-                name='latecheckout',
-                type=OpenApiTypes.BOOL,
-                location=OpenApiParameter.QUERY,
-                description='Indica si es una consulta de late checkout (true/false)',
-                required=False
-            ),
+            
         ],
         responses={
             200: PricingCalculationSerializer,
@@ -379,7 +508,6 @@ class CalculatePricingAPIView(APIView):
             client_id = request.query_params.get('client_id')
             discount_code = request.query_params.get('discount_code')
             additional_services_param = request.query_params.get('additional_services')
-            late_checkout = request.query_params.get('latecheckout', 'false').lower() == 'true'
 
             # Validar property_id si se proporciona
             if property_id:
@@ -491,8 +619,7 @@ class CalculatePricingAPIView(APIView):
                 property_id=property_id,
                 client_id=client_id,
                 discount_code=discount_code,
-                additional_services_ids=additional_services_ids,
-                late_checkout=late_checkout
+                additional_services_ids=additional_services_ids
             )
 
             return Response({
