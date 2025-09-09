@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('reservation', '0018_add_price_latecheckout_field'),
+        ('reservation', '0017_reservation_price_latecheckout'),
     ]
 
     operations = [
