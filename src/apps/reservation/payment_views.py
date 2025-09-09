@@ -156,7 +156,7 @@ class ProcessPaymentView(APIView):
 
                     # Datos del pago para MercadoPago API
                     payment_data = {
-                        "transaction_amount": amount,
+                        "transaction_amount": float(amount),
                         "token": token,
                         "description": f"Pago reserva #{reservation.id} - {reservation.property.name}",
                         "external_reference": unique_external_reference,
@@ -182,7 +182,7 @@ class ProcessPaymentView(APIView):
                                     "id": str(reservation.property.id),
                                     "title": reservation.property.name,
                                     "quantity": 1,
-                                    "unit_price": amount
+                                    "unit_price": float(amount)
                                 }
                             ]
                         }
@@ -544,7 +544,7 @@ class ProcessAdditionalServicesPaymentView(APIView):
 
                     # Datos del pago para MercadoPago
                     payment_data = {
-                        "transaction_amount": amount,
+                        "transaction_amount": float(amount),
                         "token": token,
                         "description": f"{service_description} - Reserva #{reservation.id} - {reservation.property.name}",
                         "external_reference": unique_external_reference,
@@ -570,7 +570,7 @@ class ProcessAdditionalServicesPaymentView(APIView):
                                     "id": f"{reservation.property.id}-{service_type}",
                                     "title": f"{service_description} - {reservation.property.name}",
                                     "quantity": 1,
-                                    "unit_price": amount
+                                    "unit_price": float(amount)
                                 }
                             ]
                         }
