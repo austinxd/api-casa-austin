@@ -107,20 +107,37 @@ class HomeAssistantReservationView(APIView):
         logger.error(f"HomeAssistant DEBUG - Approved non-deleted reservations: {basic_reservations.count()}")
         
         # Buscar reserva activa considerando los horarios
-        # Una reserva está activa si:
-        # - Es hoy y ya pasó la hora de check-in (15:00)
-        # - O es antes del check-out de hoy (11:00) si checkout es hoy
-        # - O estamos entre las fechas de la reserva
-        active_reservation = basic_reservations.filter(
-            Q(
-                # Reserva que inicia hoy y ya pasó la hora de check-in
-                (Q(check_in_date=today) & Q(check_out_date__gt=today)) |
-                # Reserva que termina hoy pero aún no es hora de check-out
-                (Q(check_out_date=today) & Q(check_in_date__lt=today)) |
-                # Reserva en curso (entre fechas)
-                (Q(check_in_date__lt=today) & Q(check_out_date__gt=today))
+        # Prioridad: 1) Reservas que inician hoy, 2) Reservas en curso, 3) Reservas que terminan hoy
+        active_reservation = None
+        
+        # PRIMERA PRIORIDAD: Reserva que inicia hoy
+        reservations_starting_today = basic_reservations.filter(
+            check_in_date=today,
+            check_out_date__gt=today
+        )
+        if reservations_starting_today.exists():
+            active_reservation = reservations_starting_today.first()
+            logger.error(f"HomeAssistant DEBUG - Found reservation STARTING today: {active_reservation.id}")
+        
+        # SEGUNDA PRIORIDAD: Reserva en curso (entre fechas)
+        if not active_reservation:
+            reservations_in_progress = basic_reservations.filter(
+                check_in_date__lt=today,
+                check_out_date__gt=today
             )
-        ).first()
+            if reservations_in_progress.exists():
+                active_reservation = reservations_in_progress.first()
+                logger.error(f"HomeAssistant DEBUG - Found reservation IN PROGRESS: {active_reservation.id}")
+        
+        # TERCERA PRIORIDAD: Reserva que termina hoy
+        if not active_reservation:
+            reservations_ending_today = basic_reservations.filter(
+                check_out_date=today,
+                check_in_date__lt=today
+            )
+            if reservations_ending_today.exists():
+                active_reservation = reservations_ending_today.first()
+                logger.error(f"HomeAssistant DEBUG - Found reservation ENDING today: {active_reservation.id}")
 
         logger.error(f"HomeAssistant DEBUG - Active reservation found: {active_reservation.id if active_reservation else 'None'}")
         logger.error(f"HomeAssistant DEBUG - Current date: {today}, Current time: {current_time}")
@@ -135,8 +152,8 @@ class HomeAssistantReservationView(APIView):
             if active_reservation.check_in_date == today and current_time < check_in_time:
                 logger.error(f"HomeAssistant DEBUG - Reservation starts today but current time {current_time} < check-in time {check_in_time}")
                 active_reservation = None
-            # Si la reserva termina hoy, verificar que no sea después de las 11:00
-            elif active_reservation.check_out_date == today and current_time >= check_out_time:
+            # Si la reserva termina hoy (y no inicia hoy), verificar que no sea después de las 11:00
+            elif active_reservation.check_out_date == today and active_reservation.check_in_date < today and current_time >= check_out_time:
                 logger.error(f"HomeAssistant DEBUG - Reservation ends today but current time {current_time} >= check-out time {check_out_time}")
                 active_reservation = None
             else:
