@@ -109,7 +109,7 @@ class AutomaticDiscountSerializer(serializers.ModelSerializer):
                 'icon': achievement.icon,
                 'required_reservations': achievement.required_reservations,
                 'required_referrals': achievement.required_referrals,
-                'required_points': achievement.required_points,
+                'required_referral_reservations': achievement.required_referral_reservations,
                 'order': achievement.order
             }
             for achievement in achievements
