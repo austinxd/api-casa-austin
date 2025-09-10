@@ -77,6 +77,10 @@ class ClientVoucherUploadView(APIView):
                 # Actualizar contadores
                 new_vouchers_count = existing_vouchers_count + 1
                 
+                # Log del voucher subido
+                voucher_description = "primer voucher" if new_vouchers_count == 1 else f"voucher #{new_vouchers_count}"
+                logger.info(f"Cliente {client.id} subió {voucher_description} para reserva {reservation.id}")
+                
                 # Marcar voucher como subido
                 reservation.payment_voucher_uploaded = True
                 
@@ -91,10 +95,16 @@ class ClientVoucherUploadView(APIView):
                 reservation.payment_confirmed = bool(payment_confirmed)
                 reservation.save()
 
+            # Crear mensaje descriptivo
+            voucher_description = "Primer voucher" if new_vouchers_count == 1 else f"Segundo voucher"
+            if new_vouchers_count > 2:
+                voucher_description = f"Voucher #{new_vouchers_count}"
+            
             return Response({
-                'message': f'Voucher #{new_vouchers_count} subido exitosamente',
+                'message': f'{voucher_description} subido exitosamente',
                 'reservation_id': reservation.id,
                 'vouchers_uploaded': new_vouchers_count,
+                'voucher_description': voucher_description,
                 'payment_confirmed': reservation.payment_confirmed
             })
 

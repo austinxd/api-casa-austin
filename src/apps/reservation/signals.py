@@ -162,7 +162,13 @@ def notify_voucher_uploaded(reservation):
     check_out_date = format_date_es(reservation.check_out_date)
     price_sol = f"{reservation.price_sol:.2f} soles"
 
-    voucher_message = (f"📄 **VOUCHER RECIBIDO** 📄\n"
+    # Contar vouchers existentes para esta reserva
+    vouchers_count = RentalReceipt.objects.filter(reservation=reservation).count()
+    voucher_info = "PRIMER VOUCHER" if vouchers_count == 1 else f"VOUCHER #{vouchers_count}"
+    if vouchers_count == 2:
+        voucher_info = "SEGUNDO VOUCHER"
+
+    voucher_message = (f"📄 **{voucher_info} RECIBIDO** 📄\n"
                        f"Cliente: {client_name}\n"
                        f"Propiedad: {reservation.property.name}\n"
                        f"Check-in: {check_in_date}\n"
