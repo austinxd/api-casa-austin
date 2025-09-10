@@ -442,7 +442,7 @@ class CalculatePricingAPIView(APIView):
                 description='UUIDs de servicios adicionales separados por comas (ej: 6d3d74ed-54a1-422a-b244-582848a169d2,uuid2)',
                 required=False
             ),
-
+            
         ],
         responses={
             200: PricingCalculationSerializer,
@@ -937,89 +937,6 @@ class GenerateDynamicDiscountAPIView(APIView):
             'data': list(configs),
             'message': f'{len(configs)} configuraciones disponibles'
         }, status=status.HTTP_200_OK)
-
-
-class AutomaticDiscountListAPIView(APIView):
-    """
-    Endpoint público para listar todos los descuentos automáticos activos
-    GET /api/v1/properties/automatic-discounts/
-    """
-    permission_classes = [AllowAny]
-
-    @extend_schema(
-        responses={
-            200: {
-                'type': 'object',
-                'properties': {
-                    'success': {'type': 'boolean'},
-                    'count': {'type': 'integer'},
-                    'data': {
-                        'type': 'array',
-                        'items': {
-                            'type': 'object',
-                            'properties': {
-                                'id': {'type': 'string'},
-                                'name': {'type': 'string'},
-                                'description': {'type': 'string'},
-                                'trigger': {'type': 'string'},
-                                'trigger_display': {'type': 'string'},
-                                'discount_percentage': {'type': 'number'},
-                                'max_discount_usd': {'type': 'number'},
-                                'required_achievements_detail': {
-                                    'type': 'array',
-                                    'items': {
-                                        'type': 'object',
-                                        'properties': {
-                                            'id': {'type': 'string'},
-                                            'name': {'type': 'string'},
-                                            'description': {'type': 'string'},
-                                            'icon': {'type': 'string'},
-                                            'required_reservations': {'type': 'integer'},
-                                            'required_referrals': {'type': 'integer'},
-                                            'required_points': {'type': 'integer'},
-                                            'order': {'type': 'integer'}
-                                        }
-                                    }
-                                },
-                                'restrict_weekdays': {'type': 'boolean'},
-                                'restrict_weekends': {'type': 'boolean'},
-                                'apply_only_to_base_price': {'type': 'boolean'},
-                                'is_active': {'type': 'boolean'}
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        description='Lista todos los descuentos automáticos activos con información completa de logros requeridos, incluyendo cantidad de reservas, referidos y puntos necesarios'
-    )
-    def get(self, request):
-        try:
-            from .pricing_models import AutomaticDiscount
-
-            # Obtener todos los descuentos automáticos activos
-            discounts = AutomaticDiscount.objects.filter(
-                is_active=True,
-                deleted=False
-            ).prefetch_related('required_achievements').order_by('name')
-
-            # Serializar los datos
-            serializer = AutomaticDiscountSerializer(discounts, many=True)
-
-            return Response({
-                'success': True,
-                'count': discounts.count(),
-                'data': serializer.data,
-                'message': f'Se encontraron {discounts.count()} descuentos automáticos activos'
-            }, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            return Response({
-                'success': False,
-                'error': 1,
-                'message': 'Error interno del servidor',
-                'detail': str(e) if settings.DEBUG else None
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class AutomaticDiscountDetailAPIView(APIView):
