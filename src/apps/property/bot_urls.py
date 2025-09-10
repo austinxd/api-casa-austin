@@ -1,7 +1,8 @@
 
 from django.urls import path
-from .views import BotGlobalDiscountAPIView
+from .views import BotGlobalDiscountAPIView, BotLevelsAPIView
 
 urlpatterns = [
     path('global-discount/', BotGlobalDiscountAPIView.as_view(), name='bot-global-discount'),
+    path('levels/', BotLevelsAPIView.as_view(), name='bot-levels'),
 ]

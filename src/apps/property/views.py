@@ -1186,3 +1186,105 @@ class BotGlobalDiscountAPIView(APIView):
                 'detail': str(e) if settings.DEBUG else None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+class BotLevelsAPIView(APIView):
+    """
+    Endpoint público para el bot que lista todos los niveles (logros) con sus requisitos
+    GET /api/v1/bot/levels/
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'levels': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'id': {'type': 'string'},
+                                'level_name': {'type': 'string'},
+                                'description': {'type': 'string'},
+                                'requirements': {
+                                    'type': 'object',
+                                    'properties': {
+                                        'required_reservations': {'type': 'integer'},
+                                        'required_referrals': {'type': 'integer'},
+                                        'required_referral_reservations': {'type': 'integer'}
+                                    }
+                                },
+                                'requirements_text': {'type': 'string'},
+                                'order': {'type': 'integer'}
+                            }
+                        }
+                    },
+                    'count': {'type': 'integer'},
+                    'message': {'type': 'string'}
+                }
+            }
+        },
+        description='Endpoint específico para bot que lista todos los niveles (logros) disponibles con sus requisitos'
+    )
+    def get(self, request):
+        try:
+            from apps.clients.models import Achievement
+
+            # Obtener todos los logros activos ordenados por orden y requisitos
+            achievements = Achievement.objects.filter(
+                is_active=True,
+                deleted=False
+            ).order_by('order', 'required_reservations', 'required_referrals', 'required_referral_reservations')
+
+            levels = []
+
+            for achievement in achievements:
+                # Construir el nombre del nivel con icono
+                icon = achievement.icon or "🏆"
+                level_name = f"{icon} {achievement.name}"
+
+                # Construir texto de requisitos
+                requirements_parts = []
+                if achievement.required_reservations > 0:
+                    requirements_parts.append(f"{achievement.required_reservations} reservas")
+                if achievement.required_referrals > 0:
+                    requirements_parts.append(f"{achievement.required_referrals} referidos")
+                if achievement.required_referral_reservations > 0:
+                    requirements_parts.append(f"{achievement.required_referral_reservations} reservas de referidos")
+
+                if not requirements_parts:
+                    requirements_text = "Nivel base sin requisitos específicos"
+                else:
+                    requirements_text = f"Necesitas: {', '.join(requirements_parts)}"
+
+                level_info = {
+                    'id': str(achievement.id),
+                    'level_name': level_name,
+                    'description': achievement.description,
+                    'requirements': {
+                        'required_reservations': achievement.required_reservations,
+                        'required_referrals': achievement.required_referrals,
+                        'required_referral_reservations': achievement.required_referral_reservations
+                    },
+                    'requirements_text': requirements_text,
+                    'order': achievement.order
+                }
+                levels.append(level_info)
+
+            return Response({
+                'success': True,
+                'levels': levels,
+                'count': len(levels),
+                'message': f'Se encontraron {len(levels)} niveles disponibles'
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': 1,
+                'message': 'Error interno del servidor',
+                'detail': str(e) if settings.DEBUG else None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
