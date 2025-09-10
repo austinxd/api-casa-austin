@@ -85,6 +85,9 @@ class ClientVoucherUploadView(APIView):
                 if reservation.status != 'approved':
                     reservation.status = 'pending'
                     
+                # Eliminar el deadline después del primer voucher para evitar eliminación automática
+                reservation.payment_voucher_deadline = None
+                    
                 reservation.payment_confirmed = bool(payment_confirmed)
                 reservation.save()
 
