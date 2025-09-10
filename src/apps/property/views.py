@@ -1203,8 +1203,8 @@ class BotDiscountListAPIView(APIView):
                     level_requirements.append(f"{achievement.required_reservations} reservas")
                 if achievement.required_referrals > 0:
                     level_requirements.append(f"{achievement.required_referrals} referidos")
-                if achievement.required_referral_reservations > 0:
-                    level_requirements.append(f"{achievement.required_referral_reservations} reservas de referidos")
+                if achievement.required_points > 0:
+                    level_requirements.append(f"{achievement.required_points} puntos")
 
                 level_info = f"Para alcanzar este nivel necesitas: {', '.join(level_requirements)}" if level_requirements else "Nivel base sin requisitos específicos"
 
@@ -1215,7 +1215,7 @@ class BotDiscountListAPIView(APIView):
                     'icon': achievement.icon or "🏆",
                     'required_reservations': achievement.required_reservations,
                     'required_referrals': achievement.required_referrals,
-                    'required_referral_reservations': achievement.required_referral_reservations,
+                    'required_points': achievement.required_points,
                     'order': achievement.order,
                     'level_info': level_info
                 }
