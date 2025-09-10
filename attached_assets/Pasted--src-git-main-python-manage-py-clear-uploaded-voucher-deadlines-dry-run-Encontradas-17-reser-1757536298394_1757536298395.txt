@@ -1,0 +1,20 @@
+➜  src git:(main) ✗ python manage.py clear_uploaded_voucher_deadlines --dry-run
+Encontradas 17 reservas con voucher subido que aún tienen deadline
+Reserva ID: 03bb6ded-926a-41bf-8075-e0a4bef87f74 - Cliente: Jhan Felix Tarazona Gonzales - Propiedad: Casa Austin 4 - Status: approved - Deadline actual: 2025-08-19 21:42:08.563806+00:00
+Reserva ID: 22b3f782-17fb-49a6-8d49-b4eb4a7ea0b3 - Cliente: Valeria Rosana Soto Lagos - Propiedad: Casa Austin 1 - Status: approved - Deadline actual: 2025-08-21 22:02:22.428444+00:00
+Reserva ID: 28de4439-40d2-443b-ad70-3a8e831e1fe7 - Cliente: Arielle Saenz Paredes - Propiedad: Casa Austin 4 - Status: approved - Deadline actual: 2025-08-31 23:52:56.486478+00:00
+Reserva ID: 32eae816-6393-4c2f-97b9-70a89f711272 - Cliente: Jean Carlos Sedano Porta - Propiedad: Casa Austin 3 - Status: approved - Deadline actual: 2025-09-10 01:25:15.068975+00:00
+Reserva ID: 37fd99df-ec68-460d-8d5f-07a207287ddd - Cliente: Giankarlo Piero Orbezo Berroa - Propiedad: Casa Austin 2 - Status: approved - Deadline actual: 2025-09-07 06:05:05+00:00
+Reserva ID: 4952c98a-401e-418b-956a-77fb3990d6d8 - Cliente: Christian Fabricio Carbonel Baltazar - Propiedad: Casa Austin 3 - Status: approved - Deadline actual: 2025-09-02 18:27:02+00:00
+Reserva ID: 6af2f295-18dc-45bb-8523-6867af9d7afb - Cliente: Ximena Michelle Cardenas Silva - Propiedad: Casa Austin 4 - Status: approved - Deadline actual: 2025-08-26 01:20:37.311192+00:00
+Reserva ID: 6e945afc-984e-465b-be0c-12d541ed6fd1 - Cliente: Jose Manuel Molinari Melendez - Propiedad: Casa Austin 4 - Status: approved - Deadline actual: 2025-08-20 17:32:32.527321+00:00
+Reserva ID: 7a44ed47-ff74-458a-b9f5-4fec134811b0 - Cliente: Edward Calvay Gonzales - Propiedad: Casa Austin 4 - Status: approved - Deadline actual: 2025-08-27 01:03:10.063901+00:00
+Reserva ID: 8ebc83df-8b4b-4910-abee-2636ae382084 - Cliente: Yasmin Yuriko González Jamjachi - Propiedad: Casa Austin 1 - Status: approved - Deadline actual: 2025-08-19 20:39:08.739155+00:00
+Reserva ID: a24c3619-37ac-45a6-8b67-79ea8b60e918 - Cliente: Silvana Ernestina Cruzado Santillan - Propiedad: Casa Austin 3 - Status: approved - Deadline actual: 2025-08-26 23:31:44.901084+00:00
+Reserva ID: b6d9b0d1-de7e-45c1-9f89-b281026b79b2 - Cliente: Juan Carlos Montoya Cisneros - Propiedad: Casa Austin 3 - Status: approved - Deadline actual: 2025-08-24 16:27:29.511222+00:00
+Reserva ID: bc138dcc-bca3-4d55-b63a-838843071777 - Cliente: Diego Alonso Medina Pino - Propiedad: Casa Austin 3 - Status: approved - Deadline actual: 2025-09-10 00:45:45.672010+00:00
+Reserva ID: be23e324-ea2c-4bfb-801d-91ac1a038e74 - Cliente: JOSE DANIEL BELTRAN  CORDOVA - Propiedad: Casa Austin 3 - Status: approved - Deadline actual: 2025-09-08 12:19:47.925779+00:00
+Reserva ID: cea7ef36-c756-49c0-984e-4285db371d99 - Cliente: DIEGO JOSE LUIS GARCIA CHAVEZ - Propiedad: Casa Austin 1 - Status: approved - Deadline actual: 2025-08-26 17:26:53.376685+00:00
+Reserva ID: d0006af8-9e6a-4782-bf5b-afccdb47463c - Cliente: Oscar Jesus Cruz Salvador - Propiedad: Casa Austin 4 - Status: approved - Deadline actual: 2025-09-05 15:22:28+00:00
+Reserva ID: e524683e-ce20-46cc-962a-0db53dbdb775 - Cliente: Manuel Madrit Rojas Del Aguila - Propiedad: Casa Austin 2 - Status: approved - Deadline actual: 2025-08-20 21:23:56.036065+00:00
+DRY RUN: Se eliminarían deadlines de 17 reservas
