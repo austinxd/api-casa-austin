@@ -1,7 +1,7 @@
 
 from django.urls import path
-from .views import BotDiscountListAPIView
+from .views import BotGlobalDiscountAPIView
 
 urlpatterns = [
-    path('discount-list/', BotDiscountListAPIView.as_view(), name='bot-discount-list'),
+    path('global-discount/', BotGlobalDiscountAPIView.as_view(), name='bot-global-discount'),
 ]

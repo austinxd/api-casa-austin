@@ -1082,10 +1082,10 @@ class AutomaticDiscountListAPIView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class BotDiscountListAPIView(APIView):
+class BotGlobalDiscountAPIView(APIView):
     """
-    Endpoint público para el bot con descuentos automáticos agrupados por niveles de logros
-    GET /api/v1/bot/discount-list/
+    Endpoint público para el bot con descuentos automáticos globales (sin logros requeridos)
+    GET /api/v1/bot/global-discount/
     """
     permission_classes = [AllowAny]
 
@@ -1095,39 +1095,7 @@ class BotDiscountListAPIView(APIView):
                 'type': 'object',
                 'properties': {
                     'success': {'type': 'boolean'},
-                    'discounts_by_level': {
-                        'type': 'array',
-                        'items': {
-                            'type': 'object',
-                            'properties': {
-                                'level_id': {'type': 'string'},
-                                'level_name': {'type': 'string'},
-                                'level_description': {'type': 'string'},
-                                'level_icon': {'type': 'string'},
-                                'level_requirements': {'type': 'string'},
-                                'required_reservations': {'type': 'integer'},
-                                'required_referrals': {'type': 'integer'},
-                                'required_referral_reservations': {'type': 'integer'},
-                                'order': {'type': 'integer'},
-                                'discounts': {
-                                    'type': 'array',
-                                    'items': {
-                                        'type': 'object',
-                                        'properties': {
-                                            'id': {'type': 'string'},
-                                            'name': {'type': 'string'},
-                                            'description': {'type': 'string'},
-                                            'trigger_display': {'type': 'string'},
-                                            'discount_percentage': {'type': 'number'},
-                                            'max_discount_usd': {'type': 'number'},
-                                            'restrictions': {'type': 'string'}
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    'general_discounts': {
+                    'global_discounts': {
                         'type': 'array',
                         'items': {
                             'type': 'object',
@@ -1146,17 +1114,12 @@ class BotDiscountListAPIView(APIView):
                 }
             }
         },
-        description='Endpoint específico para bot con descuentos automáticos agrupados por niveles de logros'
+        description='Endpoint específico para bot que lista únicamente descuentos automáticos globales (sin requisitos de logros)'
     )
     def get(self, request):
         try:
             from .pricing_models import AutomaticDiscount
             from apps.clients.models import Achievement
-
-            # Obtener todos los logros/niveles ordenados
-            achievements = Achievement.objects.filter(
-                deleted=False
-            ).order_by('order', 'required_reservations', 'required_referrals')
 
             # Obtener descuentos automáticos activos
             discounts = AutomaticDiscount.objects.filter(
@@ -1164,81 +1127,11 @@ class BotDiscountListAPIView(APIView):
                 deleted=False
             ).prefetch_related('required_achievements').order_by('name')
 
-            # Crear estructura de datos agrupada por nivel
-            discounts_by_level = []
-            general_discounts = []
+            # Solo procesar descuentos globales (sin logros requeridos)
+            global_discounts = []
 
-            # Procesar cada nivel de logro
-            for achievement in achievements:
-                level_requirements = []
-                if achievement.required_reservations > 0:
-                    level_requirements.append(f"{achievement.required_reservations} reservas")
-                if achievement.required_referrals > 0:
-                    level_requirements.append(f"{achievement.required_referrals} referidos")
-                if achievement.required_referral_reservations > 0:
-                    level_requirements.append(f"{achievement.required_referral_reservations} reservas de referidos")
-
-                level_info = f"Para alcanzar este nivel necesitas: {', '.join(level_requirements)}" if level_requirements else "Nivel base sin requisitos específicos"
-
-                # Buscar descuentos que requieran este nivel específico
-                level_discounts = []
-                for discount in discounts:
-                    if discount.required_achievements.filter(id=achievement.id).exists():
-                        # Construir restricciones
-                        restrictions = []
-                        if discount.trigger == 'birthday':
-                            restrictions.append("Solo en tu mes de cumpleaños")
-                        elif discount.trigger == 'returning':
-                            restrictions.append("Solo para clientes que ya han reservado antes")
-                        elif discount.trigger == 'first_time':
-                            restrictions.append("Solo para primera reserva")
-                        elif discount.trigger == 'last_minute':
-                            restrictions.append("Solo para reservas del día actual o siguiente")
-
-                        if discount.restrict_weekdays:
-                            restrictions.append("Solo días de semana (Domingo a Jueves)")
-                        if discount.restrict_weekends:
-                            restrictions.append("Solo fines de semana (Viernes y Sábado)")
-                        if discount.apply_only_to_base_price:
-                            restrictions.append("Aplicado solo al precio base")
-                        if discount.start_date or discount.end_date:
-                            if discount.start_date and discount.end_date:
-                                restrictions.append(f"Válido del {discount.start_date.strftime('%d/%m/%Y')} al {discount.end_date.strftime('%d/%m/%Y')}")
-                            elif discount.start_date:
-                                restrictions.append(f"Válido desde {discount.start_date.strftime('%d/%m/%Y')}")
-                            elif discount.end_date:
-                                restrictions.append(f"Válido hasta {discount.end_date.strftime('%d/%m/%Y')}")
-
-                        discount_info = {
-                            'id': str(discount.id),
-                            'name': discount.name,
-                            'description': discount.description or f"Descuento {discount.get_trigger_display()}",
-                            'trigger_display': discount.get_trigger_display(),
-                            'discount_percentage': float(discount.discount_percentage),
-                            'max_discount_usd': float(discount.max_discount_usd) if discount.max_discount_usd else None,
-                            'restrictions': ' | '.join(restrictions) if restrictions else 'Sin restricciones'
-                        }
-                        level_discounts.append(discount_info)
-
-                # Solo agregar el nivel si tiene descuentos asociados
-                if level_discounts:
-                    level_data = {
-                        'level_id': str(achievement.id),
-                        'level_name': achievement.name,
-                        'level_description': achievement.description or f"Nivel {achievement.name}",
-                        'level_icon': achievement.icon or "🏆",
-                        'level_requirements': level_info,
-                        'required_reservations': achievement.required_reservations,
-                        'required_referrals': achievement.required_referrals,
-                        'required_referral_reservations': achievement.required_referral_reservations,
-                        'order': achievement.order,
-                        'discounts': level_discounts
-                    }
-                    discounts_by_level.append(level_data)
-
-            # Procesar descuentos generales (sin logros requeridos o múltiples logros)
             for discount in discounts:
-                # Descuentos sin logros requeridos
+                # Solo incluir descuentos sin logros requeridos (globales)
                 if not discount.required_achievements.exists():
                     requirements = []
                     if discount.trigger == 'birthday':
@@ -1276,66 +1169,13 @@ class BotDiscountListAPIView(APIView):
                         'requirements': ' | '.join(requirements) if requirements else 'Disponible para todos los clientes',
                         'restrictions': ' | '.join(restrictions) if restrictions else 'Sin restricciones'
                     }
-                    general_discounts.append(discount_info)
-
-                # Descuentos que requieren múltiples logros (globales)
-                elif discount.required_achievements.count() > 1:
-                    achievement_names = list(discount.required_achievements.values_list('name', flat=True))
-                    requirements = [f"Nivel requerido: cualquiera de estos ({', '.join(achievement_names)})"]
-                    
-                    if discount.trigger == 'birthday':
-                        requirements.append("Solo en tu mes de cumpleaños")
-                    elif discount.trigger == 'returning':
-                        requirements.append("Solo para clientes que ya han reservado antes")
-                    elif discount.trigger == 'first_time':
-                        requirements.append("Solo para primera reserva")
-                    elif discount.trigger == 'last_minute':
-                        requirements.append("Solo para reservas del día actual o siguiente")
-
-                    # Construir restricciones
-                    restrictions = []
-                    if discount.restrict_weekdays:
-                        restrictions.append("Solo días de semana (Domingo a Jueves)")
-                    if discount.restrict_weekends:
-                        restrictions.append("Solo fines de semana (Viernes y Sábado)")
-                    if discount.apply_only_to_base_price:
-                        restrictions.append("Aplicado solo al precio base")
-                    if discount.start_date or discount.end_date:
-                        if discount.start_date and discount.end_date:
-                            restrictions.append(f"Válido del {discount.start_date.strftime('%d/%m/%Y')} al {discount.end_date.strftime('%d/%m/%Y')}")
-                        elif discount.start_date:
-                            restrictions.append(f"Válido desde {discount.start_date.strftime('%d/%m/%Y')}")
-                        elif discount.end_date:
-                            restrictions.append(f"Válido hasta {discount.end_date.strftime('%d/%m/%Y')}")
-
-                    discount_info = {
-                        'id': str(discount.id),
-                        'name': discount.name,
-                        'description': discount.description or f"Descuento {discount.get_trigger_display()}",
-                        'trigger_display': discount.get_trigger_display(),
-                        'discount_percentage': float(discount.discount_percentage),
-                        'max_discount_usd': float(discount.max_discount_usd) if discount.max_discount_usd else None,
-                        'requirements': ' | '.join(requirements),
-                        'restrictions': ' | '.join(restrictions) if restrictions else 'Sin restricciones'
-                    }
-                    general_discounts.append(discount_info)
-
-            # Contar totales
-            total_discounts_by_level = sum(len(level['discounts']) for level in discounts_by_level)
-            total_general_discounts = len(general_discounts)
-            total_levels_with_discounts = len(discounts_by_level)
+                    global_discounts.append(discount_info)
 
             return Response({
                 'success': True,
-                'discounts_by_level': discounts_by_level,
-                'general_discounts': general_discounts,
-                'summary': {
-                    'total_levels_with_discounts': total_levels_with_discounts,
-                    'total_discounts_by_level': total_discounts_by_level,
-                    'total_general_discounts': total_general_discounts,
-                    'total_discounts': total_discounts_by_level + total_general_discounts
-                },
-                'message': f'Se encontraron {total_levels_with_discounts} niveles con descuentos específicos, {total_discounts_by_level} descuentos por nivel y {total_general_discounts} descuentos generales'
+                'global_discounts': global_discounts,
+                'count': len(global_discounts),
+                'message': f'Se encontraron {len(global_discounts)} descuentos globales activos'
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
