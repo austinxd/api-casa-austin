@@ -99,14 +99,18 @@ class AutomaticDiscountSerializer(serializers.ModelSerializer):
         ]
 
     def get_required_achievements_detail(self, obj):
-        """Obtiene detalles de los logros requeridos"""
+        """Obtiene detalles completos de los logros requeridos incluyendo requisitos de puntos"""
         achievements = obj.required_achievements.all()
         return [
             {
-                'id': achievement.id,
+                'id': str(achievement.id),
                 'name': achievement.name,
                 'description': achievement.description,
-                'icon': achievement.icon
+                'icon': achievement.icon,
+                'required_reservations': achievement.required_reservations,
+                'required_referrals': achievement.required_referrals,
+                'required_points': achievement.required_points,
+                'order': achievement.order
             }
             for achievement in achievements
         ]

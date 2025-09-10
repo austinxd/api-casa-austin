@@ -997,3 +997,246 @@ class AutomaticDiscountDetailAPIView(APIView):
                 'message': 'Error interno del servidor',
                 'detail': str(e) if settings.DEBUG else None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AutomaticDiscountListAPIView(APIView):
+    """
+    Endpoint público para listar todos los descuentos automáticos activos
+    GET /api/v1/properties/automatic-discounts/
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'count': {'type': 'integer'},
+                    'data': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'id': {'type': 'string'},
+                                'name': {'type': 'string'},
+                                'description': {'type': 'string'},
+                                'trigger': {'type': 'string'},
+                                'trigger_display': {'type': 'string'},
+                                'discount_percentage': {'type': 'number'},
+                                'max_discount_usd': {'type': 'number'},
+                                'required_achievements_detail': {
+                                    'type': 'array',
+                                    'items': {
+                                        'type': 'object',
+                                        'properties': {
+                                            'id': {'type': 'string'},
+                                            'name': {'type': 'string'},
+                                            'description': {'type': 'string'},
+                                            'icon': {'type': 'string'},
+                                            'required_reservations': {'type': 'integer'},
+                                            'required_referrals': {'type': 'integer'},
+                                            'required_points': {'type': 'integer'},
+                                            'order': {'type': 'integer'}
+                                        }
+                                    }
+                                },
+                                'restrict_weekdays': {'type': 'boolean'},
+                                'restrict_weekends': {'type': 'boolean'},
+                                'apply_only_to_base_price': {'type': 'boolean'},
+                                'is_active': {'type': 'boolean'}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        description='Lista todos los descuentos automáticos activos con información completa de logros requeridos, incluyendo cantidad de reservas, referidos y puntos necesarios'
+    )
+    def get(self, request):
+        try:
+            from .pricing_models import AutomaticDiscount
+
+            # Obtener todos los descuentos automáticos activos
+            discounts = AutomaticDiscount.objects.filter(
+                is_active=True,
+                deleted=False
+            ).prefetch_related('required_achievements').order_by('name')
+
+            # Serializar los datos
+            serializer = AutomaticDiscountSerializer(discounts, many=True)
+
+            return Response({
+                'success': True,
+                'count': discounts.count(),
+                'data': serializer.data,
+                'message': f'Se encontraron {discounts.count()} descuentos automáticos activos'
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': 1,
+                'message': 'Error interno del servidor',
+                'detail': str(e) if settings.DEBUG else None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class BotDiscountListAPIView(APIView):
+    """
+    Endpoint público para el bot con descuentos automáticos y niveles de logros
+    GET /api/v1/bot/discount-list/
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        responses={
+            200: {
+                'type': 'object',
+                'properties': {
+                    'success': {'type': 'boolean'},
+                    'discounts': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'id': {'type': 'string'},
+                                'name': {'type': 'string'},
+                                'description': {'type': 'string'},
+                                'trigger_display': {'type': 'string'},
+                                'discount_percentage': {'type': 'number'},
+                                'max_discount_usd': {'type': 'number'},
+                                'requirements': {'type': 'string'},
+                                'restrictions': {'type': 'string'}
+                            }
+                        }
+                    },
+                    'achievement_levels': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'id': {'type': 'string'},
+                                'name': {'type': 'string'},
+                                'description': {'type': 'string'},
+                                'icon': {'type': 'string'},
+                                'required_reservations': {'type': 'integer'},
+                                'required_referrals': {'type': 'integer'},
+                                'required_points': {'type': 'integer'},
+                                'order': {'type': 'integer'},
+                                'level_info': {'type': 'string'}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        description='Endpoint específico para bot con descuentos automáticos activos y información de niveles de logros'
+    )
+    def get(self, request):
+        try:
+            from .pricing_models import AutomaticDiscount
+            from apps.clients.models import Achievement
+
+            # Obtener descuentos automáticos activos
+            discounts = AutomaticDiscount.objects.filter(
+                is_active=True,
+                deleted=False
+            ).prefetch_related('required_achievements').order_by('name')
+
+            # Procesar descuentos para el bot
+            discount_list = []
+            for discount in discounts:
+                # Construir requisitos
+                requirements = []
+                if discount.required_achievements.exists():
+                    achievement_names = list(discount.required_achievements.values_list('name', flat=True))
+                    requirements.append(f"Nivel requerido: {', '.join(achievement_names)}")
+                
+                if discount.trigger == 'birthday':
+                    requirements.append("Solo en tu mes de cumpleaños")
+                elif discount.trigger == 'returning':
+                    requirements.append("Solo para clientes que ya han reservado antes")
+                elif discount.trigger == 'first_time':
+                    requirements.append("Solo para primera reserva")
+                elif discount.trigger == 'last_minute':
+                    requirements.append("Solo para reservas del día actual o siguiente")
+
+                # Construir restricciones
+                restrictions = []
+                if discount.restrict_weekdays:
+                    restrictions.append("Solo días de semana (Domingo a Jueves)")
+                if discount.restrict_weekends:
+                    restrictions.append("Solo fines de semana (Viernes y Sábado)")
+                if discount.apply_only_to_base_price:
+                    restrictions.append("Aplicado solo al precio base")
+                if discount.start_date or discount.end_date:
+                    if discount.start_date and discount.end_date:
+                        restrictions.append(f"Válido del {discount.start_date.strftime('%d/%m/%Y')} al {discount.end_date.strftime('%d/%m/%Y')}")
+                    elif discount.start_date:
+                        restrictions.append(f"Válido desde {discount.start_date.strftime('%d/%m/%Y')}")
+                    elif discount.end_date:
+                        restrictions.append(f"Válido hasta {discount.end_date.strftime('%d/%m/%Y')}")
+
+                discount_info = {
+                    'id': str(discount.id),
+                    'name': discount.name,
+                    'description': discount.description or f"Descuento {discount.get_trigger_display()}",
+                    'trigger_display': discount.get_trigger_display(),
+                    'discount_percentage': float(discount.discount_percentage),
+                    'max_discount_usd': float(discount.max_discount_usd) if discount.max_discount_usd else None,
+                    'requirements': ' | '.join(requirements) if requirements else 'Sin requisitos específicos',
+                    'restrictions': ' | '.join(restrictions) if restrictions else 'Sin restricciones'
+                }
+                discount_list.append(discount_info)
+
+            # Obtener todos los niveles de logros
+            achievements = Achievement.objects.filter(
+                deleted=False
+            ).order_by('order', 'required_reservations', 'required_referrals')
+
+            # Procesar niveles para el bot
+            achievement_levels = []
+            for achievement in achievements:
+                level_requirements = []
+                if achievement.required_reservations > 0:
+                    level_requirements.append(f"{achievement.required_reservations} reservas")
+                if achievement.required_referrals > 0:
+                    level_requirements.append(f"{achievement.required_referrals} referidos")
+                if achievement.required_points > 0:
+                    level_requirements.append(f"{achievement.required_points} puntos")
+
+                level_info = f"Para alcanzar este nivel necesitas: {', '.join(level_requirements)}" if level_requirements else "Nivel base sin requisitos específicos"
+
+                achievement_info = {
+                    'id': str(achievement.id),
+                    'name': achievement.name,
+                    'description': achievement.description or f"Nivel {achievement.name}",
+                    'icon': achievement.icon or "🏆",
+                    'required_reservations': achievement.required_reservations,
+                    'required_referrals': achievement.required_referrals,
+                    'required_points': achievement.required_points,
+                    'order': achievement.order,
+                    'level_info': level_info
+                }
+                achievement_levels.append(achievement_info)
+
+            return Response({
+                'success': True,
+                'discounts': discount_list,
+                'achievement_levels': achievement_levels,
+                'summary': {
+                    'total_discounts': len(discount_list),
+                    'total_levels': len(achievement_levels)
+                },
+                'message': f'Se encontraron {len(discount_list)} descuentos activos y {len(achievement_levels)} niveles de logros'
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': 1,
+                'message': 'Error interno del servidor',
+                'detail': str(e) if settings.DEBUG else None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
