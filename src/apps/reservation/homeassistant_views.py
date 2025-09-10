@@ -199,6 +199,36 @@ class HomeAssistantReservationView(APIView):
             # Obtener puntos disponibles del cliente
             available_points = active_reservation.client.get_available_points()
 
+            # Obtener reservas futuras del cliente (incluyendo la actual si termina después de hoy)
+            from datetime import date
+            upcoming_reservations_data = []
+            
+            if active_reservation.client:
+                upcoming_reservations = Reservation.objects.filter(
+                    client=active_reservation.client,
+                    deleted=False,
+                    status='approved',
+                    check_out_date__gt=today  # Reservas que terminan después de hoy
+                ).order_by('check_in_date')
+                
+                for reservation in upcoming_reservations:
+                    # Formatear fechas para cada reserva
+                    check_in_formatted_res = reservation.check_in_date.strftime('%d de %B')
+                    check_out_formatted_res = reservation.check_out_date.strftime('%d de %B')
+                    
+                    upcoming_reservations_data.append({
+                        "id": str(reservation.id),
+                        "property_name": reservation.property.name if reservation.property else 'Sin propiedad',
+                        "check_in_date": check_in_formatted_res,
+                        "check_out_date": check_out_formatted_res,
+                        "guests": reservation.guests,
+                        "nights": (reservation.check_out_date - reservation.check_in_date).days,
+                        "price_sol": float(reservation.price_sol) if reservation.price_sol else 0,
+                        "status": "Aprobada",
+                        "payment_full": reservation.full_payment,
+                        "temperature_pool": reservation.temperature_pool
+                    })
+
             return Response({
                 "client_id": str(active_reservation.client.id),
                 "first_name": first_name,
@@ -210,7 +240,8 @@ class HomeAssistantReservationView(APIView):
                 "property_name": property_obj.name,
                 "reservation_id": str(active_reservation.id),
                 "highest_achievement": highest_achievement_name,
-                "points_balance": int(available_points)
+                "points_balance": int(available_points),
+                "upcoming_reservations": upcoming_reservations_data
             })
         else:
             # No hay reserva activa
@@ -225,5 +256,6 @@ class HomeAssistantReservationView(APIView):
                 "property_name": property_obj.name,
                 "reservation_id": "none",
                 "highest_achievement": "Sin reserva activa",
-                "points_balance": 0
+                "points_balance": 0,
+                "upcoming_reservations": []
             })
