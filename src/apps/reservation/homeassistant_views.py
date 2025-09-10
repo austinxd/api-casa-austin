@@ -75,16 +75,34 @@ class HomeAssistantReservationView(APIView):
         check_in_time = time(15, 0)  # 3:00 PM
         check_out_time = time(11, 0)  # 11:00 AM
 
+        # DEBUG: Buscar TODAS las reservas para esta propiedad
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        all_reservations = Reservation.objects.filter(property=property_obj).select_related('client')
+        logger.error(f"HomeAssistant DEBUG - Total reservations for property: {all_reservations.count()}")
+        
+        for res in all_reservations:
+            logger.error(f"HomeAssistant DEBUG - Reservation ID: {res.id}, "
+                        f"Status: {res.status}, Deleted: {res.deleted}, "
+                        f"Check-in: {res.check_in_date}, Check-out: {res.check_out_date}, "
+                        f"Client: {res.client_id if res.client else 'None'}")
+
+        # Buscar reservas que cumplan criterios básicos
+        basic_reservations = Reservation.objects.filter(
+            property=property_obj,
+            deleted=False,
+            status='approved'
+        ).select_related('client')
+        
+        logger.error(f"HomeAssistant DEBUG - Approved non-deleted reservations: {basic_reservations.count()}")
+        
         # Buscar reserva activa considerando los horarios
         # Una reserva está activa si:
         # - Es hoy y ya pasó la hora de check-in (15:00)
         # - O es antes del check-out de hoy (11:00) si checkout es hoy
         # - O estamos entre las fechas de la reserva
-        active_reservation = Reservation.objects.filter(
-            property=property_obj,
-            deleted=False,
-            status='approved'
-        ).filter(
+        active_reservation = basic_reservations.filter(
             Q(
                 # Reserva que inicia hoy y ya pasó la hora de check-in
                 (Q(check_in_date=today) & Q(check_out_date__gt=today)) |
@@ -93,16 +111,29 @@ class HomeAssistantReservationView(APIView):
                 # Reserva en curso (entre fechas)
                 (Q(check_in_date__lt=today) & Q(check_out_date__gt=today))
             )
-        ).select_related('client').first()
+        ).first()
+
+        logger.error(f"HomeAssistant DEBUG - Active reservation found: {active_reservation.id if active_reservation else 'None'}")
+        logger.error(f"HomeAssistant DEBUG - Current date: {today}, Current time: {current_time}")
+        logger.error(f"HomeAssistant DEBUG - Check-in time: {check_in_time}, Check-out time: {check_out_time}")
 
         # Validar horarios específicos
         if active_reservation:
+            original_reservation = active_reservation
+            logger.error(f"HomeAssistant DEBUG - Found reservation {original_reservation.id} - checking time constraints...")
+            
             # Si la reserva inicia hoy, verificar que ya sea después de las 15:00
             if active_reservation.check_in_date == today and current_time < check_in_time:
+                logger.error(f"HomeAssistant DEBUG - Reservation starts today but current time {current_time} < check-in time {check_in_time}")
                 active_reservation = None
             # Si la reserva termina hoy, verificar que no sea después de las 11:00
             elif active_reservation.check_out_date == today and current_time >= check_out_time:
+                logger.error(f"HomeAssistant DEBUG - Reservation ends today but current time {current_time} >= check-out time {check_out_time}")
                 active_reservation = None
+            else:
+                logger.error(f"HomeAssistant DEBUG - Reservation {original_reservation.id} passes time validation!")
+        else:
+            logger.error(f"HomeAssistant DEBUG - No active reservation found after date filtering")
 
         if active_reservation and active_reservation.client:
             # Formatear nombres (solo primer nombre y primer apellido)
