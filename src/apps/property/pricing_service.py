@@ -902,7 +902,8 @@ class PricingCalculationService:
                         message1 += f"\n✨ Descuento de ${amount} aplicado con código '{discount_info.get('code_used', '')}'"
                 elif discount_info['type'] == 'automatic':
                     percentage = discount_info.get('discount_percentage', 0)
-                    message1 += f"\n✨ Descuento automático del {percentage}% aplicado por ser cliente registrado"
+                    description = discount_info.get('description', f'Descuento automático del {percentage}%')
+                    message1 += f"\n✨ {description}"
 
             # Tip para grupos pequeños cuando buscan fin de semana
             if guests < 5:
