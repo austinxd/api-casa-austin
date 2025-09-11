@@ -1197,13 +1197,13 @@ class BotClientProfileView(APIView):
                     'tel_number': client.tel_number,
                     'document_type': client.get_document_type_display(),
                     'number_doc': client.number_doc,
+                    'birth_date': client.date.isoformat() if client.date else None,
                     'available_points': client.get_available_points(),
                     'points_balance': float(client.points_balance),
                     'referral_code': client.get_referral_code(),
                     'highest_level': highest_achievement,
                     'upcoming_reservations': upcoming_reservations_data,
-                    'past_reservations': past_reservations_data,
-                    'birth_date': client.date.isoformat() if client.date else None
+                    'past_reservations': past_reservations_data
                 }
             }
 
@@ -2481,13 +2481,13 @@ class BotClientProfileView(APIView):
                     'tel_number': client.tel_number,
                     'document_type': client.get_document_type_display(),
                     'number_doc': client.number_doc,
+                    'birth_date': client.date.isoformat() if client.date else None,
                     'available_points': client.get_available_points(),
                     'points_balance': float(client.points_balance),
                     'referral_code': client.get_referral_code(),
                     'highest_level': highest_achievement,
                     'upcoming_reservations': upcoming_reservations_data,
-                    'past_reservations': past_reservations_data,
-                    'birth_date': client.date.isoformat() if client.date else None
+                    'past_reservations': past_reservations_data
                 }
             }
 
