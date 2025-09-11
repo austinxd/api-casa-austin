@@ -1110,7 +1110,7 @@ class BotClientProfileView(APIView):
 
             logger.info(f"BotClientProfileView: Client found - ID: {client.id}, Name: {client.first_name}")
 
-            # Obtener reservas futuras aprobadas
+            # Obtener reservas futuras y pasadas aprobadas
             from datetime import date
             today = date.today()
 
@@ -1120,6 +1120,13 @@ class BotClientProfileView(APIView):
                 check_out_date__gte=today,  # Incluye reservas que terminan hoy o después
                 status='approved'
             ).order_by('check_in_date')
+
+            past_reservations = Reservation.objects.filter(
+                client=client,
+                deleted=False,
+                check_out_date__lt=today,  # Reservas que ya terminaron
+                status='approved'
+            ).order_by('-check_in_date')  # Más recientes primero
 
             # Obtener nivel más alto (logro más importante)
             highest_achievement = None
@@ -1145,11 +1152,27 @@ class BotClientProfileView(APIView):
                 }
 
             # Serializar reservas futuras
-            upcoming_reservations_data = None
+            upcoming_reservations_data = []
             if upcoming_reservations.exists():
-                upcoming_reservations_data = []
                 for reservation in upcoming_reservations:
                     upcoming_reservations_data.append({
+                        'id': reservation.id,
+                        'property_name': reservation.property.name if reservation.property else 'Sin propiedad',
+                        'check_in_date': reservation.check_in_date.isoformat(),
+                        'check_out_date': reservation.check_out_date.isoformat(),
+                        'guests': reservation.guests,
+                        'nights': (reservation.check_out_date - reservation.check_in_date).days,
+                        'price_sol': float(reservation.price_sol) if reservation.price_sol else 0,
+                        'status': reservation.get_status_display() if hasattr(reservation, 'get_status_display') else reservation.status,
+                        'payment_full': reservation.full_payment,
+                        'temperature_pool': reservation.temperature_pool
+                    })
+
+            # Serializar reservas pasadas
+            past_reservations_data = []
+            if past_reservations.exists():
+                for reservation in past_reservations:
+                    past_reservations_data.append({
                         'id': reservation.id,
                         'property_name': reservation.property.name if reservation.property else 'Sin propiedad',
                         'check_in_date': reservation.check_in_date.isoformat(),
@@ -1178,7 +1201,9 @@ class BotClientProfileView(APIView):
                     'points_balance': float(client.points_balance),
                     'referral_code': client.get_referral_code(),
                     'highest_level': highest_achievement,
-                    'upcoming_reservations': upcoming_reservations_data
+                    'upcoming_reservations': upcoming_reservations_data,
+                    'past_reservations': past_reservations_data,
+                    'birth_date': client.date.isoformat() if client.date else None
                 }
             }
 
@@ -2369,7 +2394,7 @@ class BotClientProfileView(APIView):
 
             logger.info(f"BotClientProfileView: Client found - ID: {client.id}, Name: {client.first_name}")
 
-            # Obtener reservas futuras aprobadas
+            # Obtener reservas futuras y pasadas aprobadas
             from datetime import date
             today = date.today()
 
@@ -2379,6 +2404,13 @@ class BotClientProfileView(APIView):
                 check_out_date__gte=today,  # Incluye reservas que terminan hoy o después
                 status='approved'
             ).order_by('check_in_date')
+
+            past_reservations = Reservation.objects.filter(
+                client=client,
+                deleted=False,
+                check_out_date__lt=today,  # Reservas que ya terminaron
+                status='approved'
+            ).order_by('-check_in_date')  # Más recientes primero
 
             # Obtener nivel más alto (logro más importante)
             highest_achievement = None
@@ -2404,11 +2436,27 @@ class BotClientProfileView(APIView):
                 }
 
             # Serializar reservas futuras
-            upcoming_reservations_data = None
+            upcoming_reservations_data = []
             if upcoming_reservations.exists():
-                upcoming_reservations_data = []
                 for reservation in upcoming_reservations:
                     upcoming_reservations_data.append({
+                        'id': reservation.id,
+                        'property_name': reservation.property.name if reservation.property else 'Sin propiedad',
+                        'check_in_date': reservation.check_in_date.isoformat(),
+                        'check_out_date': reservation.check_out_date.isoformat(),
+                        'guests': reservation.guests,
+                        'nights': (reservation.check_out_date - reservation.check_in_date).days,
+                        'price_sol': float(reservation.price_sol) if reservation.price_sol else 0,
+                        'status': reservation.get_status_display() if hasattr(reservation, 'get_status_display') else reservation.status,
+                        'payment_full': reservation.full_payment,
+                        'temperature_pool': reservation.temperature_pool
+                    })
+
+            # Serializar reservas pasadas
+            past_reservations_data = []
+            if past_reservations.exists():
+                for reservation in past_reservations:
+                    past_reservations_data.append({
                         'id': reservation.id,
                         'property_name': reservation.property.name if reservation.property else 'Sin propiedad',
                         'check_in_date': reservation.check_in_date.isoformat(),
@@ -2437,7 +2485,9 @@ class BotClientProfileView(APIView):
                     'points_balance': float(client.points_balance),
                     'referral_code': client.get_referral_code(),
                     'highest_level': highest_achievement,
-                    'upcoming_reservations': upcoming_reservations_data
+                    'upcoming_reservations': upcoming_reservations_data,
+                    'past_reservations': past_reservations_data,
+                    'birth_date': client.date.isoformat() if client.date else None
                 }
             }
 
