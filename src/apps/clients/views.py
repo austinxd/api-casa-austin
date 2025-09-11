@@ -1169,21 +1169,8 @@ class BotClientProfileView(APIView):
                     })
 
             # Serializar reservas pasadas
-            past_reservations_data = []
-            if past_reservations.exists():
-                for reservation in past_reservations:
-                    past_reservations_data.append({
-                        'id': reservation.id,
-                        'property_name': reservation.property.name if reservation.property else 'Sin propiedad',
-                        'check_in_date': reservation.check_in_date.isoformat(),
-                        'check_out_date': reservation.check_out_date.isoformat(),
-                        'guests': reservation.guests,
-                        'nights': (reservation.check_out_date - reservation.check_in_date).days,
-                        'price_sol': float(reservation.price_sol) if reservation.price_sol else 0,
-                        'status': reservation.get_status_display() if hasattr(reservation, 'get_status_display') else reservation.status,
-                        'payment_full': reservation.full_payment,
-                        'temperature_pool': reservation.temperature_pool
-                    })
+            # Solo indicar si tiene reservas pasadas
+            has_past_reservations = past_reservations.exists()
 
             # Preparar respuesta
             response_data = {
@@ -1203,7 +1190,7 @@ class BotClientProfileView(APIView):
                     'referral_code': client.get_referral_code(),
                     'highest_level': highest_achievement,
                     'upcoming_reservations': upcoming_reservations_data,
-                    'past_reservations': past_reservations_data
+                    'has_past_reservations': has_past_reservations
                 }
             }
 
@@ -1318,7 +1305,7 @@ class ClientProfileView(APIView):
 
             # Obtener última búsqueda del cliente (si existe)
             search_tracking = SearchTracking.objects.filter(
-                client=client, 
+                client=client,
                 deleted=False
             ).order_by('-search_timestamp').first()
 
@@ -1982,7 +1969,7 @@ class SearchTrackingExportView(APIView):
                         'property_id': property_id,
                     },
                     'fields': [
-                        'id', 'search_timestamp', 'check_in_date', 'check_out_date', 
+                        'id', 'search_timestamp', 'check_in_date', 'check_out_date',
                         'guests', 'client_info', 'property_info', 'technical_data', 'created'
                     ]
                 },
@@ -2183,7 +2170,7 @@ class SearchTrackingView(APIView):
             # Obtener la búsqueda más reciente del cliente
             try:
                 search_tracking = SearchTracking.objects.filter(
-                    client=client, 
+                    client=client,
                     deleted=False
                 ).order_by('-search_timestamp').first()
 
@@ -2453,21 +2440,8 @@ class BotClientProfileView(APIView):
                     })
 
             # Serializar reservas pasadas
-            past_reservations_data = []
-            if past_reservations.exists():
-                for reservation in past_reservations:
-                    past_reservations_data.append({
-                        'id': reservation.id,
-                        'property_name': reservation.property.name if reservation.property else 'Sin propiedad',
-                        'check_in_date': reservation.check_in_date.isoformat(),
-                        'check_out_date': reservation.check_out_date.isoformat(),
-                        'guests': reservation.guests,
-                        'nights': (reservation.check_out_date - reservation.check_in_date).days,
-                        'price_sol': float(reservation.price_sol) if reservation.price_sol else 0,
-                        'status': reservation.get_status_display() if hasattr(reservation, 'get_status_display') else reservation.status,
-                        'payment_full': reservation.full_payment,
-                        'temperature_pool': reservation.temperature_pool
-                    })
+            # Solo indicar si tiene reservas pasadas
+            has_past_reservations = past_reservations.exists()
 
             # Preparar respuesta
             response_data = {
@@ -2487,7 +2461,7 @@ class BotClientProfileView(APIView):
                     'referral_code': client.get_referral_code(),
                     'highest_level': highest_achievement,
                     'upcoming_reservations': upcoming_reservations_data,
-                    'past_reservations': past_reservations_data
+                    'has_past_reservations': has_past_reservations
                 }
             }
 
