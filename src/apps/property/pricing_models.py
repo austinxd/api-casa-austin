@@ -710,34 +710,42 @@ class AutomaticDiscount(BaseModel):
         if self.required_achievements.exists():
             logger.info(f"🏆 Verificando logros requeridos...")
 
-            # Obtener el logro MÁS ALTO del cliente (nivel actual)
+            # Obtener TODOS los logros del cliente
             client_achievements = ClientAchievement.objects.filter(
                 client=client
-            ).select_related('achievement').order_by('achievement__order', 'achievement__required_reservations', 'achievement__required_referrals')
+            ).select_related('achievement')
 
             if not client_achievements.exists():
                 logger.info(f"❌ Cliente no tiene ningún logro")
                 required_names = list(self.required_achievements.values_list('name', flat=True))
                 return False, f"Requiere tener uno de estos logros: {', '.join(required_names)}"
 
-            # El último en el orden es el logro más alto
-            highest_achievement = client_achievements.last()
-            client_current_level = highest_achievement.achievement
+            # Obtener los IDs de logros que tiene el cliente
+            client_achievement_ids = set(client_achievements.values_list('achievement__id', flat=True))
+            client_achievement_names = list(client_achievements.values_list('achievement__name', flat=True))
+            
+            logger.info(f"🏆 Logros del cliente: {client_achievement_names}")
+            logger.info(f"🏆 IDs de logros del cliente: {client_achievement_ids}")
 
-            logger.info(f"🏆 Nivel actual del cliente: {client_current_level.name} (ID: {client_current_level.id})")
-
-            # Verificar si el logro actual del cliente está en los requeridos
+            # Verificar si alguno de los logros del cliente está en los requeridos
             required_achievement_ids = set(self.required_achievements.values_list('id', flat=True))
             required_names = list(self.required_achievements.values_list('name', flat=True))
 
             logger.info(f"🏆 Logros requeridos: {required_names}")
             logger.info(f"🏆 IDs requeridos: {required_achievement_ids}")
 
-            if client_current_level.id not in required_achievement_ids:
-                logger.info(f"❌ El nivel actual '{client_current_level.name}' no está en los logros requeridos")
-                return False, f"Este descuento es exclusivo para: {', '.join(required_names)}. Tu nivel actual ({client_current_level.name}) no califica."
+            # Verificar si hay intersección entre los logros del cliente y los requeridos
+            matching_achievements = client_achievement_ids.intersection(required_achievement_ids)
+            
+            if not matching_achievements:
+                logger.info(f"❌ El cliente no tiene ninguno de los logros requeridos")
+                return False, f"Este descuento es exclusivo para: {', '.join(required_names)}. Tus logros actuales ({', '.join(client_achievement_names)}) no califican."
 
-            logger.info(f"✅ El nivel actual '{client_current_level.name}' SÍ está en los logros requeridos")
+            # Obtener nombres de los logros que coinciden
+            matching_achievement_names = list(
+                self.required_achievements.filter(id__in=matching_achievements).values_list('name', flat=True)
+            )
+            logger.info(f"✅ El cliente tiene los siguientes logros requeridos: {matching_achievement_names}")
         else:
             logger.info(f"🏆 Sin logros requeridos - descuento disponible para todos los clientes")
 
