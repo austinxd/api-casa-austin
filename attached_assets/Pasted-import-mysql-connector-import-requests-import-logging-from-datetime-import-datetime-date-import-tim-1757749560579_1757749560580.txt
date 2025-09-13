@@ -1,0 +1,226 @@
+import mysql.connector
+import requests
+import logging
+from datetime import datetime, date
+import time
+
+# =========================
+# Configuración de la base de datos
+# =========================
+db_config = {
+    'user': 'Reservas',
+    'password': '!Leonel123',
+    'host': 'localhost',
+    'database': 'ReservasCA',
+}
+
+# =========================
+# Configuración del registro (logs)
+# =========================
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger()
+
+# =========================
+# Orígenes válidos para sincronización
+# =========================
+ORIGINS = ('aus', 'air', 'client')
+
+# =========================
+# Mapeo de property_id a nombres de propiedades
+# =========================
+property_mapping = {
+    '573c665065a74e81883a2b910159731b': 'Casa Austin 1',
+    '9a04892a4ba54b1092b52a72f6d89d57': 'Casa Austin 2',
+    '0ff9b525ff7c4be3b8723937d958c1a6': 'Casa Austin 3',
+    'd9d4e844c38f4adeaa5c5def19652ad0': 'Casa Austin 4',
+}
+
+# =========================
+# Función para conectar a la base de datos
+# =========================
+def connect_db():
+    try:
+        conn = mysql.connector.connect(**db_config)
+        logger.info("Conexión a la base de datos establecida.")
+        return conn
+    except mysql.connector.Error as err:
+        logger.error(f"Error al conectar a la base de datos: {err}")
+        return None
+
+# =========================
+# Función para obtener reservas candidatas
+# =========================
+def get_users(conn):
+    """
+    Obtiene reservas con:
+      - origin en ORIGINS
+      - ManychatFecha en (0, 2)
+      - check_in_date >= hoy
+      - deleted = 0
+      - status = 'approved'
+    """
+    try:
+        cursor = conn.cursor()
+        today = date.today().strftime('%Y-%m-%d')
+
+        origins_placeholders = ', '.join(['%s'] * len(ORIGINS))
+        query = f"""
+        SELECT id, check_in_date, check_out_date, client_id, property_id
+        FROM reservation_reservation
+        WHERE origin IN ({origins_placeholders})
+          AND ManychatFecha IN (0, 2)
+          AND check_in_date >= %s
+          AND deleted = 0
+          AND status = 'approved'
+        """
+
+        params = list(ORIGINS) + [today]
+        logger.debug(f"SQL get_users: {query.strip()} | params={params}")
+        cursor.execute(query, params)
+        users = cursor.fetchall()
+        logger.info(f"Usuarios obtenidos para sincronización: {len(users)}")
+        cursor.close()
+        return users
+    except mysql.connector.Error as err:
+        logger.error(f"Error al obtener usuarios: {err}")
+        return []
+
+# =========================
+# Función para obtener el id_manychat (ChatBuilder user_id)
+# =========================
+def get_chatbuilder_id(conn, client_id):
+    try:
+        cursor = conn.cursor()
+        query = """
+        SELECT id_manychat
+        FROM clients_clients
+        WHERE id = %s
+        """
+        logger.debug(f"SQL get_chatbuilder_id: {query.strip()} | client_id={client_id}")
+        cursor.execute(query, (client_id,))
+        result = cursor.fetchone()
+        cursor.close()
+        if result:
+            return result[0]
+        else:
+            logger.warning(f"No se encontró id_manychat para client_id: {client_id}")
+            return None
+    except mysql.connector.Error as err:
+        logger.error(f"Error al obtener id_manychat: {err}")
+        return None
+
+# =========================
+# Configuración de la API de ChatGPTBuilder.io
+# =========================
+api_url_update_fields = "https://app.chatgptbuilder.io/api/users/{user_id}/custom_fields/{custom_field_id}"
+api_url_add_tag = "https://app.chatgptbuilder.io/api/users/{user_id}/tags/{tag_id}"
+headers = {
+    'X-ACCESS-TOKEN': '1680437.Pgur5IA4kUXccspOK389nZugThdLB9h',
+    'Content-Type': 'application/x-www-form-urlencoded'
+}
+
+# =========================
+# Función para actualizar campos personalizados en ChatBuilder
+# =========================
+def update_custom_fields(user_id, check_in_date, check_out_date, property_id):
+    property_name = property_mapping.get(property_id, 'Unknown Property')
+
+    try:
+        check_in_str = check_in_date.strftime('%Y-%m-%d')
+    except AttributeError:
+        check_in_str = str(check_in_date)
+
+    try:
+        check_out_str = check_out_date.strftime('%Y-%m-%d')
+    except AttributeError:
+        check_out_str = str(check_out_date)
+
+    fields = [
+        (575042, check_in_str),
+        (461286, check_out_str),
+        (984298, property_name)
+    ]
+
+    success = True
+
+    for field_id, field_value in fields:
+        url = api_url_update_fields.format(user_id=user_id, custom_field_id=field_id)
+        payload = {'value': field_value}
+        logger.debug(f"POST {url} | payload={payload}")
+
+        try:
+            response = requests.post(url, headers=headers, data=payload, timeout=30)
+            response.raise_for_status()
+            logger.info(f"Campo personalizado {field_id} actualizado para el usuario: {user_id}")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error al actualizar campo personalizado {field_id} para el usuario {user_id}: {e}")
+            success = False
+
+        time.sleep(1)
+
+    return success
+
+# =========================
+# Función para agregar una etiqueta a ChatBuilder
+# =========================
+def add_tag(user_id):
+    url = api_url_add_tag.format(user_id=user_id, tag_id=466434)
+    logger.debug(f"POST {url} (add tag)")
+    try:
+        response = requests.post(url, headers=headers, timeout=30)
+        response.raise_for_status()
+        logger.info(f"Etiqueta añadida para el usuario: {user_id}")
+        return True
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error al agregar etiqueta para el usuario {user_id}: {e}")
+        return False
+
+# =========================
+# Función para actualizar ManychatFecha en la BD
+# =========================
+def update_sync_status(conn, reservation_id, status):
+    try:
+        cursor = conn.cursor()
+        query = "UPDATE reservation_reservation SET ManychatFecha = %s WHERE id = %s"
+        logger.debug(f"SQL update_sync_status: {query} | params=({status}, {reservation_id})")
+        cursor.execute(query, (status, reservation_id))
+        conn.commit()
+        cursor.close()
+        logger.info(f"Estado de ManychatFecha actualizado para la reserva: {reservation_id} a {status}")
+    except mysql.connector.Error as err:
+        logger.error(f"Error al actualizar estado de ManychatFecha: {err}")
+
+# =========================
+# Proceso principal
+# =========================
+def main():
+    conn = connect_db()
+    if not conn:
+        return
+
+    try:
+        users = get_users(conn)
+        for user in users:
+            reservation_id, check_in_date, check_out_date, client_id, property_id = user
+            user_id = get_chatbuilder_id(conn, client_id)
+
+            if user_id:
+                if update_custom_fields(user_id, check_in_date, check_out_date, property_id):
+                    if add_tag(user_id):
+                        update_sync_status(conn, reservation_id, 1)
+                    else:
+                        logger.error(f"Error al agregar tag para la reserva {reservation_id}.")
+                        update_sync_status(conn, reservation_id, 2)
+                else:
+                    logger.error(f"Error al actualizar campos personalizados para la reserva {reservation_id}.")
+                    update_sync_status(conn, reservation_id, 2)
+            else:
+                logger.error(f"No se pudo encontrar el id de ChatBuilder para el cliente {client_id}.")
+                update_sync_status(conn, reservation_id, 2)
+
+    finally:
+        conn.close()
+        logger.info("Conexión a la base de datos cerrada.")
+
+if __name__ == "__main__":
+    main()
