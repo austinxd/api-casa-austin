@@ -442,7 +442,7 @@ class CalculatePricingAPIView(APIView):
                 description='UUIDs de servicios adicionales separados por comas (ej: 6d3d74ed-54a1-422a-b244-582848a169d2,uuid2)',
                 required=False
             ),
-            
+
         ],
         responses={
             200: PricingCalculationSerializer,
@@ -1205,7 +1205,7 @@ class BotGlobalDiscountAPIView(APIView):
 
             # Verificar si se debe enviar a ChatBot Builder
             send_to_chatbot = request.query_params.get('send_to_chatbotbuilder', '').lower() == 'true'
-            
+
             if send_to_chatbot:
                 sync_results = self.sync_discounts_to_chatbot(response_data)
                 response_data['chatbot_sync_results'] = sync_results
@@ -1259,28 +1259,28 @@ class BotGlobalDiscountAPIView(APIView):
         # Actualizar custom field del sistema (una sola vez)
         try:
             # URL para custom field de sistema/bot (sin usuario específico)
-            api_url = f"https://app.chatgptbuilder.io/api/bot_fields/{custom_field_id}"
-            
+            api_url = f"https://app.chatgptbuilder.io/api/accounts/bot_fields/{custom_field_id}"
+
             headers = {
                 'X-ACCESS-TOKEN': api_token,
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
-            
+
             payload = {'value': discounts_json_str}
 
             logger.info(f"Actualizando custom field de sistema {custom_field_id} con descuentos globales")
             logger.info(f"URL: {api_url}")
             logger.info(f"Payload size: {len(discounts_json_str)} characters")
-            
+
             response = requests.post(api_url, headers=headers, data=payload, timeout=30)
-            
+
             # Log más detallado de la respuesta
             logger.info(f"Response status: {response.status_code}")
             logger.info(f"Response headers: {dict(response.headers)}")
             logger.info(f"Response text: {response.text}")
-            
+
             response.raise_for_status()
-            
+
             logger.info(f"Custom field de sistema actualizado exitosamente")
 
             return {
@@ -1416,7 +1416,7 @@ class BotLevelsAPIView(APIView):
 
             # Verificar si se debe enviar a ChatBot Builder
             send_to_chatbot = request.query_params.get('send_to_chatbotbuilder', '').lower() == 'true'
-            
+
             if send_to_chatbot:
                 sync_results = self.sync_levels_to_chatbot(response_data)
                 response_data['chatbot_sync_results'] = sync_results
@@ -1470,20 +1470,20 @@ class BotLevelsAPIView(APIView):
         # Actualizar custom field del sistema (una sola vez)
         try:
             # URL para custom field de sistema/bot (sin usuario específico)
-            api_url = f"https://app.chatgptbuilder.io/api/bot_fields/{custom_field_id}"
-            
+            api_url = f"https://app.chatgptbuilder.io/api/accounts/bot_fields/{custom_field_id}"
+
             headers = {
                 'X-ACCESS-TOKEN': api_token,
                 'Content-Type': 'application/x-www-form-urlencoded'
             }
-            
+
             payload = {'value': levels_json_str}
 
             logger.info(f"Actualizando custom field de sistema {custom_field_id} con niveles")
-            
+
             response = requests.post(api_url, headers=headers, data=payload, timeout=30)
             response.raise_for_status()
-            
+
             logger.info(f"Custom field de sistema actualizado exitosamente")
 
             return {
@@ -1497,4 +1497,3 @@ class BotLevelsAPIView(APIView):
                 'successful_sync': False,
                 'error': f'Error actualizando custom field de sistema: {str(e)}'
             }
-
