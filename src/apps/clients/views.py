@@ -1168,12 +1168,13 @@ class BotClientProfileView(APIView):
                         'temperature_pool': reservation.temperature_pool
                     })
 
+            # Serializar reservas pasadas
             # Solo indicar si tiene reservas pasadas
             has_past_reservations = past_reservations.exists()
 
-            # Obtener campo is_password_set directamente
-            is_password_set = client.is_password_set
-            logger.info(f"BotClientProfileView: Client {client.id} - is_password_set: {is_password_set}")
+            # Debug logging for password field
+            logger.info(f"BotClientProfileView: Client {client.id} - is_password_set: {getattr(client, 'is_password_set', 'FIELD_NOT_FOUND')}")
+            logger.info(f"BotClientProfileView: Client {client.id} - password field: {getattr(client, 'password', 'FIELD_NOT_FOUND')}")
 
             # Preparar respuesta
             response_data = {
@@ -1194,7 +1195,7 @@ class BotClientProfileView(APIView):
                     'highest_level': highest_achievement,
                     'upcoming_reservations': upcoming_reservations_data,
                     'has_past_reservations': has_past_reservations,
-                    'is_password_set': is_password_set
+                    'is_password_set': getattr(client, 'is_password_set', False)
                 }
             }
 
@@ -2443,12 +2444,9 @@ class BotClientProfileView(APIView):
                         'temperature_pool': reservation.temperature_pool
                     })
 
+            # Serializar reservas pasadas
             # Solo indicar si tiene reservas pasadas
             has_past_reservations = past_reservations.exists()
-
-            # Obtener campo is_password_set directamente
-            is_password_set = client.is_password_set
-            logger.info(f"BotClientProfileView: Client {client.id} - is_password_set: {is_password_set}")
 
             # Preparar respuesta
             response_data = {
@@ -2468,8 +2466,7 @@ class BotClientProfileView(APIView):
                     'referral_code': client.get_referral_code(),
                     'highest_level': highest_achievement,
                     'upcoming_reservations': upcoming_reservations_data,
-                    'has_past_reservations': has_past_reservations,
-                    'is_password_set': is_password_set
+                    'has_past_reservations': has_past_reservations
                 }
             }
 
