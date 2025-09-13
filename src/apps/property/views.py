@@ -1242,6 +1242,8 @@ class BotGlobalDiscountAPIView(APIView):
                 'error': 'ID_CUF_GLOBAL_DSCT_CBB no configurado'
             }
 
+        logger.info(f"Usando custom field ID: {custom_field_id} para descuentos globales")
+
         # Obtener clientes con id_manychat
         clients = Clients.objects.filter(
             deleted=False,
@@ -1252,9 +1254,16 @@ class BotGlobalDiscountAPIView(APIView):
         successful_syncs = 0
         failed_syncs = 0
 
-        # Convertir datos a JSON string
+        # Convertir la respuesta COMPLETA a JSON string (no solo el array)
         try:
-            discounts_json_str = json.dumps(discounts_data, ensure_ascii=False)
+            # Crear la respuesta completa como la devuelve el endpoint
+            complete_response = {
+                'success': True,
+                'global_discounts': discounts_data,
+                'count': len(discounts_data),
+                'message': 'Descuentos globales obtenidos exitosamente'
+            }
+            discounts_json_str = json.dumps(complete_response, ensure_ascii=False)
         except Exception as e:
             logger.error(f"Error serializando JSON de descuentos: {e}")
             return {
@@ -1269,8 +1278,9 @@ class BotGlobalDiscountAPIView(APIView):
             'Content-Type': 'application/x-www-form-urlencoded'
         }
 
-        # Procesar cada cliente
-        for client in clients:
+        # Procesar cada cliente con rate limiting
+        import time
+        for i, client in enumerate(clients):
             try:
                 api_url = f"https://app.chatgptbuilder.io/api/users/{client.id_manychat}/custom_fields/{custom_field_id}"
                 payload = {'value': discounts_json_str}
@@ -1281,6 +1291,17 @@ class BotGlobalDiscountAPIView(APIView):
                 successful_syncs += 1
                 logger.debug(f"Descuentos globales actualizados para usuario: {client.id_manychat}")
 
+                # Rate limiting: pausa cada 10 requests
+                if (i + 1) % 10 == 0:
+                    time.sleep(1)  # Pausa 1 segundo cada 10 requests
+
+            except requests.exceptions.HTTPError as e:
+                failed_syncs += 1
+                if e.response.status_code == 429:
+                    logger.warning(f"Rate limit alcanzado para usuario {client.id_manychat}, esperando 5 segundos...")
+                    time.sleep(5)  # Esperar 5 segundos en caso de rate limit
+                else:
+                    logger.error(f"Error HTTP actualizando descuentos globales para usuario {client.id_manychat}: {e}")
             except Exception as e:
                 failed_syncs += 1
                 logger.error(f"Error actualizando descuentos globales para usuario {client.id_manychat}: {e}")
@@ -1459,9 +1480,16 @@ class BotLevelsAPIView(APIView):
         successful_syncs = 0
         failed_syncs = 0
 
-        # Convertir datos a JSON string
+        # Convertir la respuesta COMPLETA a JSON string (no solo el array)
         try:
-            levels_json_str = json.dumps(levels_data, ensure_ascii=False)
+            # Crear la respuesta completa como la devuelve el endpoint
+            complete_response = {
+                'success': True,
+                'levels': levels_data,
+                'count': len(levels_data),
+                'message': 'Niveles obtenidos exitosamente'
+            }
+            levels_json_str = json.dumps(complete_response, ensure_ascii=False)
         except Exception as e:
             logger.error(f"Error serializando JSON de niveles: {e}")
             return {
@@ -1476,8 +1504,9 @@ class BotLevelsAPIView(APIView):
             'Content-Type': 'application/x-www-form-urlencoded'
         }
 
-        # Procesar cada cliente
-        for client in clients:
+        # Procesar cada cliente con rate limiting
+        import time
+        for i, client in enumerate(clients):
             try:
                 api_url = f"https://app.chatgptbuilder.io/api/users/{client.id_manychat}/custom_fields/{custom_field_id}"
                 payload = {'value': levels_json_str}
@@ -1488,6 +1517,17 @@ class BotLevelsAPIView(APIView):
                 successful_syncs += 1
                 logger.debug(f"Niveles actualizados para usuario: {client.id_manychat}")
 
+                # Rate limiting: pausa cada 10 requests
+                if (i + 1) % 10 == 0:
+                    time.sleep(1)  # Pausa 1 segundo cada 10 requests
+
+            except requests.exceptions.HTTPError as e:
+                failed_syncs += 1
+                if e.response.status_code == 429:
+                    logger.warning(f"Rate limit alcanzado para usuario {client.id_manychat}, esperando 5 segundos...")
+                    time.sleep(5)  # Esperar 5 segundos en caso de rate limit
+                else:
+                    logger.error(f"Error HTTP actualizando niveles para usuario {client.id_manychat}: {e}")
             except Exception as e:
                 failed_syncs += 1
                 logger.error(f"Error actualizando niveles para usuario {client.id_manychat}: {e}")
