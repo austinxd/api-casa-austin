@@ -1221,11 +1221,10 @@ class BotGlobalDiscountAPIView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def sync_discounts_to_chatbot(self, discounts_data):
-        """Sincroniza los datos de descuentos globales con ChatBot Builder"""
+        """Sincroniza los datos de descuentos globales con ChatBot Builder - Custom field de sistema"""
         import json
         import requests
         import logging
-        from apps.clients.models import Clients
 
         logger = logging.getLogger('apps')
 
@@ -1236,21 +1235,16 @@ class BotGlobalDiscountAPIView(APIView):
         if not custom_field_id:
             logger.error("ID_CUF_GLOBAL_DSCT_CBB no configurado")
             return {
-                'total_clients': 0,
-                'successful_syncs': 0,
-                'failed_syncs': 0,
+                'successful_sync': False,
                 'error': 'ID_CUF_GLOBAL_DSCT_CBB no configurado'
             }
 
-        # Obtener clientes con id_manychat
-        clients = Clients.objects.filter(
-            deleted=False,
-            id_manychat__isnull=False
-        ).exclude(id_manychat='')
-
-        total_clients = clients.count()
-        successful_syncs = 0
-        failed_syncs = 0
+        if not api_token:
+            logger.error("CHATBOT_BUILDER_ACCESS_TOKEN no configurado")
+            return {
+                'successful_sync': False,
+                'error': 'CHATBOT_BUILDER_ACCESS_TOKEN no configurado'
+            }
 
         # Convertir datos a JSON string
         try:
@@ -1258,40 +1252,40 @@ class BotGlobalDiscountAPIView(APIView):
         except Exception as e:
             logger.error(f"Error serializando JSON de descuentos: {e}")
             return {
-                'total_clients': total_clients,
-                'successful_syncs': 0,
-                'failed_syncs': total_clients,
+                'successful_sync': False,
                 'error': 'Error serializando datos'
             }
 
-        headers = {
-            'X-ACCESS-TOKEN': api_token,
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
+        # Actualizar custom field del sistema (una sola vez)
+        try:
+            # URL para custom field de sistema/bot (sin usuario específico)
+            api_url = f"https://app.chatgptbuilder.io/api/bot_fields/{custom_field_id}"
+            
+            headers = {
+                'X-ACCESS-TOKEN': api_token,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            
+            payload = {'value': discounts_json_str}
 
-        # Procesar cada cliente
-        for client in clients:
-            try:
-                api_url = f"https://app.chatgptbuilder.io/api/users/{client.id_manychat}/custom_fields/{custom_field_id}"
-                payload = {'value': discounts_json_str}
+            logger.info(f"Actualizando custom field de sistema {custom_field_id} con descuentos globales")
+            
+            response = requests.post(api_url, headers=headers, data=payload, timeout=30)
+            response.raise_for_status()
+            
+            logger.info(f"Custom field de sistema actualizado exitosamente")
 
-                response = requests.post(api_url, headers=headers, data=payload, timeout=30)
-                response.raise_for_status()
-                
-                successful_syncs += 1
-                logger.debug(f"Descuentos globales actualizados para usuario: {client.id_manychat}")
+            return {
+                'successful_sync': True,
+                'message': 'Custom field de sistema actualizado correctamente'
+            }
 
-            except Exception as e:
-                failed_syncs += 1
-                logger.error(f"Error actualizando descuentos globales para usuario {client.id_manychat}: {e}")
-
-        logger.info(f"Sincronización de descuentos globales completada: {successful_syncs} exitosos, {failed_syncs} fallidos de {total_clients} clientes")
-
-        return {
-            'total_clients': total_clients,
-            'successful_syncs': successful_syncs,
-            'failed_syncs': failed_syncs
-        }
+        except Exception as e:
+            logger.error(f"Error actualizando custom field de sistema {custom_field_id}: {e}")
+            return {
+                'successful_sync': False,
+                'error': f'Error actualizando custom field de sistema: {str(e)}'
+            }
 
 
 class BotLevelsAPIView(APIView):
@@ -1428,11 +1422,10 @@ class BotLevelsAPIView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def sync_levels_to_chatbot(self, levels_data):
-        """Sincroniza los datos de niveles con ChatBot Builder"""
+        """Sincroniza los datos de niveles con ChatBot Builder - Custom field de sistema"""
         import json
         import requests
         import logging
-        from apps.clients.models import Clients
 
         logger = logging.getLogger('apps')
 
@@ -1443,21 +1436,16 @@ class BotLevelsAPIView(APIView):
         if not custom_field_id:
             logger.error("ID_CUF_LEVELS_CBB no configurado")
             return {
-                'total_clients': 0,
-                'successful_syncs': 0,
-                'failed_syncs': 0,
+                'successful_sync': False,
                 'error': 'ID_CUF_LEVELS_CBB no configurado'
             }
 
-        # Obtener clientes con id_manychat
-        clients = Clients.objects.filter(
-            deleted=False,
-            id_manychat__isnull=False
-        ).exclude(id_manychat='')
-
-        total_clients = clients.count()
-        successful_syncs = 0
-        failed_syncs = 0
+        if not api_token:
+            logger.error("CHATBOT_BUILDER_ACCESS_TOKEN no configurado")
+            return {
+                'successful_sync': False,
+                'error': 'CHATBOT_BUILDER_ACCESS_TOKEN no configurado'
+            }
 
         # Convertir datos a JSON string
         try:
@@ -1465,38 +1453,38 @@ class BotLevelsAPIView(APIView):
         except Exception as e:
             logger.error(f"Error serializando JSON de niveles: {e}")
             return {
-                'total_clients': total_clients,
-                'successful_syncs': 0,
-                'failed_syncs': total_clients,
+                'successful_sync': False,
                 'error': 'Error serializando datos'
             }
 
-        headers = {
-            'X-ACCESS-TOKEN': api_token,
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
+        # Actualizar custom field del sistema (una sola vez)
+        try:
+            # URL para custom field de sistema/bot (sin usuario específico)
+            api_url = f"https://app.chatgptbuilder.io/api/bot_fields/{custom_field_id}"
+            
+            headers = {
+                'X-ACCESS-TOKEN': api_token,
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            
+            payload = {'value': levels_json_str}
 
-        # Procesar cada cliente
-        for client in clients:
-            try:
-                api_url = f"https://app.chatgptbuilder.io/api/users/{client.id_manychat}/custom_fields/{custom_field_id}"
-                payload = {'value': levels_json_str}
+            logger.info(f"Actualizando custom field de sistema {custom_field_id} con niveles")
+            
+            response = requests.post(api_url, headers=headers, data=payload, timeout=30)
+            response.raise_for_status()
+            
+            logger.info(f"Custom field de sistema actualizado exitosamente")
 
-                response = requests.post(api_url, headers=headers, data=payload, timeout=30)
-                response.raise_for_status()
-                
-                successful_syncs += 1
-                logger.debug(f"Niveles actualizados para usuario: {client.id_manychat}")
+            return {
+                'successful_sync': True,
+                'message': 'Custom field de sistema actualizado correctamente'
+            }
 
-            except Exception as e:
-                failed_syncs += 1
-                logger.error(f"Error actualizando niveles para usuario {client.id_manychat}: {e}")
-
-        logger.info(f"Sincronización de niveles completada: {successful_syncs} exitosos, {failed_syncs} fallidos de {total_clients} clientes")
-
-        return {
-            'total_clients': total_clients,
-            'successful_syncs': successful_syncs,
-            'failed_syncs': failed_syncs
-        }
+        except Exception as e:
+            logger.error(f"Error actualizando custom field de sistema {custom_field_id}: {e}")
+            return {
+                'successful_sync': False,
+                'error': f'Error actualizando custom field de sistema: {str(e)}'
+            }
 
