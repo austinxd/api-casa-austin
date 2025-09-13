@@ -385,6 +385,11 @@ if os.environ.get('REPL_ID'):
         if current_replit_domain not in CSRF_TRUSTED_ORIGINS:
             CSRF_TRUSTED_ORIGINS.append(current_replit_domain)
 
+# ChatBot Builder Configuration
+CHATBOT_BUILDER_ACCESS_TOKEN = env('CHATBOT_BUILDER_ACCESS_TOKEN', default='1680437.Pgur5IA4kUXccspOK389nZugThdLB9h')
+ID_CUF_LEVELS_CBB = env('ID_CUF_LEVELS_CBB', default='191894')
+ID_CUF_GLOBAL_DSCT_CBB = env('ID_CUF_GLOBAL_DSCT_CBB', default='')
+
 # Verificar que las variables de entorno se cargan correctamente
 import logging
 

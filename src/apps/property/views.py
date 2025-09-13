@@ -1086,10 +1086,20 @@ class BotGlobalDiscountAPIView(APIView):
     """
     Endpoint público para el bot con descuentos automáticos globales (sin logros requeridos)
     GET /api/v1/bot/global-discount/
+    Parámetro opcional: ?send_to_chatbotbuilder=true
     """
     permission_classes = [AllowAny]
 
     @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='send_to_chatbotbuilder',
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description='Si es true, envía los datos al custom field de ChatBot Builder',
+                required=False
+            )
+        ],
         responses={
             200: {
                 'type': 'object',
@@ -1110,16 +1120,31 @@ class BotGlobalDiscountAPIView(APIView):
                                 'restrictions': {'type': 'string'}
                             }
                         }
+                    },
+                    'count': {'type': 'integer'},
+                    'message': {'type': 'string'},
+                    'chatbot_sync_results': {
+                        'type': 'object',
+                        'properties': {
+                            'total_clients': {'type': 'integer'},
+                            'successful_syncs': {'type': 'integer'},
+                            'failed_syncs': {'type': 'integer'}
+                        }
                     }
                 }
             }
         },
-        description='Endpoint específico para bot que lista únicamente descuentos automáticos globales (sin requisitos de logros)'
+        description='Endpoint específico para bot que lista únicamente descuentos automáticos globales (sin requisitos de logros). Opcionalmente puede enviar los datos a ChatBot Builder.'
     )
     def get(self, request):
         try:
             from .pricing_models import AutomaticDiscount
             from apps.clients.models import Achievement
+            import json
+            import requests
+            import logging
+
+            logger = logging.getLogger('apps')
 
             # Obtener descuentos automáticos activos
             discounts = AutomaticDiscount.objects.filter(
@@ -1171,12 +1196,21 @@ class BotGlobalDiscountAPIView(APIView):
                     }
                     global_discounts.append(discount_info)
 
-            return Response({
+            response_data = {
                 'success': True,
                 'global_discounts': global_discounts,
                 'count': len(global_discounts),
                 'message': f'Se encontraron {len(global_discounts)} descuentos globales activos'
-            }, status=status.HTTP_200_OK)
+            }
+
+            # Verificar si se debe enviar a ChatBot Builder
+            send_to_chatbot = request.query_params.get('send_to_chatbotbuilder', '').lower() == 'true'
+            
+            if send_to_chatbot:
+                sync_results = self.sync_discounts_to_chatbot(response_data)
+                response_data['chatbot_sync_results'] = sync_results
+
+            return Response(response_data, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({
@@ -1186,15 +1220,98 @@ class BotGlobalDiscountAPIView(APIView):
                 'detail': str(e) if settings.DEBUG else None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    def sync_discounts_to_chatbot(self, discounts_data):
+        """Sincroniza los datos de descuentos globales con ChatBot Builder"""
+        import json
+        import requests
+        import logging
+        from apps.clients.models import Clients
+
+        logger = logging.getLogger('apps')
+
+        # Obtener configuración
+        custom_field_id = settings.ID_CUF_GLOBAL_DSCT_CBB
+        api_token = settings.CHATBOT_BUILDER_ACCESS_TOKEN
+
+        if not custom_field_id:
+            logger.error("ID_CUF_GLOBAL_DSCT_CBB no configurado")
+            return {
+                'total_clients': 0,
+                'successful_syncs': 0,
+                'failed_syncs': 0,
+                'error': 'ID_CUF_GLOBAL_DSCT_CBB no configurado'
+            }
+
+        # Obtener clientes con id_manychat
+        clients = Clients.objects.filter(
+            deleted=False,
+            id_manychat__isnull=False
+        ).exclude(id_manychat='')
+
+        total_clients = clients.count()
+        successful_syncs = 0
+        failed_syncs = 0
+
+        # Convertir datos a JSON string
+        try:
+            discounts_json_str = json.dumps(discounts_data, ensure_ascii=False)
+        except Exception as e:
+            logger.error(f"Error serializando JSON de descuentos: {e}")
+            return {
+                'total_clients': total_clients,
+                'successful_syncs': 0,
+                'failed_syncs': total_clients,
+                'error': 'Error serializando datos'
+            }
+
+        headers = {
+            'X-ACCESS-TOKEN': api_token,
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+
+        # Procesar cada cliente
+        for client in clients:
+            try:
+                api_url = f"https://app.chatgptbuilder.io/api/users/{client.id_manychat}/custom_fields/{custom_field_id}"
+                payload = {'value': discounts_json_str}
+
+                response = requests.post(api_url, headers=headers, data=payload, timeout=30)
+                response.raise_for_status()
+                
+                successful_syncs += 1
+                logger.debug(f"Descuentos globales actualizados para usuario: {client.id_manychat}")
+
+            except Exception as e:
+                failed_syncs += 1
+                logger.error(f"Error actualizando descuentos globales para usuario {client.id_manychat}: {e}")
+
+        logger.info(f"Sincronización de descuentos globales completada: {successful_syncs} exitosos, {failed_syncs} fallidos de {total_clients} clientes")
+
+        return {
+            'total_clients': total_clients,
+            'successful_syncs': successful_syncs,
+            'failed_syncs': failed_syncs
+        }
+
 
 class BotLevelsAPIView(APIView):
     """
     Endpoint público para el bot que lista todos los niveles (logros) con sus requisitos
     GET /api/v1/bot/levels/
+    Parámetro opcional: ?send_to_chatbotbuilder=true
     """
     permission_classes = [AllowAny]
 
     @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='send_to_chatbotbuilder',
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description='Si es true, envía los datos al custom field de ChatBot Builder',
+                required=False
+            )
+        ],
         responses={
             200: {
                 'type': 'object',
@@ -1222,15 +1339,28 @@ class BotLevelsAPIView(APIView):
                         }
                     },
                     'count': {'type': 'integer'},
-                    'message': {'type': 'string'}
+                    'message': {'type': 'string'},
+                    'chatbot_sync_results': {
+                        'type': 'object',
+                        'properties': {
+                            'total_clients': {'type': 'integer'},
+                            'successful_syncs': {'type': 'integer'},
+                            'failed_syncs': {'type': 'integer'}
+                        }
+                    }
                 }
             }
         },
-        description='Endpoint específico para bot que lista todos los niveles (logros) disponibles con sus requisitos'
+        description='Endpoint específico para bot que lista todos los niveles (logros) disponibles con sus requisitos. Opcionalmente puede enviar los datos a ChatBot Builder.'
     )
     def get(self, request):
         try:
             from apps.clients.models import Achievement
+            import json
+            import requests
+            import logging
+
+            logger = logging.getLogger('apps')
 
             # Obtener todos los logros activos ordenados por orden y requisitos
             achievements = Achievement.objects.filter(
@@ -1273,12 +1403,21 @@ class BotLevelsAPIView(APIView):
                 }
                 levels.append(level_info)
 
-            return Response({
+            response_data = {
                 'success': True,
                 'levels': levels,
                 'count': len(levels),
                 'message': f'Se encontraron {len(levels)} niveles disponibles'
-            }, status=status.HTTP_200_OK)
+            }
+
+            # Verificar si se debe enviar a ChatBot Builder
+            send_to_chatbot = request.query_params.get('send_to_chatbotbuilder', '').lower() == 'true'
+            
+            if send_to_chatbot:
+                sync_results = self.sync_levels_to_chatbot(response_data)
+                response_data['chatbot_sync_results'] = sync_results
+
+            return Response(response_data, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({
@@ -1287,4 +1426,77 @@ class BotLevelsAPIView(APIView):
                 'message': 'Error interno del servidor',
                 'detail': str(e) if settings.DEBUG else None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def sync_levels_to_chatbot(self, levels_data):
+        """Sincroniza los datos de niveles con ChatBot Builder"""
+        import json
+        import requests
+        import logging
+        from apps.clients.models import Clients
+
+        logger = logging.getLogger('apps')
+
+        # Obtener configuración
+        custom_field_id = settings.ID_CUF_LEVELS_CBB
+        api_token = settings.CHATBOT_BUILDER_ACCESS_TOKEN
+
+        if not custom_field_id:
+            logger.error("ID_CUF_LEVELS_CBB no configurado")
+            return {
+                'total_clients': 0,
+                'successful_syncs': 0,
+                'failed_syncs': 0,
+                'error': 'ID_CUF_LEVELS_CBB no configurado'
+            }
+
+        # Obtener clientes con id_manychat
+        clients = Clients.objects.filter(
+            deleted=False,
+            id_manychat__isnull=False
+        ).exclude(id_manychat='')
+
+        total_clients = clients.count()
+        successful_syncs = 0
+        failed_syncs = 0
+
+        # Convertir datos a JSON string
+        try:
+            levels_json_str = json.dumps(levels_data, ensure_ascii=False)
+        except Exception as e:
+            logger.error(f"Error serializando JSON de niveles: {e}")
+            return {
+                'total_clients': total_clients,
+                'successful_syncs': 0,
+                'failed_syncs': total_clients,
+                'error': 'Error serializando datos'
+            }
+
+        headers = {
+            'X-ACCESS-TOKEN': api_token,
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+
+        # Procesar cada cliente
+        for client in clients:
+            try:
+                api_url = f"https://app.chatgptbuilder.io/api/users/{client.id_manychat}/custom_fields/{custom_field_id}"
+                payload = {'value': levels_json_str}
+
+                response = requests.post(api_url, headers=headers, data=payload, timeout=30)
+                response.raise_for_status()
+                
+                successful_syncs += 1
+                logger.debug(f"Niveles actualizados para usuario: {client.id_manychat}")
+
+            except Exception as e:
+                failed_syncs += 1
+                logger.error(f"Error actualizando niveles para usuario {client.id_manychat}: {e}")
+
+        logger.info(f"Sincronización de niveles completada: {successful_syncs} exitosos, {failed_syncs} fallidos de {total_clients} clientes")
+
+        return {
+            'total_clients': total_clients,
+            'successful_syncs': successful_syncs,
+            'failed_syncs': failed_syncs
+        }
 
