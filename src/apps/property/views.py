@@ -1269,15 +1269,25 @@ class BotGlobalDiscountAPIView(APIView):
             payload = {'value': discounts_json_str}
 
             logger.info(f"Actualizando custom field de sistema {custom_field_id} con descuentos globales")
+            logger.info(f"URL: {api_url}")
+            logger.info(f"Payload size: {len(discounts_json_str)} characters")
             
             response = requests.post(api_url, headers=headers, data=payload, timeout=30)
+            
+            # Log más detallado de la respuesta
+            logger.info(f"Response status: {response.status_code}")
+            logger.info(f"Response headers: {dict(response.headers)}")
+            logger.info(f"Response text: {response.text}")
+            
             response.raise_for_status()
             
             logger.info(f"Custom field de sistema actualizado exitosamente")
 
             return {
                 'successful_sync': True,
-                'message': 'Custom field de sistema actualizado correctamente'
+                'message': 'Custom field de sistema actualizado correctamente',
+                'response_status': response.status_code,
+                'response_data': response.text
             }
 
         except Exception as e:
