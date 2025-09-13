@@ -1190,7 +1190,8 @@ class BotClientProfileView(APIView):
                     'referral_code': client.get_referral_code(),
                     'highest_level': highest_achievement,
                     'upcoming_reservations': upcoming_reservations_data,
-                    'has_past_reservations': has_past_reservations
+                    'has_past_reservations': has_past_reservations,
+                    'is_password_set': client.is_password_set
                 }
             }
 
