@@ -33,6 +33,7 @@ class Command(BaseCommand):
         filters = {
             'status': 'approved',
             'check_out_date__gte': today,  # Solo reservas futuras o de hoy
+            'deleted': False,  # Solo reservas NO eliminadas
         }
         
         # Si se especifica fecha de inicio, usarla en lugar de hoy
