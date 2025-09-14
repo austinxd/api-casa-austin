@@ -132,7 +132,10 @@ class WorkTask(BaseModel):
         StaffMember,
         on_delete=models.CASCADE,
         related_name="work_tasks",
-        verbose_name="Personal asignado"
+        verbose_name="Personal asignado",
+        null=True,
+        blank=True,
+        help_text="Personal asignado a la tarea (puede estar sin asignar)"
     )
     building_property = models.ForeignKey(
         Property,

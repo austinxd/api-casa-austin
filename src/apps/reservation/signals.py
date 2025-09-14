@@ -283,6 +283,11 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
             f"Nueva reserva creada: {instance.id} - Origen: {instance.origin}")
         notify_new_reservation(instance)
 
+        # NUEVO: Crear tarea de limpieza automáticamente si la nueva reserva ya está aprobada
+        if instance.status == 'approved':
+            logger.info(f"New reservation created with approved status {instance.id} - Creating automatic cleaning task")
+            create_automatic_cleaning_task(instance)
+
         # Verificar si la nueva reserva tiene pago completo
         if instance.full_payment:
             logger.debug(
@@ -328,6 +333,11 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
             logger.error(
                 f"Error verificando logros después de actualizar reserva: {str(e)}"
             )
+
+        # NUEVO: Crear tarea de limpieza automáticamente cuando se aprueba la reserva
+        if instance.status == 'approved' and hasattr(instance, '_original_status') and instance._original_status != 'approved':
+            logger.info(f"Reservation {instance.id} status changed to approved - Creating automatic cleaning task")
+            create_automatic_cleaning_task(instance)
 
         # NUEVO: Actualizar tareas de limpieza si cambió la fecha de checkout
         if hasattr(instance, '_original_check_out_date'):
@@ -480,14 +490,17 @@ def reservation_pre_save_handler(sender, instance, **kwargs):
         try:
             # Obtener la reserva original desde la base de datos
             original = Reservation.objects.get(pk=instance.pk)
-            # Guardar el check_out_date original en la instancia
+            # Guardar los valores originales en la instancia
             instance._original_check_out_date = original.check_out_date
+            instance._original_status = original.status
         except Reservation.DoesNotExist:
             # Si no existe, es una nueva reserva
             instance._original_check_out_date = None
+            instance._original_status = None
     else:
         # Nueva reserva
         instance._original_check_out_date = None
+        instance._original_status = None
 
 
 def update_cleaning_tasks_for_checkout_change(reservation, original_checkout, new_checkout):
@@ -525,3 +538,153 @@ def update_cleaning_tasks_for_checkout_change(reservation, original_checkout, ne
             
     except Exception as e:
         logger.error(f"❌ Error updating cleaning tasks for reservation {reservation.id}: {str(e)}")
+
+
+def create_automatic_cleaning_task(reservation):
+    """Crear automáticamente tarea de limpieza cuando se aprueba una reserva"""
+    if not WorkTask or not StaffMember:
+        logger.warning("Staff models not available, skipping automatic task creation")
+        return
+    
+    try:
+        # Verificar que no exista ya una tarea de limpieza para esta reserva
+        existing_task = WorkTask.objects.filter(
+            reservation=reservation,
+            task_type='checkout_cleaning',
+            deleted=False
+        ).first()
+        
+        if existing_task:
+            logger.info(f"Cleaning task already exists for reservation {reservation.id}")
+            return
+        
+        # Buscar el mejor personal de limpieza disponible
+        assigned_staff = find_best_cleaning_staff(reservation.check_out_date, reservation.property)
+        
+        if not assigned_staff:
+            logger.warning(f"No cleaning staff available for reservation {reservation.id} on {reservation.check_out_date}")
+            # Crear tarea sin asignar para revisión manual
+            assigned_staff = None
+        
+        # Crear la tarea de limpieza
+        cleaning_task = WorkTask.objects.create(
+            staff_member=assigned_staff,
+            building_property=reservation.property,
+            reservation=reservation,
+            task_type='checkout_cleaning',
+            title=f"Limpieza checkout - {reservation.property.name}",
+            description=f"Limpieza post-checkout para reserva #{reservation.id}\nCliente: {reservation.client.full_name if reservation.client else 'N/A'}",
+            scheduled_date=reservation.check_out_date,
+            estimated_duration='02:00:00',  # 2 horas por defecto
+            priority='medium',
+            status='assigned' if assigned_staff else 'pending',
+            requires_photo_evidence=True
+        )
+        
+        if assigned_staff:
+            logger.info(
+                f"✅ Created and assigned cleaning task {cleaning_task.id} to {assigned_staff.full_name} "
+                f"for reservation {reservation.id} on {reservation.check_out_date}"
+            )
+        else:
+            logger.info(
+                f"✅ Created unassigned cleaning task {cleaning_task.id} for reservation {reservation.id} "
+                f"on {reservation.check_out_date} - requires manual assignment"
+            )
+            
+    except Exception as e:
+        logger.error(f"❌ Error creating automatic cleaning task for reservation {reservation.id}: {str(e)}")
+
+
+def find_best_cleaning_staff(scheduled_date, property_obj):
+    """Encuentra el mejor personal de limpieza disponible para una fecha y propiedad específica"""
+    if not StaffMember:
+        return None
+    
+    try:
+        # Buscar personal de limpieza activo
+        cleaning_staff = StaffMember.objects.filter(
+            staff_type='cleaning',
+            status='active',
+            deleted=False
+        )
+        
+        if not cleaning_staff.exists():
+            logger.warning("No active cleaning staff found")
+            return None
+        
+        # Evaluar cada miembro del staff y asignar puntuación
+        staff_scores = []
+        
+        for staff in cleaning_staff:
+            score = calculate_staff_score(staff, scheduled_date, property_obj)
+            if score > 0:  # Solo considerar staff disponible
+                staff_scores.append((staff, score))
+        
+        if not staff_scores:
+            logger.warning(f"No available cleaning staff for {scheduled_date}")
+            return None
+        
+        # Ordenar por puntuación (mayor es mejor) y retornar el mejor
+        staff_scores.sort(key=lambda x: x[1], reverse=True)
+        best_staff = staff_scores[0][0]
+        
+        logger.info(f"Selected {best_staff.full_name} as best cleaning staff for {scheduled_date}")
+        return best_staff
+        
+    except Exception as e:
+        logger.error(f"Error finding best cleaning staff: {str(e)}")
+        return None
+
+
+def calculate_staff_score(staff, scheduled_date, property_obj):
+    """Calcula puntuación para un miembro del staff basado en disponibilidad y carga de trabajo"""
+    score = 100  # Puntuación base
+    
+    try:
+        # Verificar disponibilidad en fin de semana
+        weekday = scheduled_date.weekday()  # 0=Monday, 6=Sunday
+        if weekday >= 5 and not staff.can_work_weekends:  # Sábado o domingo
+            return 0  # No disponible en fin de semana
+        
+        # Contar tareas ya asignadas para esa fecha
+        tasks_on_date = WorkTask.objects.filter(
+            staff_member=staff,
+            scheduled_date=scheduled_date,
+            status__in=['pending', 'assigned', 'in_progress'],
+            deleted=False
+        ).count()
+        
+        # Verificar límite máximo de propiedades por día
+        if tasks_on_date >= staff.max_properties_per_day:
+            return 0  # Ya tiene el máximo de tareas
+        
+        # Reducir puntuación según carga de trabajo actual
+        score -= tasks_on_date * 20  # -20 puntos por cada tarea existente
+        
+        # Bonus por menos carga de trabajo
+        if tasks_on_date == 0:
+            score += 30  # Bonus por estar completamente libre
+        
+        # Verificar si tiene horario programado para ese día
+        try:
+            from ..staff.models import WorkSchedule
+            schedule = WorkSchedule.objects.filter(
+                staff_member=staff,
+                date=scheduled_date,
+                deleted=False
+            ).first()
+            
+            if schedule:
+                score += 20  # Bonus por tener horario programado
+            else:
+                score -= 10  # Penalización por no tener horario
+                
+        except ImportError:
+            pass  # WorkSchedule no disponible
+        
+        return max(score, 0)  # Asegurar que el score no sea negativo
+        
+    except Exception as e:
+        logger.error(f"Error calculating score for staff {staff.id}: {str(e)}")
+        return 0
