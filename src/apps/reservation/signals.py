@@ -573,7 +573,7 @@ def create_automatic_cleaning_task(reservation):
             reservation=reservation,
             task_type='checkout_cleaning',
             title=f"Limpieza checkout - {reservation.property.name}",
-            description=f"Limpieza post-checkout para reserva #{reservation.id}\nCliente: {reservation.client.full_name if reservation.client else 'N/A'}",
+            description=f"Limpieza post-checkout para reserva #{reservation.id}\nCliente: {f'{reservation.client.first_name} {reservation.client.last_name}'.strip() if reservation.client else 'N/A'}",
             scheduled_date=reservation.check_out_date,
             estimated_duration='02:00:00',  # 2 horas por defecto
             priority='medium',
@@ -583,7 +583,7 @@ def create_automatic_cleaning_task(reservation):
         
         if assigned_staff:
             logger.info(
-                f"✅ Created and assigned cleaning task {cleaning_task.id} to {assigned_staff.full_name} "
+                f"✅ Created and assigned cleaning task {cleaning_task.id} to {assigned_staff.first_name} {assigned_staff.last_name} "
                 f"for reservation {reservation.id} on {reservation.check_out_date}"
             )
         else:
@@ -629,7 +629,7 @@ def find_best_cleaning_staff(scheduled_date, property_obj):
         staff_scores.sort(key=lambda x: x[1], reverse=True)
         best_staff = staff_scores[0][0]
         
-        logger.info(f"Selected {best_staff.full_name} as best cleaning staff for {scheduled_date}")
+        logger.info(f"Selected {best_staff.first_name} {best_staff.last_name} as best cleaning staff for {scheduled_date}")
         return best_staff
         
     except Exception as e:

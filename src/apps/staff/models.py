@@ -397,36 +397,3 @@ class TaskPhoto(BaseModel):
         return f"Foto de {self.work_task.title}"
 
 
-# Señales para auto-asignación de tareas
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-
-
-@receiver(post_save, sender=Reservation)
-def create_checkout_cleaning_task(sender, instance, **kwargs):
-    """Crear automáticamente tarea de limpieza cuando hay un checkout"""
-    if instance.status == 'approved':
-        # Buscar personal de limpieza disponible
-        available_staff = StaffMember.objects.filter(
-            status=StaffMember.Status.ACTIVE,
-            staff_type__in=[StaffMember.StaffType.CLEANING, StaffMember.StaffType.BOTH]
-        )
-        
-        if available_staff.exists():
-            # Asignar al primer disponible (aquí puedes implementar lógica más compleja)
-            staff = available_staff.first()
-            
-            # Crear tarea de limpieza para el día de checkout
-            WorkTask.objects.get_or_create(
-                staff_member=staff,
-                property=instance.property,
-                reservation=instance,
-                scheduled_date=instance.check_out_date,
-                task_type=WorkTask.TaskType.CHECKOUT_CLEANING,
-                defaults={
-                    'title': f'Limpieza post-checkout - {instance.property.name}',
-                    'description': f'Limpieza después del checkout de {instance.client.full_name if instance.client else "Cliente"}',
-                    'priority': WorkTask.Priority.HIGH,
-                    'status': WorkTask.Status.ASSIGNED,
-                }
-            )

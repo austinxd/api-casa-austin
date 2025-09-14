@@ -1,0 +1,79 @@
+[2025-09-14 08:12:53 -0500] [2968416] [INFO] Booting worker with pid: 2968416
+Internal Server Error: /api/v1/reservations/24af692e-e41e-42bf-b538-803769b5faba/
+Traceback (most recent call last):
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/views/decorators/csrf.py", line 56, in wrapper_view
+    return view_func(*args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/viewsets.py", line 124, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 509, in dispatch
+    response = self.handle_exception(exc)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 469, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+    raise exc
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/views.py", line 284, in partial_update
+    instance = serializer.save()
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 203, in save
+    self.instance = self.update(self.instance, validated_data)
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/serializers.py", line 262, in update
+    return super().update(instance, validated_data)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 1033, in update
+    instance.save()
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/models.py", line 140, in save
+    super().save(*args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/models/base.py", line 814, in save
+    self.save_base(
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/models/base.py", line 892, in save_base
+    post_save.send(
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/dispatch/dispatcher.py", line 176, in send
+    return [
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/dispatch/dispatcher.py", line 177, in <listcomp>
+    (receiver, receiver(signal=self, sender=sender, **named))
+  File "/srv/casaaustin/api-casa-austin/src/apps/staff/models.py", line 428, in create_checkout_cleaning_task
+    'description': f'Limpieza después del checkout de {instance.client.full_name if instance.client else "Cliente"}',
+AttributeError: 'Clients' object has no attribute 'full_name'
+ERROR 2025-09-14 08:13:07,287 log 2968416 140292060424000 Internal Server Error: /api/v1/reservations/24af692e-e41e-42bf-b538-803769b5faba/
+Traceback (most recent call last):
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/views/decorators/csrf.py", line 56, in wrapper_view
+    return view_func(*args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/viewsets.py", line 124, in view
+    return self.dispatch(request, *args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 509, in dispatch
+    response = self.handle_exception(exc)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 469, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+    raise exc
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py", line 506, in dispatch
+    response = handler(request, *args, **kwargs)
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/views.py", line 284, in partial_update
+    instance = serializer.save()
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 203, in save
+    self.instance = self.update(self.instance, validated_data)
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/serializers.py", line 262, in update
+    return super().update(instance, validated_data)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/serializers.py", line 1033, in update
+    instance.save()
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/models.py", line 140, in save
+    super().save(*args, **kwargs)
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/models/base.py", line 814, in save
+    self.save_base(
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/db/models/base.py", line 892, in save_base
+    post_save.send(
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/dispatch/dispatcher.py", line 176, in send
+    return [
+  File "/home/almalinux/.local/lib/python3.9/site-packages/django/dispatch/dispatcher.py", line 177, in <listcomp>
+    (receiver, receiver(signal=self, sender=sender, **named))
+  File "/srv/casaaustin/api-casa-austin/src/apps/staff/models.py", line 428, in create_checkout_cleaning_task
+    'description': f'Limpieza después del checkout de {instance.client.full_name if instance.client else "Cliente"}',
+AttributeError: 'Clients' object has no attribute 'full_name'
