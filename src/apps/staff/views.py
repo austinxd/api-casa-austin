@@ -1,7 +1,7 @@
 
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.db.models import Count, Q
+from django.db.models import Count, Q, F
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -9,11 +9,12 @@ from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 
-from .models import StaffMember, WorkTask, TimeTracking, WorkSchedule, TaskPhoto
+from .models import StaffMember, WorkTask, TimeTracking, WorkSchedule, TaskPhoto, PropertyCleaningGap
 from .serializers import (
     StaffMemberSerializer, WorkTaskSerializer, WorkTaskCreateSerializer,
     TimeTrackingSerializer, TimeTrackingCreateSerializer, WorkScheduleSerializer,
-    StaffDashboardSerializer, PropertyTasksSerializer, TaskPhotoSerializer
+    StaffDashboardSerializer, PropertyTasksSerializer, TaskPhotoSerializer,
+    PropertyCleaningGapSerializer, CleaningGapSummarySerializer
 )
 from apps.property.models import Property
 
@@ -273,6 +274,144 @@ class WorkScheduleViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(date__month=month, date__year=year)
         
         return queryset.order_by('date')
+
+
+class PropertyCleaningGapViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet para consultar gaps de limpieza (solo lectura)"""
+    queryset = PropertyCleaningGap.objects.filter(deleted=False)
+    serializer_class = PropertyCleaningGapSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Filtros
+        property_id = self.request.query_params.get('property')
+        resolved = self.request.query_params.get('resolved')
+        reason = self.request.query_params.get('reason')
+        date_from = self.request.query_params.get('date_from')
+        date_to = self.request.query_params.get('date_to')
+        
+        if property_id:
+            queryset = queryset.filter(building_property_id=property_id)
+        if resolved is not None:
+            queryset = queryset.filter(resolved=resolved.lower() == 'true')
+        if reason:
+            queryset = queryset.filter(reason=reason)
+        if date_from:
+            queryset = queryset.filter(gap_date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(gap_date__lte=date_to)
+        
+        return queryset.order_by('-gap_date')
+    
+    @extend_schema(
+        responses={200: CleaningGapSummarySerializer(many=True)},
+        description="Resumen de gaps de limpieza por propiedad"
+    )
+    @action(detail=False, methods=['get'])
+    def summary_by_property(self, request):
+        """Resumen de gaps de limpieza agrupados por propiedad"""
+        from django.db.models import Count, Sum, Max
+        
+        # Obtener estadísticas agregadas por propiedad
+        properties_with_gaps = PropertyCleaningGap.objects.filter(
+            deleted=False
+        ).values(
+            'building_property_id',
+            'building_property__name',
+            'building_property__background_color'
+        ).annotate(
+            total_gaps=Count('id'),
+            unresolved_gaps=Count('id', filter=Q(resolved=False)),
+            total_days_without_cleaning=Sum('days_without_cleaning'),
+            most_recent_gap=Max('gap_date')
+        )
+        
+        # Obtener la razón más común para cada propiedad
+        results = []
+        for prop in properties_with_gaps:
+            # Buscar razón más común para esta propiedad
+            most_common = PropertyCleaningGap.objects.filter(
+                building_property_id=prop['building_property_id'],
+                deleted=False
+            ).values('reason').annotate(
+                count=Count('reason')
+            ).order_by('-count').first()
+            
+            results.append({
+                'property_id': prop['building_property_id'],
+                'property_name': prop['building_property__name'],
+                'property_background_color': prop['building_property__background_color'],
+                'total_gaps': prop['total_gaps'],
+                'unresolved_gaps': prop['unresolved_gaps'],
+                'total_days_without_cleaning': prop['total_days_without_cleaning'] or 0,
+                'most_recent_gap': prop['most_recent_gap'],
+                'most_common_reason': most_common['reason'] if most_common else None
+            })
+        
+        serializer = CleaningGapSummarySerializer(results, many=True)
+        return Response(serializer.data)
+    
+    @extend_schema(
+        responses={200: 'Dashboard statistics'},
+        description="Estadísticas generales de gaps de limpieza"
+    )
+    @action(detail=False, methods=['get'])
+    def dashboard_stats(self, request):
+        """Estadísticas generales para dashboard"""
+        from django.db.models import Count, Avg
+        from datetime import timedelta
+        
+        today = timezone.now().date()
+        last_30_days = today - timedelta(days=30)
+        
+        # Estadísticas generales
+        total_gaps = PropertyCleaningGap.objects.filter(deleted=False).count()
+        unresolved_gaps = PropertyCleaningGap.objects.filter(deleted=False, resolved=False).count()
+        recent_gaps = PropertyCleaningGap.objects.filter(
+            deleted=False, 
+            gap_date__gte=last_30_days
+        ).count()
+        
+        # Promedio de días sin limpieza
+        avg_days_without_cleaning = PropertyCleaningGap.objects.filter(
+            deleted=False,
+            resolved=True,
+            days_without_cleaning__isnull=False
+        ).aggregate(avg=Avg('days_without_cleaning'))['avg'] or 0
+        
+        # Gaps por razón
+        gaps_by_reason = list(PropertyCleaningGap.objects.filter(
+            deleted=False
+        ).values('reason').annotate(
+            count=Count('reason'),
+            reason_display=F('reason')  # Podrías agregar get_reason_display
+        ).order_by('-count'))
+        
+        # Tendencia por semana (últimas 4 semanas)
+        weekly_trends = []
+        for week in range(4):
+            week_start = today - timedelta(weeks=week+1)
+            week_end = today - timedelta(weeks=week)
+            week_gaps = PropertyCleaningGap.objects.filter(
+                deleted=False,
+                gap_date__gte=week_start,
+                gap_date__lt=week_end
+            ).count()
+            weekly_trends.append({
+                'week': f"Semana {4-week}",
+                'gaps': week_gaps
+            })
+        
+        return Response({
+            'total_gaps': total_gaps,
+            'unresolved_gaps': unresolved_gaps,
+            'recent_gaps_30_days': recent_gaps,
+            'avg_days_without_cleaning': round(avg_days_without_cleaning, 1),
+            'gaps_by_reason': gaps_by_reason,
+            'weekly_trends': weekly_trends
+        })
     
     @extend_schema(
         parameters=[

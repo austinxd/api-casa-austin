@@ -1,7 +1,7 @@
 
 from rest_framework import serializers
 from django.utils import timezone
-from .models import StaffMember, WorkTask, TimeTracking, WorkSchedule, TaskPhoto
+from .models import StaffMember, WorkTask, TimeTracking, WorkSchedule, TaskPhoto, PropertyCleaningGap
 
 
 class StaffMemberSerializer(serializers.ModelSerializer):
@@ -166,3 +166,36 @@ class PropertyTasksSerializer(serializers.Serializer):
     pending_tasks = serializers.IntegerField()
     tasks_today = serializers.IntegerField()
     last_cleaning = serializers.DateField(allow_null=True)
+
+
+class PropertyCleaningGapSerializer(serializers.ModelSerializer):
+    property_name = serializers.CharField(source='building_property.name', read_only=True)
+    property_background_color = serializers.CharField(source='building_property.background_color', read_only=True)
+    client_name = serializers.SerializerMethodField()
+    days_without_cleaning = serializers.ReadOnlyField()
+    reason_display = serializers.CharField(source='get_reason_display', read_only=True)
+    
+    class Meta:
+        model = PropertyCleaningGap
+        fields = [
+            'id', 'building_property', 'property_name', 'property_background_color',
+            'reservation', 'client_name', 'gap_date', 'reason', 'reason_display',
+            'original_required_date', 'rescheduled_date', 'resolved', 
+            'days_without_cleaning', 'notes', 'created', 'updated'
+        ]
+    
+    def get_client_name(self, obj):
+        if obj.reservation and obj.reservation.client:
+            return f"{obj.reservation.client.first_name} {obj.reservation.client.last_name}".strip()
+        return "N/A"
+
+
+class CleaningGapSummarySerializer(serializers.Serializer):
+    property_id = serializers.UUIDField()
+    property_name = serializers.CharField()
+    property_background_color = serializers.CharField()
+    total_gaps = serializers.IntegerField()
+    unresolved_gaps = serializers.IntegerField()
+    total_days_without_cleaning = serializers.IntegerField()
+    most_recent_gap = serializers.DateField(allow_null=True)
+    most_common_reason = serializers.CharField(allow_null=True)

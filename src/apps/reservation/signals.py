@@ -15,11 +15,12 @@ logger = logging.getLogger('apps')
 
 # Import staff models for task updating
 try:
-    from ..staff.models import WorkTask, StaffMember
+    from ..staff.models import WorkTask, StaffMember, PropertyCleaningGap
 except ImportError:
     # Fallback in case staff app is not installed
     WorkTask = None
     StaffMember = None
+    PropertyCleaningGap = None
 
 # Diccionarios para fechas en español
 MONTHS_ES = {
@@ -837,7 +838,11 @@ def create_automatic_cleaning_task(reservation):
             cleaning_task.save()
         else:
             logger.warning(f"No cleaning staff available for reservation {reservation.id} on {reservation.check_out_date}")
-            # La tarea queda pendiente para revisión manual
+            # NUEVO: Intentar diferir la tarea automáticamente a días siguientes
+            deferred_task = defer_cleaning_task_automatically(cleaning_task, reservation)
+            if not deferred_task:
+                # Si no se pudo diferir, la tarea queda pendiente para revisión manual
+                pass
         
         if assigned_staff:
             logger.info(
@@ -978,3 +983,170 @@ def calculate_staff_score(staff, scheduled_date, property_obj, reservation, task
     except Exception as e:
         logger.error(f"Error calculating score for staff {staff.id}: {str(e)}")
         return 0
+
+
+def defer_cleaning_task_automatically(original_task, reservation):
+    """
+    Diferir automáticamente una tarea de limpieza cuando no hay personal disponible.
+    
+    Pasos:
+    1. Registrar gap de limpieza para la fecha original
+    2. Buscar próximo día laborable con personal disponible  
+    3. Crear nueva tarea diferida
+    4. Eliminar tarea original (no asignada)
+    5. Marcar gap como resuelto cuando se asigna
+    """
+    if not PropertyCleaningGap or not WorkTask:
+        logger.warning("PropertyCleaningGap or WorkTask models not available")
+        return None
+    
+    try:
+        original_date = original_task.scheduled_date
+        property_obj = original_task.building_property
+        
+        # PASO 1: Registrar gap de limpieza para la fecha original
+        gap_reason = determine_gap_reason(original_date, property_obj, reservation)
+        
+        # Verificar si ya existe un gap para esta fecha/propiedad
+        existing_gap = PropertyCleaningGap.objects.filter(
+            building_property=property_obj,
+            gap_date=original_date,
+            resolved=False
+        ).first()
+        
+        if not existing_gap:
+            gap = PropertyCleaningGap.objects.create(
+                building_property=property_obj,
+                reservation=reservation,
+                gap_date=original_date,
+                reason=gap_reason,
+                original_required_date=original_date,
+                notes=f"Diferido automáticamente por {gap_reason}"
+            )
+            logger.info(f"🚫 Gap registrado: {property_obj.name} sin limpieza el {original_date} ({gap_reason})")
+        else:
+            gap = existing_gap
+            logger.info(f"🔄 Gap ya existe para {property_obj.name} el {original_date}")
+        
+        # PASO 2: Buscar próximo día laborable con personal disponible
+        max_days_to_search = 7  # Buscar hasta 1 semana adelante
+        current_date = original_date + timezone.timedelta(days=1)
+        
+        for day_offset in range(1, max_days_to_search + 1):
+            candidate_date = original_date + timezone.timedelta(days=day_offset)
+            
+            # Verificar si ya existe una tarea de limpieza para esta reserva en cualquier fecha
+            existing_deferred_task = WorkTask.objects.filter(
+                reservation=reservation,
+                task_type='checkout_cleaning',
+                deleted=False,
+                scheduled_date__gt=original_date  # Solo tareas futuras diferidas
+            ).first()
+            
+            if existing_deferred_task:
+                logger.info(f"⚠️ Ya existe tarea diferida para reserva {reservation.id} en {existing_deferred_task.scheduled_date}")
+                # Eliminar tarea original no asignada
+                original_task.delete()
+                return existing_deferred_task
+            
+            # Buscar personal disponible para la fecha candidata
+            available_staff = find_best_cleaning_staff(candidate_date, property_obj, reservation, None)
+            
+            if available_staff:
+                # PASO 3: Crear nueva tarea diferida
+                deferred_task = WorkTask.objects.create(
+                    staff_member=available_staff,
+                    building_property=property_obj,
+                    reservation=reservation,
+                    task_type='checkout_cleaning',
+                    title=f"Limpieza diferida - {property_obj.name}",
+                    description=f"Limpieza post-checkout DIFERIDA desde {original_date}\n"
+                              f"Reserva #{reservation.id}\n"
+                              f"Cliente: {f'{reservation.client.first_name} {reservation.client.last_name}'.strip() if reservation.client else 'N/A'}\n"
+                              f"🔄 DIFERIDO: Personal no disponible el {original_date}",
+                    scheduled_date=candidate_date,
+                    estimated_duration=timezone.timedelta(hours=2),
+                    priority=original_task.priority,  # Mantener prioridad original
+                    status='assigned',
+                    requires_photo_evidence=True
+                )
+                
+                # PASO 4: Eliminar tarea original (no asignada)
+                original_task.delete()
+                
+                # PASO 5: Marcar gap como resuelto
+                gap.mark_resolved(candidate_date)
+                
+                logger.info(
+                    f"✅ DIFERIMIENTO EXITOSO: Tarea {deferred_task.id} creada para {property_obj.name}\n"
+                    f"   📅 Original: {original_date} → Diferida: {candidate_date}\n" 
+                    f"   👷 Asignada a: {available_staff.first_name} {available_staff.last_name}\n"
+                    f"   🏠 Casa estuvo {day_offset} día(s) sin limpieza"
+                )
+                
+                return deferred_task
+        
+        # PASO 6: Si no se pudo diferir en 7 días, mantener tarea original como pending
+        logger.warning(
+            f"❌ No se pudo diferir tarea para {property_obj.name} - Sin personal disponible en {max_days_to_search} días\n"
+            f"   📅 Fecha original: {original_date}\n"
+            f"   🔍 Búsqueda hasta: {original_date + timezone.timedelta(days=max_days_to_search)}"
+        )
+        
+        # Agregar nota al gap indicando que no se pudo resolver automáticamente
+        gap.notes += f"\n⚠️ No se pudo diferir automáticamente - Sin personal disponible por {max_days_to_search} días"
+        gap.save()
+        
+        return None
+        
+    except Exception as e:
+        logger.error(f"❌ Error diferiendo tarea automáticamente: {str(e)}")
+        return None
+
+
+def determine_gap_reason(scheduled_date, property_obj, reservation):
+    """Determina la razón específica por la cual no hay personal disponible"""
+    try:
+        # Verificar si es fin de semana
+        weekday = scheduled_date.weekday()
+        if weekday >= 5:  # Sábado o domingo
+            weekend_staff = StaffMember.objects.filter(
+                staff_type='cleaning',
+                status='active',
+                deleted=False,
+                can_work_weekends=True
+            ).count()
+            
+            if weekend_staff == 0:
+                return PropertyCleaningGap.GapReason.WEEKEND_UNAVAILABLE
+        
+        # Verificar si hay personal activo en general
+        total_staff = StaffMember.objects.filter(
+            staff_type='cleaning',
+            status='active',
+            deleted=False
+        ).count()
+        
+        if total_staff == 0:
+            return PropertyCleaningGap.GapReason.NO_STAFF_AVAILABLE
+        
+        # Verificar si todos están sobrecargados
+        guests = reservation.guests if reservation else 1
+        for staff in StaffMember.objects.filter(staff_type='cleaning', status='active', deleted=False):
+            tasks_on_date = WorkTask.objects.filter(
+                staff_member=staff,
+                scheduled_date=scheduled_date,
+                status__in=['pending', 'assigned', 'in_progress'],
+                deleted=False
+            ).count()
+            
+            max_properties = 2 if guests <= 2 else 1
+            if tasks_on_date < max_properties:
+                return PropertyCleaningGap.GapReason.CAPACITY_EXCEEDED
+        
+        # Por defecto, es sobrecarga general
+        return PropertyCleaningGap.GapReason.STAFF_OVERLOAD
+        
+    except Exception as e:
+        logger.error(f"Error determinando razón del gap: {e}")
+        return PropertyCleaningGap.GapReason.STAFF_OVERLOAD

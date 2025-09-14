@@ -397,3 +397,79 @@ class TaskPhoto(BaseModel):
         return f"Foto de {self.work_task.title}"
 
 
+class PropertyCleaningGap(BaseModel):
+    """Modelo para rastrear días que una propiedad quedó sin limpieza por sobrecarga de personal"""
+    
+    class GapReason(models.TextChoices):
+        STAFF_OVERLOAD = "staff_overload", "Sobrecarga de personal"
+        NO_STAFF_AVAILABLE = "no_staff_available", "Sin personal disponible"
+        CAPACITY_EXCEEDED = "capacity_exceeded", "Capacidad máxima excedida"
+        WEEKEND_UNAVAILABLE = "weekend_unavailable", "Personal no disponible en fin de semana"
+    
+    building_property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name="cleaning_gaps",
+        verbose_name="Propiedad"
+    )
+    reservation = models.ForeignKey(
+        'reservation.Reservation',
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
+        verbose_name="Reserva relacionada",
+        help_text="Reserva que requería limpieza este día"
+    )
+    gap_date = models.DateField(
+        verbose_name="Fecha sin limpieza",
+        help_text="Día en que la propiedad quedó sin limpieza"
+    )
+    reason = models.CharField(
+        max_length=30,
+        choices=GapReason.choices,
+        default=GapReason.STAFF_OVERLOAD,
+        verbose_name="Razón del gap"
+    )
+    original_required_date = models.DateField(
+        verbose_name="Fecha original requerida",
+        help_text="Fecha en que originalmente se necesitaba la limpieza"
+    )
+    rescheduled_date = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name="Fecha reprogramada",
+        help_text="Nueva fecha cuando se programó la limpieza"
+    )
+    resolved = models.BooleanField(
+        default=False,
+        verbose_name="Resuelto",
+        help_text="Si la limpieza fue finalmente asignada"
+    )
+    notes = models.TextField(
+        blank=True,
+        verbose_name="Notas adicionales"
+    )
+    
+    class Meta:
+        verbose_name = "Gap de Limpieza"
+        verbose_name_plural = "Gaps de Limpieza"
+        ordering = ['-gap_date']
+        unique_together = ['building_property', 'gap_date', 'reason']
+    
+    def __str__(self):
+        return f"{self.building_property.name} - Sin limpieza el {self.gap_date} ({self.get_reason_display()})"
+    
+    @property
+    def days_without_cleaning(self):
+        """Calcula cuántos días estuvo la propiedad sin limpieza"""
+        if self.resolved and self.rescheduled_date:
+            return (self.rescheduled_date - self.gap_date).days
+        return None
+    
+    def mark_resolved(self, rescheduled_date):
+        """Marca el gap como resuelto cuando se asigna limpieza"""
+        self.resolved = True
+        self.rescheduled_date = rescheduled_date
+        self.save()
+
+

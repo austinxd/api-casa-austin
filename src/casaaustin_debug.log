@@ -4630,3 +4630,277 @@ DEBUG 2025-09-14 10:43:30,749 telegram_notifier 9809 140168926100672 Enviando me
 DEBUG 2025-09-14 10:43:31,014 telegram_notifier 9809 140168926100672 Mensaje enviado.
 DEBUG 2025-09-14 10:43:31,015 telegram_notifier 9809 140168926100672 Mensaje enviado a través del executor.
 DEBUG 2025-09-14 10:43:31,016 signals 9809 140168926100672 Notificación enviada para nuevo cliente: cda0d01e-1112-467d-8266-01328bcb2c84
+DEBUG 2025-09-14 22:01:29,662 signals 1345 140379452648640 Nuevo cliente creado: Clients object (463403e8-d000-4255-8962-aa5a6397e915)
+DEBUG 2025-09-14 22:01:29,664 signals 1345 140379452648640 Cliente actualizado: Clients object (463403e8-d000-4255-8962-aa5a6397e915)
+WARNING 2025-09-14 22:01:29,758 signals 1345 140379452648640 Error al actualizar audiencia de cliente 463403e8-d000-4255-8962-aa5a6397e915. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"AZO6DkFdZxcHWPVcV20E7j8"}}
+DEBUG 2025-09-14 22:01:29,762 signals 1345 140379452648640 Código de referido generado para cliente 463403e8-d000-4255-8962-aa5a6397e915: JUA030
+WARNING 2025-09-14 22:01:29,827 signals 1345 140379452648640 Error al actualizar audiencia de cliente 463403e8-d000-4255-8962-aa5a6397e915. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"AtVgNt7_Mdq-vfORcJZ6XUn"}}
+DEBUG 2025-09-14 22:01:29,829 telegram_notifier 1345 140379452648640 Preparando para enviar mensaje: 🆕 **NUEVO CLIENTE REGISTRADO** 🆕
+👤 Cliente: Juan Cliente
+📄 Documento: Documento Nacional de Identidad: 1
+📧 Email: test@test.com
+📱 Teléfono: +123456789
+🔑 Contraseña: ❌ Pendiente
+🔗 Código referido: JUA030
+DEBUG 2025-09-14 22:01:29,830 telegram_notifier 1345 140379452648640 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-14 22:01:30,473 telegram_notifier 1345 140379452648640 Mensaje enviado.
+DEBUG 2025-09-14 22:01:30,473 telegram_notifier 1345 140379452648640 Mensaje enviado a través del executor.
+DEBUG 2025-09-14 22:01:30,474 signals 1345 140379452648640 Notificación enviada para nuevo cliente: 463403e8-d000-4255-8962-aa5a6397e915
+DEBUG 2025-09-14 22:01:30,495 signals 1345 140379452648640 Nueva reserva creada: f86480fb-d4c2-4f06-a860-e257154d4853 - Origen: aus
+DEBUG 2025-09-14 22:01:30,496 signals 1345 140379452648640 Enviando mensaje de Telegram: 📞 **AUSTIN** - Reserva en Casa 1
+Cliente: Juan Cliente
+Check-in : Domingo 14 de septiembre
+Check-out : Martes 16 de septiembre
+Invitados : 1
+Temperado : No
+Precio (USD) : 80.00 dólares
+Precio (Soles) : 300.00 soles
+Adelanto : 0.00 SOL
+Teléfono : +123456789 con imagen: None
+DEBUG 2025-09-14 22:01:30,497 telegram_notifier 1345 140379452648640 Preparando para enviar mensaje: 📞 **AUSTIN** - Reserva en Casa 1
+Cliente: Juan Cliente
+Check-in : Domingo 14 de septiembre
+Check-out : Martes 16 de septiembre
+Invitados : 1
+Temperado : No
+Precio (USD) : 80.00 dólares
+Precio (Soles) : 300.00 soles
+Adelanto : 0.00 SOL
+Teléfono : +123456789
+DEBUG 2025-09-14 22:01:30,497 telegram_notifier 1345 140379452648640 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-14 22:01:30,778 telegram_notifier 1345 140379452648640 Mensaje enviado.
+DEBUG 2025-09-14 22:01:30,779 telegram_notifier 1345 140379452648640 Mensaje enviado a través del executor.
+DEBUG 2025-09-14 22:01:30,779 signals 1345 140379452648640 Reserva para el mismo día detectada, enviando al segundo canal.
+DEBUG 2025-09-14 22:01:30,779 telegram_notifier 1345 140379452648640 Preparando para enviar mensaje: ******PARA HOYYYY******
+Cliente: Juan Cliente
+Check-in : Domingo 14 de septiembre
+Check-out : Martes 16 de septiembre
+Invitados : 1
+Temperado : No
+
+DEBUG 2025-09-14 22:01:30,780 telegram_notifier 1345 140379452648640 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-14 22:01:31,050 telegram_notifier 1345 140379452648640 Mensaje enviado.
+DEBUG 2025-09-14 22:01:31,050 telegram_notifier 1345 140379452648640 Mensaje enviado a través del executor.
+DEBUG 2025-09-14 22:01:31,050 telegram_notifier 1345 140379452648640 Preparando para enviar mensaje: ******Reserva en Casa 1******
+Cliente: Juan Cliente
+Cumpleaños: No disponible (Cumple No disponible años)
+Check-in : Domingo 14 de septiembre
+Check-out : Martes 16 de septiembre
+Invitados : 1
+Temperado : No
+Teléfono : https://wa.me/123456789
+DEBUG 2025-09-14 22:01:31,051 telegram_notifier 1345 140379452648640 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-14 22:01:31,324 telegram_notifier 1345 140379452648640 Mensaje enviado.
+DEBUG 2025-09-14 22:01:31,324 telegram_notifier 1345 140379452648640 Mensaje enviado a través del executor.
+INFO 2025-09-14 22:01:31,325 signals 1345 140379452648640 New reservation created with approved status f86480fb-d4c2-4f06-a860-e257154d4853 - Creating automatic cleaning task
+DEBUG 2025-09-14 22:01:31,335 signals 1345 140379452648640 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa 1 - Sin próximo check-in
+INFO 2025-09-14 22:01:31,336 signals 1345 140379452648640 🎯 Tarea 69dac50c-af38-4614-9156-e64d753ddf54 establecida con prioridad low (+0 puntos)
+DEBUG 2025-09-14 22:01:31,339 signals 1345 140379452648640 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa 1 - Sin próximo check-in
+INFO 2025-09-14 22:01:31,340 signals 1345 140379452648640 🎯 PRIORIDAD: Maria Limpieza - low (+0 pts) para tarea 69dac50c-af38-4614-9156-e64d753ddf54
+DEBUG 2025-09-14 22:01:31,341 signals 1345 140379452648640 Reserva de 1 huéspedes: permitiendo hasta 2 propiedades para Maria Limpieza
+INFO 2025-09-14 22:01:31,343 signals 1345 140379452648640 🏆 SELECCIÓN FINAL para 2025-09-16:
+INFO 2025-09-14 22:01:31,343 signals 1345 140379452648640    🥇 Maria Limpieza: 120 puntos
+INFO 2025-09-14 22:01:31,344 signals 1345 140379452648640 ✅ Seleccionado: Maria Limpieza con 120 puntos
+INFO 2025-09-14 22:01:31,345 signals 1345 140379452648640 ✅ Created and assigned cleaning task 69dac50c-af38-4614-9156-e64d753ddf54 to Maria Limpieza for reservation f86480fb-d4c2-4f06-a860-e257154d4853 on 2025-09-16
+INFO 2025-09-14 22:01:31,345 signals 1345 140379452648640 🧠 EVALUANDO reorganización por nueva reserva f86480fb-d4c2-4f06-a860-e257154d4853
+INFO 2025-09-14 22:01:31,346 signals 1345 140379452648640 🔍 Nueva reserva f86480fb-d4c2-4f06-a860-e257154d4853 (check-in 2025-09-14)
+INFO 2025-09-14 22:01:31,347 signals 1345 140379452648640    Encontradas 0 tareas potencialmente afectadas en Casa 1
+INFO 2025-09-14 22:01:31,349 signals 1345 140379452648640 ✅ No hay tareas que requieran reorganización
+DEBUG 2025-09-14 22:01:31,373 signals 1345 140379452648640 Nueva reserva creada: 498d6afe-ff28-45db-8bce-de896e3e3554 - Origen: aus
+DEBUG 2025-09-14 22:01:31,375 signals 1345 140379452648640 Enviando mensaje de Telegram: 📞 **AUSTIN** - Reserva en Casa 2
+Cliente: Juan Cliente
+Check-in : Domingo 14 de septiembre
+Check-out : Martes 16 de septiembre
+Invitados : 1
+Temperado : No
+Precio (USD) : 80.00 dólares
+Precio (Soles) : 300.00 soles
+Adelanto : 0.00 SOL
+Teléfono : +123456789 con imagen: None
+DEBUG 2025-09-14 22:01:31,375 telegram_notifier 1345 140379452648640 Preparando para enviar mensaje: 📞 **AUSTIN** - Reserva en Casa 2
+Cliente: Juan Cliente
+Check-in : Domingo 14 de septiembre
+Check-out : Martes 16 de septiembre
+Invitados : 1
+Temperado : No
+Precio (USD) : 80.00 dólares
+Precio (Soles) : 300.00 soles
+Adelanto : 0.00 SOL
+Teléfono : +123456789
+DEBUG 2025-09-14 22:01:31,375 telegram_notifier 1345 140379452648640 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-14 22:01:31,654 telegram_notifier 1345 140379452648640 Mensaje enviado.
+DEBUG 2025-09-14 22:01:31,655 telegram_notifier 1345 140379452648640 Mensaje enviado a través del executor.
+DEBUG 2025-09-14 22:01:31,655 signals 1345 140379452648640 Reserva para el mismo día detectada, enviando al segundo canal.
+DEBUG 2025-09-14 22:01:31,656 telegram_notifier 1345 140379452648640 Preparando para enviar mensaje: ******PARA HOYYYY******
+Cliente: Juan Cliente
+Check-in : Domingo 14 de septiembre
+Check-out : Martes 16 de septiembre
+Invitados : 1
+Temperado : No
+
+DEBUG 2025-09-14 22:01:31,656 telegram_notifier 1345 140379452648640 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-14 22:01:31,933 telegram_notifier 1345 140379452648640 Mensaje enviado.
+DEBUG 2025-09-14 22:01:31,933 telegram_notifier 1345 140379452648640 Mensaje enviado a través del executor.
+DEBUG 2025-09-14 22:01:31,933 telegram_notifier 1345 140379452648640 Preparando para enviar mensaje: ******Reserva en Casa 2******
+Cliente: Juan Cliente
+Cumpleaños: No disponible (Cumple No disponible años)
+Check-in : Domingo 14 de septiembre
+Check-out : Martes 16 de septiembre
+Invitados : 1
+Temperado : No
+Teléfono : https://wa.me/123456789
+DEBUG 2025-09-14 22:01:31,934 telegram_notifier 1345 140379452648640 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-14 22:01:32,206 telegram_notifier 1345 140379452648640 Mensaje enviado.
+DEBUG 2025-09-14 22:01:32,206 telegram_notifier 1345 140379452648640 Mensaje enviado a través del executor.
+INFO 2025-09-14 22:01:32,207 signals 1345 140379452648640 New reservation created with approved status 498d6afe-ff28-45db-8bce-de896e3e3554 - Creating automatic cleaning task
+DEBUG 2025-09-14 22:01:32,212 signals 1345 140379452648640 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa 2 - Sin próximo check-in
+INFO 2025-09-14 22:01:32,213 signals 1345 140379452648640 🎯 Tarea 3bba243e-f75b-4c24-839d-39067b5419b6 establecida con prioridad low (+0 puntos)
+DEBUG 2025-09-14 22:01:32,216 signals 1345 140379452648640 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa 2 - Sin próximo check-in
+INFO 2025-09-14 22:01:32,217 signals 1345 140379452648640 🎯 PRIORIDAD: Maria Limpieza - low (+0 pts) para tarea 3bba243e-f75b-4c24-839d-39067b5419b6
+DEBUG 2025-09-14 22:01:32,218 signals 1345 140379452648640 Reserva de 1 huéspedes: permitiendo hasta 2 propiedades para Maria Limpieza
+INFO 2025-09-14 22:01:32,219 signals 1345 140379452648640 🏆 SELECCIÓN FINAL para 2025-09-16:
+INFO 2025-09-14 22:01:32,220 signals 1345 140379452648640    🥇 Maria Limpieza: 70 puntos
+INFO 2025-09-14 22:01:32,220 signals 1345 140379452648640 ✅ Seleccionado: Maria Limpieza con 70 puntos
+INFO 2025-09-14 22:01:32,221 signals 1345 140379452648640 ✅ Created and assigned cleaning task 3bba243e-f75b-4c24-839d-39067b5419b6 to Maria Limpieza for reservation 498d6afe-ff28-45db-8bce-de896e3e3554 on 2025-09-16
+INFO 2025-09-14 22:01:32,221 signals 1345 140379452648640 🧠 EVALUANDO reorganización por nueva reserva 498d6afe-ff28-45db-8bce-de896e3e3554
+INFO 2025-09-14 22:01:32,222 signals 1345 140379452648640 🔍 Nueva reserva 498d6afe-ff28-45db-8bce-de896e3e3554 (check-in 2025-09-14)
+INFO 2025-09-14 22:01:32,223 signals 1345 140379452648640    Encontradas 0 tareas potencialmente afectadas en Casa 2
+INFO 2025-09-14 22:01:32,224 signals 1345 140379452648640 ✅ No hay tareas que requieran reorganización
+DEBUG 2025-09-14 22:01:32,253 signals 1345 140379452648640 Nueva reserva creada: db47ef08-82a6-45e4-9ad3-555ae70757a9 - Origen: aus
+DEBUG 2025-09-14 22:01:32,254 signals 1345 140379452648640 Enviando mensaje de Telegram: 📞 **AUSTIN** - Reserva en Casa 3
+Cliente: Juan Cliente
+Check-in : Domingo 14 de septiembre
+Check-out : Martes 16 de septiembre
+Invitados : 4
+Temperado : No
+Precio (USD) : 80.00 dólares
+Precio (Soles) : 300.00 soles
+Adelanto : 0.00 SOL
+Teléfono : +123456789 con imagen: None
+DEBUG 2025-09-14 22:01:32,254 telegram_notifier 1345 140379452648640 Preparando para enviar mensaje: 📞 **AUSTIN** - Reserva en Casa 3
+Cliente: Juan Cliente
+Check-in : Domingo 14 de septiembre
+Check-out : Martes 16 de septiembre
+Invitados : 4
+Temperado : No
+Precio (USD) : 80.00 dólares
+Precio (Soles) : 300.00 soles
+Adelanto : 0.00 SOL
+Teléfono : +123456789
+DEBUG 2025-09-14 22:01:32,254 telegram_notifier 1345 140379452648640 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-14 22:01:32,585 telegram_notifier 1345 140379452648640 Mensaje enviado.
+DEBUG 2025-09-14 22:01:32,586 telegram_notifier 1345 140379452648640 Mensaje enviado a través del executor.
+DEBUG 2025-09-14 22:01:32,586 signals 1345 140379452648640 Reserva para el mismo día detectada, enviando al segundo canal.
+DEBUG 2025-09-14 22:01:32,587 telegram_notifier 1345 140379452648640 Preparando para enviar mensaje: ******PARA HOYYYY******
+Cliente: Juan Cliente
+Check-in : Domingo 14 de septiembre
+Check-out : Martes 16 de septiembre
+Invitados : 4
+Temperado : No
+
+DEBUG 2025-09-14 22:01:32,587 telegram_notifier 1345 140379452648640 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-14 22:01:32,875 telegram_notifier 1345 140379452648640 Mensaje enviado.
+DEBUG 2025-09-14 22:01:32,875 telegram_notifier 1345 140379452648640 Mensaje enviado a través del executor.
+DEBUG 2025-09-14 22:01:32,875 telegram_notifier 1345 140379452648640 Preparando para enviar mensaje: ******Reserva en Casa 3******
+Cliente: Juan Cliente
+Cumpleaños: No disponible (Cumple No disponible años)
+Check-in : Domingo 14 de septiembre
+Check-out : Martes 16 de septiembre
+Invitados : 4
+Temperado : No
+Teléfono : https://wa.me/123456789
+DEBUG 2025-09-14 22:01:32,876 telegram_notifier 1345 140379452648640 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-14 22:01:33,156 telegram_notifier 1345 140379452648640 Mensaje enviado.
+DEBUG 2025-09-14 22:01:33,157 telegram_notifier 1345 140379452648640 Mensaje enviado a través del executor.
+INFO 2025-09-14 22:01:33,157 signals 1345 140379452648640 New reservation created with approved status db47ef08-82a6-45e4-9ad3-555ae70757a9 - Creating automatic cleaning task
+DEBUG 2025-09-14 22:01:33,163 signals 1345 140379452648640 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa 3 - Sin próximo check-in
+INFO 2025-09-14 22:01:33,163 signals 1345 140379452648640 🎯 Tarea f0dc9567-a067-42ab-8fc4-cf909dea039e establecida con prioridad low (+0 puntos)
+DEBUG 2025-09-14 22:01:33,166 signals 1345 140379452648640 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa 3 - Sin próximo check-in
+INFO 2025-09-14 22:01:33,166 signals 1345 140379452648640 🎯 PRIORIDAD: Maria Limpieza - low (+0 pts) para tarea f0dc9567-a067-42ab-8fc4-cf909dea039e
+DEBUG 2025-09-14 22:01:33,168 signals 1345 140379452648640 Reserva de 4 huéspedes: limitando a 1 propiedad para Maria Limpieza
+WARNING 2025-09-14 22:01:33,168 signals 1345 140379452648640 No available cleaning staff for 2025-09-16
+WARNING 2025-09-14 22:01:33,168 signals 1345 140379452648640 No cleaning staff available for reservation db47ef08-82a6-45e4-9ad3-555ae70757a9 on 2025-09-16
+INFO 2025-09-14 22:01:33,175 signals 1345 140379452648640 🚫 Gap registrado: Casa 3 sin limpieza el 2025-09-16 (staff_overload)
+DEBUG 2025-09-14 22:01:33,181 signals 1345 140379452648640 Reserva de 4 huéspedes: limitando a 1 propiedad para Maria Limpieza
+INFO 2025-09-14 22:01:33,183 signals 1345 140379452648640 🏆 SELECCIÓN FINAL para 2025-09-17:
+INFO 2025-09-14 22:01:33,183 signals 1345 140379452648640    🥇 Maria Limpieza: 120 puntos
+INFO 2025-09-14 22:01:33,184 signals 1345 140379452648640 ✅ Seleccionado: Maria Limpieza con 120 puntos
+INFO 2025-09-14 22:01:33,189 signals 1345 140379452648640 ✅ DIFERIMIENTO EXITOSO: Tarea 93079508-be54-41ec-af79-c79b07620394 creada para Casa 3
+   📅 Original: 2025-09-16 → Diferida: 2025-09-17
+   👷 Asignada a: Maria Limpieza
+   🏠 Casa estuvo 1 día(s) sin limpieza
+INFO 2025-09-14 22:01:33,190 signals 1345 140379452648640 ✅ Created unassigned cleaning task None for reservation db47ef08-82a6-45e4-9ad3-555ae70757a9 on 2025-09-16 - requires manual assignment
+INFO 2025-09-14 22:01:33,190 signals 1345 140379452648640 🧠 EVALUANDO reorganización por nueva reserva db47ef08-82a6-45e4-9ad3-555ae70757a9
+INFO 2025-09-14 22:01:33,191 signals 1345 140379452648640 🔍 Nueva reserva db47ef08-82a6-45e4-9ad3-555ae70757a9 (check-in 2025-09-14)
+INFO 2025-09-14 22:01:33,192 signals 1345 140379452648640    Encontradas 0 tareas potencialmente afectadas en Casa 3
+INFO 2025-09-14 22:01:33,194 signals 1345 140379452648640 ✅ No hay tareas que requieran reorganización
+DEBUG 2025-09-14 22:01:33,292 signals 1345 140379452648640 Nueva reserva creada: b8baf205-c925-4fd3-a9b4-d70edf36407e - Origen: aus
+DEBUG 2025-09-14 22:01:33,293 signals 1345 140379452648640 Enviando mensaje de Telegram: 📞 **AUSTIN** - Reserva en Casa 4
+Cliente: Juan Cliente
+Check-in : Domingo 14 de septiembre
+Check-out : Martes 16 de septiembre
+Invitados : 4
+Temperado : No
+Precio (USD) : 80.00 dólares
+Precio (Soles) : 300.00 soles
+Adelanto : 0.00 SOL
+Teléfono : +123456789 con imagen: None
+DEBUG 2025-09-14 22:01:33,294 telegram_notifier 1345 140379452648640 Preparando para enviar mensaje: 📞 **AUSTIN** - Reserva en Casa 4
+Cliente: Juan Cliente
+Check-in : Domingo 14 de septiembre
+Check-out : Martes 16 de septiembre
+Invitados : 4
+Temperado : No
+Precio (USD) : 80.00 dólares
+Precio (Soles) : 300.00 soles
+Adelanto : 0.00 SOL
+Teléfono : +123456789
+DEBUG 2025-09-14 22:01:33,294 telegram_notifier 1345 140379452648640 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-14 22:01:33,579 telegram_notifier 1345 140379452648640 Mensaje enviado.
+DEBUG 2025-09-14 22:01:33,580 telegram_notifier 1345 140379452648640 Mensaje enviado a través del executor.
+DEBUG 2025-09-14 22:01:33,580 signals 1345 140379452648640 Reserva para el mismo día detectada, enviando al segundo canal.
+DEBUG 2025-09-14 22:01:33,581 telegram_notifier 1345 140379452648640 Preparando para enviar mensaje: ******PARA HOYYYY******
+Cliente: Juan Cliente
+Check-in : Domingo 14 de septiembre
+Check-out : Martes 16 de septiembre
+Invitados : 4
+Temperado : No
+
+DEBUG 2025-09-14 22:01:33,581 telegram_notifier 1345 140379452648640 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-14 22:01:33,848 telegram_notifier 1345 140379452648640 Mensaje enviado.
+DEBUG 2025-09-14 22:01:33,848 telegram_notifier 1345 140379452648640 Mensaje enviado a través del executor.
+DEBUG 2025-09-14 22:01:33,849 telegram_notifier 1345 140379452648640 Preparando para enviar mensaje: ******Reserva en Casa 4******
+Cliente: Juan Cliente
+Cumpleaños: No disponible (Cumple No disponible años)
+Check-in : Domingo 14 de septiembre
+Check-out : Martes 16 de septiembre
+Invitados : 4
+Temperado : No
+Teléfono : https://wa.me/123456789
+DEBUG 2025-09-14 22:01:33,850 telegram_notifier 1345 140379452648640 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-14 22:01:34,143 telegram_notifier 1345 140379452648640 Mensaje enviado.
+DEBUG 2025-09-14 22:01:34,143 telegram_notifier 1345 140379452648640 Mensaje enviado a través del executor.
+INFO 2025-09-14 22:01:34,144 signals 1345 140379452648640 New reservation created with approved status b8baf205-c925-4fd3-a9b4-d70edf36407e - Creating automatic cleaning task
+DEBUG 2025-09-14 22:01:34,149 signals 1345 140379452648640 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa 4 - Sin próximo check-in
+INFO 2025-09-14 22:01:34,150 signals 1345 140379452648640 🎯 Tarea fe05a6f2-7d86-47e7-9290-0e619387407f establecida con prioridad low (+0 puntos)
+DEBUG 2025-09-14 22:01:34,153 signals 1345 140379452648640 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa 4 - Sin próximo check-in
+INFO 2025-09-14 22:01:34,154 signals 1345 140379452648640 🎯 PRIORIDAD: Maria Limpieza - low (+0 pts) para tarea fe05a6f2-7d86-47e7-9290-0e619387407f
+DEBUG 2025-09-14 22:01:34,156 signals 1345 140379452648640 Reserva de 4 huéspedes: limitando a 1 propiedad para Maria Limpieza
+WARNING 2025-09-14 22:01:34,157 signals 1345 140379452648640 No available cleaning staff for 2025-09-16
+WARNING 2025-09-14 22:01:34,157 signals 1345 140379452648640 No cleaning staff available for reservation b8baf205-c925-4fd3-a9b4-d70edf36407e on 2025-09-16
+INFO 2025-09-14 22:01:34,164 signals 1345 140379452648640 🚫 Gap registrado: Casa 4 sin limpieza el 2025-09-16 (staff_overload)
+DEBUG 2025-09-14 22:01:34,168 signals 1345 140379452648640 Reserva de 4 huéspedes: limitando a 1 propiedad para Maria Limpieza
+WARNING 2025-09-14 22:01:34,169 signals 1345 140379452648640 No available cleaning staff for 2025-09-17
+DEBUG 2025-09-14 22:01:34,173 signals 1345 140379452648640 Reserva de 4 huéspedes: limitando a 1 propiedad para Maria Limpieza
+INFO 2025-09-14 22:01:34,174 signals 1345 140379452648640 🏆 SELECCIÓN FINAL para 2025-09-18:
+INFO 2025-09-14 22:01:34,174 signals 1345 140379452648640    🥇 Maria Limpieza: 120 puntos
+INFO 2025-09-14 22:01:34,175 signals 1345 140379452648640 ✅ Seleccionado: Maria Limpieza con 120 puntos
+INFO 2025-09-14 22:01:34,177 signals 1345 140379452648640 ✅ DIFERIMIENTO EXITOSO: Tarea b2b4452b-1071-4d8f-9083-8250ac2b3390 creada para Casa 4
+   📅 Original: 2025-09-16 → Diferida: 2025-09-18
+   👷 Asignada a: Maria Limpieza
+   🏠 Casa estuvo 2 día(s) sin limpieza
+INFO 2025-09-14 22:01:34,178 signals 1345 140379452648640 ✅ Created unassigned cleaning task None for reservation b8baf205-c925-4fd3-a9b4-d70edf36407e on 2025-09-16 - requires manual assignment
+INFO 2025-09-14 22:01:34,178 signals 1345 140379452648640 🧠 EVALUANDO reorganización por nueva reserva b8baf205-c925-4fd3-a9b4-d70edf36407e
+INFO 2025-09-14 22:01:34,179 signals 1345 140379452648640 🔍 Nueva reserva b8baf205-c925-4fd3-a9b4-d70edf36407e (check-in 2025-09-14)
+INFO 2025-09-14 22:01:34,181 signals 1345 140379452648640    Encontradas 0 tareas potencialmente afectadas en Casa 4
+INFO 2025-09-14 22:01:34,182 signals 1345 140379452648640 ✅ No hay tareas que requieran reorganización
