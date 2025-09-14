@@ -20,6 +20,7 @@ Preferred communication style: Simple, everyday language.
 - **Clients App**: Manages client authentication, profiles, and customer data
 - **Property App**: Handles property listings, photos, pricing, and configurations
 - **Reservation App**: Manages booking workflows, payments, and reservation lifecycle
+- **Staff App**: Comprehensive staff management system with automatic cleaning task assignment, intelligent staff scheduling, time tracking, and workload distribution
 - **Accounts App**: User management and administrative functions
 
 ### Payment Processing
