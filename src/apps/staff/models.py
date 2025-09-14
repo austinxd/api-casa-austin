@@ -1,4 +1,3 @@
-
 from django.db import models
 from django.utils import timezone
 from apps.core.models import BaseModel
@@ -57,22 +56,22 @@ class Task(BaseModel):
     assigned_to = models.ForeignKey(StaffMember, on_delete=models.CASCADE, related_name='assigned_tasks')
     reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, blank=True, null=True, 
                                   help_text="Reserva asociada si es tarea de limpieza post-checkout")
-    
+
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     priority = models.CharField(max_length=10, choices=Priority.choices, default=Priority.MEDIUM)
     status = models.CharField(max_length=15, choices=TaskStatus.choices, default=TaskStatus.PENDING)
-    
+
     scheduled_date = models.DateField()
     scheduled_start_time = models.TimeField(blank=True, null=True)
     scheduled_end_time = models.TimeField(blank=True, null=True)
-    
+
     actual_start_time = models.DateTimeField(blank=True, null=True)
     actual_end_time = models.DateTimeField(blank=True, null=True)
-    
+
     notes = models.TextField(blank=True, help_text="Notas del trabajador")
     admin_notes = models.TextField(blank=True, help_text="Notas administrativas")
-    
+
     created_by = models.ForeignKey('accounts.CustomUser', on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
@@ -94,16 +93,16 @@ class WorkSession(BaseModel):
     staff_member = models.ForeignKey(StaffMember, on_delete=models.CASCADE, related_name='work_sessions')
     property = models.ForeignKey(Property, on_delete=models.CASCADE)
     task = models.ForeignKey(Task, on_delete=models.CASCADE, blank=True, null=True)
-    
+
     check_in_time = models.DateTimeField()
     check_out_time = models.DateTimeField(blank=True, null=True)
-    
+
     # Ubicación GPS para validar que está en la propiedad
     check_in_latitude = models.DecimalField(max_digits=10, decimal_places=8, blank=True, null=True)
     check_in_longitude = models.DecimalField(max_digits=11, decimal_places=8, blank=True, null=True)
     check_out_latitude = models.DecimalField(max_digits=10, decimal_places=8, blank=True, null=True)
     check_out_longitude = models.DecimalField(max_digits=11, decimal_places=8, blank=True, null=True)
-    
+
     notes = models.TextField(blank=True)
 
     class Meta:
@@ -128,13 +127,13 @@ class AutomaticTaskRule(BaseModel):
     trigger_on_checkin = models.BooleanField(default=False)
     days_before_checkin = models.PositiveIntegerField(default=0)
     days_after_checkout = models.PositiveIntegerField(default=0)
-    
+
     properties = models.ManyToManyField(Property, blank=True, 
                                       help_text="Si está vacío, aplica a todas las propiedades")
-    
+
     auto_assign_to = models.ForeignKey(StaffMember, on_delete=models.SET_NULL, null=True, blank=True,
                                      help_text="Staff member para auto-asignar, si está vacío requiere asignación manual")
-    
+
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
