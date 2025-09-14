@@ -83,22 +83,94 @@ class WorkTaskViewSet(viewsets.ModelViewSet):
             return WorkTaskCreateSerializer
         return WorkTaskSerializer
     
+    def _is_maintenance_user(self):
+        """Verificar si el usuario pertenece al grupo mantenimiento"""
+        return self.request.user.groups.filter(name='mantenimiento').exists()
+    
+    def _can_maintenance_update_task(self, task, data):
+        """Verificar si mantenimiento puede actualizar esta tarea"""
+        # Solo pueden actualizar tareas asignadas a ellos
+        if not hasattr(self.request.user, 'staffmember_set'):
+            return False
+        
+        user_staff = self.request.user.staffmember_set.filter(deleted=False).first()
+        if not user_staff or task.staff_member != user_staff:
+            return False
+        
+        # Solo pueden cambiar el status, no otros campos
+        allowed_fields = {'status'}
+        provided_fields = set(data.keys())
+        return provided_fields.issubset(allowed_fields)
+    
+    def update(self, request, *args, **kwargs):
+        """Sobrescribir update para manejo especial de mantenimiento"""
+        if self._is_maintenance_user():
+            task = self.get_object()
+            
+            if not self._can_maintenance_update_task(task, request.data):
+                return Response({
+                    'error': 'Personal de mantenimiento solo puede cambiar el status de sus propias tareas'
+                }, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().update(request, *args, **kwargs)
+    
+    def partial_update(self, request, *args, **kwargs):
+        """Sobrescribir partial_update para manejo especial de mantenimiento"""
+        if self._is_maintenance_user():
+            task = self.get_object()
+            
+            if not self._can_maintenance_update_task(task, request.data):
+                return Response({
+                    'error': 'Personal de mantenimiento solo puede cambiar el status de sus propias tareas'
+                }, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().partial_update(request, *args, **kwargs)
+    
+    def destroy(self, request, *args, **kwargs):
+        """Sobrescribir destroy para restringir eliminación a mantenimiento"""
+        if self._is_maintenance_user():
+            return Response({
+                'error': 'Personal de mantenimiento no puede eliminar tareas'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().destroy(request, *args, **kwargs)
+    
+    def create(self, request, *args, **kwargs):
+        """Sobrescribir create para restringir creación a mantenimiento"""
+        if self._is_maintenance_user():
+            return Response({
+                'error': 'Personal de mantenimiento no puede crear tareas'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().create(request, *args, **kwargs)
+    
     def get_queryset(self):
         queryset = super().get_queryset()
         
-        # Filtros
+        # Si es usuario de mantenimiento, solo mostrar sus propias tareas
+        if self._is_maintenance_user():
+            if hasattr(self.request.user, 'staffmember_set'):
+                user_staff = self.request.user.staffmember_set.filter(deleted=False).first()
+                if user_staff:
+                    queryset = queryset.filter(staff_member=user_staff)
+                else:
+                    queryset = queryset.none()  # No hay tareas si no es staff member
+            else:
+                queryset = queryset.none()
+        
+        # Filtros generales
         staff_member = self.request.query_params.get('staff_member')
         property_id = self.request.query_params.get('property')
-        status = self.request.query_params.get('status')
+        status_param = self.request.query_params.get('status')
         task_type = self.request.query_params.get('task_type')
         date = self.request.query_params.get('date')
         
-        if staff_member:
+        if staff_member and not self._is_maintenance_user():  # Mantenimiento no puede filtrar por otro staff
             queryset = queryset.filter(staff_member_id=staff_member)
         if property_id:
             queryset = queryset.filter(building_property_id=property_id)
-        if status:
-            queryset = queryset.filter(status=status)
+        if status_param:
+            queryset = queryset.filter(status=status_param)
         if task_type:
             queryset = queryset.filter(task_type=task_type)
         if date:
