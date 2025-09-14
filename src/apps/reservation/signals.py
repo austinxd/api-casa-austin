@@ -1,5 +1,5 @@
 import logging
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from .models import Reservation, RentalReceipt
 from ..core.telegram_notifier import send_telegram_message
@@ -11,6 +11,14 @@ import requests
 import json
 
 logger = logging.getLogger('apps')
+
+# Import staff models for task updating
+try:
+    from ..staff.models import WorkTask, StaffMember
+except ImportError:
+    # Fallback in case staff app is not installed
+    WorkTask = None
+    StaffMember = None
 
 # Diccionarios para fechas en español
 MONTHS_ES = {
@@ -321,6 +329,15 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
                 f"Error verificando logros después de actualizar reserva: {str(e)}"
             )
 
+        # NUEVO: Actualizar tareas de limpieza si cambió la fecha de checkout
+        if hasattr(instance, '_original_check_out_date'):
+            original_checkout = instance._original_check_out_date
+            current_checkout = instance.check_out_date
+            
+            if original_checkout != current_checkout:
+                logger.info(f"Checkout date changed for reservation {instance.id}: {original_checkout} -> {current_checkout}")
+                update_cleaning_tasks_for_checkout_change(instance, original_checkout, current_checkout)
+
 
 def send_chatbot_flow_payment_complete(reservation):
     """Envía flujo de ChatBot Builder cuando el pago está completo"""
@@ -450,3 +467,61 @@ def send_purchase_event_to_meta(
         logger.warning(
             f"Error al enviar evento a Meta. Código: {response.status_code} Respuesta: {response.text}"
         )
+
+
+# ============================================================================
+# NUEVOS SIGNALS PARA ACTUALIZACIÓN AUTOMÁTICA DE TAREAS DE LIMPIEZA
+# ============================================================================
+
+@receiver(pre_save, sender=Reservation)
+def reservation_pre_save_handler(sender, instance, **kwargs):
+    """Guarda el estado original antes de modificar la reserva"""
+    if instance.pk:  # Solo si la reserva ya existe
+        try:
+            # Obtener la reserva original desde la base de datos
+            original = Reservation.objects.get(pk=instance.pk)
+            # Guardar el check_out_date original en la instancia
+            instance._original_check_out_date = original.check_out_date
+        except Reservation.DoesNotExist:
+            # Si no existe, es una nueva reserva
+            instance._original_check_out_date = None
+    else:
+        # Nueva reserva
+        instance._original_check_out_date = None
+
+
+def update_cleaning_tasks_for_checkout_change(reservation, original_checkout, new_checkout):
+    """Actualiza las tareas de limpieza cuando cambia la fecha de checkout"""
+    if not WorkTask:  # Verificar si el modelo WorkTask está disponible
+        logger.warning("WorkTask model not available, skipping task update")
+        return
+    
+    try:
+        # Buscar tareas de limpieza relacionadas con esta reserva
+        cleaning_tasks = WorkTask.objects.filter(
+            reservation=reservation,
+            task_type='checkout_cleaning',
+            scheduled_date=original_checkout,  # Tareas programadas para la fecha original
+            status__in=['pending', 'assigned']  # Solo tareas que aún no han iniciado
+        )
+        
+        updated_count = 0
+        for task in cleaning_tasks:
+            # Actualizar la fecha programada
+            old_date = task.scheduled_date
+            task.scheduled_date = new_checkout
+            task.save()
+            
+            logger.info(
+                f"✅ Updated cleaning task {task.id} for reservation {reservation.id}: "
+                f"{old_date} -> {new_checkout}"
+            )
+            updated_count += 1
+        
+        if updated_count > 0:
+            logger.info(f"Successfully updated {updated_count} cleaning tasks for reservation {reservation.id}")
+        else:
+            logger.info(f"No cleaning tasks found to update for reservation {reservation.id}")
+            
+    except Exception as e:
+        logger.error(f"❌ Error updating cleaning tasks for reservation {reservation.id}: {str(e)}")
