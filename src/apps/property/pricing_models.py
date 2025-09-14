@@ -1006,6 +1006,26 @@ class DynamicDiscountConfig(BaseModel):
         start_date = date.today()
         end_date = start_date + timedelta(days=self.validity_days)
 
+        # Crear el código de descuento
+        discount_code = DiscountCode.objects.create(
+            code=code,
+            description=f"Descuento dinámico {self.discount_percentage}% - {self.name}",
+            discount_type='percentage',
+            discount_value=self.discount_percentage,
+            start_date=start_date,
+            end_date=end_date,
+            usage_limit=self.usage_limit,
+            min_amount_usd=self.min_amount_usd,
+            max_discount_usd=self.max_discount_usd,
+            is_active=True
+        )
+
+        # Asignar propiedades si están definidas
+        if self.properties.exists():
+            discount_code.properties.set(self.properties.all())
+
+        return discount_code
+
 
 class LateCheckoutConfig(BaseModel):
     """Configuración para late checkout por día de la semana"""
