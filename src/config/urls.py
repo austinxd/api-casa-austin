@@ -22,6 +22,7 @@ urlpatterns = [
     path("api/v1/", include("apps.reservation.urls")),
     path("api/v1/", include("apps.property.urls")),
     path("api/v1/", include("apps.dashboard.urls")),
+    path("api/v1/", include("apps.staff.urls")),
     path("api/v1/bot/", include("apps.property.bot_urls")),
 ]
 
