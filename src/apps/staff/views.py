@@ -90,11 +90,14 @@ class WorkTaskViewSet(viewsets.ModelViewSet):
     def _can_maintenance_update_task(self, task, data):
         """Verificar si mantenimiento puede actualizar esta tarea"""
         # Solo pueden actualizar tareas asignadas a ellos
-        if not hasattr(self.request.user, 'staffmember_set'):
+        if not hasattr(self.request.user, 'staffmember'):
             return False
         
-        user_staff = self.request.user.staffmember_set.filter(deleted=False).first()
-        if not user_staff or task.staff_member != user_staff:
+        try:
+            user_staff = self.request.user.staffmember
+            if not user_staff or user_staff.deleted or task.staff_member != user_staff:
+                return False
+        except StaffMember.DoesNotExist:
             return False
         
         # Solo pueden cambiar el status, no otros campos
@@ -149,13 +152,13 @@ class WorkTaskViewSet(viewsets.ModelViewSet):
         
         # Si es usuario de mantenimiento, solo mostrar sus propias tareas
         if self._is_maintenance_user():
-            if hasattr(self.request.user, 'staffmember_set'):
-                user_staff = self.request.user.staffmember_set.filter(deleted=False).first()
-                if user_staff:
+            try:
+                user_staff = self.request.user.staffmember
+                if user_staff and not user_staff.deleted:
                     queryset = queryset.filter(staff_member=user_staff)
                 else:
                     queryset = queryset.none()  # No hay tareas si no es staff member
-            else:
+            except StaffMember.DoesNotExist:
                 queryset = queryset.none()
         
         # Filtros generales
