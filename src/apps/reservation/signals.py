@@ -47,6 +47,90 @@ DAYS_ES = {
     6: "Domingo"
 }
 
+# CONSTANTES PARA SISTEMA DE PRIORIDADES
+URGENT_BOOST = 1000  # Puntos extra para check-in el mismo día del check-out
+BASE_PROXIMITY = 200  # Puntos base para proximidad
+DECAY_PER_DAY = 20    # Penalización por cada día de diferencia
+HIGH_THRESHOLD = 1    # ≤1 día = prioridad ALTA
+MEDIUM_THRESHOLD = 3  # ≤3 días = prioridad MEDIA
+
+def get_next_checkin(property_id, from_date):
+    """
+    Encuentra la próxima reserva aprobada en una propiedad desde una fecha dada.
+    
+    Args:
+        property_id: ID de la propiedad
+        from_date: Fecha desde la cual buscar (date object)
+    
+    Returns:
+        tuple: (next_check_in_date, gap_days) o (None, None) si no hay próxima reserva
+    """
+    if not property_id or not from_date:
+        return None, None
+    
+    try:
+        next_reservation = Reservation.objects.filter(
+            property_id=property_id,
+            status='approved',
+            check_in_date__gte=from_date,
+            deleted=False
+        ).order_by('check_in_date').first()
+        
+        if next_reservation:
+            next_check_in = next_reservation.check_in_date
+            if isinstance(next_check_in, datetime):
+                next_check_in = next_check_in.date()
+            if isinstance(from_date, datetime):
+                from_date = from_date.date()
+            
+            gap_days = (next_check_in - from_date).days
+            return next_check_in, gap_days
+        
+        return None, None
+    except Exception as e:
+        logger.error(f"Error buscando próximo check-in para propiedad {property_id}: {e}")
+        return None, None
+
+def compute_task_priority(task):
+    """
+    Calcula la prioridad de una tarea de limpieza basada en la proximidad del próximo check-in.
+    
+    Args:
+        task: Instancia de WorkTask
+    
+    Returns:
+        tuple: (priority_label, priority_score, gap_days)
+    """
+    if not task or not task.building_property or not task.scheduled_date:
+        return 'low', 0, None
+    
+    # Convertir scheduled_date a date si es datetime
+    scheduled_date = task.scheduled_date
+    if isinstance(scheduled_date, datetime):
+        scheduled_date = scheduled_date.date()
+    
+    # Usar función centralizada para calcular prioridad
+    priority_label, gap_days = get_priority_from_property(
+        task.building_property.id,
+        scheduled_date
+    )
+    
+    # Calcular puntuación según prioridad
+    if priority_label == 'urgent':
+        priority_score = URGENT_BOOST
+        logger.info(f"🚨 TAREA URGENTE: {task.title} - Check-in MISMO DÍA")
+    elif priority_label == 'high':
+        priority_score = max(0, BASE_PROXIMITY - DECAY_PER_DAY * (gap_days or 1))
+        logger.info(f"🔥 TAREA ALTA PRIORIDAD: {task.title} - Check-in en {gap_days} día(s)")
+    elif priority_label == 'medium':
+        priority_score = max(0, BASE_PROXIMITY - DECAY_PER_DAY * (gap_days or 2))
+        logger.debug(f"📅 TAREA MEDIA PRIORIDAD: {task.title} - Check-in en {gap_days} día(s)")
+    else:
+        priority_score = max(0, BASE_PROXIMITY - DECAY_PER_DAY * (gap_days or 10))
+        logger.debug(f"📋 TAREA BAJA PRIORIDAD: {task.title} - {f'Check-in en {gap_days} día(s)' if gap_days else 'Sin próximo check-in'}")
+    
+    return priority_label, priority_score, gap_days
+
 
 def format_date_es(date):
     day = date.day
@@ -559,17 +643,9 @@ def create_automatic_cleaning_task(reservation):
             logger.info(f"Cleaning task already exists for reservation {reservation.id}")
             return
         
-        # Buscar el mejor personal de limpieza disponible
-        assigned_staff = find_best_cleaning_staff(reservation.check_out_date, reservation.property, reservation)
-        
-        if not assigned_staff:
-            logger.warning(f"No cleaning staff available for reservation {reservation.id} on {reservation.check_out_date}")
-            # Crear tarea sin asignar para revisión manual
-            assigned_staff = None
-        
-        # Crear la tarea de limpieza
+        # PASO 1: Crear la tarea de limpieza SIN asignar primero
         cleaning_task = WorkTask.objects.create(
-            staff_member=assigned_staff,
+            staff_member=None,  # Sin asignar inicialmente
             building_property=reservation.property,
             reservation=reservation,
             task_type='checkout_cleaning',
@@ -577,10 +653,42 @@ def create_automatic_cleaning_task(reservation):
             description=f"Limpieza post-checkout para reserva #{reservation.id}\nCliente: {f'{reservation.client.first_name} {reservation.client.last_name}'.strip() if reservation.client else 'N/A'}",
             scheduled_date=reservation.check_out_date,
             estimated_duration=timezone.timedelta(hours=2),  # 2 horas por defecto
-            priority='medium',
-            status='assigned' if assigned_staff else 'pending',
+            priority='medium',  # Temporal - será actualizada
+            status='pending',
             requires_photo_evidence=True
         )
+        
+        # PASO 2: Calcular y establecer la prioridad de la tarea
+        try:
+            priority_label, priority_score, gap_days = compute_task_priority(cleaning_task)
+            cleaning_task.priority = priority_label
+            cleaning_task.save()
+            
+            # Actualizar descripción con información de prioridad si es relevante
+            if gap_days is not None and gap_days <= 1:
+                if gap_days == 0:
+                    cleaning_task.description += f"\n🚨 URGENTE: Check-in MISMO DÍA"
+                else:
+                    cleaning_task.description += f"\n🔥 ALTA PRIORIDAD: Check-in en {gap_days} día(s)"
+                cleaning_task.save()
+            
+            logger.info(f"🎯 Tarea {cleaning_task.id} establecida con prioridad {priority_label} (+{priority_score} puntos)")
+            
+        except Exception as e:
+            logger.error(f"Error calculando prioridad para tarea {cleaning_task.id}: {e}")
+            # Mantener prioridad 'medium' por defecto
+        
+        # PASO 3: Buscar el mejor personal considerando la prioridad de la tarea
+        assigned_staff = find_best_cleaning_staff(reservation.check_out_date, reservation.property, reservation, cleaning_task)
+        
+        # PASO 4: Asignar el personal a la tarea
+        if assigned_staff:
+            cleaning_task.staff_member = assigned_staff
+            cleaning_task.status = 'assigned'
+            cleaning_task.save()
+        else:
+            logger.warning(f"No cleaning staff available for reservation {reservation.id} on {reservation.check_out_date}")
+            # La tarea queda pendiente para revisión manual
         
         if assigned_staff:
             logger.info(
@@ -597,7 +705,7 @@ def create_automatic_cleaning_task(reservation):
         logger.error(f"❌ Error creating automatic cleaning task for reservation {reservation.id}: {str(e)}")
 
 
-def find_best_cleaning_staff(scheduled_date, property_obj, reservation):
+def find_best_cleaning_staff(scheduled_date, property_obj, reservation, task=None):
     """Encuentra el mejor personal de limpieza disponible para una fecha y propiedad específica"""
     if not StaffMember:
         return None
@@ -618,7 +726,7 @@ def find_best_cleaning_staff(scheduled_date, property_obj, reservation):
         staff_scores = []
         
         for staff in cleaning_staff:
-            score = calculate_staff_score(staff, scheduled_date, property_obj, reservation)
+            score = calculate_staff_score(staff, scheduled_date, property_obj, reservation, task)
             if score > 0:  # Solo considerar staff disponible
                 staff_scores.append((staff, score))
         
@@ -628,9 +736,15 @@ def find_best_cleaning_staff(scheduled_date, property_obj, reservation):
         
         # Ordenar por puntuación (mayor es mejor) y retornar el mejor
         staff_scores.sort(key=lambda x: x[1], reverse=True)
-        best_staff = staff_scores[0][0]
+        best_staff, best_score = staff_scores[0]
         
-        logger.info(f"Selected {best_staff.first_name} {best_staff.last_name} as best cleaning staff for {scheduled_date}")
+        # Logging detallado de puntuaciones
+        logger.info(f"🏆 SELECCIÓN FINAL para {scheduled_date}:")
+        for i, (staff, score) in enumerate(staff_scores[:3]):  # Top 3
+            medal = ["🥇", "🥈", "🥉"][i] if i < 3 else f"{i+1}."
+            logger.info(f"   {medal} {staff.first_name} {staff.last_name}: {score} puntos")
+        
+        logger.info(f"✅ Seleccionado: {best_staff.first_name} {best_staff.last_name} con {best_score} puntos")
         return best_staff
         
     except Exception as e:
@@ -638,9 +752,24 @@ def find_best_cleaning_staff(scheduled_date, property_obj, reservation):
         return None
 
 
-def calculate_staff_score(staff, scheduled_date, property_obj, reservation):
-    """Calcula puntuación para un miembro del staff basado en disponibilidad, carga de trabajo y tamaño de reserva"""
+def calculate_staff_score(staff, scheduled_date, property_obj, reservation, task=None):
+    """Calcula puntuación para un miembro del staff basado en disponibilidad, carga de trabajo, tamaño de reserva y prioridad"""
     score = 100  # Puntuación base
+    
+    # NUEVA LÓGICA: Agregar puntuación de prioridad si hay una tarea
+    priority_score = 0
+    if task:
+        try:
+            priority_label, task_priority_score, gap_days = compute_task_priority(task)
+            priority_score = task_priority_score
+            score += priority_score
+            
+            logger.info(f"🎯 PRIORIDAD: {staff.first_name} {staff.last_name} - {priority_label} (+{priority_score} pts) para tarea {task.id if task else 'N/A'}")
+            if gap_days is not None:
+                logger.info(f"   📅 Próximo check-in en {gap_days} día(s) en {task.building_property.name if task else 'N/A'}")
+        except Exception as e:
+            logger.error(f"Error calculando prioridad para tarea {task.id if task else 'None'}: {e}")
+            priority_score = 0
     
     try:
         # Verificar disponibilidad en fin de semana

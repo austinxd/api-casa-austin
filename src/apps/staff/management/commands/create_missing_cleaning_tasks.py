@@ -2,10 +2,40 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from apps.reservation.models import Reservation
 from apps.staff.models import WorkTask
-from apps.reservation.signals import create_automatic_cleaning_task
+from apps.reservation.signals import create_automatic_cleaning_task, get_next_checkin, HIGH_THRESHOLD, MEDIUM_THRESHOLD
 import logging
 
 logger = logging.getLogger(__name__)
+
+def calculate_priority_for_reservation(reservation):
+    """
+    Calcula la prioridad de una reserva basada en la proximidad del próximo check-in.
+    Retorna una tupla (priority_order, priority_label, gap_days) para ordenamiento.
+    """
+    try:
+        # Buscar próximo check-in en la misma propiedad desde la fecha de checkout
+        next_check_in, gap_days = get_next_checkin(
+            reservation.property.id,
+            reservation.check_out_date
+        )
+        
+        if next_check_in is None:
+            # No hay próxima reserva - prioridad baja
+            return (4, 'low', None)
+        
+        # Ordenar por prioridad: 1=urgente, 2=alta, 3=media, 4=baja
+        if gap_days == 0:
+            return (1, 'urgent', gap_days)  # Mismo día - URGENTE
+        elif gap_days <= 1:
+            return (2, 'high', gap_days)    # 1 día - ALTA
+        elif gap_days <= 3:
+            return (3, 'medium', gap_days)  # 2-3 días - MEDIA
+        else:
+            return (4, 'low', gap_days)     # >3 días - BAJA
+            
+    except Exception as e:
+        logger.error(f"Error calculando prioridad para reserva {reservation.id}: {e}")
+        return (4, 'low', None)  # Prioridad baja por defecto en caso de error
 
 class Command(BaseCommand):
     help = 'Crear tareas de limpieza para reservas aprobadas existentes que no tienen tareas asignadas'
@@ -75,12 +105,39 @@ class Command(BaseCommand):
             )
             return
 
-        self.stdout.write(f'\n📋 RESERVAS A PROCESAR:')
+        # NUEVO: Ordenar reservas por prioridad antes de procesarlas
+        self.stdout.write(f'\n🎯 CALCULANDO PRIORIDADES Y ORDENANDO...')
+        
+        # Calcular prioridad para cada reserva
+        reservations_with_priority = []
         for reservation in reservations_to_process:
+            priority_order, priority_label, gap_days = calculate_priority_for_reservation(reservation)
+            reservations_with_priority.append((reservation, priority_order, priority_label, gap_days))
+        
+        # Ordenar por prioridad: primero urgente (1), luego alta (2), media (3), baja (4)
+        # Dentro de cada grupo, ordenar por gap_days (menor número = mayor urgencia)
+        reservations_with_priority.sort(key=lambda x: (x[1], x[3] if x[3] is not None else 999, x[0].check_out_date))
+        
+        # Actualizar la lista de reservas a procesar con el orden prioritario
+        reservations_to_process = [item[0] for item in reservations_with_priority]
+        
+        self.stdout.write(f'\n📋 RESERVAS A PROCESAR (ORDENADAS POR PRIORIDAD):')
+        for i, (reservation, priority_order, priority_label, gap_days) in enumerate(reservations_with_priority):
             client_name = f'{reservation.client.first_name} {reservation.client.last_name}'.strip() if reservation.client else 'N/A'
+            
+            # Emojis por prioridad
+            priority_emoji = {
+                'urgent': '🚨',
+                'high': '🔥', 
+                'medium': '📅',
+                'low': '📋'
+            }.get(priority_label, '📋')
+            
+            gap_info = f" (próximo check-in en {gap_days} día(s))" if gap_days is not None else " (sin próximo check-in)"
+            
             self.stdout.write(
-                f'   • ID: {reservation.id} | Cliente: {client_name} | '
-                f'Propiedad: {reservation.property.name} | Checkout: {reservation.check_out_date}'
+                f'   {i+1:2d}. {priority_emoji} {priority_label.upper()} | ID: {reservation.id} | Cliente: {client_name} | '
+                f'Propiedad: {reservation.property.name} | Checkout: {reservation.check_out_date}{gap_info}'
             )
 
         if dry_run:
