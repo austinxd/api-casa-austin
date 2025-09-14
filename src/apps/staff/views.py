@@ -6,7 +6,6 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from apps.core.permissions import CustomPermissions
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 
@@ -24,7 +23,7 @@ class StaffMemberViewSet(viewsets.ModelViewSet):
     """ViewSet para gestión de personal"""
     queryset = StaffMember.objects.filter(deleted=False)
     serializer_class = StaffMemberSerializer
-    permission_classes = [CustomPermissions]
+    permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -77,7 +76,7 @@ class StaffMemberViewSet(viewsets.ModelViewSet):
 class WorkTaskViewSet(viewsets.ModelViewSet):
     """ViewSet para gestión de tareas de trabajo"""
     queryset = WorkTask.objects.filter(deleted=False)
-    permission_classes = [CustomPermissions]
+    permission_classes = [IsAuthenticated]
     
     def get_serializer_class(self):
         if self.action == 'create':
@@ -229,7 +228,7 @@ class WorkTaskViewSet(viewsets.ModelViewSet):
 class TimeTrackingViewSet(viewsets.ModelViewSet):
     """ViewSet para registros de tiempo"""
     queryset = TimeTracking.objects.filter(deleted=False)
-    permission_classes = [CustomPermissions]
+    permission_classes = [IsAuthenticated]
     
     def get_serializer_class(self):
         if self.action == 'create':
@@ -257,7 +256,7 @@ class WorkScheduleViewSet(viewsets.ModelViewSet):
     """ViewSet para horarios de trabajo"""
     queryset = WorkSchedule.objects.filter(deleted=False)
     serializer_class = WorkScheduleSerializer
-    permission_classes = [CustomPermissions]
+    permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -281,7 +280,7 @@ class PropertyCleaningGapViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet para consultar gaps de limpieza (solo lectura)"""
     queryset = PropertyCleaningGap.objects.filter(deleted=False)
     serializer_class = PropertyCleaningGapSerializer
-    permission_classes = [CustomPermissions]
+    permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         queryset = super().get_queryset()
