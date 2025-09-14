@@ -26,22 +26,29 @@ class Command(BaseCommand):
         dry_run = options['dry_run']
         start_date = options.get('start_date')
         
-        # Filtros base
+        # Filtros base - solo reservas desde hoy en adelante
+        from datetime import date
+        today = date.today()
+        
         filters = {
             'status': 'approved',
+            'check_out_date__gte': today,  # Solo reservas futuras o de hoy
         }
         
-        # Agregar filtro de fecha si se especifica
+        # Si se especifica fecha de inicio, usarla en lugar de hoy
         if start_date:
             try:
                 from datetime import datetime
                 start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
                 filters['check_out_date__gte'] = start_date_obj
+                self.stdout.write(f'📅 Procesando reservas desde: {start_date}')
             except ValueError:
                 self.stdout.write(
                     self.style.ERROR(f'Formato de fecha inválido: {start_date}. Usa YYYY-MM-DD')
                 )
                 return
+        else:
+            self.stdout.write(f'📅 Procesando reservas desde hoy: {today}')
 
         # Buscar reservas aprobadas sin tareas de limpieza
         approved_reservations = Reservation.objects.filter(**filters)
