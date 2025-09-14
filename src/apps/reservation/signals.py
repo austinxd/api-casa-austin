@@ -942,9 +942,30 @@ def calculate_staff_score(staff, scheduled_date, property_obj, reservation, task
         # NUEVA LÓGICA: Determinar límite máximo basado en número de huéspedes
         guests = reservation.guests if reservation else 1
         if guests <= 2:
-            # Para reservas pequeñas (≤2 personas), puede manejar hasta 2 propiedades
-            max_properties_today = min(2, staff.max_properties_per_day)
-            logger.debug(f"Reserva de {guests} huéspedes: permitiendo hasta {max_properties_today} propiedades para {staff.first_name} {staff.last_name}")
+            # Para reservas pequeñas (≤2 personas), verificar que TODAS las tareas ya asignadas también tengan ≤2 personas
+            existing_tasks = WorkTask.objects.filter(
+                staff_member=staff,
+                scheduled_date=scheduled_date,
+                status__in=['pending', 'assigned', 'in_progress'],
+                deleted=False
+            ).select_related('reservation')
+            
+            # Verificar que todas las tareas existentes también sean de ≤2 huéspedes
+            can_take_multiple = True
+            for existing_task in existing_tasks:
+                if existing_task.reservation and existing_task.reservation.guests > 2:
+                    can_take_multiple = False
+                    logger.debug(f"Tarea existente {existing_task.id} tiene {existing_task.reservation.guests} huéspedes (>2), limitando a 1 propiedad para {staff.first_name} {staff.last_name}")
+                    break
+            
+            if can_take_multiple:
+                # Todas las tareas son ≤2 personas, puede manejar hasta 2 propiedades
+                max_properties_today = min(2, staff.max_properties_per_day)
+                logger.debug(f"Reserva de {guests} huéspedes y todas las tareas existentes ≤2 personas: permitiendo hasta {max_properties_today} propiedades para {staff.first_name} {staff.last_name}")
+            else:
+                # Ya tiene una tarea de >2 personas, solo 1 propiedad total
+                max_properties_today = 1
+                logger.debug(f"Personal ya tiene tarea de >2 huéspedes: limitando a {max_properties_today} propiedad para {staff.first_name} {staff.last_name}")
         else:
             # Para reservas grandes (>2 personas), solo 1 propiedad por día
             max_properties_today = 1
