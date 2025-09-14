@@ -113,8 +113,7 @@ LOCAL_APPS = [
     'apps.clients.apps.ClientsConfig',  # Aquí la forma correcta
     'apps.property',
     'apps.reservation',
-    'apps.dashboard',
-    'apps.staff'
+    'apps.dashboard'
 ]
 
 THIRD_APPS = [
