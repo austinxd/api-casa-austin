@@ -10,5 +10,5 @@ router.register(r'time-tracking', TimeTrackingViewSet)
 router.register(r'schedules', WorkScheduleViewSet)
 
 urlpatterns = [
-    path('api/v1/', include(router.urls)),
+    path('', include(router.urls)),
 ]
