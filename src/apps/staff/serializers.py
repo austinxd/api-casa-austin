@@ -172,6 +172,7 @@ class PropertyCleaningGapSerializer(serializers.ModelSerializer):
     property_name = serializers.CharField(source='building_property.name', read_only=True)
     property_background_color = serializers.CharField(source='building_property.background_color', read_only=True)
     client_name = serializers.SerializerMethodField()
+    check_out_date = serializers.SerializerMethodField()
     days_without_cleaning = serializers.ReadOnlyField()
     reason_display = serializers.CharField(source='get_reason_display', read_only=True)
     
@@ -179,7 +180,7 @@ class PropertyCleaningGapSerializer(serializers.ModelSerializer):
         model = PropertyCleaningGap
         fields = [
             'id', 'building_property', 'property_name', 'property_background_color',
-            'reservation', 'client_name', 'gap_date', 'reason', 'reason_display',
+            'reservation', 'client_name', 'check_out_date', 'gap_date', 'reason', 'reason_display',
             'original_required_date', 'rescheduled_date', 'resolved', 
             'days_without_cleaning', 'notes', 'created', 'updated'
         ]
@@ -187,7 +188,12 @@ class PropertyCleaningGapSerializer(serializers.ModelSerializer):
     def get_client_name(self, obj):
         if obj.reservation and obj.reservation.client:
             return f"{obj.reservation.client.first_name} {obj.reservation.client.last_name}".strip()
-        return "N/A"
+        return None
+    
+    def get_check_out_date(self, obj):
+        if obj.reservation:
+            return obj.reservation.check_out_date
+        return None
 
 
 class CleaningGapSummarySerializer(serializers.Serializer):
