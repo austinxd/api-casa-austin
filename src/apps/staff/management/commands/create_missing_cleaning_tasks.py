@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from apps.reservation.models import Reservation
 from apps.staff.models import WorkTask
-from apps.reservation.signals import create_automatic_cleaning_task, get_next_checkin, HIGH_THRESHOLD, MEDIUM_THRESHOLD
+from apps.reservation.signals import create_automatic_cleaning_task, get_priority_from_property
 import logging
 
 logger = logging.getLogger(__name__)
@@ -11,27 +11,25 @@ def calculate_priority_for_reservation(reservation):
     """
     Calcula la prioridad de una reserva basada en la proximidad del próximo check-in.
     Retorna una tupla (priority_order, priority_label, gap_days) para ordenamiento.
+    USA función centralizada para evitar duplicación de lógica.
     """
     try:
-        # Buscar próximo check-in en la misma propiedad desde la fecha de checkout
-        next_check_in, gap_days = get_next_checkin(
+        # Usar la función centralizada para evitar duplicación
+        priority_label, gap_days = get_priority_from_property(
             reservation.property.id,
             reservation.check_out_date
         )
         
-        if next_check_in is None:
-            # No hay próxima reserva - prioridad baja
-            return (4, 'low', None)
+        # Mapear a orden numérico para sorting: 1=urgente, 2=alta, 3=media, 4=baja
+        priority_order_map = {
+            'urgent': 1,
+            'high': 2, 
+            'medium': 3,
+            'low': 4
+        }
+        priority_order = priority_order_map.get(priority_label, 4)
         
-        # Ordenar por prioridad: 1=urgente, 2=alta, 3=media, 4=baja
-        if gap_days == 0:
-            return (1, 'urgent', gap_days)  # Mismo día - URGENTE
-        elif gap_days <= 1:
-            return (2, 'high', gap_days)    # 1 día - ALTA
-        elif gap_days <= 3:
-            return (3, 'medium', gap_days)  # 2-3 días - MEDIA
-        else:
-            return (4, 'low', gap_days)     # >3 días - BAJA
+        return (priority_order, priority_label, gap_days)
             
     except Exception as e:
         logger.error(f"Error calculando prioridad para reserva {reservation.id}: {e}")

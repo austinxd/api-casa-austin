@@ -131,6 +131,31 @@ def compute_task_priority(task):
     
     return priority_label, priority_score, gap_days
 
+def get_priority_from_property(property_id, from_date):
+    """
+    Función centralizada para calcular prioridad basada en próximo check-in.
+    Retorna (priority_label, gap_days) según las mismas reglas que compute_task_priority.
+    """
+    try:
+        next_check_in, gap_days = get_next_checkin(property_id, from_date)
+        
+        if next_check_in is None:
+            return ('low', None)
+        
+        # Misma lógica que compute_task_priority
+        if gap_days == 0:
+            return ('urgent', gap_days)
+        elif gap_days <= HIGH_THRESHOLD:  # ≤1 día
+            return ('high', gap_days)
+        elif gap_days <= MEDIUM_THRESHOLD:  # ≤3 días
+            return ('medium', gap_days)
+        else:
+            return ('low', gap_days)
+            
+    except Exception as e:
+        logger.error(f"Error en get_priority_from_property({property_id}, {from_date}): {e}")
+        return ('low', None)
+
 
 def format_date_es(date):
     day = date.day
