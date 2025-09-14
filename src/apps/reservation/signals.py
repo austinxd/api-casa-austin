@@ -560,7 +560,7 @@ def create_automatic_cleaning_task(reservation):
             return
         
         # Buscar el mejor personal de limpieza disponible
-        assigned_staff = find_best_cleaning_staff(reservation.check_out_date, reservation.property)
+        assigned_staff = find_best_cleaning_staff(reservation.check_out_date, reservation.property, reservation)
         
         if not assigned_staff:
             logger.warning(f"No cleaning staff available for reservation {reservation.id} on {reservation.check_out_date}")
@@ -597,7 +597,7 @@ def create_automatic_cleaning_task(reservation):
         logger.error(f"❌ Error creating automatic cleaning task for reservation {reservation.id}: {str(e)}")
 
 
-def find_best_cleaning_staff(scheduled_date, property_obj):
+def find_best_cleaning_staff(scheduled_date, property_obj, reservation):
     """Encuentra el mejor personal de limpieza disponible para una fecha y propiedad específica"""
     if not StaffMember:
         return None
@@ -618,7 +618,7 @@ def find_best_cleaning_staff(scheduled_date, property_obj):
         staff_scores = []
         
         for staff in cleaning_staff:
-            score = calculate_staff_score(staff, scheduled_date, property_obj)
+            score = calculate_staff_score(staff, scheduled_date, property_obj, reservation)
             if score > 0:  # Solo considerar staff disponible
                 staff_scores.append((staff, score))
         
@@ -638,8 +638,8 @@ def find_best_cleaning_staff(scheduled_date, property_obj):
         return None
 
 
-def calculate_staff_score(staff, scheduled_date, property_obj):
-    """Calcula puntuación para un miembro del staff basado en disponibilidad y carga de trabajo"""
+def calculate_staff_score(staff, scheduled_date, property_obj, reservation):
+    """Calcula puntuación para un miembro del staff basado en disponibilidad, carga de trabajo y tamaño de reserva"""
     score = 100  # Puntuación base
     
     try:
@@ -656,9 +656,20 @@ def calculate_staff_score(staff, scheduled_date, property_obj):
             deleted=False
         ).count()
         
+        # NUEVA LÓGICA: Determinar límite máximo basado en número de huéspedes
+        guests = reservation.guests if reservation else 1
+        if guests <= 2:
+            # Para reservas pequeñas (≤2 personas), puede manejar hasta 2 propiedades
+            max_properties_today = min(2, staff.max_properties_per_day)
+            logger.debug(f"Reserva de {guests} huéspedes: permitiendo hasta {max_properties_today} propiedades para {staff.first_name} {staff.last_name}")
+        else:
+            # Para reservas grandes (>2 personas), solo 1 propiedad por día
+            max_properties_today = 1
+            logger.debug(f"Reserva de {guests} huéspedes: limitando a {max_properties_today} propiedad para {staff.first_name} {staff.last_name}")
+        
         # Verificar límite máximo de propiedades por día
-        if tasks_on_date >= staff.max_properties_per_day:
-            return 0  # Ya tiene el máximo de tareas
+        if tasks_on_date >= max_properties_today:
+            return 0  # Ya tiene el máximo de tareas permitidas
         
         # Reducir puntuación según carga de trabajo actual
         score -= tasks_on_date * 20  # -20 puntos por cada tarea existente
