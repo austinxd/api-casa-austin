@@ -31,6 +31,8 @@ class WorkTaskSerializer(serializers.ModelSerializer):
     staff_member_name = serializers.CharField(source='staff_member.full_name', read_only=True)
     property_name = serializers.CharField(source='building_property.name', read_only=True)
     actual_duration_display = serializers.SerializerMethodField()
+    estimated_duration = serializers.SerializerMethodField()
+    scheduled_date = serializers.DateField(input_formats=['%Y-%m-%d', '%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%dT%H:%M:%SZ'])
     photos = TaskPhotoSerializer(many=True, read_only=True)
     
     class Meta:
@@ -50,9 +52,21 @@ class WorkTaskSerializer(serializers.ModelSerializer):
             minutes = (total_seconds % 3600) // 60
             return f"{hours}h {minutes}m"
         return None
+    
+    def get_estimated_duration(self, obj):
+        """Formatear estimated_duration para evitar NaN"""
+        if obj.estimated_duration:
+            total_seconds = int(obj.estimated_duration.total_seconds())
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            return f"{hours}h {minutes}m"
+        return "No definida"
 
 
 class WorkTaskCreateSerializer(serializers.ModelSerializer):
+    scheduled_date = serializers.DateField(input_formats=['%Y-%m-%d', '%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%dT%H:%M:%SZ'])
+    estimated_duration = serializers.DurationField()
+    
     class Meta:
         model = WorkTask
         fields = [
