@@ -146,27 +146,65 @@ class Command(BaseCommand):
 
         # Procesar reservas
         created_count = 0
+        deferred_count = 0
+        gaps_created = 0
         error_count = 0
         
         self.stdout.write(f'\n🚀 PROCESANDO {len(reservations_to_process)} reservas...')
+        
+        from apps.staff.models import PropertyCleaningGap
+        initial_gaps = PropertyCleaningGap.objects.count()
         
         for reservation in reservations_to_process:
             try:
                 create_automatic_cleaning_task(reservation)
                 created_count += 1
                 client_name = f'{reservation.client.first_name} {reservation.client.last_name}'.strip() if reservation.client else 'N/A'
-                self.stdout.write(
-                    f'   ✅ Tarea creada para reserva {reservation.id} ({client_name})'
-                )
+                
+                # Verificar si la tarea fue asignada o diferida
+                task = WorkTask.objects.filter(
+                    reservation=reservation,
+                    task_type='checkout_cleaning'
+                ).first()
+                
+                if task:
+                    if task.scheduled_date == reservation.check_out_date:
+                        # Tarea asignada para el día original
+                        staff_name = task.staff_member.full_name if task.staff_member else 'Sin asignar'
+                        self.stdout.write(
+                            f'   ✅ Tarea asignada: {reservation.id} ({client_name}) → {staff_name}'
+                        )
+                    else:
+                        # Tarea diferida
+                        deferred_count += 1
+                        days_diff = (task.scheduled_date - reservation.check_out_date).days
+                        staff_name = task.staff_member.full_name if task.staff_member else 'Sin asignar'
+                        self.stdout.write(
+                            f'   🔄 Tarea DIFERIDA: {reservation.id} ({client_name}) → {staff_name} (+{days_diff} días)'
+                        )
+                
             except Exception as e:
                 error_count += 1
                 self.stdout.write(
                     self.style.ERROR(f'   ❌ Error procesando reserva {reservation.id}: {str(e)}')
                 )
+        
+        # Contar gaps creados en este proceso
+        final_gaps = PropertyCleaningGap.objects.count()
+        gaps_created = final_gaps - initial_gaps
 
         # Resumen final
         self.stdout.write(f'\n🎯 RESULTADOS FINALES:')
         self.stdout.write(f'   • Tareas creadas exitosamente: {created_count}')
+        self.stdout.write(f'   • Tareas asignadas el día original: {created_count - deferred_count}')
+        if deferred_count > 0:
+            self.stdout.write(
+                self.style.WARNING(f'   • Tareas DIFERIDAS automáticamente: {deferred_count}')
+            )
+        if gaps_created > 0:
+            self.stdout.write(
+                self.style.WARNING(f'   • Gaps registrados (días sin limpieza): {gaps_created}')
+            )
         if error_count > 0:
             self.stdout.write(
                 self.style.ERROR(f'   • Errores encontrados: {error_count}')
@@ -180,3 +218,11 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.SUCCESS(f'\n🎉 ¡Proceso completado! Se crearon {created_count} tareas de limpieza.')
             )
+            if deferred_count > 0:
+                self.stdout.write(
+                    self.style.WARNING(f'⚠️  {deferred_count} tareas fueron diferidas automáticamente por sobrecarga de personal.')
+                )
+            if gaps_created > 0:
+                self.stdout.write(
+                    self.style.WARNING(f'📊 Usa la API /api/v1/cleaning-gaps/ para consultar detalles de los gaps registrados.')
+                )
