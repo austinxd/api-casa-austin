@@ -156,6 +156,124 @@ def get_priority_from_property(property_id, from_date):
         logger.error(f"Error en get_priority_from_property({property_id}, {from_date}): {e}")
         return ('low', None)
 
+def find_affected_tasks_by_new_reservation(new_reservation):
+    """
+    Encuentra tareas existentes que puedan ser afectadas por una nueva reserva.
+    Busca tareas de checkout ANTES del nuevo check-in en la misma propiedad.
+    """
+    if not WorkTask or not new_reservation:
+        return []
+    
+    try:
+        # Buscar tareas de checkout existentes en la misma propiedad
+        # que estén programadas ANTES del nuevo check-in
+        affected_tasks = WorkTask.objects.filter(
+            building_property=new_reservation.property,
+            task_type='checkout_cleaning',
+            scheduled_date__lt=new_reservation.check_in_date,  # Antes del nuevo check-in
+            scheduled_date__gte=timezone.now().date(),  # Solo futuras
+            status__in=['pending', 'assigned'],  # Solo no completadas
+            deleted=False
+        ).exclude(
+            scheduled_date=timezone.now().date()  # Excluir tareas de hoy (no reorganizar)
+        ).order_by('scheduled_date')
+        
+        logger.info(f"🔍 Nueva reserva {new_reservation.id} (check-in {new_reservation.check_in_date})")
+        logger.info(f"   Encontradas {affected_tasks.count()} tareas potencialmente afectadas en {new_reservation.property.name}")
+        
+        return list(affected_tasks)
+        
+    except Exception as e:
+        logger.error(f"Error buscando tareas afectadas por reserva {new_reservation.id}: {e}")
+        return []
+
+def reorganize_affected_tasks(affected_tasks):
+    """
+    Reorganiza automáticamente las tareas afectadas por cambios de prioridad.
+    Solo reorganiza si hay mejora significativa en la eficiencia.
+    """
+    if not affected_tasks:
+        return
+    
+    try:
+        reorganized_count = 0
+        
+        for task in affected_tasks:
+            # Calcular nueva prioridad
+            old_priority = task.priority
+            new_priority_label, new_priority_score, gap_days = compute_task_priority(task)
+            
+            # Solo reorganizar si la prioridad cambió significativamente
+            priority_order = {'low': 1, 'medium': 2, 'high': 3, 'urgent': 4}
+            old_order = priority_order.get(old_priority, 1)
+            new_order = priority_order.get(new_priority_label, 1)
+            
+            if new_order > old_order:  # Prioridad aumentó
+                logger.info(f"🔄 REORGANIZANDO tarea {task.id}: {old_priority} → {new_priority_label}")
+                logger.info(f"   Tarea: {task.title} en {task.scheduled_date}")
+                
+                # Actualizar prioridad de la tarea
+                task.priority = new_priority_label
+                if gap_days is not None and gap_days <= 1:
+                    if gap_days == 0:
+                        task.description += f"\n🚨 ACTUALIZADO: Check-in MISMO DÍA"
+                    else:
+                        task.description += f"\n🔥 ACTUALIZADO: Check-in en {gap_days} día(s)"
+                task.save()
+                
+                # Buscar nueva asignación óptima
+                current_staff = task.staff_member
+                best_staff = find_best_cleaning_staff(
+                    task.scheduled_date, 
+                    task.building_property, 
+                    task.reservation, 
+                    task
+                )
+                
+                # Solo reasignar si encontramos mejor personal
+                if best_staff and best_staff != current_staff:
+                    old_staff_name = f"{current_staff.first_name} {current_staff.last_name}" if current_staff else "Sin asignar"
+                    new_staff_name = f"{best_staff.first_name} {best_staff.last_name}"
+                    
+                    task.staff_member = best_staff
+                    task.status = 'assigned'
+                    task.save()
+                    
+                    logger.info(f"   ✅ REASIGNADO: {old_staff_name} → {new_staff_name}")
+                    reorganized_count += 1
+                else:
+                    logger.info(f"   ➡️ MANTIENE asignación actual (óptima)")
+            else:
+                logger.debug(f"⏸️ Tarea {task.id} mantiene prioridad {old_priority}")
+        
+        if reorganized_count > 0:
+            logger.info(f"🎯 REORGANIZACIÓN COMPLETADA: {reorganized_count} tareas reasignadas")
+        else:
+            logger.info(f"✅ REORGANIZACIÓN EVALUADA: No se requieren cambios")
+            
+    except Exception as e:
+        logger.error(f"Error reorganizando tareas: {e}")
+
+def trigger_smart_reorganization(new_reservation):
+    """
+    Función principal que detecta y ejecuta reorganización inteligente
+    cuando una nueva reserva afecta prioridades existentes.
+    """
+    try:
+        logger.info(f"🧠 EVALUANDO reorganización por nueva reserva {new_reservation.id}")
+        
+        # Encontrar tareas potencialmente afectadas
+        affected_tasks = find_affected_tasks_by_new_reservation(new_reservation)
+        
+        if affected_tasks:
+            logger.info(f"🔄 INICIANDO reorganización automática...")
+            reorganize_affected_tasks(affected_tasks)
+        else:
+            logger.info(f"✅ No hay tareas que requieran reorganización")
+            
+    except Exception as e:
+        logger.error(f"Error en reorganización inteligente: {e}")
+
 
 def format_date_es(date):
     day = date.day
@@ -397,6 +515,9 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
         if instance.status == 'approved':
             logger.info(f"New reservation created with approved status {instance.id} - Creating automatic cleaning task")
             create_automatic_cleaning_task(instance)
+            
+            # REORGANIZACIÓN INTELIGENTE: Evaluar si afecta prioridades de tareas existentes
+            trigger_smart_reorganization(instance)
 
         # Verificar si la nueva reserva tiene pago completo
         if instance.full_payment:
@@ -448,6 +569,9 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
         if instance.status == 'approved' and hasattr(instance, '_original_status') and instance._original_status != 'approved':
             logger.info(f"Reservation {instance.id} status changed to approved - Creating automatic cleaning task")
             create_automatic_cleaning_task(instance)
+            
+            # REORGANIZACIÓN INTELIGENTE: Evaluar si afecta prioridades de tareas existentes
+            trigger_smart_reorganization(instance)
 
         # NUEVO: Actualizar tareas de limpieza si cambió la fecha de checkout
         if hasattr(instance, '_original_check_out_date'):
