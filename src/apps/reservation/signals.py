@@ -1,6 +1,7 @@
 import logging
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
+from django.utils import timezone
 from .models import Reservation, RentalReceipt
 from ..core.telegram_notifier import send_telegram_message
 from django.conf import settings
@@ -575,7 +576,7 @@ def create_automatic_cleaning_task(reservation):
             title=f"Limpieza checkout - {reservation.property.name}",
             description=f"Limpieza post-checkout para reserva #{reservation.id}\nCliente: {f'{reservation.client.first_name} {reservation.client.last_name}'.strip() if reservation.client else 'N/A'}",
             scheduled_date=reservation.check_out_date,
-            estimated_duration='02:00:00',  # 2 horas por defecto
+            estimated_duration=timezone.timedelta(hours=2),  # 2 horas por defecto
             priority='medium',
             status='assigned' if assigned_staff else 'pending',
             requires_photo_evidence=True

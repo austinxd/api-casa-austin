@@ -1,0 +1,84 @@
+➜  src git:(main) ✗ python manage.py create_missing_cleaning_tasks
+📅 Procesando reservas desde hoy: 2025-09-14
+
+📊 RESUMEN:
+   • Total reservas aprobadas encontradas: 17
+   • Reservas SIN tarea de limpieza: 17
+
+📋 RESERVAS A PROCESAR:
+   • ID: 24af692e-e41e-42bf-b538-803769b5faba | Cliente: German Mauricio Tomateo Tapara | Propiedad: Casa Austin 2 | Checkout: 2025-09-21
+   • ID: 28de4439-40d2-443b-ad70-3a8e831e1fe7 | Cliente: Arielle Saenz Paredes | Propiedad: Casa Austin 4 | Checkout: 2025-09-14
+   • ID: 32eae816-6393-4c2f-97b9-70a89f711272 | Cliente: Jean Carlos Sedano Porta | Propiedad: Casa Austin 3 | Checkout: 2025-10-26
+   • ID: 52d9a4b3-a69c-4f0e-87c5-962288e5ac3e | Cliente: Elber Marcelo Begazo Calderon | Propiedad: Casa Austin 3 | Checkout: 2025-11-30
+   • ID: 6e945afc-984e-465b-be0c-12d541ed6fd1 | Cliente: Jose Manuel Molinari Melendez | Propiedad: Casa Austin 4 | Checkout: 2025-10-05
+   • ID: 70688f51-5881-4bb8-a953-6789ac00780d | Cliente: Miguel Angel Alor Flores | Propiedad: Casa Austin 1 | Checkout: 2025-09-14
+   • ID: 7a44ed47-ff74-458a-b9f5-4fec134811b0 | Cliente: Edward Calvay Gonzales | Propiedad: Casa Austin 4 | Checkout: 2025-11-13
+   • ID: 8ed668ac-4842-448e-a11c-ed5f2937e8aa | Cliente: Josmar del Valle Oropeza Rojas | Propiedad: Casa Austin 2 | Checkout: 2025-09-28
+   • ID: 93ed3b38-e558-4256-876a-919b71cda214 | Cliente: Melany Milagros Gonzalez Gonzales | Propiedad: Casa Austin 4 | Checkout: 2025-09-28
+   • ID: a24c3619-37ac-45a6-8b67-79ea8b60e918 | Cliente: Silvana Ernestina Cruzado Santillan | Propiedad: Casa Austin 3 | Checkout: 2025-09-14
+   • ID: a8560a67-a875-4315-a9eb-05546d04f6bd | Cliente: Luis Andres Moreno Reyes | Propiedad: Casa Austin 2 | Checkout: 2025-09-14
+   • ID: b33d19b3-1e0d-46fa-96e5-29448d4483b1 | Cliente: Cristian Paulino Huarca Flores | Propiedad: Casa Austin 1 | Checkout: 2025-09-24
+   • ID: b5635200-64aa-4738-98ce-09b7cd1ca96d | Cliente: Maria Fernanda Tello Elliot | Propiedad: Casa Austin 2 | Checkout: 2025-11-01
+   • ID: bc138dcc-bca3-4d55-b63a-838843071777 | Cliente: Diego Alonso Medina Pino | Propiedad: Casa Austin 3 | Checkout: 2025-10-05
+   • ID: bdfc28e7-ba85-4ef0-ba80-9a9eeb3ca300 | Cliente: Katia Gabriela Vigil Murillo | Propiedad: Casa Austin 1 | Checkout: 2025-09-30
+   • ID: be23e324-ea2c-4bfb-801d-91ac1a038e74 | Cliente: JOSE DANIEL BELTRAN  CORDOVA | Propiedad: Casa Austin 3 | Checkout: 2025-09-28
+   • ID: cea7ef36-c756-49c0-984e-4285db371d99 | Cliente: DIEGO JOSE LUIS GARCIA CHAVEZ | Propiedad: Casa Austin 1 | Checkout: 2025-09-27
+
+🚀 PROCESANDO 17 reservas...
+INFO 2025-09-14 08:25:51,258 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-09-21
+ERROR 2025-09-14 08:25:51,258 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation 24af692e-e41e-42bf-b538-803769b5faba: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva 24af692e-e41e-42bf-b538-803769b5faba (German Mauricio Tomateo Tapara)
+INFO 2025-09-14 08:25:51,262 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-09-14
+ERROR 2025-09-14 08:25:51,262 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation 28de4439-40d2-443b-ad70-3a8e831e1fe7: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva 28de4439-40d2-443b-ad70-3a8e831e1fe7 (Arielle Saenz Paredes)
+INFO 2025-09-14 08:25:51,266 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-10-26
+ERROR 2025-09-14 08:25:51,266 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation 32eae816-6393-4c2f-97b9-70a89f711272: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva 32eae816-6393-4c2f-97b9-70a89f711272 (Jean Carlos Sedano Porta)
+INFO 2025-09-14 08:25:51,269 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-11-30
+ERROR 2025-09-14 08:25:51,270 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation 52d9a4b3-a69c-4f0e-87c5-962288e5ac3e: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva 52d9a4b3-a69c-4f0e-87c5-962288e5ac3e (Elber Marcelo Begazo Calderon)
+INFO 2025-09-14 08:25:51,273 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-10-05
+ERROR 2025-09-14 08:25:51,273 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation 6e945afc-984e-465b-be0c-12d541ed6fd1: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva 6e945afc-984e-465b-be0c-12d541ed6fd1 (Jose Manuel Molinari Melendez)
+INFO 2025-09-14 08:25:51,277 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-09-14
+ERROR 2025-09-14 08:25:51,277 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation 70688f51-5881-4bb8-a953-6789ac00780d: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva 70688f51-5881-4bb8-a953-6789ac00780d (Miguel Angel Alor Flores)
+INFO 2025-09-14 08:25:51,281 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-11-13
+ERROR 2025-09-14 08:25:51,281 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation 7a44ed47-ff74-458a-b9f5-4fec134811b0: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva 7a44ed47-ff74-458a-b9f5-4fec134811b0 (Edward Calvay Gonzales)
+INFO 2025-09-14 08:25:51,284 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-09-28
+ERROR 2025-09-14 08:25:51,285 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation 8ed668ac-4842-448e-a11c-ed5f2937e8aa: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva 8ed668ac-4842-448e-a11c-ed5f2937e8aa (Josmar del Valle Oropeza Rojas)
+INFO 2025-09-14 08:25:51,288 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-09-28
+ERROR 2025-09-14 08:25:51,288 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation 93ed3b38-e558-4256-876a-919b71cda214: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva 93ed3b38-e558-4256-876a-919b71cda214 (Melany Milagros Gonzalez Gonzales)
+INFO 2025-09-14 08:25:51,292 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-09-14
+ERROR 2025-09-14 08:25:51,292 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation a24c3619-37ac-45a6-8b67-79ea8b60e918: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva a24c3619-37ac-45a6-8b67-79ea8b60e918 (Silvana Ernestina Cruzado Santillan)
+INFO 2025-09-14 08:25:51,296 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-09-14
+ERROR 2025-09-14 08:25:51,296 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation a8560a67-a875-4315-a9eb-05546d04f6bd: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva a8560a67-a875-4315-a9eb-05546d04f6bd (Luis Andres Moreno Reyes)
+INFO 2025-09-14 08:25:51,299 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-09-24
+ERROR 2025-09-14 08:25:51,300 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation b33d19b3-1e0d-46fa-96e5-29448d4483b1: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva b33d19b3-1e0d-46fa-96e5-29448d4483b1 (Cristian Paulino Huarca Flores)
+INFO 2025-09-14 08:25:51,303 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-11-01
+ERROR 2025-09-14 08:25:51,303 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation b5635200-64aa-4738-98ce-09b7cd1ca96d: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva b5635200-64aa-4738-98ce-09b7cd1ca96d (Maria Fernanda Tello Elliot)
+INFO 2025-09-14 08:25:51,307 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-10-05
+ERROR 2025-09-14 08:25:51,307 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation bc138dcc-bca3-4d55-b63a-838843071777: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva bc138dcc-bca3-4d55-b63a-838843071777 (Diego Alonso Medina Pino)
+INFO 2025-09-14 08:25:51,310 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-09-30
+ERROR 2025-09-14 08:25:51,311 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation bdfc28e7-ba85-4ef0-ba80-9a9eeb3ca300: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva bdfc28e7-ba85-4ef0-ba80-9a9eeb3ca300 (Katia Gabriela Vigil Murillo)
+INFO 2025-09-14 08:25:51,314 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-09-28
+ERROR 2025-09-14 08:25:51,314 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation be23e324-ea2c-4bfb-801d-91ac1a038e74: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva be23e324-ea2c-4bfb-801d-91ac1a038e74 (JOSE DANIEL BELTRAN  CORDOVA)
+INFO 2025-09-14 08:25:51,318 signals 2972331 140080148416320 Selected PAty LM as best cleaning staff for 2025-09-27
+ERROR 2025-09-14 08:25:51,318 signals 2972331 140080148416320 ❌ Error creating automatic cleaning task for reservation cea7ef36-c756-49c0-984e-4285db371d99: 'str' object has no attribute 'days'
+   ✅ Tarea creada para reserva cea7ef36-c756-49c0-984e-4285db371d99 (DIEGO JOSE LUIS GARCIA CHAVEZ)
+
+🎯 RESULTADOS FINALES:
+   • Tareas creadas exitosamente: 17
+   • Sin errores ✅
+
+🎉 ¡Proceso completado! Se crearon 17 tareas de limpieza.
