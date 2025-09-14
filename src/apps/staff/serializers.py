@@ -31,6 +31,7 @@ class WorkTaskSerializer(serializers.ModelSerializer):
     staff_member_name = serializers.CharField(source='staff_member.full_name', read_only=True)
     property_name = serializers.CharField(source='building_property.name', read_only=True)
     property_background_color = serializers.CharField(source='building_property.background_color', read_only=True)
+    check_out_date = serializers.SerializerMethodField()
     actual_duration_display = serializers.SerializerMethodField()
     estimated_duration = serializers.SerializerMethodField()
     scheduled_date = serializers.DateField(input_formats=['%Y-%m-%d', '%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%dT%H:%M:%SZ'])
@@ -40,7 +41,7 @@ class WorkTaskSerializer(serializers.ModelSerializer):
         model = WorkTask
         fields = [
             'id', 'staff_member', 'staff_member_name', 'building_property', 'property_name',
-            'property_background_color', 'reservation', 'task_type', 'title', 'description', 'scheduled_date',
+            'property_background_color', 'reservation', 'check_out_date', 'task_type', 'title', 'description', 'scheduled_date',
             'estimated_duration', 'priority', 'status', 'actual_start_time',
             'actual_end_time', 'actual_duration_display', 'requires_photo_evidence',
             'completion_notes', 'supervisor_approved', 'photos'
@@ -62,6 +63,12 @@ class WorkTaskSerializer(serializers.ModelSerializer):
             minutes = (total_seconds % 3600) // 60
             return f"{hours}h {minutes}m"
         return "No definida"
+    
+    def get_check_out_date(self, obj):
+        """Obtener fecha de checkout de la reserva asociada"""
+        if obj.reservation:
+            return obj.reservation.check_out_date
+        return None
 
 
 class WorkTaskCreateSerializer(serializers.ModelSerializer):
