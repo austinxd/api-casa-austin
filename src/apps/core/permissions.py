@@ -21,10 +21,10 @@ class CustomPermissions(permissions.BasePermission):
             if request.user.groups.all():
                 return True
 
-        # Si quiere hacer una peticion con los verbos que modifican BD reviso que sea vendedor o admin
+        # Si quiere hacer una peticion con los verbos que modifican BD reviso que sea vendedor, admin o mantenimiento
         if request.method in ['POST', 'PATCH', 'PUT', 'DELETE']:
             for gr in request.user.groups.all():
-                if gr.name == 'admin' or gr.name == 'vendedor':
+                if gr.name in ['admin', 'vendedor', 'mantenimiento']:
                     return True
 
         # Default
