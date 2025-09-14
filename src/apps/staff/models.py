@@ -54,13 +54,17 @@ class StaffMember(BaseModel):
         null=True,
         verbose_name="Foto del personal"
     )
-    hire_date = models.DateField(verbose_name="Fecha de contratación")
-    hourly_rate = models.DecimalField(
+    hire_date = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name="Fecha de contratación"
+    )
+    daily_rate = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         blank=True,
         null=True,
-        verbose_name="Tarifa por hora"
+        verbose_name="Tarifa por día"
     )
     notes = models.TextField(blank=True, verbose_name="Notas adicionales")
     

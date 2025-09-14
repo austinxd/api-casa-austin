@@ -12,7 +12,7 @@ class StaffMemberSerializer(serializers.ModelSerializer):
         model = StaffMember
         fields = [
             'id', 'full_name', 'first_name', 'last_name', 'phone', 'email',
-            'staff_type', 'status', 'photo', 'hire_date', 'hourly_rate',
+            'staff_type', 'status', 'photo', 'hire_date', 'daily_rate',
             'can_work_weekends', 'max_properties_per_day', 'tasks_today'
         ]
     

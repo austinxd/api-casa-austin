@@ -28,7 +28,7 @@ class StaffMemberAdmin(admin.ModelAdmin):
             'fields': ('first_name', 'last_name', 'phone', 'email', 'photo')
         }),
         ('Información Laboral', {
-            'fields': ('staff_type', 'status', 'hire_date', 'hourly_rate')
+            'fields': ('staff_type', 'status', 'hire_date', 'daily_rate')
         }),
         ('Configuración de Trabajo', {
             'fields': ('can_work_weekends', 'max_properties_per_day', 'preferred_properties')
