@@ -822,7 +822,7 @@ def create_automatic_cleaning_task(reservation):
                     cleaning_task.description += f"\n🔥 ALTA PRIORIDAD: Check-in en {gap_days} día(s)"
                 cleaning_task.save()
             
-            logger.info(f"🎯 Tarea {cleaning_task.id} establecida con prioridad {priority_label} (+{priority_score} puntos)")
+            logger.info(f"🎯 Tarea {cleaning_task.id} establecida con prioridad {priority_label}")
             
         except Exception as e:
             logger.error(f"Error calculando prioridad para tarea {cleaning_task.id}: {e}")
@@ -876,29 +876,26 @@ def find_best_cleaning_staff(scheduled_date, property_obj, reservation, task=Non
             logger.warning("No active cleaning staff found")
             return None
         
-        # Evaluar cada miembro del staff y asignar puntuación
-        staff_scores = []
+        # Filtrar personal disponible
+        available_staff = []
         
         for staff in cleaning_staff:
-            score = calculate_staff_score(staff, scheduled_date, property_obj, reservation, task)
-            if score > 0:  # Solo considerar staff disponible
-                staff_scores.append((staff, score))
+            if is_staff_available(staff, scheduled_date, property_obj, reservation):
+                workload = get_staff_workload(staff, scheduled_date)
+                available_staff.append((staff, workload))
         
-        if not staff_scores:
+        if not available_staff:
             logger.warning(f"No available cleaning staff for {scheduled_date}")
             return None
         
-        # Ordenar por puntuación (mayor es mejor) y retornar el mejor
-        staff_scores.sort(key=lambda x: x[1], reverse=True)
-        best_staff, best_score = staff_scores[0]
+        # Ordenar por menor carga de trabajo (menor número = mejor)
+        available_staff.sort(key=lambda x: x[1])
+        best_staff, current_workload = available_staff[0]
         
-        # Logging detallado de puntuaciones
-        logger.info(f"🏆 SELECCIÓN FINAL para {scheduled_date}:")
-        for i, (staff, score) in enumerate(staff_scores[:3]):  # Top 3
-            medal = ["🥇", "🥈", "🥉"][i] if i < 3 else f"{i+1}."
-            logger.info(f"   {medal} {staff.first_name} {staff.last_name}: {score} puntos")
+        # Logging simple sin puntos
+        logger.info(f"👷 PERSONAL SELECCIONADO para {scheduled_date}:")
+        logger.info(f"   ✅ {best_staff.first_name} {best_staff.last_name} (carga actual: {current_workload} tareas)")
         
-        logger.info(f"✅ Seleccionado: {best_staff.first_name} {best_staff.last_name} con {best_score} puntos")
         return best_staff
         
     except Exception as e:
@@ -906,30 +903,17 @@ def find_best_cleaning_staff(scheduled_date, property_obj, reservation, task=Non
         return None
 
 
-def calculate_staff_score(staff, scheduled_date, property_obj, reservation, task=None):
-    """Calcula puntuación para un miembro del staff basado en disponibilidad, carga de trabajo, tamaño de reserva y prioridad"""
-    score = 100  # Puntuación base
-    
-    # NUEVA LÓGICA: Agregar puntuación de prioridad si hay una tarea
-    priority_score = 0
-    if task:
-        try:
-            priority_label, task_priority_score, gap_days = compute_task_priority(task)
-            priority_score = task_priority_score
-            score += priority_score
-            
-            logger.info(f"🎯 PRIORIDAD: {staff.first_name} {staff.last_name} - {priority_label} (+{priority_score} pts) para tarea {task.id if task else 'N/A'}")
-            if gap_days is not None:
-                logger.info(f"   📅 Próximo check-in en {gap_days} día(s) en {task.building_property.name if task else 'N/A'}")
-        except Exception as e:
-            logger.error(f"Error calculando prioridad para tarea {task.id if task else 'None'}: {e}")
-            priority_score = 0
-    
+def is_staff_available(staff, scheduled_date, property_obj, reservation):
+    """
+    Verificar si un miembro del staff está disponible para una tarea en una fecha específica.
+    Sin sistema de puntos - solo verifica disponibilidad y límites.
+    """
     try:
         # Verificar disponibilidad en fin de semana
         weekday = scheduled_date.weekday()  # 0=Monday, 6=Sunday
         if weekday >= 5 and not staff.can_work_weekends:  # Sábado o domingo
-            return 0  # No disponible en fin de semana
+            logger.debug(f"{staff.first_name} {staff.last_name} no puede trabajar fines de semana")
+            return False
         
         # Contar tareas ya asignadas para esa fecha
         tasks_on_date = WorkTask.objects.filter(
@@ -939,7 +923,7 @@ def calculate_staff_score(staff, scheduled_date, property_obj, reservation, task
             deleted=False
         ).count()
         
-        # NUEVA LÓGICA: Determinar límite máximo basado en número de huéspedes
+        # Determinar límite máximo basado en número de huéspedes
         guests = reservation.guests if reservation else 1
         if guests <= 2:
             # Para reservas pequeñas (≤2 personas), verificar que TODAS las tareas ya asignadas también tengan ≤2 personas
@@ -955,55 +939,42 @@ def calculate_staff_score(staff, scheduled_date, property_obj, reservation, task
             for existing_task in existing_tasks:
                 if existing_task.reservation and existing_task.reservation.guests > 2:
                     can_take_multiple = False
-                    logger.debug(f"Tarea existente {existing_task.id} tiene {existing_task.reservation.guests} huéspedes (>2), limitando a 1 propiedad para {staff.first_name} {staff.last_name}")
+                    logger.debug(f"Personal {staff.first_name} ya tiene tarea con {existing_task.reservation.guests} huéspedes (>2), no puede tomar más tareas")
                     break
             
             if can_take_multiple:
                 # Todas las tareas son ≤2 personas, puede manejar hasta 2 propiedades
                 max_properties_today = min(2, staff.max_properties_per_day)
-                logger.debug(f"Reserva de {guests} huéspedes y todas las tareas existentes ≤2 personas: permitiendo hasta {max_properties_today} propiedades para {staff.first_name} {staff.last_name}")
+                logger.debug(f"Personal {staff.first_name} puede tomar hasta {max_properties_today} propiedades (todas ≤2 huéspedes)")
             else:
                 # Ya tiene una tarea de >2 personas, solo 1 propiedad total
                 max_properties_today = 1
-                logger.debug(f"Personal ya tiene tarea de >2 huéspedes: limitando a {max_properties_today} propiedad para {staff.first_name} {staff.last_name}")
+                logger.debug(f"Personal {staff.first_name} limitado a 1 propiedad por tarea con >2 huéspedes")
         else:
             # Para reservas grandes (>2 personas), solo 1 propiedad por día
             max_properties_today = 1
-            logger.debug(f"Reserva de {guests} huéspedes: limitando a {max_properties_today} propiedad para {staff.first_name} {staff.last_name}")
+            logger.debug(f"Reserva de {guests} huéspedes: personal {staff.first_name} limitado a 1 propiedad")
         
         # Verificar límite máximo de propiedades por día
         if tasks_on_date >= max_properties_today:
-            return 0  # Ya tiene el máximo de tareas permitidas
+            logger.debug(f"Personal {staff.first_name} ya tiene {tasks_on_date} tareas (máximo {max_properties_today})")
+            return False
         
-        # Reducir puntuación según carga de trabajo actual
-        score -= tasks_on_date * 20  # -20 puntos por cada tarea existente
-        
-        # Bonus por menos carga de trabajo
-        if tasks_on_date == 0:
-            score += 30  # Bonus por estar completamente libre
-        
-        # Verificar si tiene horario programado para ese día
-        try:
-            from ..staff.models import WorkSchedule
-            schedule = WorkSchedule.objects.filter(
-                staff_member=staff,
-                date=scheduled_date,
-                deleted=False
-            ).first()
-            
-            if schedule:
-                score += 20  # Bonus por tener horario programado
-            else:
-                score -= 10  # Penalización por no tener horario
-                
-        except ImportError:
-            pass  # WorkSchedule no disponible
-        
-        return max(score, 0)  # Asegurar que el score no sea negativo
+        return True
         
     except Exception as e:
-        logger.error(f"Error calculating score for staff {staff.id}: {str(e)}")
-        return 0
+        logger.error(f"Error verificando disponibilidad de personal {staff.id}: {str(e)}")
+        return False
+
+
+def get_staff_workload(staff, scheduled_date):
+    """Obtener la carga de trabajo actual de un miembro del staff para una fecha"""
+    return WorkTask.objects.filter(
+        staff_member=staff,
+        scheduled_date=scheduled_date,
+        status__in=['pending', 'assigned', 'in_progress'],
+        deleted=False
+    ).count()
 
 
 def defer_cleaning_task_automatically(original_task, reservation):
