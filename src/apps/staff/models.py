@@ -1,6 +1,7 @@
 
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.utils import timezone
 from PIL import Image
 import os
@@ -25,7 +26,7 @@ class StaffMember(BaseModel):
         SICK_LEAVE = "sick", "Incapacidad"
     
     user = models.OneToOneField(
-        User, 
+        settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 
         null=True, 
         blank=True,
@@ -129,7 +130,7 @@ class WorkTask(BaseModel):
         related_name="work_tasks",
         verbose_name="Personal asignado"
     )
-    property = models.ForeignKey(
+    building_property = models.ForeignKey(
         Property,
         on_delete=models.CASCADE,
         verbose_name="Propiedad"
@@ -204,7 +205,7 @@ class WorkTask(BaseModel):
         ordering = ['scheduled_date', 'priority']
     
     def __str__(self):
-        return f"{self.title} - {self.property.name} ({self.scheduled_date})"
+        return f"{self.title} - {self.building_property.name} ({self.scheduled_date})"
     
     @property
     def actual_duration(self):
@@ -237,7 +238,7 @@ class TimeTracking(BaseModel):
         related_name="time_records",
         verbose_name="Personal"
     )
-    property = models.ForeignKey(
+    building_property = models.ForeignKey(
         Property,
         on_delete=models.CASCADE,
         verbose_name="Propiedad"

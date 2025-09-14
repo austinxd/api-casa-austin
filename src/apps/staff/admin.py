@@ -75,7 +75,7 @@ class WorkTaskAdmin(admin.ModelAdmin):
     list_display = (
         'title',
         'staff_member',
-        'property',
+        'building_property',
         'scheduled_date',
         'get_priority_display',
         'get_status_display',
@@ -95,7 +95,7 @@ class WorkTaskAdmin(admin.ModelAdmin):
         'description',
         'staff_member__first_name',
         'staff_member__last_name',
-        'property__name'
+        'building_property__name'
     )
     date_hierarchy = 'scheduled_date'
     inlines = [TaskPhotoInline]
@@ -105,7 +105,7 @@ class WorkTaskAdmin(admin.ModelAdmin):
             'fields': ('title', 'description', 'task_type', 'priority', 'status')
         }),
         ('Asignación', {
-            'fields': ('staff_member', 'property', 'reservation')
+            'fields': ('staff_member', 'building_property', 'reservation')
         }),
         ('Programación', {
             'fields': ('scheduled_date', 'estimated_duration')
@@ -178,7 +178,7 @@ class WorkTaskAdmin(admin.ModelAdmin):
 class TimeTrackingAdmin(admin.ModelAdmin):
     list_display = (
         'staff_member',
-        'property',
+        'building_property',
         'get_action_display',
         'timestamp',
         'get_location_status',
@@ -193,14 +193,14 @@ class TimeTrackingAdmin(admin.ModelAdmin):
     search_fields = (
         'staff_member__first_name',
         'staff_member__last_name',
-        'property__name'
+        'building_property__name'
     )
     date_hierarchy = 'timestamp'
     readonly_fields = ('timestamp',)
     
     fieldsets = (
         ('Información Básica', {
-            'fields': ('staff_member', 'property', 'work_task', 'action_type', 'timestamp')
+            'fields': ('staff_member', 'building_property', 'work_task', 'action_type', 'timestamp')
         }),
         ('Validación de Ubicación', {
             'fields': ('latitude', 'longitude', 'location_verified'),

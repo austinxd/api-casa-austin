@@ -29,14 +29,14 @@ class TaskPhotoSerializer(serializers.ModelSerializer):
 
 class WorkTaskSerializer(serializers.ModelSerializer):
     staff_member_name = serializers.CharField(source='staff_member.full_name', read_only=True)
-    property_name = serializers.CharField(source='property.name', read_only=True)
+    property_name = serializers.CharField(source='building_property.name', read_only=True)
     actual_duration_display = serializers.SerializerMethodField()
     photos = TaskPhotoSerializer(many=True, read_only=True)
     
     class Meta:
         model = WorkTask
         fields = [
-            'id', 'staff_member', 'staff_member_name', 'property', 'property_name',
+            'id', 'staff_member', 'staff_member_name', 'building_property', 'property_name',
             'reservation', 'task_type', 'title', 'description', 'scheduled_date',
             'estimated_duration', 'priority', 'status', 'actual_start_time',
             'actual_end_time', 'actual_duration_display', 'requires_photo_evidence',
@@ -56,7 +56,7 @@ class WorkTaskCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkTask
         fields = [
-            'staff_member', 'property', 'reservation', 'task_type',
+            'staff_member', 'building_property', 'reservation', 'task_type',
             'title', 'description', 'scheduled_date', 'estimated_duration',
             'priority', 'requires_photo_evidence'
         ]
@@ -64,12 +64,12 @@ class WorkTaskCreateSerializer(serializers.ModelSerializer):
 
 class TimeTrackingSerializer(serializers.ModelSerializer):
     staff_member_name = serializers.CharField(source='staff_member.full_name', read_only=True)
-    property_name = serializers.CharField(source='property.name', read_only=True)
+    property_name = serializers.CharField(source='building_property.name', read_only=True)
     
     class Meta:
         model = TimeTracking
         fields = [
-            'id', 'staff_member', 'staff_member_name', 'property', 'property_name',
+            'id', 'staff_member', 'staff_member_name', 'building_property', 'property_name',
             'work_task', 'action_type', 'timestamp', 'latitude', 'longitude',
             'location_verified', 'photo', 'notes'
         ]
@@ -79,7 +79,7 @@ class TimeTrackingCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = TimeTracking
         fields = [
-            'staff_member', 'property', 'work_task', 'action_type',
+            'staff_member', 'building_property', 'work_task', 'action_type',
             'latitude', 'longitude', 'photo', 'notes'
         ]
     
@@ -140,7 +140,7 @@ class StaffDashboardSerializer(serializers.ModelSerializer):
             return {
                 'id': current.id,
                 'title': current.title,
-                'property': current.property.name
+                'property': current.building_property.name
             }
         return None
 

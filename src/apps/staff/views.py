@@ -94,7 +94,7 @@ class WorkTaskViewSet(viewsets.ModelViewSet):
         if staff_member:
             queryset = queryset.filter(staff_member_id=staff_member)
         if property_id:
-            queryset = queryset.filter(property_id=property_id)
+            queryset = queryset.filter(building_property_id=property_id)
         if status:
             queryset = queryset.filter(status=status)
         if task_type:
@@ -122,7 +122,7 @@ class WorkTaskViewSet(viewsets.ModelViewSet):
         # Crear registro de tiempo
         TimeTracking.objects.create(
             staff_member=task.staff_member,
-            property=task.property,
+            building_property=task.building_property,
             work_task=task,
             action_type=TimeTracking.ActionType.CHECK_IN,
             latitude=request.data.get('latitude'),
@@ -151,7 +151,7 @@ class WorkTaskViewSet(viewsets.ModelViewSet):
         # Crear registro de tiempo
         TimeTracking.objects.create(
             staff_member=task.staff_member,
-            property=task.property,
+            building_property=task.building_property,
             work_task=task,
             action_type=TimeTracking.ActionType.CHECK_OUT,
             latitude=request.data.get('latitude'),
@@ -206,7 +206,7 @@ class WorkTaskViewSet(viewsets.ModelViewSet):
         for prop in properties:
             # Buscar última limpieza
             last_cleaning = WorkTask.objects.filter(
-                property=prop,
+                building_property=prop,
                 task_type=WorkTask.TaskType.CHECKOUT_CLEANING,
                 status=WorkTask.Status.COMPLETED
             ).order_by('-scheduled_date').first()

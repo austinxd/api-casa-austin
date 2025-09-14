@@ -10,7 +10,7 @@ packages = ["cacert", "cargo", "freetype", "lcms2", "libiconv", "libimagequant",
 run = ["sh", "-c", "python3 manage.py runserver 0.0.0.0:3000"]
 
 [workflows]
-runButton = "Django Server"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Django Server"
@@ -20,6 +20,19 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd src && python manage.py makemigrations && python manage.py migrate && python manage.py runserver 0.0.0.0:5000"
+
+[[workflows.workflow]]
+name = "Django Server"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd src && python manage.py runserver 0.0.0.0:5000"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [[ports]]
 localPort = 5000
