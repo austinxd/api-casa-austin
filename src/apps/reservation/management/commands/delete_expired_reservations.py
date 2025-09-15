@@ -69,30 +69,68 @@ class Command(BaseCommand):
             )
 
     def _send_expiration_notification(self, reservation):
-        """Envía notificación por Telegram cuando se elimina una reserva para hoy o mañana"""
+        """Envía notificaciones por Telegram y WhatsApp cuando se elimina una reserva para hoy o mañana"""
+        from apps.reservation.signals import format_date_es
+        from apps.clients.whatsapp_service import send_whatsapp_reservation_cancelled
+        
+        client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
+        check_in_date = format_date_es(reservation.check_in_date)
+        check_out_date = format_date_es(reservation.check_out_date)
+        property_name = reservation.property.name if reservation.property else "Propiedad no disponible"
+        
+        # Enviar notificación interna por Telegram (independiente de WhatsApp)
         try:
-            from apps.reservation.signals import format_date_es
-            
-            client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
-            check_in_date = format_date_es(reservation.check_in_date)
-            check_out_date = format_date_es(reservation.check_out_date)
-            
-            message = (
+            telegram_message = (
                 f"⚠️ **RESERVA ELIMINADA POR EXPIRACIÓN** ⚠️\n"
                 f"Cliente: {client_name}\n"
-                f"Propiedad: {reservation.property.name}\n"
+                f"Propiedad: {property_name}\n"
                 f"Check-in: {check_in_date}\n"
                 f"Check-out: {check_out_date}\n"
                 f"💰 Total: S/{reservation.price_sol:.2f}\n"
-                f"📱 Teléfono: +{reservation.client.tel_number if reservation.client else 'N/A'}\n"
+                f"📱 Teléfono: {'+' + reservation.client.tel_number if reservation.client and reservation.client.tel_number else 'N/A'}\n"
                 f"❌ Motivo: No subió voucher a tiempo\n"
                 f"🆔 Reserva ID: {reservation.id}\n"
                 f"⏰ Eliminada automáticamente por expiración"
             )
             
-            # Enviar al canal de clientes
-            send_telegram_message(message, settings.CLIENTS_CHAT_ID)
-            logger.info(f"Notificación de eliminación enviada para reserva {reservation.id}")
+            send_telegram_message(telegram_message, settings.CLIENTS_CHAT_ID)
+            logger.info(f"Notificación de eliminación enviada por Telegram para reserva {reservation.id}")
             
         except Exception as e:
-            logger.error(f"Error enviando notificación de eliminación para reserva {reservation.id}: {str(e)}")
+            logger.error(f"Error enviando notificación por Telegram para reserva {reservation.id}: {str(e)}")
+        
+        # Enviar WhatsApp al cliente (independiente de Telegram)
+        if reservation.client and reservation.client.tel_number:
+            try:
+                # Preparar datos para WhatsApp template
+                # Solo primer nombre y primer apellido para el cliente
+                first_name = reservation.client.first_name.split()[0] if reservation.client.first_name else ""
+                first_last_name = ""
+                if reservation.client.last_name:
+                    first_last_name = reservation.client.last_name.split()[0]
+                whatsapp_client_name = f"{first_name} {first_last_name}".strip()
+                
+                # Fecha formateada para WhatsApp (dd/mm/yyyy)
+                whatsapp_check_in = reservation.check_in_date.strftime("%d/%m/%Y")
+                
+                # Motivo de cancelación
+                cancellation_reason = "No se subió el comprobante de pago a tiempo"
+                
+                logger.info(f"Enviando WhatsApp de cancelación a {reservation.client.tel_number} para reserva {reservation.id}")
+                whatsapp_success = send_whatsapp_reservation_cancelled(
+                    phone_number=reservation.client.tel_number,
+                    client_name=whatsapp_client_name,
+                    property_name=property_name,
+                    check_in_date=whatsapp_check_in,
+                    reason=cancellation_reason
+                )
+                
+                if whatsapp_success:
+                    logger.info(f"WhatsApp de cancelación enviado exitosamente para reserva {reservation.id}")
+                else:
+                    logger.error(f"Error al enviar WhatsApp de cancelación para reserva {reservation.id}")
+                    
+            except Exception as e:
+                logger.error(f"Error enviando WhatsApp de cancelación para reserva {reservation.id}: {str(e)}")
+        else:
+            logger.warning(f"No se puede enviar WhatsApp para reserva {reservation.id}: cliente sin teléfono")
