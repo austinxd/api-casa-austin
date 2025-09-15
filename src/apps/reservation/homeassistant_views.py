@@ -84,35 +84,25 @@ class HomeAssistantReservationView(APIView):
         ).select_related('client')
         
         
-        # Buscar reserva activa considerando los horarios
-        # Prioridad: 1) Reservas que inician hoy, 2) Reservas en curso, 3) Reservas que terminan hoy
-        active_reservation = None
+        # Buscar reserva activa con una sola consulta optimizada
+        # Usar CASE WHEN para priorizar en SQL en lugar de múltiples consultas
+        from django.db.models import Q, Case, When, IntegerField
         
-        # PRIMERA PRIORIDAD: Reserva que inicia hoy
-        reservations_starting_today = basic_reservations.filter(
-            check_in_date=today,
-            check_out_date__gt=today
-        )
-        if reservations_starting_today.exists():
-            active_reservation = reservations_starting_today.first()
-        
-        # SEGUNDA PRIORIDAD: Reserva en curso (entre fechas)
-        if not active_reservation:
-            reservations_in_progress = basic_reservations.filter(
-                check_in_date__lt=today,
-                check_out_date__gt=today
+        potential_reservations = basic_reservations.filter(
+            Q(check_in_date=today, check_out_date__gt=today) |  # Inicia hoy
+            Q(check_in_date__lt=today, check_out_date__gt=today) |  # En curso
+            Q(check_out_date=today, check_in_date__lt=today)  # Termina hoy
+        ).annotate(
+            priority=Case(
+                When(check_in_date=today, check_out_date__gt=today, then=1),  # Primera prioridad
+                When(check_in_date__lt=today, check_out_date__gt=today, then=2),  # Segunda prioridad  
+                When(check_out_date=today, check_in_date__lt=today, then=3),  # Tercera prioridad
+                default=4,
+                output_field=IntegerField()
             )
-            if reservations_in_progress.exists():
-                active_reservation = reservations_in_progress.first()
+        ).order_by('priority', 'check_in_date')
         
-        # TERCERA PRIORIDAD: Reserva que termina hoy
-        if not active_reservation:
-            reservations_ending_today = basic_reservations.filter(
-                check_out_date=today,
-                check_in_date__lt=today
-            )
-            if reservations_ending_today.exists():
-                active_reservation = reservations_ending_today.first()
+        active_reservation = potential_reservations.first()
 
 
         # Validar horarios específicos
@@ -143,11 +133,12 @@ class HomeAssistantReservationView(APIView):
             check_in_formatted = active_reservation.check_in_date.strftime('%d de %B')
             check_out_formatted = active_reservation.check_out_date.strftime('%d de %B')
 
-            # Obtener el nivel más alto (logro más importante) del cliente
+            # Obtener el nivel más alto (logro más importante) del cliente - OPTIMIZADO
             from apps.clients.models import ClientAchievement
             highest_achievement = None
             highest_achievement_name = ""
             
+            # Optimización: Usar prefetch_related y obtener solo el primer resultado
             earned_achievements = ClientAchievement.objects.filter(
                 client=active_reservation.client,
                 deleted=False
@@ -155,7 +146,7 @@ class HomeAssistantReservationView(APIView):
                 '-achievement__required_reservations',
                 '-achievement__required_referrals',
                 '-achievement__required_referral_reservations'
-            )
+            )[:1]  # Solo necesitamos el más alto
 
             if earned_achievements.exists():
                 highest_achievement_obj = earned_achievements.first()
@@ -176,7 +167,7 @@ class HomeAssistantReservationView(APIView):
                     deleted=False,
                     status='approved',
                     check_out_date__gt=today  # Reservas que terminan después de hoy
-                ).order_by('check_in_date')
+                ).select_related('property').order_by('check_in_date')  # OPTIMIZACIÓN: select_related
                 
                 for reservation in upcoming_reservations:
                     # Formatear fechas para cada reserva
