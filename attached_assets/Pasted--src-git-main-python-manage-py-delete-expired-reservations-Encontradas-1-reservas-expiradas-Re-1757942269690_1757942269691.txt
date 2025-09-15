@@ -1,0 +1,28 @@
+➜  src git:(main) ✗ python manage.py delete_expired_reservations
+Encontradas 1 reservas expiradas
+Reserva ID: 7d356dc3-c148-46a4-943e-a63f56596e1d - Cliente: Augusto Ray Leonel - Propiedad: Casa Austin 3 - Deadline: 2025-09-15 13:17:02.316063+00:00
+INFO 2025-09-15 08:17:32,752 delete_expired_reservations 3324416 140373995620160 Enviando WhatsApp de cancelación a 51986607686 para reserva 7d356dc3-c148-46a4-943e-a63f56596e1d
+INFO 2025-09-15 08:17:32,752 whatsapp_service 3324416 140373995620160 Enviando mensaje de cancelación de reserva por WhatsApp a: 51986607686
+INFO 2025-09-15 08:17:32,752 whatsapp_service 3324416 140373995620160 WhatsApp Reservation Cancelled Template: reserva_cancelada
+INFO 2025-09-15 08:17:32,752 whatsapp_service 3324416 140373995620160 Payload: {'messaging_product': 'whatsapp', 'to': '51986607686', 'type': 'template', 'template': {'name': 'reserva_cancelada', 'language': {'code': 'es'}, 'components': [{'type': 'body', 'parameters': [{'type': 'text', 'text': 'Augusto Tantalean'}]}]}}
+INFO 2025-09-15 08:17:33,280 whatsapp_service 3324416 140373995620160 WhatsApp API Response Status: 400
+INFO 2025-09-15 08:17:33,281 whatsapp_service 3324416 140373995620160 WhatsApp API Response Body: {"error":{"message":"(#132000) Number of parameters does not match the expected number of params","type":"OAuthException","code":132000,"error_data":{"messaging_product":"whatsapp","details":"body: number of localizable_params (1) does not match the expected number of params (0)"},"fbtrace_id":"AYKhc7tkNV1VpUaEAH12-OK"}}
+ERROR 2025-09-15 08:17:33,281 whatsapp_service 3324416 140373995620160 Error al enviar WhatsApp cancelación a 51986607686. Status: 400, Response: {"error":{"message":"(#132000) Number of parameters does not match the expected number of params","type":"OAuthException","code":132000,"error_data":{"messaging_product":"whatsapp","details":"body: number of localizable_params (1) does not match the expected number of params (0)"},"fbtrace_id":"AYKhc7tkNV1VpUaEAH12-OK"}}
+ERROR 2025-09-15 08:17:33,281 delete_expired_reservations 3324416 140373995620160 Error al enviar WhatsApp de cancelación para reserva 7d356dc3-c148-46a4-943e-a63f56596e1d
+INFO 2025-09-15 08:17:33,281 delete_expired_reservations 3324416 140373995620160 Eliminando reserva expirada ID: 7d356dc3-c148-46a4-943e-a63f56596e1d
+DEBUG 2025-09-15 08:17:33,282 models 3324416 140373995620160 Verificando logros para cliente 405a0119-caba-467c-8f4c-835f45402367 después de eliminar reserva 7d356dc3-c148-46a4-943e-a63f56596e1d
+DEBUG 2025-09-15 08:17:33,282 points_signals 3324416 140373995620160 🔄 Verificando logros para cliente 405a0119-caba-467c-8f4c-835f45402367
+DEBUG 2025-09-15 08:17:33,287 points_signals 3324416 140373995620160 🔄 Cliente 405a0119-caba-467c-8f4c-835f45402367 ya tiene el logro 'Curioso'
+DEBUG 2025-09-15 08:17:33,290 points_signals 3324416 140373995620160 🔄 Cliente 405a0119-caba-467c-8f4c-835f45402367 ya tiene el logro 'Cliente Casa Austin'
+DEBUG 2025-09-15 08:17:33,293 points_signals 3324416 140373995620160 🔄 Cliente 405a0119-caba-467c-8f4c-835f45402367 ya tiene el logro 'Cliente Recurrente'
+DEBUG 2025-09-15 08:17:33,297 points_signals 3324416 140373995620160 ❌ Cliente 405a0119-caba-467c-8f4c-835f45402367 no cumple requisitos para 'Cliente Premium'
+DEBUG 2025-09-15 08:17:33,300 points_signals 3324416 140373995620160 ❌ Cliente 405a0119-caba-467c-8f4c-835f45402367 no cumple requisitos para 'Austin Legend'
+INFO 2025-09-15 08:17:33,300 points_signals 3324416 140373995620160 📊 Verificación de logros completada para cliente 405a0119-caba-467c-8f4c-835f45402367. Sin cambios en logros
+DEBUG 2025-09-15 08:17:33,406 points_signals 3324416 140373995620160 🔄 Verificando logros para cliente 405a0119-caba-467c-8f4c-835f45402367
+DEBUG 2025-09-15 08:17:33,410 points_signals 3324416 140373995620160 🔄 Cliente 405a0119-caba-467c-8f4c-835f45402367 ya tiene el logro 'Curioso'
+DEBUG 2025-09-15 08:17:33,414 points_signals 3324416 140373995620160 🔄 Cliente 405a0119-caba-467c-8f4c-835f45402367 ya tiene el logro 'Cliente Casa Austin'
+DEBUG 2025-09-15 08:17:33,417 points_signals 3324416 140373995620160 🔄 Cliente 405a0119-caba-467c-8f4c-835f45402367 ya tiene el logro 'Cliente Recurrente'
+DEBUG 2025-09-15 08:17:33,420 points_signals 3324416 140373995620160 ❌ Cliente 405a0119-caba-467c-8f4c-835f45402367 no cumple requisitos para 'Cliente Premium'
+DEBUG 2025-09-15 08:17:33,423 points_signals 3324416 140373995620160 ❌ Cliente 405a0119-caba-467c-8f4c-835f45402367 no cumple requisitos para 'Austin Legend'
+INFO 2025-09-15 08:17:33,423 points_signals 3324416 140373995620160 📊 Verificación de logros completada para cliente 405a0119-caba-467c-8f4c-835f45402367. Sin cambios en logros
+Se eliminaron 1 reservas expiradas
