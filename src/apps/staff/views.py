@@ -90,27 +90,60 @@ class WorkTaskViewSet(viewsets.ModelViewSet):
     
     def _can_maintenance_update_task(self, task, data):
         """Verificar si mantenimiento puede actualizar esta tarea"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"🔍 DEBUG MAINTENANCE VALIDATION - Task ID: {task.id}")
+        logger.info(f"   User: {self.request.user.username} (ID: {self.request.user.id})")
+        
         # Verificar que el usuario tiene StaffMember asociado
         if not hasattr(self.request.user, 'staffmember'):
+            logger.error(f"   ❌ FALLA: hasattr(user, 'staffmember') = False")
             return False
+        
+        logger.info(f"   ✅ hasattr(user, 'staffmember') = True")
         
         try:
             user_staff = self.request.user.staffmember
+            logger.info(f"   ✅ user_staff obtenido: {user_staff.id}")
+            
             # Verificación más robusta
-            if not user_staff or user_staff.deleted:
+            if not user_staff:
+                logger.error(f"   ❌ FALLA: user_staff es None/False")
                 return False
                 
+            if user_staff.deleted:
+                logger.error(f"   ❌ FALLA: user_staff.deleted = True")
+                return False
+                
+            logger.info(f"   Task staff_member_id: {task.staff_member_id}")
+            logger.info(f"   User staff_member_id: {user_staff.id}")
+            
             # Comparar por ID para evitar problemas de objetos
             if task.staff_member_id != user_staff.id:
+                logger.error(f"   ❌ FALLA: task.staff_member_id ({task.staff_member_id}) != user_staff.id ({user_staff.id})")
                 return False
                 
+            logger.info(f"   ✅ IDs coinciden correctamente")
+                
         except StaffMember.DoesNotExist:
+            logger.error(f"   ❌ FALLA: StaffMember.DoesNotExist exception")
             return False
         
         # Solo pueden cambiar campos específicos
         allowed_fields = {'status', 'completion_notes'}
         provided_fields = set(data.keys())
-        return provided_fields.issubset(allowed_fields)
+        
+        logger.info(f"   Campos permitidos: {allowed_fields}")
+        logger.info(f"   Campos enviados: {provided_fields}")
+        
+        fields_ok = provided_fields.issubset(allowed_fields)
+        if not fields_ok:
+            logger.error(f"   ❌ FALLA: Campos no permitidos")
+            return False
+            
+        logger.info(f"   ✅ VALIDACIÓN COMPLETA EXITOSA")
+        return True
     
     def update(self, request, *args, **kwargs):
         """Sobrescribir update para manejo especial de mantenimiento"""
