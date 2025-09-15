@@ -106,9 +106,7 @@ class Command(BaseCommand):
         # Enviar WhatsApp al cliente si tiene teléfono
         if reservation.client and reservation.client.tel_number:
             try:
-                property_name = reservation.property.name if reservation.property else "Propiedad no disponible"
-                
-                # Preparar datos para WhatsApp template
+                # Preparar nombre del cliente para WhatsApp template
                 # Solo primer nombre y primer apellido para el cliente
                 first_name = reservation.client.first_name.split()[0] if reservation.client.first_name else ""
                 first_last_name = ""
@@ -116,19 +114,10 @@ class Command(BaseCommand):
                     first_last_name = reservation.client.last_name.split()[0]
                 whatsapp_client_name = f"{first_name} {first_last_name}".strip()
                 
-                # Fecha formateada para WhatsApp (dd/mm/yyyy)
-                whatsapp_check_in = reservation.check_in_date.strftime("%d/%m/%Y")
-                
-                # Motivo de cancelación
-                cancellation_reason = "No se subió el comprobante de pago a tiempo"
-                
                 logger.info(f"Enviando WhatsApp de cancelación a {reservation.client.tel_number} para reserva {reservation.id}")
                 whatsapp_success = send_whatsapp_reservation_cancelled(
                     phone_number=reservation.client.tel_number,
-                    client_name=whatsapp_client_name,
-                    property_name=property_name,
-                    check_in_date=whatsapp_check_in,
-                    reason=cancellation_reason
+                    client_name=whatsapp_client_name
                 )
                 
                 if whatsapp_success:
