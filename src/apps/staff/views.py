@@ -174,6 +174,8 @@ class WorkTaskViewSet(viewsets.ModelViewSet):
         status_param = self.request.query_params.get('status')
         task_type = self.request.query_params.get('task_type')
         date = self.request.query_params.get('date')
+        date_from = self.request.query_params.get('date_from')
+        date_to = self.request.query_params.get('date_to')
         
         if staff_member and not self._is_maintenance_user():  # Mantenimiento no puede filtrar por otro staff
             queryset = queryset.filter(staff_member_id=staff_member)
@@ -185,6 +187,10 @@ class WorkTaskViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(task_type=task_type)
         if date:
             queryset = queryset.filter(scheduled_date=date)
+        if date_from:
+            queryset = queryset.filter(scheduled_date__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(scheduled_date__lte=date_to)
         
         return queryset.order_by('scheduled_date', 'priority')
     
