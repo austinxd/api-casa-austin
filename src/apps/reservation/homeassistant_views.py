@@ -76,11 +76,14 @@ class HomeAssistantReservationView(APIView):
         check_out_time = time(11, 0)  # 11:00 AM
 
 
-        # Buscar reservas que cumplan criterios básicos
+        # Buscar reservas que cumplan criterios básicos - OPTIMIZADO
+        # Solo traer reservas que terminan hoy o después (check_out_date >= today)
+        # Las reservas pasadas nunca serán válidas para el análisis actual
         basic_reservations = Reservation.objects.filter(
             property=property_obj,
             deleted=False,
-            status='approved'
+            status='approved',
+            check_out_date__gte=today  # ← OPTIMIZACIÓN: Solo reservas actuales/futuras
         ).select_related('client')
         
         
