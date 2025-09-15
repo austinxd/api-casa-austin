@@ -278,13 +278,14 @@ class WhatsAppOTPService:
             logger.error(f"Error al enviar WhatsApp pago aprobado a {phone_number}: {str(e)}")
             return False
 
-    def send_reservation_cancelled_template(self, phone_number):
+    def send_reservation_cancelled_template(self, phone_number, client_name):
         """
         Envía mensaje de cancelación de reserva por WhatsApp usando template
-        La plantilla configurada NO requiere parámetros - es un mensaje fijo
+        La plantilla debe usar {{1}} para el nombre del cliente
         
         Args:
             phone_number (str): Número de teléfono destino
+            client_name (str): Nombre del cliente para la variable {{1}}
             
         Returns:
             bool: True si se envió exitosamente, False en caso contrario
@@ -303,7 +304,7 @@ class WhatsAppOTPService:
                 'Content-Type': 'application/json'
             }
             
-            # Template de cancelación de reserva - NO requiere parámetros (mensaje fijo)
+            # Template de cancelación de reserva - requiere 1 parámetro para {{1}}
             template_name = os.getenv('WHATSAPP_RESERVATION_CANCELLED_TEMPLATE', 'reserva_cancelada_ca')
             
             payload = {
@@ -314,7 +315,18 @@ class WhatsAppOTPService:
                     "name": template_name,
                     "language": {
                         "code": "es"
-                    }
+                    },
+                    "components": [
+                        {
+                            "type": "body",
+                            "parameters": [
+                                {
+                                    "type": "text",
+                                    "text": client_name
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
             
@@ -391,16 +403,17 @@ def send_whatsapp_payment_approved(phone_number, client_name, payment_info, chec
     return service.send_payment_approved_template(phone_number, client_name, payment_info, check_in_date)
 
 
-def send_whatsapp_reservation_cancelled(phone_number):
+def send_whatsapp_reservation_cancelled(phone_number, client_name):
     """
     Función auxiliar para enviar mensaje de cancelación de reserva por WhatsApp
-    La plantilla configurada NO requiere parámetros - es un mensaje fijo
+    La plantilla debe usar {{1}} para el nombre del cliente
     
     Args:
         phone_number (str): Número de teléfono destino
+        client_name (str): Nombre del cliente para la variable {{1}}
         
     Returns:
         bool: True si se envió exitosamente
     """
     service = WhatsAppOTPService()
-    return service.send_reservation_cancelled_template(phone_number)
+    return service.send_reservation_cancelled_template(phone_number, client_name)

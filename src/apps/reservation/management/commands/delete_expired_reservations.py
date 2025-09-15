@@ -106,9 +106,17 @@ class Command(BaseCommand):
         # Enviar WhatsApp al cliente si tiene teléfono
         if reservation.client and reservation.client.tel_number:
             try:
+                # Preparar nombre del cliente para WhatsApp template {{1}}
+                first_name = reservation.client.first_name.split()[0] if reservation.client.first_name else ""
+                first_last_name = ""
+                if reservation.client.last_name:
+                    first_last_name = reservation.client.last_name.split()[0]
+                whatsapp_client_name = f"{first_name} {first_last_name}".strip()
+                
                 logger.info(f"Enviando WhatsApp de cancelación a {reservation.client.tel_number} para reserva {reservation.id}")
                 whatsapp_success = send_whatsapp_reservation_cancelled(
-                    phone_number=reservation.client.tel_number
+                    phone_number=reservation.client.tel_number,
+                    client_name=whatsapp_client_name
                 )
                 
                 if whatsapp_success:
