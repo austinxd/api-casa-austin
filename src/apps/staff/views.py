@@ -90,19 +90,25 @@ class WorkTaskViewSet(viewsets.ModelViewSet):
     
     def _can_maintenance_update_task(self, task, data):
         """Verificar si mantenimiento puede actualizar esta tarea"""
-        # Solo pueden actualizar tareas asignadas a ellos
+        # Verificar que el usuario tiene StaffMember asociado
         if not hasattr(self.request.user, 'staffmember'):
             return False
         
         try:
             user_staff = self.request.user.staffmember
-            if not user_staff or user_staff.deleted or task.staff_member != user_staff:
+            # Verificación más robusta
+            if not user_staff or user_staff.deleted:
                 return False
+                
+            # Comparar por ID para evitar problemas de objetos
+            if task.staff_member_id != user_staff.id:
+                return False
+                
         except StaffMember.DoesNotExist:
             return False
         
-        # Solo pueden cambiar el status, no otros campos
-        allowed_fields = {'status'}
+        # Solo pueden cambiar campos específicos
+        allowed_fields = {'status', 'completion_notes'}
         provided_fields = set(data.keys())
         return provided_fields.issubset(allowed_fields)
     
@@ -113,7 +119,7 @@ class WorkTaskViewSet(viewsets.ModelViewSet):
             
             if not self._can_maintenance_update_task(task, request.data):
                 return Response({
-                    'error': 'Personal de mantenimiento solo puede cambiar el status de sus propias tareas'
+                    'error': 'Personal de mantenimiento solo puede cambiar el status y notas de finalización de sus propias tareas'
                 }, status=status.HTTP_403_FORBIDDEN)
         
         return super().update(request, *args, **kwargs)
@@ -125,7 +131,7 @@ class WorkTaskViewSet(viewsets.ModelViewSet):
             
             if not self._can_maintenance_update_task(task, request.data):
                 return Response({
-                    'error': 'Personal de mantenimiento solo puede cambiar el status de sus propias tareas'
+                    'error': 'Personal de mantenimiento solo puede cambiar el status y notas de finalización de sus propias tareas'
                 }, status=status.HTTP_403_FORBIDDEN)
         
         return super().partial_update(request, *args, **kwargs)
