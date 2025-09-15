@@ -47,11 +47,13 @@ class Command(BaseCommand):
             )
             
             if not dry_run:
-                # Verificar si la reserva es para hoy o mañana antes de eliminar
-                should_notify = reservation.check_in_date in [today, tomorrow]
+                # Enviar WhatsApp al cliente SIEMPRE que se cancele una reserva
+                self._send_whatsapp_notification(reservation)
                 
-                if should_notify:
-                    self._send_expiration_notification(reservation)
+                # Enviar Telegram interno solo si la reserva es para hoy o mañana
+                should_notify_telegram = reservation.check_in_date in [today, tomorrow]
+                if should_notify_telegram:
+                    self._send_telegram_notification(reservation)
                 
                 logger.info(f"Eliminando reserva expirada ID: {reservation.id}")
                 reservation.delete()
@@ -68,18 +70,16 @@ class Command(BaseCommand):
                 self.style.SUCCESS(f'Se eliminaron {count} reservas expiradas')
             )
 
-    def _send_expiration_notification(self, reservation):
-        """Envía notificaciones por Telegram y WhatsApp cuando se elimina una reserva para hoy o mañana"""
+    def _send_telegram_notification(self, reservation):
+        """Envía notificación interna por Telegram cuando se elimina una reserva para hoy o mañana"""
         from apps.reservation.signals import format_date_es
-        from apps.clients.whatsapp_service import send_whatsapp_reservation_cancelled
         
-        client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
-        check_in_date = format_date_es(reservation.check_in_date)
-        check_out_date = format_date_es(reservation.check_out_date)
-        property_name = reservation.property.name if reservation.property else "Propiedad no disponible"
-        
-        # Enviar notificación interna por Telegram (independiente de WhatsApp)
         try:
+            client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
+            check_in_date = format_date_es(reservation.check_in_date)
+            check_out_date = format_date_es(reservation.check_out_date)
+            property_name = reservation.property.name if reservation.property else "Propiedad no disponible"
+            
             telegram_message = (
                 f"⚠️ **RESERVA ELIMINADA POR EXPIRACIÓN** ⚠️\n"
                 f"Cliente: {client_name}\n"
@@ -98,10 +98,16 @@ class Command(BaseCommand):
             
         except Exception as e:
             logger.error(f"Error enviando notificación por Telegram para reserva {reservation.id}: {str(e)}")
+
+    def _send_whatsapp_notification(self, reservation):
+        """Envía WhatsApp al cliente cuando se elimina cualquier reserva por expiración"""
+        from apps.clients.whatsapp_service import send_whatsapp_reservation_cancelled
         
-        # Enviar WhatsApp al cliente (independiente de Telegram)
+        # Enviar WhatsApp al cliente si tiene teléfono
         if reservation.client and reservation.client.tel_number:
             try:
+                property_name = reservation.property.name if reservation.property else "Propiedad no disponible"
+                
                 # Preparar datos para WhatsApp template
                 # Solo primer nombre y primer apellido para el cliente
                 first_name = reservation.client.first_name.split()[0] if reservation.client.first_name else ""
