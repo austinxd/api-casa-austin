@@ -428,22 +428,73 @@ def reorganize_all_existing_tasks():
                 
                 # Si la tarea tiene staff pero podemos encontrar mejor asignación
                 elif task.staff_member:
-                    best_staff = find_best_cleaning_staff(
-                        task.scheduled_date,
-                        task.building_property,
-                        task.reservation,
-                        task
-                    )
+                    # NUEVO: Verificar si tarea urgente/alta está diferida y debe moverse a fecha original
+                    checkout_date = task.reservation.check_out_date if task.reservation else task.scheduled_date
+                    is_deferred = task.scheduled_date > checkout_date
                     
-                    if best_staff and best_staff != task.staff_member:
-                        old_staff_name = f"{task.staff_member.first_name} {task.staff_member.last_name}"
-                        new_staff_name = f"{best_staff.first_name} {best_staff.last_name}"
+                    if is_deferred and task.priority in ['urgent', 'high']:
+                        logger.info(f"🚨 Tarea {task.priority.upper()} diferida detectada: {task.building_property.name}")
+                        logger.info(f"   Original: {checkout_date} | Actual: {task.scheduled_date} (+{(task.scheduled_date - checkout_date).days} días)")
                         
-                        task.staff_member = best_staff
-                        task.save()
-                        stats['reassigned'] += 1
+                        # Intentar encontrar personal disponible en la fecha original
+                        best_staff_original = find_best_cleaning_staff(
+                            checkout_date,
+                            task.building_property,
+                            task.reservation,
+                            task
+                        )
                         
-                        logger.info(f"🔄 REASIGNACIÓN mejorada: {task.building_property.name} | {old_staff_name} → {new_staff_name}")
+                        if best_staff_original:
+                            # Mover tarea a fecha original
+                            old_date = task.scheduled_date
+                            task.scheduled_date = checkout_date
+                            task.staff_member = best_staff_original
+                            task.save()
+                            stats['reassigned'] += 1
+                            
+                            staff_name = f"{best_staff_original.first_name} {best_staff_original.last_name}"
+                            logger.info(f"✅ FECHA REASIGNADA: {task.building_property.name} | {old_date} → {checkout_date} | Personal: {staff_name}")
+                        else:
+                            # Si no hay personal disponible en fecha original, intentar preemption
+                            preemptable_tasks = find_preemptable_tasks_for_date(
+                                checkout_date, 
+                                task.priority
+                            )
+                            
+                            if preemptable_tasks:
+                                target_task = preemptable_tasks[0]
+                                logger.info(f"🔄 Intentando preemption para mover a fecha original...")
+                                
+                                if preempt_task_for_urgent(task, target_task):
+                                    # Mover tarea a fecha original después de preemption exitosa
+                                    old_date = task.scheduled_date
+                                    task.scheduled_date = checkout_date
+                                    task.save()
+                                    stats['preemptions'] += 1
+                                    
+                                    logger.info(f"✅ FECHA REASIGNADA POR PREEMPTION: {task.building_property.name} | {old_date} → {checkout_date}")
+                                else:
+                                    logger.warning(f"❌ No se pudo mover {task.building_property.name} a fecha original")
+                            else:
+                                logger.warning(f"⚠️ No se puede mover {task.building_property.name} a fecha original - sin personal disponible")
+                    else:
+                        # Lógica original: buscar mejor asignación de personal sin cambiar fecha
+                        best_staff = find_best_cleaning_staff(
+                            task.scheduled_date,
+                            task.building_property,
+                            task.reservation,
+                            task
+                        )
+                        
+                        if best_staff and best_staff != task.staff_member:
+                            old_staff_name = f"{task.staff_member.first_name} {task.staff_member.last_name}"
+                            new_staff_name = f"{best_staff.first_name} {best_staff.last_name}"
+                            
+                            task.staff_member = best_staff
+                            task.save()
+                            stats['reassigned'] += 1
+                            
+                            logger.info(f"🔄 REASIGNACIÓN mejorada: {task.building_property.name} | {old_staff_name} → {new_staff_name}")
                         
             except Exception as e:
                 logger.error(f"Error reorganizando tarea {task.id}: {e}")

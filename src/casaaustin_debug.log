@@ -5358,3 +5358,36 @@ INFO 2025-09-16 19:30:15,192 signals 2901 140061664521408    • Tareas evaluada
 INFO 2025-09-16 19:30:15,192 signals 2901 140061664521408    • Prioridades actualizadas: 0
 INFO 2025-09-16 19:30:15,192 signals 2901 140061664521408    • Preemptions ejecutadas: 0
 INFO 2025-09-16 19:30:15,193 signals 2901 140061664521408    • Reasignaciones: 3
+INFO 2025-09-16 19:33:42,292 signals 3218 139895217908928 🧠 INICIANDO reorganización completa de todas las tareas existentes...
+INFO 2025-09-16 19:33:42,294 signals 3218 139895217908928 📊 Evaluando 10 tareas existentes...
+INFO 2025-09-16 19:33:42,344 signals 3218 139895217908928 🚨 TAREA URGENTE: Limpieza checkout - Casa 1 - Check-in MISMO DÍA
+DEBUG 2025-09-16 19:33:42,348 signals 3218 139895217908928 📅 TAREA MEDIA PRIORIDAD: Limpieza checkout - Casa 2 - Check-in en 3 día(s)
+DEBUG 2025-09-16 19:33:42,350 signals 3218 139895217908928 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa 3 - Sin próximo check-in
+DEBUG 2025-09-16 19:33:42,353 signals 3218 139895217908928 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa 4 - Sin próximo check-in
+INFO 2025-09-16 19:33:42,355 signals 3218 139895217908928 🚨 TAREA URGENTE: Limpieza diferida - Casa 1 - Check-in MISMO DÍA
+DEBUG 2025-09-16 19:33:42,357 signals 3218 139895217908928 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa 1 - Sin próximo check-in
+INFO 2025-09-16 19:33:42,360 signals 3218 139895217908928 🔥 TAREA ALTA PRIORIDAD: Limpieza checkout - casa 1 - Check-in en 1 día(s)
+DEBUG 2025-09-16 19:33:42,362 signals 3218 139895217908928 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa 2 - Sin próximo check-in
+DEBUG 2025-09-16 19:33:42,363 signals 3218 139895217908928 📅 TAREA MEDIA PRIORIDAD: Limpieza checkout - casa 1 - Check-in en 2 día(s)
+DEBUG 2025-09-16 19:33:42,368 signals 3218 139895217908928 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - casa 1 - Sin próximo check-in
+DEBUG 2025-09-16 19:33:42,381 signals 3218 139895217908928 Personal Luis puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+DEBUG 2025-09-16 19:33:42,387 signals 3218 139895217908928 Personal Maria puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+INFO 2025-09-16 19:33:42,389 signals 3218 139895217908928 👷 PERSONAL SELECCIONADO para 2025-09-16:
+INFO 2025-09-16 19:33:42,389 signals 3218 139895217908928    ✅ Luis Tantin (carga actual: 1 tareas)
+INFO 2025-09-16 19:33:42,389 signals 3218 139895217908928 🚨 Tarea URGENT diferida detectada: Casa 1
+INFO 2025-09-16 19:33:42,390 signals 3218 139895217908928    Original: 2025-09-17 | Actual: 2025-09-19 (+2 días)
+DEBUG 2025-09-16 19:33:42,394 signals 3218 139895217908928 Reserva de 3 huéspedes: personal Luis limitado a 1 propiedad
+DEBUG 2025-09-16 19:33:42,397 signals 3218 139895217908928 Reserva de 3 huéspedes: personal Maria limitado a 1 propiedad
+DEBUG 2025-09-16 19:33:42,399 signals 3218 139895217908928 Personal Maria ya tiene 1 tareas (máximo 1)
+INFO 2025-09-16 19:33:42,399 signals 3218 139895217908928 👷 PERSONAL SELECCIONADO para 2025-09-17:
+INFO 2025-09-16 19:33:42,399 signals 3218 139895217908928    ✅ Luis Tantin (carga actual: 0 tareas)
+INFO 2025-09-16 19:33:42,496 signals 3218 139895217908928 ✅ FECHA REASIGNADA: Casa 1 | 2025-09-19 → 2025-09-17 | Personal: Luis Tantin
+DEBUG 2025-09-16 19:33:42,510 signals 3218 139895217908928 Personal Luis puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+DEBUG 2025-09-16 19:33:42,515 signals 3218 139895217908928 Personal Maria puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+INFO 2025-09-16 19:33:42,517 signals 3218 139895217908928 👷 PERSONAL SELECCIONADO para 2025-09-20:
+INFO 2025-09-16 19:33:42,517 signals 3218 139895217908928    ✅ Luis Tantin (carga actual: 1 tareas)
+INFO 2025-09-16 19:33:42,521 signals 3218 139895217908928 🎯 REORGANIZACIÓN COMPLETA FINALIZADA:
+INFO 2025-09-16 19:33:42,521 signals 3218 139895217908928    • Tareas evaluadas: 10
+INFO 2025-09-16 19:33:42,521 signals 3218 139895217908928    • Prioridades actualizadas: 0
+INFO 2025-09-16 19:33:42,521 signals 3218 139895217908928    • Preemptions ejecutadas: 0
+INFO 2025-09-16 19:33:42,522 signals 3218 139895217908928    • Reasignaciones: 1
