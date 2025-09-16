@@ -1,0 +1,45 @@
+🧠 Reorganización centralizada: EJECUCIÓN COMPLETA
+INFO 2025-09-16 14:40:11,130 signals 3772107 140360645351232 🧠 INICIANDO reorganización completa de todas las tareas existentes...
+INFO 2025-09-16 14:40:11,131 signals 3772107 140360645351232 📊 Evaluando 17 tareas existentes...
+DEBUG 2025-09-16 14:40:11,138 signals 3772107 140360645351232 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa Austin 4 - Check-in en 7 día(s)
+DEBUG 2025-09-16 14:40:11,140 signals 3772107 140360645351232 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa Austin 3 - Check-in en 10 día(s)
+DEBUG 2025-09-16 14:40:11,142 signals 3772107 140360645351232 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa Austin 4 - Check-in en 5 día(s)
+DEBUG 2025-09-16 14:40:11,144 signals 3772107 140360645351232 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa Austin 2 - Check-in en 6 día(s)
+INFO 2025-09-16 14:40:11,146 signals 3772107 140360645351232 🔥 TAREA ALTA PRIORIDAD: Limpieza checkout - Casa Austin 1 - Check-in en 1 día(s)
+INFO 2025-09-16 14:40:11,148 signals 3772107 140360645351232 🚨 TAREA URGENTE: Limpieza diferida - Casa Austin 4 - Check-in MISMO DÍA
+DEBUG 2025-09-16 14:40:11,150 signals 3772107 140360645351232 📅 TAREA MEDIA PRIORIDAD: Limpieza checkout - Casa Austin 1 - Check-in en 2 día(s)
+DEBUG 2025-09-16 14:40:11,151 signals 3772107 140360645351232 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa Austin 4 - Check-in en 5 día(s)
+DEBUG 2025-09-16 14:40:11,153 signals 3772107 140360645351232 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa Austin 3 - Check-in en 5 día(s)
+DEBUG 2025-09-16 14:40:11,155 signals 3772107 140360645351232 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa Austin 2 - Check-in en 31 día(s)
+DEBUG 2025-09-16 14:40:11,157 signals 3772107 140360645351232 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa Austin 1 - Sin próximo check-in
+DEBUG 2025-09-16 14:40:11,159 signals 3772107 140360645351232 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa Austin 3 - Check-in en 20 día(s)
+DEBUG 2025-09-16 14:40:11,161 signals 3772107 140360645351232 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa Austin 4 - Check-in en 37 día(s)
+DEBUG 2025-09-16 14:40:11,163 signals 3772107 140360645351232 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa Austin 3 - Check-in en 33 día(s)
+DEBUG 2025-09-16 14:40:11,165 signals 3772107 140360645351232 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa Austin 2 - Sin próximo check-in
+DEBUG 2025-09-16 14:40:11,166 signals 3772107 140360645351232 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa Austin 4 - Sin próximo check-in
+DEBUG 2025-09-16 14:40:11,168 signals 3772107 140360645351232 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa Austin 3 - Sin próximo check-in
+DEBUG 2025-09-16 14:40:11,174 signals 3772107 140360645351232 Personal Luis puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+DEBUG 2025-09-16 14:40:11,176 signals 3772107 140360645351232 Personal Patricia puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+INFO 2025-09-16 14:40:11,177 signals 3772107 140360645351232 👷 PERSONAL SELECCIONADO para 2025-09-24:
+INFO 2025-09-16 14:40:11,177 signals 3772107 140360645351232    ✅ Patricia Ricaldi (carga actual: 0 tareas)
+INFO 2025-09-16 14:40:11,228 signals 3772107 140360645351232 🔄 REASIGNACIÓN mejorada: Casa Austin 1 | Luis Gutierrez → Patricia Ricaldi
+DEBUG 2025-09-16 14:40:11,231 signals 3772107 140360645351232 Reserva de 13 huéspedes: personal Luis limitado a 1 propiedad
+DEBUG 2025-09-16 14:40:11,231 signals 3772107 140360645351232 Personal Luis ya tiene 1 tareas (máximo 1)
+DEBUG 2025-09-16 14:40:11,232 signals 3772107 140360645351232 Reserva de 13 huéspedes: personal Patricia limitado a 1 propiedad
+DEBUG 2025-09-16 14:40:11,232 signals 3772107 140360645351232 Personal Patricia ya tiene 1 tareas (máximo 1)
+WARNING 2025-09-16 14:40:11,232 signals 3772107 140360645351232 No available cleaning staff for 2025-09-27
+INFO 2025-09-16 14:40:11,234 signals 3772107 140360645351232 🎯 REORGANIZACIÓN COMPLETA FINALIZADA:
+INFO 2025-09-16 14:40:11,234 signals 3772107 140360645351232    • Tareas evaluadas: 17
+INFO 2025-09-16 14:40:11,234 signals 3772107 140360645351232    • Prioridades actualizadas: 0
+INFO 2025-09-16 14:40:11,234 signals 3772107 140360645351232    • Preemptions ejecutadas: 0
+INFO 2025-09-16 14:40:11,234 signals 3772107 140360645351232    • Reasignaciones: 1
+
+🎯 REORGANIZACIÓN CENTRALIZADA COMPLETADA:
+   • Tareas evaluadas: 17
+   • Reasignaciones: 1
+   • ✅ Reorganización completada con lógica avanzada
+
+🎯 RESULTADOS FINALES:
+   • Tareas creadas exitosamente: 0
+   • Tareas diferidas: 0
+   • Reorganizaciones realizadas: 1
