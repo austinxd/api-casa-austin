@@ -1,0 +1,40 @@
+🚀 PROCESANDO 1 reservas...
+INFO 2025-09-16 13:44:04,396 signals 3757474 139864503031616 🚨 TAREA URGENTE: Limpieza checkout - Casa Austin 4 - Check-in MISMO DÍA
+INFO 2025-09-16 13:44:04,516 signals 3757474 139864503031616 🎯 Tarea 5b450d57-8e61-4d17-87a1-d08dd77ecd5c establecida con prioridad urgent
+DEBUG 2025-09-16 13:44:04,519 signals 3757474 139864503031616 Reserva de 13 huéspedes: personal Patricia limitado a 1 propiedad
+DEBUG 2025-09-16 13:44:04,519 signals 3757474 139864503031616 Personal Patricia ya tiene 1 tareas (máximo 1)
+WARNING 2025-09-16 13:44:04,519 signals 3757474 139864503031616 No available cleaning staff for 2025-09-27
+WARNING 2025-09-16 13:44:04,519 signals 3757474 139864503031616 No cleaning staff available for reservation 8be60a36-af86-4684-a010-82bc7ef73617 on 2025-09-27
+INFO 2025-09-16 13:44:04,635 signals 3757474 139864503031616 🚫 Gap registrado: Casa Austin 4 sin limpieza el 2025-09-27 (staff_overload)
+DEBUG 2025-09-16 13:44:04,639 signals 3757474 139864503031616 Reserva de 13 huéspedes: personal Patricia limitado a 1 propiedad
+DEBUG 2025-09-16 13:44:04,639 signals 3757474 139864503031616 Personal Patricia ya tiene 1 tareas (máximo 1)
+WARNING 2025-09-16 13:44:04,639 signals 3757474 139864503031616 No available cleaning staff for 2025-09-28
+DEBUG 2025-09-16 13:44:04,641 signals 3757474 139864503031616 Reserva de 13 huéspedes: personal Patricia limitado a 1 propiedad
+DEBUG 2025-09-16 13:44:04,641 signals 3757474 139864503031616 Personal Patricia ya tiene 1 tareas (máximo 1)
+WARNING 2025-09-16 13:44:04,642 signals 3757474 139864503031616 No available cleaning staff for 2025-09-29
+DEBUG 2025-09-16 13:44:04,644 signals 3757474 139864503031616 Reserva de 13 huéspedes: personal Patricia limitado a 1 propiedad
+DEBUG 2025-09-16 13:44:04,644 signals 3757474 139864503031616 Personal Patricia ya tiene 1 tareas (máximo 1)
+WARNING 2025-09-16 13:44:04,644 signals 3757474 139864503031616 No available cleaning staff for 2025-09-30
+DEBUG 2025-09-16 13:44:04,647 signals 3757474 139864503031616 Reserva de 13 huéspedes: personal Patricia limitado a 1 propiedad
+DEBUG 2025-09-16 13:44:04,647 signals 3757474 139864503031616 Personal Patricia ya tiene 1 tareas (máximo 1)
+WARNING 2025-09-16 13:44:04,647 signals 3757474 139864503031616 No available cleaning staff for 2025-10-01
+DEBUG 2025-09-16 13:44:04,650 signals 3757474 139864503031616 Reserva de 13 huéspedes: personal Patricia limitado a 1 propiedad
+INFO 2025-09-16 13:44:04,651 signals 3757474 139864503031616 👷 PERSONAL SELECCIONADO para 2025-10-02:
+INFO 2025-09-16 13:44:04,651 signals 3757474 139864503031616    ✅ Patricia Ricaldi (carga actual: 0 tareas)
+INFO 2025-09-16 13:44:04,874 signals 3757474 139864503031616 ✅ DIFERIMIENTO EXITOSO: Tarea dca11ea0-3768-4be4-951b-b84e7a03ba85 creada para Casa Austin 4
+   📅 Original: 2025-09-27 → Diferida: 2025-10-02
+   👷 Asignada a: Patricia Ricaldi
+   🏠 Casa estuvo 5 día(s) sin limpieza
+INFO 2025-09-16 13:44:04,874 signals 3757474 139864503031616 ✅ Created unassigned cleaning task None for reservation 8be60a36-af86-4684-a010-82bc7ef73617 on 2025-09-27 - requires manual assignment
+   🔄 Tarea DIFERIDA: 8be60a36-af86-4684-a010-82bc7ef73617 (Tito Jhon Gonzales Ylasaca) → Patricia Ricaldi (+5 días)
+
+🎯 RESULTADOS FINALES:
+   • Tareas creadas exitosamente: 1
+   • Tareas asignadas el día original: 0
+   • Tareas DIFERIDAS automáticamente: 1
+   • Gaps registrados (días sin limpieza): 1
+   • Sin errores ✅
+
+🎉 ¡Proceso completado! Se crearon 1 tareas de limpieza.
+⚠️  1 tareas fueron diferidas automáticamente por sobrecarga de personal.
+📊 Usa la API /api/v1/cleaning-gaps/ para consultar detalles de los gaps registrados.

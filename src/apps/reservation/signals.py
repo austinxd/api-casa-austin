@@ -188,6 +188,86 @@ def find_affected_tasks_by_new_reservation(new_reservation):
         logger.error(f"Error buscando tareas afectadas por reserva {new_reservation.id}: {e}")
         return []
 
+
+def find_preemptable_tasks_for_date(target_date, minimum_priority_level='urgent'):
+    """
+    Encuentra tareas de menor prioridad que puedan ser preemptadas para liberar personal.
+    Busca tareas asignadas en la misma fecha con prioridad menor que la requerida.
+    """
+    if not WorkTask:
+        return []
+    
+    try:
+        # Definir orden de prioridades
+        priority_order = {'low': 1, 'medium': 2, 'high': 3, 'urgent': 4}
+        min_priority_value = priority_order.get(minimum_priority_level, 4)
+        
+        # Buscar tareas asignadas con prioridad menor en la misma fecha (cross-property)
+        preemptable_tasks = WorkTask.objects.filter(
+            scheduled_date=target_date,
+            task_type='checkout_cleaning',
+            status='assigned',  # Solo tareas ya asignadas
+            staff_member__isnull=False,  # Que tengan personal asignado
+            deleted=False
+        ).exclude(
+            priority__in=[k for k, v in priority_order.items() if v >= min_priority_value]
+        ).order_by('priority')  # Comenzar por las de menor prioridad
+        
+        # Filtrar por prioridad numérica para mayor precisión
+        filtered_tasks = []
+        for task in preemptable_tasks:
+            task_priority_value = priority_order.get(task.priority, 0)
+            if task_priority_value < min_priority_value:
+                filtered_tasks.append(task)
+        
+        logger.info(f"🎯 Búsqueda de preemption para {target_date}: {len(filtered_tasks)} tareas candidatas")
+        for task in filtered_tasks[:3]:  # Log primeras 3 como muestra
+            logger.info(f"   📋 {task.building_property.name} - {task.priority} - {task.staff_member.first_name if task.staff_member else 'Sin personal'}")
+        
+        return filtered_tasks
+        
+    except Exception as e:
+        logger.error(f"Error buscando tareas preemptables para {target_date}: {e}")
+        return []
+
+
+def preempt_task_for_urgent(urgent_task, target_task):
+    """
+    Reasigna personal de una tarea de menor prioridad a una tarea urgente.
+    La tarea preemptada queda pendiente de reasignación.
+    """
+    if not urgent_task or not target_task or not target_task.staff_member:
+        return False
+    
+    try:
+        # Capturar información antes del cambio
+        freed_staff = target_task.staff_member
+        target_property = target_task.building_property.name
+        urgent_property = urgent_task.building_property.name
+        
+        logger.info(f"🔄 PREEMPTION INICIADA:")
+        logger.info(f"   De: {target_property} ({target_task.priority}) → {urgent_property} ({urgent_task.priority})")
+        logger.info(f"   Personal: {freed_staff.first_name} {freed_staff.last_name}")
+        
+        # Reasignar personal a la tarea urgente
+        urgent_task.staff_member = freed_staff
+        urgent_task.status = 'assigned'
+        urgent_task.save()
+        
+        # Liberar la tarea preemptada
+        target_task.staff_member = None
+        target_task.status = 'pending'
+        target_task.save()
+        
+        logger.info(f"✅ PREEMPTION EXITOSA: {freed_staff.first_name} reasignado de {target_property} a {urgent_property}")
+        logger.info(f"⏳ Tarea {target_property} marcada como pendiente de reasignación")
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error en preemption entre tareas {urgent_task.id} y {target_task.id}: {e}")
+        return False
+
 def reorganize_affected_tasks(affected_tasks):
     """
     Reorganiza automáticamente las tareas afectadas por cambios de prioridad.
@@ -831,18 +911,60 @@ def create_automatic_cleaning_task(reservation):
         # PASO 3: Buscar el mejor personal considerando la prioridad de la tarea
         assigned_staff = find_best_cleaning_staff(reservation.check_out_date, reservation.property, reservation, cleaning_task)
         
-        # PASO 4: Asignar el personal a la tarea
+        # PASO 4: Asignar el personal a la tarea O INTENTAR PREEMPTION INMEDIATAMENTE
         if assigned_staff:
             cleaning_task.staff_member = assigned_staff
             cleaning_task.status = 'assigned'
             cleaning_task.save()
         else:
             logger.warning(f"No cleaning staff available for reservation {reservation.id} on {reservation.check_out_date}")
-            # NUEVO: Intentar diferir la tarea automáticamente a días siguientes
+            logger.info(f"🔍 DEBUG: Tarea {cleaning_task.id} tiene prioridad '{cleaning_task.priority}' - Evaluando si aplicar preemption...")
+            
+            # 🧠 PREEMPTION INMEDIATA: Para tareas urgentes/altas, intentar reasignar personal ANTES de diferir
+            if cleaning_task.priority in ['urgent', 'high']:
+                logger.info(f"🧠 EVALUANDO reasignación inteligente para tarea {cleaning_task.priority}")
+                
+                # PASO 1: Buscar tareas preemptables inmediatamente
+                preemptable_tasks = find_preemptable_tasks_for_date(
+                    reservation.check_out_date, 
+                    cleaning_task.priority
+                )
+                
+                preemption_successful = False
+                if preemptable_tasks:
+                    # Seleccionar mejor candidato (menor prioridad primero)
+                    priority_order = {'low': 1, 'medium': 2, 'high': 3, 'urgent': 4}
+                    best_target = min(preemptable_tasks, key=lambda t: priority_order.get(t.priority, 4))
+                    preemption_successful = preempt_task_for_urgent(cleaning_task, best_target)
+                
+                if preemption_successful:
+                    logger.info(f"✅ Preemption exitosa: tarea {cleaning_task.priority} asignada mediante reasignación de personal")
+                    # Personal ya asignado por preempt_task_for_urgent, no hacer nada más
+                    return
+                else:
+                    logger.info(f"⚠️ Preemption falló: {len(preemptable_tasks)} candidatos evaluados, ninguno viable")
+            
+            # Si llegamos aquí, preemption falló o no aplicaba - continuar con flujo normal
+            logger.info(f"🔄 Continuando con reorganización tradicional y diferimiento para tarea {cleaning_task.priority}")
+            
+            # PASO 2: Reorganización tradicional como fallback
+            if cleaning_task.priority in ['urgent', 'high']:
+                trigger_smart_reorganization(reservation)
+                
+                # Verificar si la reorganización liberó personal
+                assigned_staff = find_best_cleaning_staff(reservation.check_out_date, reservation.property, reservation, cleaning_task)
+                if assigned_staff:
+                    cleaning_task.staff_member = assigned_staff
+                    cleaning_task.status = 'assigned'
+                    cleaning_task.save()
+                    logger.info(f"✅ Personal reasignado después de reorganización: {assigned_staff.first_name} {assigned_staff.last_name}")
+                    return
+            
+            # PASO 3: Diferir como último recurso
             deferred_task = defer_cleaning_task_automatically(cleaning_task, reservation)
             if not deferred_task:
                 # Si no se pudo diferir, la tarea queda pendiente para revisión manual
-                pass
+                logger.warning(f"⚠️ No se pudo diferir tarea {cleaning_task.id} - Queda pendiente para revisión manual")
         
         if assigned_staff:
             logger.info(
