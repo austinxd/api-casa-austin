@@ -38,7 +38,7 @@ class PublicEventListView(generics.ListAPIView):
             is_active=True,
             is_public=True,
             status=Event.EventStatus.PUBLISHED,
-            start_date__gte=now  # Solo eventos futuros
+            end_date__gte=now  # Eventos que aún no han terminado (futuros + en curso)
         ).select_related('category')
 
 
