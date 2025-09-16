@@ -175,6 +175,12 @@ class EventRegistration(BaseModel):
         REJECTED = "rejected", "Rechazado"
         CANCELLED = "cancelled", "Cancelado"
     
+    class WinnerStatus(models.TextChoices):
+        NOT_WINNER = "not_winner", "No ganador"
+        WINNER = "winner", "🏆 Ganador"
+        RUNNER_UP = "runner_up", "🥈 Segundo lugar"
+        THIRD_PLACE = "third_place", "🥉 Tercer lugar"
+    
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='registrations')
     client = models.ForeignKey(Clients, on_delete=models.CASCADE, related_name='event_registrations')
     status = models.CharField(max_length=10, choices=RegistrationStatus.choices, default=RegistrationStatus.PENDING)
@@ -184,6 +190,28 @@ class EventRegistration(BaseModel):
     notes = models.TextField(blank=True, help_text="Notas del registro")
     admin_notes = models.TextField(blank=True, help_text="Notas del administrador")
     
+    # 🏆 SISTEMA DE GANADORES
+    winner_status = models.CharField(
+        max_length=15, 
+        choices=WinnerStatus.choices, 
+        default=WinnerStatus.NOT_WINNER,
+        help_text="Estado del participante en el evento"
+    )
+    winner_announcement_date = models.DateTimeField(
+        blank=True, 
+        null=True, 
+        help_text="Fecha cuando se anunció como ganador"
+    )
+    prize_description = models.CharField(
+        max_length=200, 
+        blank=True, 
+        help_text="Descripción del premio ganado"
+    )
+    winner_notified = models.BooleanField(
+        default=False, 
+        help_text="Si el ganador fue notificado por WhatsApp"
+    )
+    
     class Meta:
         verbose_name = "Registro de Evento"
         verbose_name_plural = "Registros de Eventos"
@@ -191,4 +219,64 @@ class EventRegistration(BaseModel):
         ordering = ['-registration_date']
     
     def __str__(self):
-        return f"{self.client.first_name} - {self.event.title} ({self.status})"
+        winner_emoji = ""
+        if self.winner_status == self.WinnerStatus.WINNER:
+            winner_emoji = "🏆 "
+        elif self.winner_status == self.WinnerStatus.RUNNER_UP:
+            winner_emoji = "🥈 "
+        elif self.winner_status == self.WinnerStatus.THIRD_PLACE:
+            winner_emoji = "🥉 "
+            
+        return f"{winner_emoji}{self.client.first_name} - {self.event.title} ({self.status})"
+    
+    @property
+    def is_winner(self):
+        """Verifica si este registro es ganador (cualquier posición)"""
+        return self.winner_status != self.WinnerStatus.NOT_WINNER
+    
+    def mark_as_winner(self, winner_status, prize_description="", notify=True):
+        """Marcar como ganador y opcionalmente notificar"""
+        from django.utils import timezone
+        
+        self.winner_status = winner_status
+        self.winner_announcement_date = timezone.now()
+        if prize_description:
+            self.prize_description = prize_description
+        
+        # Notificar por WhatsApp si se requiere
+        if notify and not self.winner_notified:
+            self._notify_winner()
+        
+        self.save()
+    
+    def _notify_winner(self):
+        """Notificar ganador por WhatsApp"""
+        try:
+            from apps.clients.whatsapp_service import WhatsAppService
+            
+            # Determinar mensaje según posición
+            if self.winner_status == self.WinnerStatus.WINNER:
+                template = "ganador_primer_lugar"
+            elif self.winner_status == self.WinnerStatus.RUNNER_UP:
+                template = "ganador_segundo_lugar"
+            elif self.winner_status == self.WinnerStatus.THIRD_PLACE:
+                template = "ganador_tercer_lugar"
+            else:
+                return
+            
+            # Enviar notificación
+            WhatsAppService.send_template_message(
+                to_phone=self.client.phone,
+                template_name=template,
+                parameters={
+                    'client_name': self.client.first_name,
+                    'event_title': self.event.title,
+                    'prize': self.prize_description or "Premio especial"
+                }
+            )
+            
+            self.winner_notified = True
+            self.save(update_fields=['winner_notified'])
+            
+        except Exception as e:
+            print(f"Error notificando ganador: {e}")

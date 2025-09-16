@@ -126,3 +126,56 @@ class EventRegistrationCreateSerializer(serializers.ModelSerializer):
         validated_data['event'] = self.context['event']
         validated_data['client'] = self.context['client']
         return super().create(validated_data)
+
+
+# 🏆 SERIALIZERS PARA GANADORES
+class WinnerSerializer(serializers.ModelSerializer):
+    """Serializer para mostrar ganadores de eventos"""
+    
+    client_name = serializers.CharField(source='client.first_name', read_only=True)
+    client_avatar = serializers.CharField(source='client.avatar', read_only=True)
+    position_name = serializers.CharField(source='get_winner_status_display', read_only=True)
+    
+    class Meta:
+        model = EventRegistration
+        fields = [
+            'id', 'client_name', 'client_avatar', 'winner_status', 'position_name',
+            'winner_announcement_date', 'prize_description'
+        ]
+
+
+class EventWinnersSerializer(serializers.ModelSerializer):
+    """Serializer para evento con sus ganadores"""
+    
+    category = EventCategorySerializer(read_only=True)
+    winners = serializers.SerializerMethodField()
+    total_winners = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Event
+        fields = [
+            'id', 'title', 'description', 'category', 'image',
+            'start_date', 'end_date', 'location', 'winners', 'total_winners'
+        ]
+    
+    def get_winners(self, obj):
+        """Obtener lista de ganadores ordenada por posición"""
+        winners_queryset = obj.registrations.filter(
+            winner_status__in=[
+                EventRegistration.WinnerStatus.WINNER,
+                EventRegistration.WinnerStatus.RUNNER_UP,
+                EventRegistration.WinnerStatus.THIRD_PLACE
+            ]
+        ).order_by('winner_status')
+        
+        return WinnerSerializer(winners_queryset, many=True).data
+    
+    def get_total_winners(self, obj):
+        """Contar total de ganadores"""
+        return obj.registrations.filter(
+            winner_status__in=[
+                EventRegistration.WinnerStatus.WINNER,
+                EventRegistration.WinnerStatus.RUNNER_UP,
+                EventRegistration.WinnerStatus.THIRD_PLACE
+            ]
+        ).count()
