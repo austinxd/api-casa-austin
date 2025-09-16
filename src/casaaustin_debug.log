@@ -5287,3 +5287,36 @@ ERROR 2025-09-16 12:39:32,680 signals 6427 140661275512000 Error al enviar Whats
 DEBUG 2025-09-16 19:14:00,616 signals 1875 140442200222912 Personal Maria puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
 DEBUG 2025-09-16 19:14:00,617 signals 1875 140442200222912 Personal Maria ya tiene 2 tareas (máximo 2)
 WARNING 2025-09-16 19:14:00,617 signals 1875 140442200222912 No available cleaning staff for 2025-09-20
+INFO 2025-09-16 19:22:05,246 signals 2425 140445533568192 🧠 INICIANDO reorganización completa de todas las tareas existentes...
+INFO 2025-09-16 19:22:05,249 signals 2425 140445533568192 📊 Evaluando 10 tareas existentes...
+INFO 2025-09-16 19:22:05,303 signals 2425 140445533568192 🚨 TAREA URGENTE: Limpieza checkout - Casa 1 - Check-in MISMO DÍA
+INFO 2025-09-16 19:22:05,355 signals 2425 140445533568192 🔄 Prioridad actualizada: Tarea 69dac50c-af38-4614-9156-e64d753ddf54 → URGENT
+DEBUG 2025-09-16 19:22:05,359 signals 2425 140445533568192 📅 TAREA MEDIA PRIORIDAD: Limpieza checkout - Casa 2 - Check-in en 3 día(s)
+DEBUG 2025-09-16 19:22:05,361 signals 2425 140445533568192 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa 3 - Sin próximo check-in
+INFO 2025-09-16 19:22:05,376 signals 2425 140445533568192 🔄 Prioridad actualizada: Tarea 93079508-be54-41ec-af79-c79b07620394 → LOW
+DEBUG 2025-09-16 19:22:05,379 signals 2425 140445533568192 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa 4 - Sin próximo check-in
+INFO 2025-09-16 19:22:05,403 signals 2425 140445533568192 🔄 Prioridad actualizada: Tarea b2b4452b-1071-4d8f-9083-8250ac2b3390 → LOW
+INFO 2025-09-16 19:22:05,406 signals 2425 140445533568192 🚨 TAREA URGENTE: Limpieza diferida - Casa 1 - Check-in MISMO DÍA
+INFO 2025-09-16 19:22:05,424 signals 2425 140445533568192 🔄 Prioridad actualizada: Tarea 655955ce-1cb3-4d99-b9fb-808c794a0191 → URGENT
+DEBUG 2025-09-16 19:22:05,427 signals 2425 140445533568192 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa 1 - Sin próximo check-in
+INFO 2025-09-16 19:22:05,445 signals 2425 140445533568192 🔄 Prioridad actualizada: Tarea a8e20853-f9c2-420c-a7c5-e9c789b80bca → LOW
+INFO 2025-09-16 19:22:05,448 signals 2425 140445533568192 🔥 TAREA ALTA PRIORIDAD: Limpieza checkout - casa 1 - Check-in en 1 día(s)
+DEBUG 2025-09-16 19:22:05,451 signals 2425 140445533568192 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa 2 - Sin próximo check-in
+INFO 2025-09-16 19:22:05,474 signals 2425 140445533568192 🔄 Prioridad actualizada: Tarea b07ce88b-3436-4e78-ad16-a87b0b895154 → LOW
+DEBUG 2025-09-16 19:22:05,477 signals 2425 140445533568192 📅 TAREA MEDIA PRIORIDAD: Limpieza checkout - casa 1 - Check-in en 2 día(s)
+DEBUG 2025-09-16 19:22:05,479 signals 2425 140445533568192 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - casa 1 - Sin próximo check-in
+INFO 2025-09-16 19:22:05,498 signals 2425 140445533568192 🔄 Prioridad actualizada: Tarea 099583f1-af3c-4752-990e-b052669ebac8 → LOW
+DEBUG 2025-09-16 19:22:05,512 signals 2425 140445533568192 Personal Maria puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+DEBUG 2025-09-16 19:22:05,513 signals 2425 140445533568192 Personal Maria ya tiene 2 tareas (máximo 2)
+WARNING 2025-09-16 19:22:05,513 signals 2425 140445533568192 No available cleaning staff for 2025-09-16
+DEBUG 2025-09-16 19:22:05,518 signals 2425 140445533568192 Reserva de 3 huéspedes: personal Maria limitado a 1 propiedad
+DEBUG 2025-09-16 19:22:05,518 signals 2425 140445533568192 Personal Maria ya tiene 1 tareas (máximo 1)
+WARNING 2025-09-16 19:22:05,519 signals 2425 140445533568192 No available cleaning staff for 2025-09-19
+DEBUG 2025-09-16 19:22:05,526 signals 2425 140445533568192 Personal Maria puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+DEBUG 2025-09-16 19:22:05,527 signals 2425 140445533568192 Personal Maria ya tiene 2 tareas (máximo 2)
+WARNING 2025-09-16 19:22:05,527 signals 2425 140445533568192 No available cleaning staff for 2025-09-20
+INFO 2025-09-16 19:22:05,531 signals 2425 140445533568192 🎯 REORGANIZACIÓN COMPLETA FINALIZADA:
+INFO 2025-09-16 19:22:05,531 signals 2425 140445533568192    • Tareas evaluadas: 10
+INFO 2025-09-16 19:22:05,532 signals 2425 140445533568192    • Prioridades actualizadas: 7
+INFO 2025-09-16 19:22:05,532 signals 2425 140445533568192    • Preemptions ejecutadas: 0
+INFO 2025-09-16 19:22:05,532 signals 2425 140445533568192    • Reasignaciones: 0

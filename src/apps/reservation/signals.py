@@ -356,6 +356,135 @@ def trigger_smart_reorganization(new_reservation):
         logger.error(f"Error en reorganización inteligente: {e}")
 
 
+def reorganize_all_existing_tasks():
+    """
+    NUEVA FUNCIÓN: Reorganización completa de TODAS las tareas de limpieza existentes.
+    Esta función evalúa todas las tareas futuras y las reorganiza usando la lógica completa.
+    """
+    try:
+        from apps.staff.models import WorkTask
+        from django.utils import timezone
+        
+        logger.info(f"🧠 INICIANDO reorganización completa de todas las tareas existentes...")
+        
+        # Buscar TODAS las tareas de limpieza futuras
+        all_cleaning_tasks = WorkTask.objects.filter(
+            task_type='checkout_cleaning',
+            scheduled_date__gte=timezone.now().date(),
+            status__in=['pending', 'assigned'],
+            deleted=False
+        ).select_related('staff_member', 'building_property', 'reservation').order_by('scheduled_date', '-priority')
+        
+        stats = {
+            'total_evaluated': all_cleaning_tasks.count(),
+            'reassigned': 0,
+            'priority_changed': 0,
+            'preemptions': 0
+        }
+        
+        logger.info(f"📊 Evaluando {stats['total_evaluated']} tareas existentes...")
+        
+        # PASO 1: Actualizar todas las prioridades usando la lógica centralizada
+        for task in all_cleaning_tasks:
+            try:
+                old_priority = task.priority
+                new_priority_label, priority_score, gap_days = compute_task_priority(task)
+                
+                if new_priority_label != old_priority:
+                    task.priority = new_priority_label
+                    task.save()
+                    stats['priority_changed'] += 1
+                    logger.info(f"🔄 Prioridad actualizada: Tarea {task.id} → {new_priority_label.upper()}")
+                    
+            except Exception as e:
+                logger.error(f"Error actualizando prioridad de tarea {task.id}: {e}")
+        
+        # PASO 2: Reorganizar tareas por fecha, priorizando urgentes y altas
+        urgent_and_high_tasks = all_cleaning_tasks.filter(priority__in=['urgent', 'high']).order_by('scheduled_date')
+        
+        for task in urgent_and_high_tasks:
+            try:
+                # Si la tarea no tiene staff asignado, intentar preemption
+                if not task.staff_member:
+                    logger.info(f"🚨 Tarea {task.priority.upper()} sin asignar: {task.building_property.name} ({task.scheduled_date})")
+                    
+                    # Buscar tareas de menor prioridad en la misma fecha
+                    preemptable_tasks = find_preemptable_tasks_for_date(
+                        task.scheduled_date, 
+                        task.priority
+                    )
+                    
+                    if preemptable_tasks:
+                        # Seleccionar el mejor candidato (menor prioridad)
+                        target_task = preemptable_tasks[0]  # Ya ordenado por prioridad
+                        
+                        if preempt_task_for_urgent(task, target_task):
+                            stats['preemptions'] += 1
+                            logger.info(f"✅ PREEMPTION exitosa: {task.building_property.name} obtuvo personal")
+                        else:
+                            logger.warning(f"❌ PREEMPTION falló para {task.building_property.name}")
+                    else:
+                        logger.warning(f"⚠️ No hay tareas preemptables para {task.scheduled_date}")
+                
+                # Si la tarea tiene staff pero podemos encontrar mejor asignación
+                elif task.staff_member:
+                    best_staff = find_best_cleaning_staff(
+                        task.scheduled_date,
+                        task.building_property,
+                        task.reservation,
+                        task
+                    )
+                    
+                    if best_staff and best_staff != task.staff_member:
+                        old_staff_name = f"{task.staff_member.first_name} {task.staff_member.last_name}"
+                        new_staff_name = f"{best_staff.first_name} {best_staff.last_name}"
+                        
+                        task.staff_member = best_staff
+                        task.save()
+                        stats['reassigned'] += 1
+                        
+                        logger.info(f"🔄 REASIGNACIÓN mejorada: {task.building_property.name} | {old_staff_name} → {new_staff_name}")
+                        
+            except Exception as e:
+                logger.error(f"Error reorganizando tarea {task.id}: {e}")
+        
+        # PASO 3: Intentar reasignar tareas pendientes
+        pending_tasks = all_cleaning_tasks.filter(staff_member__isnull=True).order_by('-priority', 'scheduled_date')
+        
+        for task in pending_tasks:
+            try:
+                best_staff = find_best_cleaning_staff(
+                    task.scheduled_date,
+                    task.building_property, 
+                    task.reservation,
+                    task
+                )
+                
+                if best_staff:
+                    task.staff_member = best_staff
+                    task.status = 'assigned'
+                    task.save()
+                    stats['reassigned'] += 1
+                    
+                    staff_name = f"{best_staff.first_name} {best_staff.last_name}"
+                    logger.info(f"✅ ASIGNACIÓN nueva: {task.building_property.name} → {staff_name}")
+                    
+            except Exception as e:
+                logger.error(f"Error asignando tarea pendiente {task.id}: {e}")
+        
+        logger.info(f"🎯 REORGANIZACIÓN COMPLETA FINALIZADA:")
+        logger.info(f"   • Tareas evaluadas: {stats['total_evaluated']}")
+        logger.info(f"   • Prioridades actualizadas: {stats['priority_changed']}")
+        logger.info(f"   • Preemptions ejecutadas: {stats['preemptions']}")
+        logger.info(f"   • Reasignaciones: {stats['reassigned']}")
+        
+        return stats
+        
+    except Exception as e:
+        logger.error(f"❌ Error en reorganización completa: {e}")
+        return {'total_evaluated': 0, 'reassigned': 0, 'priority_changed': 0, 'preemptions': 0}
+
+
 def format_date_es(date):
     day = date.day
     month = MONTHS_ES[date.month]

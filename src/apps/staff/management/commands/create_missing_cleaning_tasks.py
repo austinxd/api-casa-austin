@@ -197,6 +197,49 @@ class Command(BaseCommand):
                 )
 
         # ============================================================================
+        # 🚀 REORGANIZACIÓN CENTRALIZADA (NUEVA LÓGICA)
+        # ============================================================================
+        
+        self.stdout.write('\n🧠 Reorganización centralizada: ' + ('DRY-RUN (sin cambios)' if dry_run else 'EJECUCIÓN COMPLETA'))
+        
+        if not dry_run:
+            # Ejecutar reorganización completa usando la función sofisticada de signals.py
+            from apps.reservation.signals import reorganize_all_existing_tasks
+            stats = reorganize_all_existing_tasks()
+            
+            # Mostrar resultados de reorganización
+            self.stdout.write(f'\n🎯 REORGANIZACIÓN CENTRALIZADA COMPLETADA:')
+            self.stdout.write(f'   • Tareas evaluadas: {stats["total_evaluated"]}')
+            if stats['priority_changed'] > 0:
+                self.stdout.write(f'   • Prioridades actualizadas: {stats["priority_changed"]}')
+            if stats['preemptions'] > 0:
+                self.stdout.write(f'   • Preemptions ejecutadas: {stats["preemptions"]} 🔥')
+            if stats['reassigned'] > 0:
+                self.stdout.write(f'   • Reasignaciones: {stats["reassigned"]}')
+            self.stdout.write(f'   • ✅ Reorganización completada con lógica avanzada')
+        else:
+            # En dry-run, mostrar solo análisis
+            task_count = WorkTask.objects.filter(
+                task_type='checkout_cleaning',
+                scheduled_date__gte=timezone.now().date(),
+                status__in=['pending', 'assigned'],
+                deleted=False
+            ).count()
+            
+            self.stdout.write(f'   📊 {task_count} tareas serían evaluadas con lógica avanzada')
+            self.stdout.write(f'   🔍 Preemptions y reasignaciones serían ejecutadas')
+        
+        # Mostrar resumen final con ambas fases
+        self.stdout.write(f'\n🎯 RESULTADOS FINALES:')
+        self.stdout.write(f'   • Tareas creadas exitosamente: {created_count}')
+        self.stdout.write(f'   • Tareas diferidas: {deferred_count}')
+        if not dry_run and 'stats' in locals():
+            self.stdout.write(f'   • Reorganizaciones realizadas: {stats["reassigned"] + stats["preemptions"]}')
+        self.stdout.write(f'   • Sin errores ✅')
+        
+        return  # IMPORTANTE: Salir aquí para no ejecutar código legacy
+        
+        # ============================================================================
         # 🧠 FASE 2: REORGANIZACIÓN COMPLETA DE TODAS LAS TAREAS EXISTENTES
         # ============================================================================
         
