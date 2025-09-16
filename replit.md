@@ -66,8 +66,8 @@ Preferred communication style: Simple, everyday language.
 
 ### Communication Services
 - **Twilio**: SMS and messaging services
-- **Telegram Bot API**: Automated customer notifications
-- **WhatsApp Business API**: Customer communication workflows
+- **Telegram Bot API**: Automated internal notifications and customer communications
+- **WhatsApp Business API**: Customer communication workflows including OTP verification, payment confirmations, reservation cancellations, and welcome messages for new registrations
 
 ### Data and Analytics
 - **Google Sheets API**: Via Google Apps Script for data export and reporting

@@ -87,6 +87,32 @@ def notify_password_setup(client):
         logger.error(f"Error enviando notificación de configuración de contraseña {client.id}: {str(e)}")
 
 
+def notify_whatsapp_successful_registration(client):
+    """Envía notificación de WhatsApp al cliente cuando se registra exitosamente"""
+    try:
+        # Solo el primer nombre para la plantilla WhatsApp {{1}}
+        first_name = client.first_name.split()[0] if client.first_name else "Cliente"
+        
+        if client.tel_number:
+            from apps.clients.whatsapp_service import send_whatsapp_successful_registration
+            
+            logger.info(f"Enviando WhatsApp de bienvenida a {client.tel_number} para cliente {client.id}")
+            whatsapp_success = send_whatsapp_successful_registration(
+                phone_number=client.tel_number,
+                client_name=first_name
+            )
+            
+            if whatsapp_success:
+                logger.info(f"WhatsApp de bienvenida enviado exitosamente para cliente {client.id}")
+            else:
+                logger.error(f"Error al enviar WhatsApp de bienvenida para cliente {client.id}")
+        else:
+            logger.warning(f"Cliente {client.id} no tiene teléfono - no se envía WhatsApp de bienvenida")
+            
+    except Exception as e:
+        logger.error(f"Error enviando WhatsApp de bienvenida para cliente {client.id}: {str(e)}")
+
+
 def check_and_assign_achievements(client):
     """Verifica y asigna automáticamente logros al cliente según sus métricas"""
     try:
@@ -183,8 +209,11 @@ def update_audience_on_client_creation(sender, instance, created, **kwargs):
 
         update_meta_audience(instance)
         
-        # Enviar notificación de nuevo cliente registrado
+        # Enviar notificación interna de nuevo cliente registrado (Telegram)
         notify_new_client_registration(instance)
+        
+        # Enviar notificación de bienvenida al cliente (WhatsApp)
+        notify_whatsapp_successful_registration(instance)
     else:
         # Solo actualizar audiencia si cambió información relevante (no solo last_login)
         if kwargs.get('update_fields'):

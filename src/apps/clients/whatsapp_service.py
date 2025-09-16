@@ -351,6 +351,79 @@ class WhatsAppOTPService:
             logger.error(f"Error al enviar WhatsApp cancelación a {phone_number}: {str(e)}")
             return False
 
+    def send_successful_registration_template(self, phone_number, client_name):
+        """
+        Envía mensaje de registro exitoso por WhatsApp usando template
+        La plantilla debe usar {{1}} para el primer nombre del cliente
+        
+        Args:
+            phone_number (str): Número de teléfono destino
+            client_name (str): Primer nombre del cliente para la variable {{1}}
+            
+        Returns:
+            bool: True si se envió exitosamente, False en caso contrario
+        """
+        if not self.enabled:
+            logger.error("Servicio WhatsApp no configurado correctamente")
+            return False
+        
+        try:
+            # Formatear número de teléfono
+            formatted_phone = self.format_phone_number(phone_number)
+            logger.info(f"Enviando mensaje de registro exitoso por WhatsApp a: {formatted_phone}")
+            
+            headers = {
+                'Authorization': f'Bearer {self.access_token}',
+                'Content-Type': 'application/json'
+            }
+            
+            # Template de registro exitoso - requiere 1 parámetro para {{1}}
+            template_name = os.getenv('WHATSAPP_SUCCESSFUL_REGISTRATION_TEMPLATE', 'registro_exitoso')
+            
+            payload = {
+                "messaging_product": "whatsapp",
+                "to": formatted_phone,
+                "type": "template",
+                "template": {
+                    "name": template_name,
+                    "language": {
+                        "code": "es"
+                    },
+                    "components": [
+                        {
+                            "type": "body",
+                            "parameters": [
+                                {
+                                    "type": "text",
+                                    "text": client_name
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+            
+            # Log detallado para debug
+            logger.info(f"WhatsApp Successful Registration Template: {template_name}")
+            logger.info(f"Payload: {payload}")
+            
+            response = requests.post(self.api_url, json=payload, headers=headers)
+            
+            logger.info(f"WhatsApp API Response Status: {response.status_code}")
+            logger.info(f"WhatsApp API Response Body: {response.text}")
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                logger.info(f"WhatsApp registro exitoso enviado exitosamente a {formatted_phone}. Response: {response_data}")
+                return True
+            else:
+                logger.error(f"Error al enviar WhatsApp registro exitoso a {formatted_phone}. Status: {response.status_code}, Response: {response.text}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error al enviar WhatsApp registro exitoso a {phone_number}: {str(e)}")
+            return False
+
     def send_otp_text_message(self, phone_number, otp_code):
         """
         Método mantenido por compatibilidad pero redirige al template
@@ -417,3 +490,19 @@ def send_whatsapp_reservation_cancelled(phone_number, client_name):
     """
     service = WhatsAppOTPService()
     return service.send_reservation_cancelled_template(phone_number, client_name)
+
+
+def send_whatsapp_successful_registration(phone_number, client_name):
+    """
+    Función auxiliar para enviar mensaje de registro exitoso por WhatsApp
+    La plantilla debe usar {{1}} para el primer nombre del cliente
+    
+    Args:
+        phone_number (str): Número de teléfono destino
+        client_name (str): Primer nombre del cliente para la variable {{1}}
+        
+    Returns:
+        bool: True si se envió exitosamente
+    """
+    service = WhatsAppOTPService()
+    return service.send_successful_registration_template(phone_number, client_name)
