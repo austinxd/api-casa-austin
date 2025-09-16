@@ -26,20 +26,48 @@ class PublicEventCategoryListView(generics.ListAPIView):
 
 
 class PublicEventListView(generics.ListAPIView):
-    """Lista pública de eventos activos"""
+    """Lista pública de eventos activos con filtros opcionales"""
     
     serializer_class = EventListSerializer
     permission_classes = [AllowAny]
     
     def get_queryset(self):
-        # Mostrar TODOS los eventos publicados (pasados, en curso y futuros)
-        # Los eventos se ordenarán por fecha de inicio (más recientes primero)
-        return Event.objects.filter(
+        from django.utils import timezone
+        now = timezone.now()
+        
+        # Base queryset - todos los eventos publicados
+        queryset = Event.objects.filter(
             deleted=False,
             is_active=True,
             is_public=True,
             status=Event.EventStatus.PUBLISHED
-        ).select_related('category').order_by('-start_date')
+        ).select_related('category')
+        
+        # Filtrar por status si se proporciona
+        status_filter = self.request.GET.get('status', None)
+        
+        if status_filter == 'upcoming':
+            # Solo eventos que aún no han empezado
+            queryset = queryset.filter(start_date__gt=now)
+            
+        elif status_filter == 'ongoing':
+            # Solo eventos en curso (empezaron pero no terminaron)
+            queryset = queryset.filter(start_date__lte=now, end_date__gte=now)
+            
+        elif status_filter == 'past':
+            # Solo eventos que ya terminaron
+            queryset = queryset.filter(end_date__lt=now)
+        
+        # Filtrar por categoría si se proporciona
+        category_filter = self.request.GET.get('category', None)
+        if category_filter:
+            queryset = queryset.filter(category__name__icontains=category_filter)
+        
+        # Ordenar: eventos futuros por fecha ASC, pasados por fecha DESC
+        if status_filter == 'upcoming':
+            return queryset.order_by('start_date')  # Próximos primero los más cercanos
+        else:
+            return queryset.order_by('-start_date')  # Más recientes primero
 
 
 class PublicEventDetailView(generics.RetrieveAPIView):
