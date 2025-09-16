@@ -92,7 +92,7 @@ def notify_whatsapp_successful_registration(client):
     try:
         # Verificar si la funcionalidad está habilitada
         import os
-        if not os.getenv('ENABLE_WHATSAPP_REGISTRATION', 'false').lower() == 'true':
+        if not os.getenv('ENABLE_WHATSAPP_REGISTRATION', 'true').lower() == 'true':
             logger.info(f"WhatsApp de registro deshabilitado - cliente {client.id}")
             return
         

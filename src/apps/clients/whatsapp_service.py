@@ -380,6 +380,9 @@ class WhatsAppOTPService:
             # Template de registro exitoso - requiere 1 parámetro para {{1}}
             template_name = os.getenv('WHATSAPP_SUCCESSFUL_REGISTRATION_TEMPLATE', 'registro_exitoso')
             
+            # Usar código de idioma específico de región (común causa del error 132001)
+            language_code = os.getenv('WHATSAPP_LANGUAGE_CODE', 'es_MX')  # México por defecto
+            
             payload = {
                 "messaging_product": "whatsapp",
                 "to": formatted_phone,
@@ -387,7 +390,8 @@ class WhatsAppOTPService:
                 "template": {
                     "name": template_name,
                     "language": {
-                        "code": "es"
+                        "code": language_code,
+                        "policy": "deterministic"
                     },
                     "components": [
                         {
