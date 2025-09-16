@@ -122,11 +122,19 @@ class Event(BaseModel):
         
         # Verificar logros requeridos
         if self.required_achievements.exists():
-            client_achievements = client.achievements.all()
-            required_achievements = self.required_achievements.all()
+            # AUTO-ASIGNACIÓN: Verificar y asignar achievements automáticamente antes de validar
+            from apps.clients.signals import check_and_assign_achievements
+            try:
+                check_and_assign_achievements(client)
+            except Exception:
+                pass  # Si falla la auto-asignación, continuar con validación normal
             
-            if not any(achievement in client_achievements for achievement in required_achievements):
-                achievement_names = [str(achievement) for achievement in required_achievements]
+            # Refrescar achievements después de la auto-asignación
+            client_achievements = client.achievements.filter(deleted=False).values_list('achievement', flat=True)
+            required_achievement_ids = self.required_achievements.values_list('id', flat=True)
+            
+            if not any(req_id in client_achievements for req_id in required_achievement_ids):
+                achievement_names = [str(achievement) for achievement in self.required_achievements.all()]
                 return False, f"Necesitas uno de estos logros: {', '.join(achievement_names)}"
         
         return True, "Puedes registrarte"
