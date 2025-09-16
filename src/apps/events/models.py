@@ -1,6 +1,10 @@
 from django.db import models
 from apps.core.models import BaseModel
 from apps.clients.models import Clients, Achievement
+import os
+from PIL import Image
+from django.core.files.base import ContentFile
+from io import BytesIO
 
 
 class EventCategory(BaseModel):
@@ -33,7 +37,7 @@ class Event(BaseModel):
     title = models.CharField(max_length=200, help_text="Título del evento")
     description = models.TextField(help_text="Descripción detallada del evento")
     category = models.ForeignKey(EventCategory, on_delete=models.CASCADE, related_name='events')
-    image = models.ImageField(upload_to='events/', blank=True, null=True, help_text="Imagen del evento")
+    image = models.ImageField(upload_to='events/', blank=True, null=True, help_text="Imagen del evento (se convertirá automáticamente a WebP)")
     
     # Fechas y ubicación
     start_date = models.DateTimeField(help_text="Fecha y hora de inicio")
@@ -119,6 +123,41 @@ class Event(BaseModel):
         """Número de participantes registrados aprobados"""
         return self.registrations.filter(status='approved').count()
     
+    def save(self, *args, **kwargs):
+        """Convertir imagen a WebP automáticamente al guardar"""
+        if self.image:
+            self.image = self._convert_to_webp(self.image)
+        super().save(*args, **kwargs)
+    
+    def _convert_to_webp(self, image_field):
+        """Convierte la imagen a formato WebP"""
+        try:
+            # Abrir la imagen
+            image = Image.open(image_field)
+            
+            # Convertir a RGB si es necesario (WebP no soporta transparencia en modo P)
+            if image.mode in ('RGBA', 'LA', 'P'):
+                image = image.convert('RGB')
+            
+            # Crear buffer para la imagen WebP
+            webp_buffer = BytesIO()
+            
+            # Guardar como WebP con calidad optimizada
+            image.save(webp_buffer, format='WebP', quality=85, optimize=True)
+            webp_buffer.seek(0)
+            
+            # Generar nuevo nombre de archivo
+            original_name = os.path.splitext(image_field.name)[0]
+            webp_name = f"{original_name}.webp"
+            
+            # Crear nuevo ContentFile
+            return ContentFile(webp_buffer.getvalue(), name=webp_name)
+            
+        except Exception as e:
+            # Si hay error, retornar imagen original
+            print(f"Error convirtiendo imagen a WebP: {e}")
+            return image_field
+
     @property
     def available_spots(self):
         """Cupos disponibles"""
