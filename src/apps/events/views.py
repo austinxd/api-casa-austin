@@ -292,8 +292,8 @@ def check_event_eligibility(request, event_id):
                 'current_points': float(client.points_balance),
                 'required_points': float(event.min_points_required),
                 'client_achievements': [
-                    {'id': ach.id, 'name': ach.name} 
-                    for ach in client.achievements.all()
+                    {'id': ach.achievement.id, 'name': ach.achievement.name} 
+                    for ach in client.achievements.filter(deleted=False).select_related('achievement')
                 ],
                 'required_achievements': [
                     {'id': ach.id, 'name': ach.name}
