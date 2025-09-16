@@ -32,14 +32,14 @@ class PublicEventListView(generics.ListAPIView):
     permission_classes = [AllowAny]
     
     def get_queryset(self):
-        now = timezone.now()
+        # Mostrar TODOS los eventos publicados (pasados, en curso y futuros)
+        # Los eventos se ordenarán por fecha de inicio (más recientes primero)
         return Event.objects.filter(
             deleted=False,
             is_active=True,
             is_public=True,
-            status=Event.EventStatus.PUBLISHED,
-            end_date__gte=now  # Eventos que aún no han terminado (futuros + en curso)
-        ).select_related('category')
+            status=Event.EventStatus.PUBLISHED
+        ).select_related('category').order_by('-start_date')
 
 
 class PublicEventDetailView(generics.RetrieveAPIView):

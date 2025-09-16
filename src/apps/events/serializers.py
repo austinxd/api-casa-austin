@@ -26,6 +26,7 @@ class EventListSerializer(serializers.ModelSerializer):
     can_register_status = serializers.SerializerMethodField()
     registered_count = serializers.ReadOnlyField()
     available_spots = serializers.ReadOnlyField()
+    event_status = serializers.SerializerMethodField()
     
     class Meta:
         model = Event
@@ -33,7 +34,7 @@ class EventListSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'category', 'image',
             'start_date', 'end_date', 'registration_deadline', 'location',
             'max_participants', 'registered_count', 'available_spots',
-            'min_points_required', 'can_register_status'
+            'min_points_required', 'can_register_status', 'event_status'
         ]
     
     def get_can_register_status(self, obj):
@@ -43,6 +44,18 @@ class EventListSerializer(serializers.ModelSerializer):
             'can_register': can_register,
             'message': message
         }
+    
+    def get_event_status(self, obj):
+        """Clasificar evento como: upcoming, ongoing, past"""
+        from django.utils import timezone
+        now = timezone.now()
+        
+        if obj.start_date > now:
+            return 'upcoming'  # Próximo
+        elif obj.start_date <= now <= obj.end_date:
+            return 'ongoing'   # En curso
+        else:
+            return 'past'      # Pasado
 
 
 class EventDetailSerializer(serializers.ModelSerializer):
