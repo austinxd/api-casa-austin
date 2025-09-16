@@ -115,7 +115,8 @@ LOCAL_APPS = [
     'apps.property',
     'apps.reservation',
     'apps.dashboard',
-    'apps.staff'
+    'apps.staff',
+    'apps.events'
 ]
 
 THIRD_APPS = [
