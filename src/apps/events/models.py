@@ -1,6 +1,7 @@
 from django.db import models
 from apps.core.models import BaseModel
 from apps.clients.models import Clients, Achievement
+from apps.property.models import Property
 import os
 from PIL import Image
 from django.core.files.base import ContentFile
@@ -63,6 +64,17 @@ class Event(BaseModel):
         decimal_places=2, 
         default=0, 
         help_text="Puntos mínimos requeridos para registrarse"
+    )
+    
+    # 🏠 Propiedad asociada (para sorteos de estadías)
+    property_location = models.ForeignKey(
+        Property,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='events',
+        help_text="Propiedad asociada (solo para sorteos de estadías/noches gratis)",
+        verbose_name="Propiedad"
     )
     
     class Meta:

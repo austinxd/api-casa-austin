@@ -11,7 +11,7 @@ class EventCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ['title', 'category', 'status', 'start_date', 'end_date', 'max_participants', 'is_public', 'is_active']
+    list_display = ['title', 'category', 'property_location', 'status', 'start_date', 'end_date', 'max_participants', 'is_public', 'is_active']
     list_filter = ['category', 'status', 'is_public', 'is_active', 'start_date']
     search_fields = ['title', 'description']
     filter_horizontal = ['required_achievements']
@@ -30,6 +30,10 @@ class EventAdmin(admin.ModelAdmin):
         }),
         ('Restricciones', {
             'fields': ('min_points_required', 'required_achievements')
+        }),
+        ('Propiedad (solo para estadías)', {
+            'fields': ('property_location',),
+            'description': 'Seleccionar propiedad solo cuando el evento sea sorteo de estadía/noche gratis'
         }),
         ('Timestamps', {
             'fields': ('created', 'updated'),

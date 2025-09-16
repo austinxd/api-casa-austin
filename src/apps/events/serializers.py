@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import EventCategory, Event, EventRegistration
 from apps.clients.models import Achievement
+from apps.property.models import Property
 
 
 class EventCategorySerializer(serializers.ModelSerializer):
@@ -19,10 +20,19 @@ class AchievementBasicSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description', 'icon']
 
 
+class PropertyBasicSerializer(serializers.ModelSerializer):
+    """Serializer básico para propiedades asociadas a eventos"""
+    
+    class Meta:
+        model = Property
+        fields = ['id', 'name', 'titulo', 'location', 'dormitorios', 'banos', 'capacity_max', 'precio_desde']
+
+
 class EventListSerializer(serializers.ModelSerializer):
     """Serializer para listado público de eventos"""
     
     category = EventCategorySerializer(read_only=True)
+    property = PropertyBasicSerializer(source='property_location', read_only=True)
     can_register_status = serializers.SerializerMethodField()
     registered_count = serializers.ReadOnlyField()
     available_spots = serializers.ReadOnlyField()
@@ -31,7 +41,7 @@ class EventListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = [
-            'id', 'title', 'description', 'category', 'image', 'thumbnail',
+            'id', 'title', 'description', 'category', 'property', 'image', 'thumbnail',
             'start_date', 'end_date', 'registration_deadline', 'location',
             'max_participants', 'registered_count', 'available_spots',
             'min_points_required', 'can_register_status', 'event_status'
