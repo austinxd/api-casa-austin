@@ -377,11 +377,14 @@ class WhatsAppOTPService:
                 'Content-Type': 'application/json'
             }
             
-            # Template de registro exitoso - requiere 1 parámetro para {{1}}
+            # Template de registro exitoso - configurar según si tiene parámetros o no
             template_name = os.getenv('WHATSAPP_SUCCESSFUL_REGISTRATION_TEMPLATE', 'registro_exitoso')
             
             # Usar código de idioma específico de región (común causa del error 132001)
             language_code = os.getenv('WHATSAPP_LANGUAGE_CODE', 'es_MX')  # México por defecto
+            
+            # Verificar si la plantilla requiere parámetros
+            template_has_params = os.getenv('WHATSAPP_REGISTRATION_TEMPLATE_HAS_PARAMS', 'true').lower() == 'true'
             
             payload = {
                 "messaging_product": "whatsapp",
@@ -392,20 +395,23 @@ class WhatsAppOTPService:
                     "language": {
                         "code": language_code,
                         "policy": "deterministic"
-                    },
-                    "components": [
-                        {
-                            "type": "body",
-                            "parameters": [
-                                {
-                                    "type": "text",
-                                    "text": client_name
-                                }
-                            ]
-                        }
-                    ]
+                    }
                 }
             }
+            
+            # Solo agregar parámetros si la plantilla los requiere
+            if template_has_params:
+                payload["template"]["components"] = [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {
+                                "type": "text",
+                                "text": client_name
+                            }
+                        ]
+                    }
+                ]
             
             # Log detallado para debug
             logger.info(f"WhatsApp Successful Registration Template: {template_name}")
