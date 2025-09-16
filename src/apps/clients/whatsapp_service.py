@@ -351,44 +351,65 @@ class WhatsAppOTPService:
             logger.error(f"Error al enviar WhatsApp cancelación a {phone_number}: {str(e)}")
             return False
 
-    def send_successful_registration_template(self, phone_number, client_name):
+    def send_template_auto(self, template_name, phone_number, candidate_params=None):
         """
-        Envía mensaje de registro exitoso por WhatsApp usando template
-        La plantilla debe usar {{1}} para el primer nombre del cliente
+        Envía template de WhatsApp con auto-detección de parámetros e idioma
+        Intenta automáticamente con/sin parámetros y diferentes idiomas hasta que funcione
         
         Args:
-            phone_number (str): Número de teléfono destino
-            client_name (str): Primer nombre del cliente para la variable {{1}}
+            template_name (str): Nombre del template
+            phone_number (str): Número de teléfono destino  
+            candidate_params (list): Lista de parámetros candidatos (opcional)
             
         Returns:
-            bool: True si se envió exitosamente, False en caso contrario
+            bool: True si se envió exitosamente
         """
         if not self.enabled:
             logger.error("Servicio WhatsApp no configurado correctamente")
             return False
         
         try:
-            # Formatear número de teléfono
             formatted_phone = self.format_phone_number(phone_number)
-            logger.info(f"Enviando mensaje de registro exitoso por WhatsApp a: {formatted_phone}")
+            logger.info(f"Enviando template {template_name} a {formatted_phone}")
             
             headers = {
                 'Authorization': f'Bearer {self.access_token}',
                 'Content-Type': 'application/json'
             }
             
-            # Template de registro exitoso - configurar según si tiene parámetros o no
-            template_name = os.getenv('WHATSAPP_SUCCESSFUL_REGISTRATION_TEMPLATE', 'registro_exitoso')
+            # Idiomas a probar en orden
+            language_codes = ["es", "es_MX", "es_ES", "en_US"]
+            candidate_params = candidate_params or []
             
-            # Usar código de idioma específico de región (común causa del error 132001)
-            language_code = os.getenv('WHATSAPP_LANGUAGE_CODE', 'es_MX')  # México por defecto
+            for language_code in language_codes:
+                # Intentar primero con parámetros (si los hay)
+                if candidate_params:
+                    success = self._try_send_template(
+                        headers, formatted_phone, template_name, language_code, candidate_params
+                    )
+                    if success:
+                        return True
+                
+                # Intentar sin parámetros
+                success = self._try_send_template(
+                    headers, formatted_phone, template_name, language_code, []
+                )
+                if success:
+                    return True
+                    
+            logger.error(f"No se pudo enviar template {template_name} después de todos los intentos")
+            return False
             
-            # Verificar si la plantilla requiere parámetros
-            template_has_params = os.getenv('WHATSAPP_REGISTRATION_TEMPLATE_HAS_PARAMS', 'true').lower() == 'true'
-            
+        except Exception as e:
+            logger.error(f"Error enviando template {template_name} a {phone_number}: {str(e)}")
+            return False
+    
+    def _try_send_template(self, headers, phone_number, template_name, language_code, params):
+        """Intenta enviar template con configuración específica"""
+        try:
             payload = {
                 "messaging_product": "whatsapp",
-                "to": formatted_phone,
+                "to": phone_number,
                 "type": "template",
                 "template": {
                     "name": template_name,
@@ -399,40 +420,43 @@ class WhatsAppOTPService:
                 }
             }
             
-            # Solo agregar parámetros si la plantilla los requiere
-            if template_has_params:
-                payload["template"]["components"] = [
-                    {
-                        "type": "body",
-                        "parameters": [
-                            {
-                                "type": "text",
-                                "text": client_name
-                            }
-                        ]
-                    }
-                ]
+            # Agregar parámetros solo si se proporcionan
+            if params:
+                payload["template"]["components"] = [{
+                    "type": "body",
+                    "parameters": [{"type": "text", "text": str(param)} for param in params]
+                }]
             
-            # Log detallado para debug
-            logger.info(f"WhatsApp Successful Registration Template: {template_name}")
-            logger.info(f"Payload: {payload}")
-            
+            logger.info(f"Probando {template_name} con idioma {language_code}, parámetros: {len(params)}")
             response = requests.post(self.api_url, json=payload, headers=headers)
             
-            logger.info(f"WhatsApp API Response Status: {response.status_code}")
-            logger.info(f"WhatsApp API Response Body: {response.text}")
-            
             if response.status_code == 200:
-                response_data = response.json()
-                logger.info(f"WhatsApp registro exitoso enviado exitosamente a {formatted_phone}. Response: {response_data}")
+                logger.info(f"✅ Template {template_name} enviado exitosamente ({language_code}, {len(params)} params)")
                 return True
             else:
-                logger.error(f"Error al enviar WhatsApp registro exitoso a {formatted_phone}. Status: {response.status_code}, Response: {response.text}")
+                response_data = response.json()
+                error_msg = response_data.get('error', {}).get('message', '')
+                logger.debug(f"❌ Fallo {template_name} ({language_code}, {len(params)} params): {error_msg}")
                 return False
                 
         except Exception as e:
-            logger.error(f"Error al enviar WhatsApp registro exitoso a {phone_number}: {str(e)}")
+            logger.debug(f"❌ Excepción enviando template: {str(e)}")
             return False
+
+    def send_successful_registration_template(self, phone_number, client_name):
+        """
+        Envía mensaje de registro exitoso - AUTO-DETECTA parámetros e idioma
+        Solo requiere configurar WHATSAPP_SUCCESSFUL_REGISTRATION_TEMPLATE
+        
+        Args:
+            phone_number (str): Número de teléfono destino
+            client_name (str): Primer nombre del cliente
+            
+        Returns:
+            bool: True si se envió exitosamente
+        """
+        template_name = os.getenv('WHATSAPP_SUCCESSFUL_REGISTRATION_TEMPLATE', 'registro_exitoso')
+        return self.send_template_auto(template_name, phone_number, [client_name])
 
     def send_otp_text_message(self, phone_number, otp_code):
         """

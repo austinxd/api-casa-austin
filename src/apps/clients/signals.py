@@ -90,13 +90,7 @@ def notify_password_setup(client):
 def notify_whatsapp_successful_registration(client):
     """Envía notificación de WhatsApp al cliente cuando se registra exitosamente"""
     try:
-        # Verificar si la funcionalidad está habilitada
-        import os
-        if not os.getenv('ENABLE_WHATSAPP_REGISTRATION', 'true').lower() == 'true':
-            logger.info(f"WhatsApp de registro deshabilitado - cliente {client.id}")
-            return
-        
-        # Solo el primer nombre para la plantilla WhatsApp {{1}}
+        # Solo el primer nombre para la plantilla WhatsApp
         first_name = client.first_name.split()[0] if client.first_name else "Cliente"
         
         if client.tel_number:
