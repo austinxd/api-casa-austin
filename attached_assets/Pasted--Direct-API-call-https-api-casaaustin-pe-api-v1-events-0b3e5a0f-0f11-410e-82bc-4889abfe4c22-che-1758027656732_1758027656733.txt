@@ -1,0 +1,96 @@
+🌐 Direct API call: https://api.casaaustin.pe/api/v1/events/0b3e5a0f-0f11-410e-82bc-4889abfe4c22/check-eligibility/ with headers: {Accept: 'application/json', Content-Type: 'application/json', Origin: 'https://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.replit.dev', Referer: 'https://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.replit.dev/eventos', Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2…DYifQ.L2CnFYqxeepMozBULsbDKA42zguNcrxvpbJNojkoXuY'}
+api.ts:33  GET https://api.casaaustin.pe/api/v1/events/0b3e5a0f-0f11-410e-82bc-4889abfe4c22/check-eligibility/ 500 (Internal Server Error)
+apiRequest @ api.ts:33
+checkEventEligibility @ api.ts:996
+handleRegister @ eventos.tsx:208
+onClick @ eventos.tsx:461
+callCallback2 @ chunk-RPCDYKBN.js?v=0422518f:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=0422518f:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=0422518f:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=0422518f:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=0422518f:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=0422518f:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=0422518f:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=0422518f:7051
+(anónimas) @ chunk-RPCDYKBN.js?v=0422518f:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=0422518f:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=0422518f:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=0422518f:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=0422518f:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=0422518f:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=0422518f:5449Comprende este error
+api.ts:1009 Error checking eligibility for event 0b3e5a0f-0f11-410e-82bc-4889abfe4c22: Error: Error checking eligibility: 500 
+    at checkEventEligibility (api.ts:1004:13)
+    at async handleRegister (eventos.tsx:208:27)
+checkEventEligibility @ api.ts:1009
+await in checkEventEligibility
+handleRegister @ eventos.tsx:208
+onClick @ eventos.tsx:461
+callCallback2 @ chunk-RPCDYKBN.js?v=0422518f:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=0422518f:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=0422518f:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=0422518f:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=0422518f:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=0422518f:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=0422518f:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=0422518f:7051
+(anónimas) @ chunk-RPCDYKBN.js?v=0422518f:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=0422518f:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=0422518f:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=0422518f:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=0422518f:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=0422518f:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=0422518f:5449Comprende este error
+eventos.tsx:219 Could not check eligibility: Error: Error checking eligibility: 500 
+    at checkEventEligibility (api.ts:1004:13)
+    at async handleRegister (eventos.tsx:208:27)
+handleRegister @ eventos.tsx:219
+await in handleRegister
+onClick @ eventos.tsx:461
+callCallback2 @ chunk-RPCDYKBN.js?v=0422518f:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=0422518f:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=0422518f:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=0422518f:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=0422518f:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=0422518f:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=0422518f:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=0422518f:7051
+(anónimas) @ chunk-RPCDYKBN.js?v=0422518f:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=0422518f:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=0422518f:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=0422518f:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=0422518f:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=0422518f:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=0422518f:5449Comprende esta advertencia
+api.ts:32 🌐 Direct API call: https://api.casaaustin.pe/api/v1/events/0b3e5a0f-0f11-410e-82bc-4889abfe4c22/register/ with headers: {Accept: 'application/json', Content-Type: 'application/json', Origin: 'https://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.replit.dev', Referer: 'https://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.replit.dev/eventos', Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2…DYifQ.L2CnFYqxeepMozBULsbDKA42zguNcrxvpbJNojkoXuY'}
+api.ts:33  POST https://api.casaaustin.pe/api/v1/events/0b3e5a0f-0f11-410e-82bc-4889abfe4c22/register/ 400 (Bad Request)
+apiRequest @ api.ts:33
+registerForEvent @ api.ts:919
+mutationFn @ eventos.tsx:98
+fn @ @tanstack_react-query.js?v=0422518f:1189
+run @ @tanstack_react-query.js?v=0422518f:494
+start @ @tanstack_react-query.js?v=0422518f:536
+execute @ @tanstack_react-query.js?v=0422518f:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=0422518f:2630
+(anónimas) @ @tanstack_react-query.js?v=0422518f:3295
+handleRegister @ eventos.tsx:222
+await in handleRegister
+onClick @ eventos.tsx:461
+callCallback2 @ chunk-RPCDYKBN.js?v=0422518f:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=0422518f:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=0422518f:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=0422518f:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=0422518f:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=0422518f:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=0422518f:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=0422518f:7051
+(anónimas) @ chunk-RPCDYKBN.js?v=0422518f:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=0422518f:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=0422518f:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=0422518f:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=0422518f:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=0422518f:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=0422518f:5449Comprende este error
+api.ts:937 Error registering for event 0b3e5a0f-0f11-410e-82bc-4889abfe4c22: Error: Necesitas uno de estos logros: Curioso (0 reservas, 0 referidos, 0 reservas de referidos), Cliente Casa Austin (1 reservas, 0 referidos, 0 reservas de referidos), Cliente Recurrente (3 reservas, 0 referidos, 0 reservas de referidos), Cliente Premium (3 reservas, 1 referidos, 1 reservas de referidos), Austin Legend (10 reservas, 3 referidos, 5 reservas de referidos)
+    at registerForEvent (api.ts:932:13)
