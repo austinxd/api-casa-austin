@@ -11,8 +11,8 @@ class EventCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ['title', 'category', 'start_date', 'end_date', 'max_participants', 'is_public', 'is_active']
-    list_filter = ['category', 'is_public', 'is_active', 'start_date']
+    list_display = ['title', 'category', 'status', 'start_date', 'end_date', 'max_participants', 'is_public', 'is_active']
+    list_filter = ['category', 'status', 'is_public', 'is_active', 'start_date']
     search_fields = ['title', 'description']
     filter_horizontal = ['required_achievements']
     readonly_fields = ['created', 'updated']
@@ -23,13 +23,13 @@ class EventAdmin(admin.ModelAdmin):
             'fields': ('title', 'description', 'category', 'image')
         }),
         ('Fechas y Ubicación', {
-            'fields': ('start_date', 'end_date', 'location')
+            'fields': ('start_date', 'end_date', 'registration_deadline', 'location')
         }),
         ('Configuración', {
-            'fields': ('max_participants', 'is_public', 'is_active')
+            'fields': ('status', 'max_participants', 'is_public', 'is_active')
         }),
         ('Restricciones', {
-            'fields': ('required_achievements',)
+            'fields': ('min_points_required', 'required_achievements')
         }),
         ('Timestamps', {
             'fields': ('created', 'updated'),
