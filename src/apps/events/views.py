@@ -125,7 +125,33 @@ class EventRegistrationView(APIView):
                     'message': message
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Crear registro
+            # Verificar si ya existe un registro (incluyendo cancelados)
+            existing_registration = EventRegistration.objects.filter(
+                event=event,
+                client=client,
+                deleted=False
+            ).first()
+            
+            if existing_registration:
+                # Reutilizar registro existente si está cancelado o rechazado
+                if existing_registration.status in ['cancelled', 'rejected']:
+                    existing_registration.status = EventRegistration.RegistrationStatus.APPROVED
+                    existing_registration.registration_date = timezone.now()
+                    existing_registration.save()
+                    
+                    return Response({
+                        'success': True,
+                        'message': 'Registro reactivado exitosamente',
+                        'registration_id': existing_registration.id
+                    }, status=status.HTTP_201_CREATED)
+                else:
+                    # Si está pending o approved, no debería llegar aquí por client_can_register
+                    return Response({
+                        'success': False,
+                        'message': 'Ya tienes un registro activo para este evento'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Crear nuevo registro si no existe
             serializer = EventRegistrationCreateSerializer(
                 data=request.data,
                 context={'event': event, 'client': client}
