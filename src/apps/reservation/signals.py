@@ -400,7 +400,14 @@ def reorganize_all_existing_tasks():
                 logger.error(f"Error actualizando prioridad de tarea {task.id}: {e}")
         
         # PASO 2: Reorganizar tareas por fecha, priorizando urgentes y altas
-        urgent_and_high_tasks = all_cleaning_tasks.filter(priority__in=['urgent', 'high']).order_by('scheduled_date')
+        # IMPORTANTE: Re-consultar tareas después de actualizar prioridades
+        urgent_and_high_tasks = WorkTask.objects.filter(
+            task_type='checkout_cleaning',
+            scheduled_date__gte=timezone.now().date(),
+            status__in=['pending', 'assigned'],
+            deleted=False,
+            priority__in=['urgent', 'high']  # Con prioridades ACTUALIZADAS
+        ).select_related('staff_member', 'building_property', 'reservation').order_by('scheduled_date')
         
         for task in urgent_and_high_tasks:
             try:

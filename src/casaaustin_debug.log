@@ -5417,3 +5417,28 @@ INFO 2025-09-16 19:43:01,771 signals 3584 139772613467328    • Tareas evaluada
 INFO 2025-09-16 19:43:01,772 signals 3584 139772613467328    • Prioridades actualizadas: 1
 INFO 2025-09-16 19:43:01,772 signals 3584 139772613467328    • Preemptions ejecutadas: 0
 INFO 2025-09-16 19:43:01,772 signals 3584 139772613467328    • Reasignaciones: 0
+INFO 2025-09-16 19:59:08,715 signals 3919 140553745050816 🧠 INICIANDO reorganización completa de todas las tareas existentes...
+INFO 2025-09-16 19:59:08,717 signals 3919 140553745050816 📊 Evaluando 10 tareas existentes...
+INFO 2025-09-16 19:59:08,764 signals 3919 140553745050816 🚨 TAREA URGENTE: Limpieza checkout - Casa 1 - Check-in MISMO DÍA
+DEBUG 2025-09-16 19:59:08,766 signals 3919 140553745050816 📅 TAREA MEDIA PRIORIDAD: Limpieza checkout - Casa 2 - Check-in en 3 día(s)
+DEBUG 2025-09-16 19:59:08,769 signals 3919 140553745050816 📅 TAREA MEDIA PRIORIDAD: Limpieza diferida - Casa 1 - Check-in en 2 día(s)
+DEBUG 2025-09-16 19:59:08,772 signals 3919 140553745050816 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa 3 - Sin próximo check-in
+DEBUG 2025-09-16 19:59:08,774 signals 3919 140553745050816 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa 4 - Sin próximo check-in
+DEBUG 2025-09-16 19:59:08,776 signals 3919 140553745050816 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa 1 - Sin próximo check-in
+INFO 2025-09-16 19:59:08,778 signals 3919 140553745050816 🔥 TAREA ALTA PRIORIDAD: Limpieza checkout - casa 1 - Check-in en 1 día(s)
+DEBUG 2025-09-16 19:59:08,780 signals 3919 140553745050816 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa 2 - Sin próximo check-in
+DEBUG 2025-09-16 19:59:08,782 signals 3919 140553745050816 📅 TAREA MEDIA PRIORIDAD: Limpieza checkout - casa 1 - Check-in en 2 día(s)
+DEBUG 2025-09-16 19:59:08,785 signals 3919 140553745050816 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - casa 1 - Sin próximo check-in
+DEBUG 2025-09-16 19:59:08,796 signals 3919 140553745050816 Personal Luis puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+DEBUG 2025-09-16 19:59:08,802 signals 3919 140553745050816 Personal Maria puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+INFO 2025-09-16 19:59:08,804 signals 3919 140553745050816 👷 PERSONAL SELECCIONADO para 2025-09-16:
+INFO 2025-09-16 19:59:08,805 signals 3919 140553745050816    ✅ Luis Tantin (carga actual: 1 tareas)
+DEBUG 2025-09-16 19:59:08,810 signals 3919 140553745050816 Personal Luis puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+DEBUG 2025-09-16 19:59:08,817 signals 3919 140553745050816 Personal Maria puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+INFO 2025-09-16 19:59:08,819 signals 3919 140553745050816 👷 PERSONAL SELECCIONADO para 2025-09-20:
+INFO 2025-09-16 19:59:08,819 signals 3919 140553745050816    ✅ Luis Tantin (carga actual: 1 tareas)
+INFO 2025-09-16 19:59:08,822 signals 3919 140553745050816 🎯 REORGANIZACIÓN COMPLETA FINALIZADA:
+INFO 2025-09-16 19:59:08,823 signals 3919 140553745050816    • Tareas evaluadas: 10
+INFO 2025-09-16 19:59:08,823 signals 3919 140553745050816    • Prioridades actualizadas: 0
+INFO 2025-09-16 19:59:08,823 signals 3919 140553745050816    • Preemptions ejecutadas: 0
+INFO 2025-09-16 19:59:08,824 signals 3919 140553745050816    • Reasignaciones: 0
