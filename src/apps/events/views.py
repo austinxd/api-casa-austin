@@ -311,3 +311,8 @@ def check_event_eligibility(request, event_id):
             'success': False,
             'message': 'Token inválido'
         }, status=status.HTTP_401_UNAUTHORIZED)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'Error interno: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

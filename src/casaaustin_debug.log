@@ -5254,3 +5254,33 @@ INFO 2025-09-16 02:54:39,817 payment_views 2100 139899225861312 🔧 MERCADOPAGO
 INFO 2025-09-16 02:54:39,820 payment_views 2100 139899225861312 🔧 MERCADOPAGO INIT - Sandbox: True
 INFO 2025-09-16 02:54:39,843 payment_views 2100 139899225861312 🔧 MERCADOPAGO INIT - Access Token length: 72
 INFO 2025-09-16 02:54:39,844 payment_views 2100 139899225861312 🔧 MERCADOPAGO INIT - Sandbox: True
+DEBUG 2025-09-16 12:39:29,262 signals 6427 140661275512000 Nuevo cliente creado: Clients object (c401571f-47e4-4d40-bf2a-5c7bca23c263)
+DEBUG 2025-09-16 12:39:29,269 signals 6427 140661275512000 Cliente actualizado: Clients object (c401571f-47e4-4d40-bf2a-5c7bca23c263)
+WARNING 2025-09-16 12:39:29,391 signals 6427 140661275512000 Error al actualizar audiencia de cliente c401571f-47e4-4d40-bf2a-5c7bca23c263. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"Ahts6XBKlz2-gVBWhb1vfxw"}}
+DEBUG 2025-09-16 12:39:29,396 signals 6427 140661275512000 Código de referido generado para cliente c401571f-47e4-4d40-bf2a-5c7bca23c263: CLI027
+WARNING 2025-09-16 12:39:29,506 signals 6427 140661275512000 Error al actualizar audiencia de cliente c401571f-47e4-4d40-bf2a-5c7bca23c263. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"AYejhiK0441EmnsNRVvKo0M"}}
+DEBUG 2025-09-16 12:39:29,508 telegram_notifier 6427 140661275512000 Preparando para enviar mensaje: 🆕 **NUEVO CLIENTE REGISTRADO** 🆕
+👤 Cliente: Cliente Prueba
+📄 Documento: Documento Nacional de Identidad: 12345678
+📧 Email: cliente@test.com
+📱 Teléfono: ++51987654321
+🔑 Contraseña: ❌ Pendiente
+🔗 Código referido: CLI027
+DEBUG 2025-09-16 12:39:29,509 telegram_notifier 6427 140661275512000 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-16 12:39:30,156 telegram_notifier 6427 140661275512000 Mensaje enviado.
+DEBUG 2025-09-16 12:39:30,156 telegram_notifier 6427 140661275512000 Mensaje enviado a través del executor.
+DEBUG 2025-09-16 12:39:30,157 signals 6427 140661275512000 Notificación enviada para nuevo cliente: c401571f-47e4-4d40-bf2a-5c7bca23c263
+INFO 2025-09-16 12:39:30,159 signals 6427 140661275512000 Enviando WhatsApp de bienvenida a +51987654321 para cliente c401571f-47e4-4d40-bf2a-5c7bca23c263
+INFO 2025-09-16 12:39:30,159 whatsapp_service 6427 140661275512000 Enviando template registro_exitoso a 51987654321
+INFO 2025-09-16 12:39:30,159 whatsapp_service 6427 140661275512000 Probando registro_exitoso con idioma es, parámetros: 1 (header)
+DEBUG 2025-09-16 12:39:31,333 whatsapp_service 6427 140661275512000 ❌ Fallo registro_exitoso (es, 1 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-16 12:39:31,335 whatsapp_service 6427 140661275512000 Probando registro_exitoso con idioma es, parámetros: 0 (sin params)
+DEBUG 2025-09-16 12:39:31,655 whatsapp_service 6427 140661275512000 ❌ Fallo registro_exitoso (es, 0 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-16 12:39:31,658 whatsapp_service 6427 140661275512000 Probando registro_exitoso con idioma es, parámetros: 2 (header)
+DEBUG 2025-09-16 12:39:32,012 whatsapp_service 6427 140661275512000 ❌ Fallo registro_exitoso (es, 2 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-16 12:39:32,014 whatsapp_service 6427 140661275512000 Probando registro_exitoso con idioma es, parámetros: 3 (header)
+DEBUG 2025-09-16 12:39:32,383 whatsapp_service 6427 140661275512000 ❌ Fallo registro_exitoso (es, 3 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-16 12:39:32,384 whatsapp_service 6427 140661275512000 Probando registro_exitoso con idioma es, parámetros: 4 (header)
+DEBUG 2025-09-16 12:39:32,678 whatsapp_service 6427 140661275512000 ❌ Fallo registro_exitoso (es, 4 params): (#132001) Template name does not exist in the translation
+ERROR 2025-09-16 12:39:32,679 whatsapp_service 6427 140661275512000 No se pudo enviar template registro_exitoso después de probar 0-4 parámetros
+ERROR 2025-09-16 12:39:32,680 signals 6427 140661275512000 Error al enviar WhatsApp de bienvenida para cliente c401571f-47e4-4d40-bf2a-5c7bca23c263
