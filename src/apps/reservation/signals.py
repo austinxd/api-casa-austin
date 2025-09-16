@@ -1116,9 +1116,9 @@ def find_best_cleaning_staff(scheduled_date, property_obj, reservation, task=Non
         return None
     
     try:
-        # Buscar personal de limpieza activo
+        # Buscar personal de limpieza activo (incluyendo 'both' que pueden limpiar)
         cleaning_staff = StaffMember.objects.filter(
-            staff_type='cleaning',
+            staff_type__in=['cleaning', 'both'],  # Incluir personal que puede limpiar
             status='active',
             deleted=False
         )

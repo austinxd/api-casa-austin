@@ -5320,3 +5320,41 @@ INFO 2025-09-16 19:22:05,531 signals 2425 140445533568192    • Tareas evaluada
 INFO 2025-09-16 19:22:05,532 signals 2425 140445533568192    • Prioridades actualizadas: 7
 INFO 2025-09-16 19:22:05,532 signals 2425 140445533568192    • Preemptions ejecutadas: 0
 INFO 2025-09-16 19:22:05,532 signals 2425 140445533568192    • Reasignaciones: 0
+DEBUG 2025-09-16 19:29:02,875 signals 2800 139816716053696 Reserva de 4 huéspedes: personal Maria limitado a 1 propiedad
+DEBUG 2025-09-16 19:29:02,876 signals 2800 139816716053696 Personal Maria ya tiene 1 tareas (máximo 1)
+WARNING 2025-09-16 19:29:02,876 signals 2800 139816716053696 No available cleaning staff for 2025-09-18
+INFO 2025-09-16 19:30:14,937 signals 2901 140061664521408 🧠 INICIANDO reorganización completa de todas las tareas existentes...
+INFO 2025-09-16 19:30:14,941 signals 2901 140061664521408 📊 Evaluando 10 tareas existentes...
+INFO 2025-09-16 19:30:14,982 signals 2901 140061664521408 🚨 TAREA URGENTE: Limpieza checkout - Casa 1 - Check-in MISMO DÍA
+DEBUG 2025-09-16 19:30:14,985 signals 2901 140061664521408 📅 TAREA MEDIA PRIORIDAD: Limpieza checkout - Casa 2 - Check-in en 3 día(s)
+DEBUG 2025-09-16 19:30:14,987 signals 2901 140061664521408 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa 3 - Sin próximo check-in
+DEBUG 2025-09-16 19:30:14,990 signals 2901 140061664521408 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa 4 - Sin próximo check-in
+INFO 2025-09-16 19:30:14,993 signals 2901 140061664521408 🚨 TAREA URGENTE: Limpieza diferida - Casa 1 - Check-in MISMO DÍA
+DEBUG 2025-09-16 19:30:14,996 signals 2901 140061664521408 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa 1 - Sin próximo check-in
+INFO 2025-09-16 19:30:15,001 signals 2901 140061664521408 🔥 TAREA ALTA PRIORIDAD: Limpieza checkout - casa 1 - Check-in en 1 día(s)
+DEBUG 2025-09-16 19:30:15,003 signals 2901 140061664521408 📋 TAREA BAJA PRIORIDAD: Limpieza diferida - Casa 2 - Sin próximo check-in
+DEBUG 2025-09-16 19:30:15,006 signals 2901 140061664521408 📅 TAREA MEDIA PRIORIDAD: Limpieza checkout - casa 1 - Check-in en 2 día(s)
+DEBUG 2025-09-16 19:30:15,008 signals 2901 140061664521408 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - casa 1 - Sin próximo check-in
+DEBUG 2025-09-16 19:30:15,020 signals 2901 140061664521408 Personal Luis puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+DEBUG 2025-09-16 19:30:15,026 signals 2901 140061664521408 Personal Maria puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+DEBUG 2025-09-16 19:30:15,026 signals 2901 140061664521408 Personal Maria ya tiene 2 tareas (máximo 2)
+INFO 2025-09-16 19:30:15,027 signals 2901 140061664521408 👷 PERSONAL SELECCIONADO para 2025-09-16:
+INFO 2025-09-16 19:30:15,027 signals 2901 140061664521408    ✅ Luis Tantin (carga actual: 0 tareas)
+INFO 2025-09-16 19:30:15,103 signals 2901 140061664521408 🔄 REASIGNACIÓN mejorada: Casa 1 | Maria Limpieza → Luis Tantin
+DEBUG 2025-09-16 19:30:15,107 signals 2901 140061664521408 Reserva de 3 huéspedes: personal Luis limitado a 1 propiedad
+DEBUG 2025-09-16 19:30:15,113 signals 2901 140061664521408 Reserva de 3 huéspedes: personal Maria limitado a 1 propiedad
+DEBUG 2025-09-16 19:30:15,114 signals 2901 140061664521408 Personal Maria ya tiene 1 tareas (máximo 1)
+INFO 2025-09-16 19:30:15,114 signals 2901 140061664521408 👷 PERSONAL SELECCIONADO para 2025-09-19:
+INFO 2025-09-16 19:30:15,114 signals 2901 140061664521408    ✅ Luis Tantin (carga actual: 0 tareas)
+INFO 2025-09-16 19:30:15,139 signals 2901 140061664521408 🔄 REASIGNACIÓN mejorada: Casa 1 | Maria Limpieza → Luis Tantin
+DEBUG 2025-09-16 19:30:15,152 signals 2901 140061664521408 Personal Luis puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+DEBUG 2025-09-16 19:30:15,158 signals 2901 140061664521408 Personal Maria puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+DEBUG 2025-09-16 19:30:15,159 signals 2901 140061664521408 Personal Maria ya tiene 2 tareas (máximo 2)
+INFO 2025-09-16 19:30:15,159 signals 2901 140061664521408 👷 PERSONAL SELECCIONADO para 2025-09-20:
+INFO 2025-09-16 19:30:15,160 signals 2901 140061664521408    ✅ Luis Tantin (carga actual: 0 tareas)
+INFO 2025-09-16 19:30:15,187 signals 2901 140061664521408 🔄 REASIGNACIÓN mejorada: casa 1 | Maria Limpieza → Luis Tantin
+INFO 2025-09-16 19:30:15,192 signals 2901 140061664521408 🎯 REORGANIZACIÓN COMPLETA FINALIZADA:
+INFO 2025-09-16 19:30:15,192 signals 2901 140061664521408    • Tareas evaluadas: 10
+INFO 2025-09-16 19:30:15,192 signals 2901 140061664521408    • Prioridades actualizadas: 0
+INFO 2025-09-16 19:30:15,192 signals 2901 140061664521408    • Preemptions ejecutadas: 0
+INFO 2025-09-16 19:30:15,193 signals 2901 140061664521408    • Reasignaciones: 3
