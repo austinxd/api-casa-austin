@@ -382,8 +382,8 @@ class WhatsAppOTPService:
             candidate_params = candidate_params or ["Cliente"]
             
             for language_code in language_codes:
-                # Probar diferentes números de parámetros: 0, 1, 2, 3, 4
-                for param_count in [0, 1, 2, 3, 4]:
+                # Probar diferentes números de parámetros: 1 primero (más probable), luego 0, 2, 3, 4
+                for param_count in [1, 0, 2, 3, 4]:
                     params_to_send = []
                     
                     if param_count > 0:
@@ -425,18 +425,36 @@ class WhatsAppOTPService:
                 }
             }
             
-            # Agregar parámetros solo si se proporcionan
+            # Si hay parámetros, probar en diferentes componentes
             if params:
-                payload["template"]["components"] = [{
-                    "type": "body",
-                    "parameters": [{"type": "text", "text": str(param)} for param in params]
-                }]
+                components = []
+                
+                # Para 1 parámetro: probar HEADER primero (caso más común)
+                if len(params) == 1:
+                    components.append({
+                        "type": "header",
+                        "parameters": [{"type": "text", "text": str(params[0])}]
+                    })
+                else:
+                    # Para múltiples parámetros: distribuir entre header y body
+                    if len(params) >= 1:
+                        components.append({
+                            "type": "header", 
+                            "parameters": [{"type": "text", "text": str(params[0])}]
+                        })
+                    if len(params) >= 2:
+                        components.append({
+                            "type": "body",
+                            "parameters": [{"type": "text", "text": str(param)} for param in params[1:]]
+                        })
+                
+                payload["template"]["components"] = components
             
-            logger.info(f"Probando {template_name} con idioma {language_code}, parámetros: {len(params)}")
+            logger.info(f"Probando {template_name} con idioma {language_code}, parámetros: {len(params)} ({'header' if params else 'sin params'})")
             response = requests.post(self.api_url, json=payload, headers=headers)
             
             if response.status_code == 200:
-                logger.info(f"✅ Template {template_name} enviado exitosamente ({language_code}, {len(params)} params)")
+                logger.info(f"✅ Template {template_name} enviado exitosamente ({language_code}, {len(params)} params en header)")
                 return True
             else:
                 response_data = response.json()
