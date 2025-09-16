@@ -111,8 +111,12 @@ class Event(BaseModel):
         if not can_register:
             return False, message
         
-        # Verificar si ya está registrado
-        if self.registrations.filter(client=client).exists():
+        # Verificar si ya está registrado (solo registros activos, no cancelados)
+        if self.registrations.filter(
+            client=client,
+            deleted=False,
+            status__in=['pending', 'approved']
+        ).exists():
             return False, "Ya estás registrado en este evento"
         
         # Verificar puntos mínimos
