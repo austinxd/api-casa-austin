@@ -26,7 +26,9 @@ TWILIO_VERIFY_SERVICE_SID = os.environ.get('TWILIO_VERIFY_SERVICE_SID')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DJANGO_DEBUG', default=True)
 
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=['*'])
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[
+    '*', 'api.casaaustin.pe', 'casaaustin.pe', 'www.casaaustin.pe'
+])
 
 # Allow Replit hosts - add specific pattern for Replit domains
 if '*' not in ALLOWED_HOSTS:

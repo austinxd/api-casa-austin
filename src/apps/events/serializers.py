@@ -37,6 +37,8 @@ class EventListSerializer(serializers.ModelSerializer):
     registered_count = serializers.ReadOnlyField()
     available_spots = serializers.ReadOnlyField()
     event_status = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+    thumbnail = serializers.SerializerMethodField()
     
     class Meta:
         model = Event
@@ -46,6 +48,24 @@ class EventListSerializer(serializers.ModelSerializer):
             'max_participants', 'registered_count', 'available_spots',
             'min_points_required', 'can_register_status', 'event_status'
         ]
+    
+    def get_image(self, obj):
+        """Generar URL absoluta para la imagen"""
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+    
+    def get_thumbnail(self, obj):
+        """Generar URL absoluta para el thumbnail"""
+        if obj.thumbnail:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.thumbnail.url)
+            return obj.thumbnail.url
+        return None
     
     def get_can_register_status(self, obj):
         """Estado general de si el evento permite registros"""
