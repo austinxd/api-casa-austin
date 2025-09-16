@@ -1,0 +1,22 @@
+DEBUG 2025-09-15 22:12:51,866 signals 3531926 139677762262848 Notificación enviada para nuevo cliente: f615c135-0cc9-44ab-8a50-7564ee6dd2e5
+INFO 2025-09-15 22:12:51,866 signals 3531926 139677762262848 Enviando WhatsApp de bienvenida a 51985941893 para cliente f615c135-0cc9-44ab-8a50-7564ee6dd2e5
+INFO 2025-09-15 22:12:51,866 whatsapp_service 3531926 139677762262848 Enviando template registro_exitoso2 a 51985941893
+INFO 2025-09-15 22:12:51,866 whatsapp_service 3531926 139677762262848 Probando registro_exitoso2 con idioma es, parámetros: 1
+DEBUG 2025-09-15 22:12:52,177 whatsapp_service 3531926 139677762262848 ❌ Fallo registro_exitoso2 (es, 1 params): (#132000) Number of parameters does not match the expected number of params
+INFO 2025-09-15 22:12:52,178 whatsapp_service 3531926 139677762262848 Probando registro_exitoso2 con idioma es, parámetros: 0
+DEBUG 2025-09-15 22:12:52,611 whatsapp_service 3531926 139677762262848 ❌ Fallo registro_exitoso2 (es, 0 params): (#132000) Number of parameters does not match the expected number of params
+INFO 2025-09-15 22:12:52,611 whatsapp_service 3531926 139677762262848 Probando registro_exitoso2 con idioma es_MX, parámetros: 1
+DEBUG 2025-09-15 22:12:53,980 whatsapp_service 3531926 139677762262848 ❌ Fallo registro_exitoso2 (es_MX, 1 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-15 22:12:53,981 whatsapp_service 3531926 139677762262848 Probando registro_exitoso2 con idioma es_MX, parámetros: 0
+DEBUG 2025-09-15 22:12:54,941 whatsapp_service 3531926 139677762262848 ❌ Fallo registro_exitoso2 (es_MX, 0 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-15 22:12:54,942 whatsapp_service 3531926 139677762262848 Probando registro_exitoso2 con idioma es_ES, parámetros: 1
+DEBUG 2025-09-15 22:12:55,199 whatsapp_service 3531926 139677762262848 ❌ Fallo registro_exitoso2 (es_ES, 1 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-15 22:12:55,200 whatsapp_service 3531926 139677762262848 Probando registro_exitoso2 con idioma es_ES, parámetros: 0
+DEBUG 2025-09-15 22:12:55,497 whatsapp_service 3531926 139677762262848 ❌ Fallo registro_exitoso2 (es_ES, 0 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-15 22:12:55,498 whatsapp_service 3531926 139677762262848 Probando registro_exitoso2 con idioma en_US, parámetros: 1
+DEBUG 2025-09-15 22:12:55,793 whatsapp_service 3531926 139677762262848 ❌ Fallo registro_exitoso2 (en_US, 1 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-15 22:12:55,794 whatsapp_service 3531926 139677762262848 Probando registro_exitoso2 con idioma en_US, parámetros: 0
+DEBUG 2025-09-15 22:12:56,101 whatsapp_service 3531926 139677762262848 ❌ Fallo registro_exitoso2 (en_US, 0 params): (#132001) Template name does not exist in the translation
+ERROR 2025-09-15 22:12:56,102 whatsapp_service 3531926 139677762262848 No se pudo enviar template registro_exitoso2 después de todos los intentos
+ERROR 2025-09-15 22:12:56,102 signals 3531926 139677762262848 Error al enviar WhatsApp de bienvenida para cliente f615c135-0cc9-44ab-8a50-7564ee6dd2e5
+INFO 2025-09-15 22:12:56,102 auth_views 3531926 139677762262848 Cliente registrado completamente: Christian Renato Cueva Vega - 76832376

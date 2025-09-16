@@ -353,8 +353,8 @@ class WhatsAppOTPService:
 
     def send_template_auto(self, template_name, phone_number, candidate_params=None):
         """
-        Envía template de WhatsApp con auto-detección de parámetros e idioma
-        Intenta automáticamente con/sin parámetros y diferentes idiomas hasta que funcione
+        Envía template de WhatsApp con auto-detección INTELIGENTE de parámetros
+        Detecta automáticamente cuántos parámetros necesita la plantilla
         
         Args:
             template_name (str): Nombre del template
@@ -377,27 +377,32 @@ class WhatsAppOTPService:
                 'Content-Type': 'application/json'
             }
             
-            # Idiomas a probar en orden
-            language_codes = ["es", "es_MX", "es_ES", "en_US"]
-            candidate_params = candidate_params or []
+            # Idiomas a probar en orden (solo los que existen según logs)
+            language_codes = ["es"]  # Solo "es" funciona para este template
+            candidate_params = candidate_params or ["Cliente"]
             
             for language_code in language_codes:
-                # Intentar primero con parámetros (si los hay)
-                if candidate_params:
+                # Probar diferentes números de parámetros: 0, 1, 2, 3, 4
+                for param_count in [0, 1, 2, 3, 4]:
+                    params_to_send = []
+                    
+                    if param_count > 0:
+                        # Crear parámetros según cantidad necesaria
+                        for i in range(param_count):
+                            if i < len(candidate_params):
+                                params_to_send.append(candidate_params[i])
+                            else:
+                                # Rellenar con valores seguros
+                                params_to_send.append("Casa Austin")
+                    
                     success = self._try_send_template(
-                        headers, formatted_phone, template_name, language_code, candidate_params
+                        headers, formatted_phone, template_name, language_code, params_to_send
                     )
                     if success:
+                        logger.info(f"🎯 Template {template_name} funcionó con {param_count} parámetros en {language_code}")
                         return True
-                
-                # Intentar sin parámetros
-                success = self._try_send_template(
-                    headers, formatted_phone, template_name, language_code, []
-                )
-                if success:
-                    return True
                     
-            logger.error(f"No se pudo enviar template {template_name} después de todos los intentos")
+            logger.error(f"No se pudo enviar template {template_name} después de probar 0-4 parámetros")
             return False
             
         except Exception as e:
