@@ -5284,3 +5284,6 @@ INFO 2025-09-16 12:39:32,384 whatsapp_service 6427 140661275512000 Probando regi
 DEBUG 2025-09-16 12:39:32,678 whatsapp_service 6427 140661275512000 ❌ Fallo registro_exitoso (es, 4 params): (#132001) Template name does not exist in the translation
 ERROR 2025-09-16 12:39:32,679 whatsapp_service 6427 140661275512000 No se pudo enviar template registro_exitoso después de probar 0-4 parámetros
 ERROR 2025-09-16 12:39:32,680 signals 6427 140661275512000 Error al enviar WhatsApp de bienvenida para cliente c401571f-47e4-4d40-bf2a-5c7bca23c263
+DEBUG 2025-09-16 19:14:00,616 signals 1875 140442200222912 Personal Maria puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+DEBUG 2025-09-16 19:14:00,617 signals 1875 140442200222912 Personal Maria ya tiene 2 tareas (máximo 2)
+WARNING 2025-09-16 19:14:00,617 signals 1875 140442200222912 No available cleaning staff for 2025-09-20
