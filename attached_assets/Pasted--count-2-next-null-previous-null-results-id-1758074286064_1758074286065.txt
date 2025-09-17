@@ -1,0 +1,74 @@
+{
+    "count": 2,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": "51ca76a1-6c28-4243-97ea-5d90b4749e65",
+            "title": "Una Noche en PAreja",
+            "description": "parejasssss",
+            "category": {
+                "id": "48d01802-7116-4265-bb63-036fee835293",
+                "name": "Sorteos",
+                "description": "Esta categoria es para Sorteos",
+                "icon": "🎁",
+                "color": "#007bff"
+            },
+            "property": {
+                "id": "9a04892a-4ba5-4b10-92b5-2a72f6d89d57",
+                "name": "Casa Austin 2",
+                "titulo": "Casa Austin 2: «Mejor que Cieneguilla: Piscina en playa»",
+                "location": "https://maps.app.goo.gl/v7ror4usrPwYxGxJA?g_st=ic",
+                "dormitorios": 6,
+                "banos": 6,
+                "capacity_max": 50,
+                "precio_desde": "55.00"
+            },
+            "image": "http://api.casaaustin.pe/media/events/DSC_5387_SB_1.webp",
+            "thumbnail": "http://api.casaaustin.pe/media/events/thumbnails/DSC_5387_SB_1_thumb.webp",
+            "start_date": "2025-09-16T08:32:35-05:00",
+            "end_date": "2025-09-30T08:32:52-05:00",
+            "registration_deadline": "2025-09-29T08:33:02-05:00",
+            "location": "",
+            "max_participants": 1000,
+            "registered_count": 1,
+            "available_spots": 999,
+            "min_points_required": "0.00",
+            "can_register_status": {
+                "can_register": true,
+                "message": "Disponible"
+            },
+            "event_status": "ongoing"
+        },
+        {
+            "id": "0b3e5a0f-0f11-410e-82bc-4889abfe4c22",
+            "title": "Noche gratis",
+            "description": "una noche gratis para 2 personas.",
+            "category": {
+                "id": "77909303-3857-4276-a346-6947879a8b76",
+                "name": "Fiesta Tematica",
+                "description": "Fiesta tematica",
+                "icon": "🎉",
+                "color": "#007b43"
+            },
+            "property": null,
+            "image": "http://api.casaaustin.pe/media/events/events/DSC1349-1-scaled-1.webp",
+            "thumbnail": null,
+            "start_date": "2025-09-16T00:00:00-05:00",
+            "end_date": "2025-09-30T23:59:00-05:00",
+            "registration_deadline": null,
+            "location": "casa austin 3",
+            "max_participants": 1000,
+            "registered_count": 0,
+            "available_spots": 1000,
+            "min_points_required": "0.00",
+            "can_register_status": {
+                "can_register": true,
+                "message": "Disponible"
+            },
+            "event_status": "ongoing"
+        }
+    ],
+    "actual": 1,
+    "total_paginas": 1
+}
