@@ -47,8 +47,8 @@ class PublicEventListView(generics.ListAPIView):
         status_filter = self.request.GET.get('status', None)
         
         if status_filter == 'upcoming':
-            # Solo eventos que aún no han empezado
-            queryset = queryset.filter(start_date__gt=now)
+            # Eventos disponibles (próximos + en curso): que no hayan terminado
+            queryset = queryset.filter(end_date__gte=now)
             
         elif status_filter == 'ongoing':
             # Solo eventos en curso (empezaron pero no terminaron)
@@ -63,9 +63,9 @@ class PublicEventListView(generics.ListAPIView):
         if category_filter:
             queryset = queryset.filter(category__name__icontains=category_filter)
         
-        # Ordenar: eventos futuros por fecha ASC, pasados por fecha DESC
+        # Ordenar: eventos disponibles (upcoming) por fecha ASC, pasados por fecha DESC
         if status_filter == 'upcoming':
-            return queryset.order_by('start_date')  # Próximos primero los más cercanos
+            return queryset.order_by('start_date')  # Ordenados por fecha de inicio
         else:
             return queryset.order_by('-start_date')  # Más recientes primero
 
