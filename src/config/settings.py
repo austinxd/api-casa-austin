@@ -158,9 +158,28 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 # Database
+# Prioridad: DATABASE_URL > USE_MYSQL > SQLite fallback
+DATABASE_URL = env('DATABASE_URL', default=None)
 USE_MYSQL = env.bool('USE_MYSQL', default=False)
 
-if USE_MYSQL:
+if DATABASE_URL:
+    # Usar PostgreSQL desde DATABASE_URL (producción)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': env('PGDATABASE', default='heliumdb'),
+            'USER': env('PGUSER', default='postgres'),  
+            'PASSWORD': env('PGPASSWORD', default='password'),
+            'HOST': env('PGHOST', default='helium'),
+            'PORT': env('PGPORT', default='5432'),
+            'CONN_MAX_AGE': 60,
+            'OPTIONS': {
+                'sslmode': 'disable',
+            }
+        }
+    }
+elif USE_MYSQL:
+    # Usar MySQL
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
@@ -176,6 +195,7 @@ if USE_MYSQL:
         }
     }
 else:
+    # Fallback a SQLite (desarrollo)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

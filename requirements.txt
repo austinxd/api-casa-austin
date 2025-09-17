@@ -37,3 +37,4 @@ python-telegram-bot==20.0
 twilio==8.10.0
 babel==2.14.0
 docxtpl==0.16.7
+psycopg2-binary
