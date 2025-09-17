@@ -1,0 +1,116 @@
+[
+{
+  "model": "events.eventcategory",
+  "pk": "5dbc429c-b0b4-4451-bca4-28f264e69c7e",
+  "fields": {
+    "created": "2025-09-16T11:01:50.720Z",
+    "updated": "2025-09-16T11:01:50.720Z",
+    "deleted": false,
+    "name": "Concurso",
+    "description": "Concursos para clientes",
+    "icon": "🏆",
+    "color": "#28a745"
+  }
+},
+{
+  "model": "events.eventcategory",
+  "pk": "82c4cc92-9ad2-4807-ab92-9caa2b7e21f5",
+  "fields": {
+    "created": "2025-09-16T11:01:50.744Z",
+    "updated": "2025-09-16T11:01:50.744Z",
+    "deleted": false,
+    "name": "Fiesta Privada",
+    "description": "Fiestas privadas exclusivas",
+    "icon": "🎉",
+    "color": "#6f42c1"
+  }
+},
+{
+  "model": "events.eventcategory",
+  "pk": "df59483a-db90-4112-8026-42674535822d",
+  "fields": {
+    "created": "2025-09-16T11:01:50.625Z",
+    "updated": "2025-09-16T11:01:50.625Z",
+    "deleted": false,
+    "name": "Sorteo",
+    "description": "Sorteos y rifas para clientes",
+    "icon": "🎲",
+    "color": "#007bff"
+  }
+},
+{
+  "model": "events.event",
+  "pk": "48434b8b-f631-4061-bd7d-c7cfb432fceb",
+  "fields": {
+    "created": "2025-09-16T11:25:50.220Z",
+    "updated": "2025-09-16T11:25:50.220Z",
+    "deleted": false,
+    "title": "Sorteo Navideño 2024",
+    "description": "Sorteo navideño que ya terminó",
+    "category": "df59483a-db90-4112-8026-42674535822d",
+    "image": "",
+    "thumbnail": "",
+    "start_date": "2025-08-17T11:25:50.219Z",
+    "end_date": "2025-09-01T11:25:50.219Z",
+    "registration_deadline": null,
+    "location": "Casa Austin - Finalizado",
+    "max_participants": 100,
+    "is_public": true,
+    "is_active": true,
+    "status": "published",
+    "min_points_required": "50.00",
+    "property_location": null,
+    "required_achievements": []
+  }
+},
+{
+  "model": "events.event",
+  "pk": "ca4dbbb5-a474-424f-85a2-1f1bbf4d2f2b",
+  "fields": {
+    "created": "2025-09-16T11:25:50.261Z",
+    "updated": "2025-09-16T12:32:04.928Z",
+    "deleted": false,
+    "title": "Gran Concurso 2025",
+    "description": "Concurso que empezará pronto",
+    "category": "5dbc429c-b0b4-4451-bca4-28f264e69c7e",
+    "image": "events/test_correccion.webp",
+    "thumbnail": "events/thumbnails/test_correccion_thumb.webp",
+    "start_date": "2025-10-01T11:25:50.219Z",
+    "end_date": "2025-10-16T11:25:50.219Z",
+    "registration_deadline": "2025-09-26T11:25:50.219Z",
+    "location": "Casa Austin - Próximamente",
+    "max_participants": 200,
+    "is_public": true,
+    "is_active": true,
+    "status": "published",
+    "min_points_required": "150.00",
+    "property_location": "2e98154a-cd08-4070-97ac-43cad6e726a1",
+    "required_achievements": []
+  }
+},
+{
+  "model": "events.event",
+  "pk": "d2ad5558-18fa-4bc5-9f33-8d86f71fd038",
+  "fields": {
+    "created": "2025-09-16T11:02:36.098Z",
+    "updated": "2025-09-16T11:02:36.098Z",
+    "deleted": false,
+    "title": "Sorteo iPhone 15 Pro",
+    "description": "Participa en el sorteo del nuevo iPhone 15 Pro. Solo para clientes con reservas activas.",
+    "category": "df59483a-db90-4112-8026-42674535822d",
+    "image": "",
+    "thumbnail": "",
+    "start_date": "2025-09-19T16:02:36.098Z",
+    "end_date": "2025-09-26T16:02:36.098Z",
+    "registration_deadline": "2025-09-18T16:02:36.098Z",
+    "location": "Casa Austin - Online",
+    "max_participants": 50,
+    "is_public": true,
+    "is_active": true,
+    "status": "published",
+    "min_points_required": "100.00",
+    "property_location": null,
+    "required_achievements": []
+  }
+}
+]
