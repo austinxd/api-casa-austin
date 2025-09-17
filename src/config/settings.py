@@ -158,12 +158,29 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 # Database
-# Prioridad: DATABASE_URL > USE_MYSQL > SQLite fallback
-DATABASE_URL = env('DATABASE_URL', default=None)
+# Prioridad: USE_MYSQL > DATABASE_URL > SQLite fallback
 USE_MYSQL = env.bool('USE_MYSQL', default=False)
+DATABASE_URL = env('DATABASE_URL', default=None)
 
-if DATABASE_URL:
-    # Usar PostgreSQL desde DATABASE_URL (producción)
+if USE_MYSQL:
+    # Usar MySQL (producción)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': env('MYSQL_DATABASE'),
+            'USER': env('MYSQL_USER'),
+            'PASSWORD': env('MYSQL_PASSWORD'),
+            'HOST': env('MYSQL_HOST', default='localhost'),
+            'PORT': env('MYSQL_PORT', default='3306'),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                'collation': 'utf8mb4_unicode_ci',
+            }
+        }
+    }
+elif DATABASE_URL:
+    # Usar PostgreSQL desde DATABASE_URL (alternativo)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -175,22 +192,6 @@ if DATABASE_URL:
             'CONN_MAX_AGE': 60,
             'OPTIONS': {
                 'sslmode': 'disable',
-            }
-        }
-    }
-elif USE_MYSQL:
-    # Usar MySQL
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': env('MYSQL_DATABASE', default='my_database'),
-            'USER': 'Reservas',
-            'PASSWORD': env('MYSQL_PASSWORD', default='!Leonel123'),
-            'HOST': env('MYSQL_HOST', default='172.18.0.2'),
-            'PORT': env('MYSQL_PORT', default='3306'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
             }
         }
     }
