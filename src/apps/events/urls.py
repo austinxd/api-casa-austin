@@ -4,6 +4,7 @@ from .views import (
     PublicEventCategoryListView,
     PublicEventListView,
     PublicEventDetailView,
+    EventParticipantsView,
     
     # Endpoints con autenticación
     EventRegistrationView,
@@ -18,6 +19,7 @@ urlpatterns = [
     path('categories/', PublicEventCategoryListView.as_view(), name='public-categories'),
     path('', PublicEventListView.as_view(), name='public-event-list'),
     path('<uuid:id>/', PublicEventDetailView.as_view(), name='public-event-detail'),
+    path('<uuid:event_id>/participants/', EventParticipantsView.as_view(), name='event-participants'),
     
     # === ENDPOINTS CON AUTENTICACIÓN DE CLIENTE ===
     path('<uuid:event_id>/register/', EventRegistrationView.as_view(), name='event-register'),

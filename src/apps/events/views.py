@@ -11,7 +11,7 @@ from apps.clients.auth_views import ClientJWTAuthentication
 from .models import EventCategory, Event, EventRegistration
 from .serializers import (
     EventCategorySerializer, EventListSerializer, EventDetailSerializer,
-    EventRegistrationSerializer, EventRegistrationCreateSerializer
+    EventRegistrationSerializer, EventRegistrationCreateSerializer, EventParticipantSerializer
 )
 
 
@@ -343,3 +343,73 @@ def check_event_eligibility(request, event_id):
             'success': False,
             'message': f'Error interno: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class EventParticipantsView(APIView):
+    """Endpoint para mostrar participantes de un evento"""
+    
+    permission_classes = [AllowAny]  # Público para mostrar participantes
+    
+    def get(self, request, event_id):
+        """
+        GET /api/v1/events/{event_id}/participants/
+        
+        Muestra todos los participantes aprobados de un evento con:
+        - Foto de perfil (prioriza Facebook, luego custom)
+        - Nombre formateado (Augusto T.)
+        - Nivel más alto con icono
+        """
+        try:
+            # Obtener evento
+            event = Event.objects.get(id=event_id, deleted=False)
+            
+            # Obtener solo participantes aprobados
+            participants = EventRegistration.objects.filter(
+                event=event,
+                status=EventRegistration.RegistrationStatus.APPROVED,
+                deleted=False
+            ).select_related('client').prefetch_related(
+                'client__achievements__achievement',
+                'client__event_registrations'
+            ).order_by('-registration_date')
+            
+            # Serializar datos
+            serializer = EventParticipantSerializer(
+                participants, 
+                many=True, 
+                context={'request': request}
+            )
+            
+            return Response({
+                'success': True,
+                'event': {
+                    'id': event.id,
+                    'title': event.title,
+                    'total_participants': participants.count(),
+                    'event_status': self._get_event_status(event)
+                },
+                'participants': serializer.data
+            })
+            
+        except Event.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Evento no encontrado'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'Error interno: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def _get_event_status(self, event):
+        """Helper para obtener el estado del evento"""
+        from django.utils import timezone
+        now = timezone.now()
+        
+        if event.start_date > now:
+            return 'upcoming'  # Próximo
+        elif event.start_date <= now <= event.end_date:
+            return 'ongoing'   # En curso
+        else:
+            return 'past'      # Pasado

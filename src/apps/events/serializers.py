@@ -189,3 +189,79 @@ class EventWinnersSerializer(serializers.ModelSerializer):
                 EventRegistration.WinnerStatus.THIRD_PLACE
             ]
         ).count()
+
+
+# 👥 SERIALIZER PARA PARTICIPANTES
+class EventParticipantSerializer(serializers.ModelSerializer):
+    """Serializer para mostrar participantes de un evento con foto y nivel"""
+    
+    profile_picture = serializers.SerializerMethodField()
+    display_name = serializers.SerializerMethodField()
+    highest_level = serializers.SerializerMethodField()
+    facebook_profile_picture = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = EventRegistration
+        fields = [
+            'id', 'profile_picture', 'facebook_profile_picture', 
+            'display_name', 'highest_level', 'winner_status', 
+            'registration_date'
+        ]
+    
+    def get_profile_picture(self, obj):
+        """Obtiene la URL de la foto de perfil del cliente"""
+        # Solo foto de Facebook disponible - el modelo Clients no tiene campo de foto personalizada
+        if obj.client.facebook_linked and obj.client.facebook_id:
+            facebook_photo = obj.client.get_facebook_profile_picture()
+            if facebook_photo:
+                return facebook_photo
+        
+        # No hay campos de foto personalizada en el modelo Clients actualmente
+        return None
+    
+    def get_facebook_profile_picture(self, obj):
+        """URL de la foto de perfil de Facebook si está disponible"""
+        if obj.client.facebook_linked and obj.client.facebook_id:
+            return obj.client.get_facebook_profile_picture()
+        return None
+    
+    def get_display_name(self, obj):
+        """Formato: Primer Nombre + Inicial del Apellido (ej: Augusto T.)"""
+        first_name = obj.client.first_name or "Usuario"
+        
+        if obj.client.last_name:
+            last_initial = obj.client.last_name[0].upper()
+            return f"{first_name} {last_initial}."
+        
+        return first_name
+    
+    def get_highest_level(self, obj):
+        """Obtiene el nivel más alto del cliente con icono"""
+        from apps.clients.models import ClientAchievement
+        
+        # Obtener el logro más alto basado en requisitos
+        highest_achievement = ClientAchievement.objects.filter(
+            client=obj.client,
+            deleted=False
+        ).select_related('achievement').order_by(
+            '-achievement__required_reservations',
+            '-achievement__required_referrals', 
+            '-achievement__required_referral_reservations',
+            '-earned_at'
+        ).first()
+        
+        if highest_achievement:
+            return {
+                'name': highest_achievement.achievement.name,
+                'icon': highest_achievement.achievement.icon or "🏅",
+                'description': highest_achievement.achievement.description,
+                'earned_at': highest_achievement.earned_at
+            }
+        
+        # Si no tiene logros, mostrar nivel básico
+        return {
+            'name': 'Nuevo Cliente',
+            'icon': '⭐',
+            'description': 'Cliente recién registrado',
+            'earned_at': obj.client.created
+        }
