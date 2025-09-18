@@ -82,6 +82,14 @@ urlpatterns = [
     path('clients/client-auth/redeem-points/',
          auth_views.ClientRedeemPointsView.as_view(),
          name='client-redeem-points'),
+    
+    # Facebook OAuth Integration
+    path('clients/client-auth/link-facebook/',
+         auth_views.ClientLinkFacebookView.as_view(),
+         name='client-link-facebook'),
+    path('clients/client-auth/unlink-facebook/',
+         auth_views.ClientUnlinkFacebookView.as_view(),
+         name='client-unlink-facebook'),
     path('clients/client-auth/referral-config/',
          views.ReferralConfigView.as_view(),
          name='client-referral-config'),

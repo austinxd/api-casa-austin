@@ -90,6 +90,12 @@ class Clients(BaseModel):
     otp_expires_at = models.DateTimeField(null=True, blank=True, help_text="Fecha de expiración del OTP")
     last_login = models.DateTimeField(null=True, blank=True, help_text="Último login del cliente")
     
+    # Integración con Facebook OAuth
+    facebook_id = models.CharField(max_length=100, null=True, blank=True, help_text="ID único de Facebook del usuario")
+    facebook_linked = models.BooleanField(default=False, help_text="Indica si el cliente ha vinculado su cuenta de Facebook")
+    facebook_profile_data = models.JSONField(null=True, blank=True, help_text="Datos del perfil de Facebook (nombre, foto, etc.)")
+    facebook_linked_at = models.DateTimeField(null=True, blank=True, help_text="Fecha en que se vinculó la cuenta de Facebook")
+    
     # Sistema de puntos
     points_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Balance actual de puntos")
     points_expires_at = models.DateTimeField(null=True, blank=True, help_text="Fecha de expiración de los puntos actuales")
@@ -274,6 +280,48 @@ class Clients(BaseModel):
             return cls.objects.get(referral_code=referral_code, deleted=False)
         except cls.DoesNotExist:
             return None
+    
+    def link_facebook_account(self, facebook_id, profile_data):
+        """Vincula la cuenta de Facebook del cliente"""
+        from django.utils import timezone
+        
+        self.facebook_id = facebook_id
+        self.facebook_profile_data = profile_data
+        self.facebook_linked = True
+        self.facebook_linked_at = timezone.now()
+        self.save()
+        
+        return True
+    
+    def unlink_facebook_account(self):
+        """Desvincula la cuenta de Facebook del cliente"""
+        self.facebook_id = None
+        self.facebook_profile_data = None
+        self.facebook_linked = False
+        self.facebook_linked_at = None
+        self.save()
+        
+        return True
+    
+    def get_facebook_profile_picture(self):
+        """Obtiene la URL de la foto de perfil de Facebook"""
+        if self.facebook_profile_data and isinstance(self.facebook_profile_data, dict):
+            picture_data = self.facebook_profile_data.get('picture', {})
+            if isinstance(picture_data, dict):
+                data = picture_data.get('data', {})
+                if isinstance(data, dict):
+                    return data.get('url')
+        return None
+    
+    @property
+    def is_facebook_linked(self):
+        """Propiedad para verificar si el cliente tiene Facebook vinculado"""
+        return bool(self.facebook_linked and self.facebook_id)
+    
+    @classmethod
+    def get_client_by_facebook_id(cls, facebook_id):
+        """Obtiene un cliente por su Facebook ID"""
+        return cls.objects.filter(facebook_id=facebook_id, deleted=False).first()
 
 
 class ClientPoints(BaseModel):

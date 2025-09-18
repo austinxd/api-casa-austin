@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -1038,3 +1038,197 @@ def get_csrf_token(request):
     """Endpoint para obtener CSRF token si es necesario"""
     from django.middleware.csrf import get_token
     return Response({'csrfToken': get_token(request)})
+
+
+class ClientLinkFacebookView(APIView):
+    """Endpoint para vincular cuenta de Facebook del cliente"""
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            # Cliente ya autenticado por DRF
+            client = request.user
+            
+            # Obtener access token de Facebook del request
+            access_token = request.data.get('access_token')
+            
+            if not access_token:
+                return Response({
+                    'message': 'access_token es requerido'
+                }, status=400)
+            
+            # Validar access token con Facebook Graph API
+            import requests
+            from django.conf import settings
+            
+            # Obtener datos del perfil
+            graph_url = f"https://graph.facebook.com/me?fields=id,name,email,picture.type(large)"
+            
+            try:
+                graph_response = requests.get(graph_url, headers={'Authorization': f'Bearer {access_token}'}, timeout=10)
+                graph_response.raise_for_status()
+                profile_data = graph_response.json()
+                facebook_id = profile_data.get('id')
+                
+                if not facebook_id:
+                    return Response({
+                        'message': 'No se pudo obtener el ID de Facebook'
+                    }, status=400)
+                
+                # Verificar si ya está vinculado a este cliente (hacer idempotente)
+                if client.facebook_id == facebook_id:
+                    return Response({
+                        'success': True,
+                        'message': 'Cuenta de Facebook ya está vinculada',
+                        'facebook_linked': True,
+                        'profile_data': {
+                            'name': client.facebook_profile_data.get('name') if client.facebook_profile_data else None,
+                            'picture': client.get_facebook_profile_picture()
+                        }
+                    })
+                
+                # Verificar que el Facebook ID no esté ya vinculado a otra cuenta
+                existing_client = Clients.get_client_by_facebook_id(facebook_id)
+                if existing_client:
+                    return Response({
+                        'message': 'Esta cuenta de Facebook ya está vinculada a otro usuario'
+                    }, status=409)
+                
+                # Validar el token con debug_token - OBLIGATORIO para seguridad
+                app_id = getattr(settings, 'FACEBOOK_APP_ID', None)
+                app_secret = getattr(settings, 'FACEBOOK_APP_SECRET', None)
+                app_access_token = getattr(settings, 'FACEBOOK_APP_ACCESS_TOKEN', None)
+                
+                # Generar app access token si no existe
+                if not app_access_token and app_id and app_secret:
+                    app_access_token = f"{app_id}|{app_secret}"
+                
+                if not app_access_token or not app_id:
+                    return Response({
+                        'message': 'Facebook OAuth no está configurado correctamente'
+                    }, status=503)
+                
+                debug_url = f"https://graph.facebook.com/debug_token?input_token={access_token}&access_token={app_access_token}"
+                debug_response = requests.get(debug_url, timeout=10)
+                debug_response.raise_for_status()
+                debug_data = debug_response.json()
+                
+                token_data = debug_data.get('data', {})
+                
+                # Validaciones obligatorias
+                if not token_data.get('is_valid'):
+                    return Response({
+                        'message': 'Token de Facebook inválido'
+                    }, status=400)
+                
+                # Verificar que el token sea para nuestra app
+                if str(token_data.get('app_id')) != str(app_id):
+                    return Response({
+                        'message': 'Token no válido para esta aplicación'
+                    }, status=400)
+                
+                # Verificar que el user_id coincida
+                if str(token_data.get('user_id')) != str(facebook_id):
+                    return Response({
+                        'message': 'Token no coincide con el usuario de Facebook'
+                    }, status=400)
+                
+                # Verificar que no esté expirado
+                expires_at = token_data.get('expires_at')
+                if expires_at and expires_at < int(timezone.now().timestamp()):
+                    return Response({
+                        'message': 'Token de Facebook expirado'
+                    }, status=400)
+                
+                # Vincular la cuenta de Facebook con transacción atómica
+                from django.db import transaction, IntegrityError
+                
+                try:
+                    with transaction.atomic():
+                        # Verificar de nuevo dentro de la transacción para evitar race conditions
+                        existing_client = Clients.get_client_by_facebook_id(facebook_id)
+                        if existing_client:
+                            return Response({
+                                'message': 'Esta cuenta de Facebook ya está vinculada a otro usuario'
+                            }, status=409)
+                        
+                        client.link_facebook_account(facebook_id, profile_data)
+                        
+                        logger.info(f'Cliente {client.first_name} (ID: {client.id}) vinculó su cuenta de Facebook (FB ID: {facebook_id})')
+                        
+                        return Response({
+                            'success': True,
+                            'message': 'Cuenta de Facebook vinculada exitosamente',
+                            'facebook_linked': True,
+                            'profile_data': {
+                                'name': profile_data.get('name'),
+                                'picture': client.get_facebook_profile_picture()
+                            }
+                        })
+                    
+                except IntegrityError:
+                    logger.warning(f'Intento de vinculación duplicada de Facebook ID {facebook_id}')
+                    return Response({
+                        'message': 'Esta cuenta de Facebook ya está vinculada a otro usuario'
+                    }, status=409)
+                except Exception as e:
+                    logger.error(f'Error guardando vinculación de Facebook para cliente {client.id}: {str(e)}')
+                    return Response({
+                        'message': 'Error interno al vincular cuenta'
+                    }, status=500)
+                
+            except requests.exceptions.Timeout:
+                logger.error('Timeout conectando con Facebook Graph API')
+                return Response({
+                    'message': 'Error temporal conectando con Facebook. Intente más tarde.'
+                }, status=503)
+            except requests.exceptions.RequestException as e:
+                logger.error(f'Error validando token de Facebook: {str(e)}')
+                return Response({
+                    'message': 'Error validando cuenta de Facebook. Servicio no disponible.'
+                }, status=503)
+            
+        except (InvalidToken, TokenError) as e:
+            return Response({'message': 'Token inválido'}, status=401)
+        except Exception as e:
+            logger.error(f'Error vinculando cuenta de Facebook: {str(e)}')
+            return Response({
+                'message': 'Error interno del servidor'
+            }, status=500)
+
+
+class ClientUnlinkFacebookView(APIView):
+    """Endpoint para desvincular cuenta de Facebook del cliente"""
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def delete(self, request):
+        try:
+            # Cliente ya autenticado por DRF
+            client = request.user
+            
+            # Verificar si tiene Facebook vinculado
+            if not client.is_facebook_linked:
+                return Response({
+                    'message': 'No tienes una cuenta de Facebook vinculada'
+                }, status=400)
+            
+            # Desvincular la cuenta
+            client.unlink_facebook_account()
+            
+            logger.info(f'Cliente {client.first_name} desvinculó su cuenta de Facebook')
+            
+            return Response({
+                'success': True,
+                'message': 'Cuenta de Facebook desvinculada exitosamente',
+                'facebook_linked': False
+            })
+            
+        except (InvalidToken, TokenError) as e:
+            return Response({'message': 'Token inválido'}, status=401)
+        except Exception as e:
+            logger.error(f'Error desvinculando cuenta de Facebook: {str(e)}')
+            return Response({
+                'message': 'Error interno del servidor'
+            }, status=500)
