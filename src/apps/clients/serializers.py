@@ -118,6 +118,8 @@ class ClientProfileSerializer(serializers.ModelSerializer):
     referral_code = serializers.SerializerMethodField()
     level_info = serializers.SerializerMethodField()
     achievements_stats = serializers.SerializerMethodField()
+    facebook_profile_picture = serializers.SerializerMethodField()
+    facebook_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Clients
@@ -139,7 +141,11 @@ class ClientProfileSerializer(serializers.ModelSerializer):
             "referred_by_info",
             "referral_code",
             "level_info",
-            "achievements_stats"
+            "achievements_stats",
+            "facebook_linked",
+            "facebook_profile_picture",
+            "facebook_name",
+            "facebook_linked_at"
         ]
         read_only_fields = [
             "id", "document_type", "number_doc", "last_login",
@@ -303,6 +309,16 @@ class ClientProfileSerializer(serializers.ModelSerializer):
                 'percentage': round((earned_achievements / total_achievements * 100), 1) if total_achievements > 0 else 0
             }
         }
+    
+    def get_facebook_profile_picture(self, obj):
+        """URL de la foto de perfil de Facebook"""
+        return obj.get_facebook_profile_picture()
+    
+    def get_facebook_name(self, obj):
+        """Nombre del perfil de Facebook"""
+        if obj.facebook_profile_data and isinstance(obj.facebook_profile_data, dict):
+            return obj.facebook_profile_data.get('name')
+        return None
 
 
 
