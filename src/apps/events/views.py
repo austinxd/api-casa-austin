@@ -385,7 +385,9 @@ class EventParticipantsView(APIView):
                 'event': {
                     'id': event.id,
                     'title': event.title,
-                    'total_participants': participants.count(),
+                    'registered_users': participants.count(),
+                    'max_allowed_users': event.max_participants,
+                    'available_spots': event.available_spots,
                     'event_status': self._get_event_status(event)
                 },
                 'participants': serializer.data
