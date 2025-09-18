@@ -23,6 +23,11 @@ TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
 TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER')
 TWILIO_VERIFY_SERVICE_SID = os.environ.get('TWILIO_VERIFY_SERVICE_SID')
 
+# Facebook OAuth Configuration
+FACEBOOK_APP_ID = env('FACEBOOK_APP_ID', default=None)
+FACEBOOK_APP_SECRET = env('FACEBOOK_APP_SECRET', default=None)
+FACEBOOK_APP_ACCESS_TOKEN = env('FACEBOOK_APP_ACCESS_TOKEN', default=None)
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DJANGO_DEBUG', default=True)
 
