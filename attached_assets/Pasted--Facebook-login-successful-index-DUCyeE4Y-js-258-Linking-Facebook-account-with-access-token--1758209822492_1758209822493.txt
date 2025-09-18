@@ -1,0 +1,41 @@
+🔗 Facebook login successful
+index-DUCyeE4Y.js:258 🔗 Linking Facebook account with access token...
+index-DUCyeE4Y.js:258 🔑 Proxy API call with token: eyJhbGciOiJIUzI1NiIs...
+index-DUCyeE4Y.js:258 🔑 Authorization header: Bearer eyJhbGciOiJIUzI1NiIsInR...
+index-DUCyeE4Y.js:258  POST https://api.casaaustin.pe/api/v1/clients/client-auth/link-facebook/ 503 (Service Unavailable)
+LL @ index-DUCyeE4Y.js:258
+window.FB.login.scope @ dashboard-CWI3qbtw.js:6
+b.setFinalAuthResponse @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:111
+_xdRecv @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:150
+(anónimas) @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:150
+s @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:147
+(anónimas) @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:147Comprende este error
+index-DUCyeE4Y.js:258 ❌ Facebook linking error: {message: 'Facebook OAuth no está configurado correctamente'}message: "Facebook OAuth no está configurado correctamente"[[Prototype]]: Object
+LL @ index-DUCyeE4Y.js:258
+await in LL
+window.FB.login.scope @ dashboard-CWI3qbtw.js:6
+b.setFinalAuthResponse @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:111
+_xdRecv @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:150
+(anónimas) @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:150
+s @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:147
+(anónimas) @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:147Comprende este error
+index-DUCyeE4Y.js:258 Error linking Facebook account: Error: Facebook OAuth no está configurado correctamente
+    at LL (index-DUCyeE4Y.js:258:43509)
+LL @ index-DUCyeE4Y.js:258
+await in LL
+window.FB.login.scope @ dashboard-CWI3qbtw.js:6
+b.setFinalAuthResponse @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:111
+_xdRecv @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:150
+(anónimas) @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:150
+s @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:147
+(anónimas) @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:147Comprende este error
+dashboard-CWI3qbtw.js:6 ❌ Error linking Facebook account: Error: Facebook OAuth no está configurado correctamente
+    at LL (index-DUCyeE4Y.js:258:43509)
+(anónimas) @ dashboard-CWI3qbtw.js:6
+Promise.catch
+window.FB.login.scope @ dashboard-CWI3qbtw.js:6
+b.setFinalAuthResponse @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:111
+_xdRecv @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:150
+(anónimas) @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:150
+s @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:147
+(anónimas) @ sdk.js?hash=d41efeeac6d6bfae75082ac8a3756990:147Comprende este error
