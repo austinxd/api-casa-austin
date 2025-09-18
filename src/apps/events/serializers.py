@@ -226,14 +226,18 @@ class EventParticipantSerializer(serializers.ModelSerializer):
         return None
     
     def get_display_name(self, obj):
-        """Formato: Primer Nombre + Inicial del Apellido (ej: Augusto T.)"""
-        first_name = obj.client.first_name or "Usuario"
+        """Formato: Solo Primer Nombre + Inicial del Primer Apellido (ej: Augusto T.)"""
+        full_first_name = obj.client.first_name or "Usuario"
         
-        if obj.client.last_name:
-            last_initial = obj.client.last_name[0].upper()
-            return f"{first_name} {last_initial}."
+        # Extraer solo el primer nombre (antes del primer espacio)
+        first_name_only = full_first_name.strip().split()[0] if full_first_name.strip() else "Usuario"
         
-        return first_name
+        if obj.client.last_name and obj.client.last_name.strip():
+            # Solo la primera inicial del apellido
+            last_initial = obj.client.last_name.strip()[0].upper()
+            return f"{first_name_only} {last_initial}."
+        
+        return first_name_only
     
     def get_highest_level(self, obj):
         """Obtiene el nivel más alto del cliente con icono"""
