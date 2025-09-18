@@ -1100,11 +1100,20 @@ class ClientLinkFacebookView(APIView):
                 app_secret = getattr(settings, 'FACEBOOK_APP_SECRET', None)
                 app_access_token = getattr(settings, 'FACEBOOK_APP_ACCESS_TOKEN', None)
                 
+                # DEBUG: Log configuración actual
+                logger.info(f'🔍 DEBUG Facebook config - app_id: {"SET" if app_id else "MISSING"}, app_secret: {"SET" if app_secret else "MISSING"}, app_access_token: {"SET" if app_access_token else "MISSING"}')
+                if app_id:
+                    logger.info(f'🔍 DEBUG app_id length: {len(str(app_id))}')
+                if app_secret:
+                    logger.info(f'🔍 DEBUG app_secret length: {len(str(app_secret))}')
+                
                 # Generar app access token si no existe
                 if not app_access_token and app_id and app_secret:
                     app_access_token = f"{app_id}|{app_secret}"
+                    logger.info('🔍 DEBUG Generated app_access_token from app_id and app_secret')
                 
                 if not app_access_token or not app_id:
+                    logger.error(f'🚨 Facebook OAuth config missing - app_id: {app_id}, app_secret: {"***" if app_secret else None}, app_access_token: {"***" if app_access_token else None}')
                     return Response({
                         'message': 'Facebook OAuth no está configurado correctamente'
                     }, status=503)
