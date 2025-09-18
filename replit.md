@@ -30,6 +30,7 @@ Preferred communication style: Simple, everyday language.
 - **Points and achievements system** for customer loyalty
 
 ### External Integrations
+- **Facebook OAuth** integration for client verification with enterprise-grade security validation
 - **Google Apps Script** integration for data export to Google Sheets
 - **WhatsApp/Telegram** messaging for customer communication
 - **ChatGPT Builder** API for discount management and automation

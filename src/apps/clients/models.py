@@ -318,6 +318,16 @@ class Clients(BaseModel):
         """Propiedad para verificar si el cliente tiene Facebook vinculado"""
         return bool(self.facebook_linked and self.facebook_id)
     
+    @property
+    def is_authenticated(self):
+        """Propiedad requerida por DRF IsAuthenticated permission"""
+        return True
+    
+    @property
+    def is_anonymous(self):
+        """Propiedad de compatibilidad con Django User model"""
+        return False
+    
     @classmethod
     def get_client_by_facebook_id(cls, facebook_id):
         """Obtiene un cliente por su Facebook ID"""
