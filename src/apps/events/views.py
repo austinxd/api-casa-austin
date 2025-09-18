@@ -47,27 +47,23 @@ class PublicEventListView(generics.ListAPIView):
         status_filter = self.request.GET.get('status', None)
         
         if status_filter == 'upcoming':
-            # Eventos disponibles (próximos + en curso): que no hayan terminado
-            queryset = queryset.filter(end_date__gte=now)
-            
-        elif status_filter == 'ongoing':
-            # Solo eventos en curso (empezaron pero no terminaron)
-            queryset = queryset.filter(start_date__lte=now, end_date__gte=now)
+            # Eventos próximos: que no hayan ocurrido
+            queryset = queryset.filter(event_date__gte=now)
             
         elif status_filter == 'past':
             # Solo eventos que ya terminaron
-            queryset = queryset.filter(end_date__lt=now)
+            queryset = queryset.filter(event_date__lt=now)
         
         # Filtrar por categoría si se proporciona
         category_filter = self.request.GET.get('category', None)
         if category_filter:
             queryset = queryset.filter(category__name__icontains=category_filter)
         
-        # Ordenar: eventos disponibles (upcoming) por fecha ASC, pasados por fecha DESC
+        # Ordenar: eventos próximos por fecha ASC, pasados por fecha DESC
         if status_filter == 'upcoming':
-            return queryset.order_by('start_date')  # Ordenados por fecha de inicio
+            return queryset.order_by('event_date')  # Próximos primero
         else:
-            return queryset.order_by('-start_date')  # Más recientes primero
+            return queryset.order_by('-event_date')  # Más recientes primero
 
 
 class PublicEventDetailView(generics.RetrieveAPIView):
@@ -409,9 +405,7 @@ class EventParticipantsView(APIView):
         from django.utils import timezone
         now = timezone.now()
         
-        if event.start_date > now:
+        if event.event_date > now:
             return 'upcoming'  # Próximo
-        elif event.start_date <= now <= event.end_date:
-            return 'ongoing'   # En curso
         else:
             return 'past'      # Pasado

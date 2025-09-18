@@ -42,7 +42,7 @@ class EventListSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'id', 'title', 'description', 'category', 'property', 'image', 'thumbnail',
-            'start_date', 'end_date', 'registration_deadline', 'location',
+            'event_date', 'registration_deadline', 'location',
             'max_participants', 'registered_count', 'available_spots',
             'min_points_required', 'can_register_status', 'event_status'
         ]
@@ -56,14 +56,12 @@ class EventListSerializer(serializers.ModelSerializer):
         }
     
     def get_event_status(self, obj):
-        """Clasificar evento como: upcoming, ongoing, past"""
+        """Clasificar evento como: upcoming, past"""
         from django.utils import timezone
         now = timezone.now()
         
-        if obj.start_date > now:
+        if obj.event_date > now:
             return 'upcoming'  # Próximo
-        elif obj.start_date <= now <= obj.end_date:
-            return 'ongoing'   # En curso
         else:
             return 'past'      # Pasado
 
@@ -82,7 +80,7 @@ class EventDetailSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'id', 'title', 'description', 'category', 'image',
-            'start_date', 'end_date', 'registration_deadline', 'location',
+            'event_date', 'registration_deadline', 'location',
             'max_participants', 'registered_count', 'available_spots',
             'min_points_required', 'required_achievements',
             'can_register_status', 'client_can_register'
@@ -165,7 +163,7 @@ class EventWinnersSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'id', 'title', 'description', 'category', 'image',
-            'start_date', 'end_date', 'location', 'winners', 'total_winners'
+            'event_date', 'location', 'winners', 'total_winners'
         ]
     
     def get_winners(self, obj):

@@ -42,9 +42,8 @@ class Event(BaseModel):
     thumbnail = models.ImageField(upload_to='events/thumbnails/', blank=True, null=True, help_text="Miniatura del evento (generada automáticamente)")
     
     # Fechas y ubicación
-    start_date = models.DateTimeField(help_text="Fecha y hora de inicio")
-    end_date = models.DateTimeField(help_text="Fecha y hora de fin")
-    registration_deadline = models.DateTimeField(blank=True, null=True, help_text="Fecha límite para registrarse")
+    event_date = models.DateTimeField(help_text="Fecha y hora del sorteo/evento")
+    registration_deadline = models.DateTimeField(help_text="Fecha límite para registrarse")
     location = models.CharField(max_length=300, blank=True, help_text="Ubicación del evento")
     
     # Configuración
@@ -80,10 +79,10 @@ class Event(BaseModel):
     class Meta:
         verbose_name = "Evento"
         verbose_name_plural = "Eventos"
-        ordering = ['-start_date']
+        ordering = ['-event_date']
     
     def __str__(self):
-        return f"{self.title} - {self.start_date.strftime('%d/%m/%Y')}"
+        return f"{self.title} - {self.event_date.strftime('%d/%m/%Y')}"
     
     def can_register(self):
         """Verifica si el evento permite registros"""
