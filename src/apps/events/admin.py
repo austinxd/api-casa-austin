@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import EventCategory, Event, EventRegistration, ActivityFeed
+from .models import EventCategory, Event, EventRegistration, ActivityFeed, ActivityFeedConfig
 
 
 @admin.register(EventCategory)
@@ -247,3 +247,137 @@ class ActivityFeedAdmin(admin.ModelAdmin):
         updated = queryset.update(deleted=True)
         self.message_user(request, f'{updated} actividades marcadas como eliminadas.')
     mark_as_deleted.short_description = '🗑️ Marcar como eliminado'
+
+
+@admin.register(ActivityFeedConfig)
+class ActivityFeedConfigAdmin(admin.ModelAdmin):
+    """
+    Configuración Global de Tipos de Actividad
+    Controla qué tipos aparecen automáticamente y cómo
+    """
+    
+    list_display = [
+        'activity_type_icon_display',
+        'activity_type_display',
+        'status_display',
+        'visibility_display',
+        'importance_display',
+        'description_short'
+    ]
+    
+    list_filter = [
+        'is_enabled',
+        'is_public_by_default', 
+        'default_importance_level'
+    ]
+    
+    search_fields = ['description']
+    
+    fieldsets = (
+        ('🎯 Tipo de Actividad', {
+            'fields': ('activity_type',),
+            'description': 'Selecciona el tipo de actividad a configurar'
+        }),
+        ('⚙️ Configuración de Comportamiento', {
+            'fields': ('is_enabled', 'is_public_by_default', 'default_importance_level'),
+            'description': 'Controla cómo se comportan automáticamente las actividades de este tipo'
+        }),
+        ('📝 Información Adicional', {
+            'fields': ('description',),
+            'description': 'Descripción opcional para recordar qué incluye este tipo'
+        })
+    )
+    
+    actions = [
+        'enable_all_types',
+        'disable_all_types',
+        'make_all_public',
+        'make_all_private'
+    ]
+    
+    def activity_type_icon_display(self, obj):
+        """Icono del tipo de actividad"""
+        # Mapeo de iconos según el tipo
+        icon_map = {
+            'points_earned': "⭐",
+            'reservation_made': "📅",
+            'event_created': "🎉",
+            'event_registration': "✅",
+            'event_winner': "🏆",
+            'achievement_earned': "🏅",
+            'property_visited': "🏠",
+            'payment_completed': "💰",
+            'discount_used': "🎫",
+            'review_posted': "📝",
+            'staff_assigned': "👥",
+            'milestone_reached': "🎯",
+            'system_update': "📢"
+        }
+        icon = icon_map.get(obj.activity_type, "📌")
+        return format_html('<span style="font-size: 1.5em;">{}</span>', icon)
+    activity_type_icon_display.short_description = '🎯'
+    
+    def activity_type_display(self, obj):
+        """Nombre del tipo de actividad"""
+        return obj.get_activity_type_display()
+    activity_type_display.short_description = 'Tipo de Actividad'
+    
+    def status_display(self, obj):
+        """Estado habilitado/deshabilitado"""
+        if obj.is_enabled:
+            return format_html('<span style="color: green; font-weight: bold;">✅ Habilitado</span>')
+        else:
+            return format_html('<span style="color: red; font-weight: bold;">❌ Deshabilitado</span>')
+    status_display.short_description = 'Estado'
+    
+    def visibility_display(self, obj):
+        """Visibilidad por defecto"""
+        if obj.is_public_by_default:
+            return format_html('<span style="color: blue;">🌐 Público</span>')
+        else:
+            return format_html('<span style="color: orange;">🔒 Privado</span>')
+    visibility_display.short_description = 'Visibilidad'
+    
+    def importance_display(self, obj):
+        """Nivel de importancia con barras"""
+        level = obj.default_importance_level
+        bars = '█' * level + '░' * (5 - level)
+        color = '#ff4444' if level >= 4 else '#ffaa00' if level >= 3 else '#00aa00'
+        return format_html(
+            '<span style="color: {}; font-family: monospace;">{}</span> {}', 
+            color, bars, level
+        )
+    importance_display.short_description = 'Importancia'
+    
+    def description_short(self, obj):
+        """Descripción corta"""
+        if obj.description:
+            return obj.description[:50] + "..." if len(obj.description) > 50 else obj.description
+        return format_html('<span style="color: #ccc;">Sin descripción</span>')
+    description_short.short_description = 'Descripción'
+    
+    # === ACCIONES EN MASA ===
+    
+    def enable_all_types(self, request, queryset):
+        """Habilitar todos los tipos seleccionados"""
+        updated = queryset.update(is_enabled=True)
+        self.message_user(request, f'{updated} tipos de actividad habilitados.')
+    enable_all_types.short_description = '✅ Habilitar tipos'
+    
+    def disable_all_types(self, request, queryset):
+        """Deshabilitar todos los tipos seleccionados"""
+        updated = queryset.update(is_enabled=False)
+        self.message_user(request, f'{updated} tipos de actividad deshabilitados.')
+    disable_all_types.short_description = '❌ Deshabilitar tipos'
+    
+    def make_all_public(self, request, queryset):
+        """Hacer públicos por defecto"""
+        updated = queryset.update(is_public_by_default=True)
+        self.message_user(request, f'{updated} tipos configurados como públicos por defecto.')
+    make_all_public.short_description = '🌐 Público por defecto'
+    
+    def make_all_private(self, request, queryset):
+        """Hacer privados por defecto"""
+        updated = queryset.update(is_public_by_default=False)
+        self.message_user(request, f'{updated} tipos configurados como privados por defecto.')
+    make_all_private.short_description = '🔒 Privado por defecto'

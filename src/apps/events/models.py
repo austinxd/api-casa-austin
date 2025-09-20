@@ -588,3 +588,80 @@ class ActivityFeed(BaseModel):
             activity_data=activity_data,
             **kwargs
         )
+
+
+class ActivityFeedConfig(BaseModel):
+    """
+    Configuración global del Feed de Actividades
+    Permite controlar qué tipos de actividades aparecen automáticamente
+    """
+    
+    # Tipo de actividad a configurar
+    activity_type = models.CharField(
+        max_length=20,
+        choices=ActivityFeed.ActivityType.choices,
+        unique=True,
+        help_text="Tipo de actividad a configurar"
+    )
+    
+    # Configuraciones
+    is_enabled = models.BooleanField(
+        default=True,
+        help_text="¿Permitir que se generen automáticamente actividades de este tipo?"
+    )
+    
+    is_public_by_default = models.BooleanField(
+        default=True,
+        help_text="¿Las actividades de este tipo deben ser públicas por defecto?"
+    )
+    
+    default_importance_level = models.IntegerField(
+        default=2,
+        choices=[(1, 'Muy Baja'), (2, 'Baja'), (3, 'Media'), (4, 'Alta'), (5, 'Crítica')],
+        help_text="Nivel de importancia por defecto para este tipo"
+    )
+    
+    description = models.TextField(
+        blank=True,
+        help_text="Descripción de qué incluye este tipo de actividad"
+    )
+    
+    class Meta:
+        verbose_name = "Configuración de Feed de Actividades"
+        verbose_name_plural = "Configuraciones de Feed de Actividades"
+        ordering = ['activity_type']
+    
+    def __str__(self):
+        status = "✅ Habilitado" if self.is_enabled else "❌ Deshabilitado"
+        visibility = "🌐 Público" if self.is_public_by_default else "🔒 Privado"
+        return f"{self.get_activity_type_display()} - {status} ({visibility})"
+    
+    @classmethod
+    def is_type_enabled(cls, activity_type):
+        """Verificar si un tipo de actividad está habilitado"""
+        try:
+            config = cls.objects.get(activity_type=activity_type)
+            return config.is_enabled
+        except cls.DoesNotExist:
+            # Si no hay configuración, está habilitado por defecto
+            return True
+    
+    @classmethod
+    def should_be_public(cls, activity_type):
+        """Verificar si un tipo de actividad debe ser público por defecto"""
+        try:
+            config = cls.objects.get(activity_type=activity_type)
+            return config.is_public_by_default
+        except cls.DoesNotExist:
+            # Si no hay configuración, es público por defecto
+            return True
+    
+    @classmethod
+    def get_default_importance(cls, activity_type):
+        """Obtener el nivel de importancia por defecto para un tipo"""
+        try:
+            config = cls.objects.get(activity_type=activity_type)
+            return config.default_importance_level
+        except cls.DoesNotExist:
+            # Si no hay configuración, usar importancia media
+            return 2

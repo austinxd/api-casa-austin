@@ -1,7 +1,7 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
-from .models import Event, EventRegistration, ActivityFeed
+from .models import Event, EventRegistration, ActivityFeed, ActivityFeedConfig
 import logging
 
 logger = logging.getLogger(__name__)
@@ -54,6 +54,11 @@ def create_event_activity(sender, instance, created, **kwargs):
             _event_previous_status.pop(instance.pk, None)
         
         if should_create_activity and instance.is_active and instance.is_public:
+            # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
+            if not ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.EVENT_CREATED):
+                logger.debug(f"Actividades de tipo 'event_created' están deshabilitadas, omitiendo para: {instance.title}")
+                return
+            
             # Verificar que no exista ya una actividad de creación para este evento
             existing_activity = ActivityFeed.objects.filter(
                 activity_type=ActivityFeed.ActivityType.EVENT_CREATED,
@@ -62,10 +67,16 @@ def create_event_activity(sender, instance, created, **kwargs):
             ).exists()
             
             if not existing_activity:
+                # Usar configuración por defecto para visibilidad e importancia
+                is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.EVENT_CREATED)
+                importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.EVENT_CREATED)
+                
                 ActivityFeed.create_activity(
                     activity_type=ActivityFeed.ActivityType.EVENT_CREATED,
                     event=instance,
                     property_location=instance.property_location,
+                    is_public=is_public,
+                    importance_level=importance,
                     activity_data={
                         'event_name': instance.title,
                         'event_id': str(instance.id),
@@ -75,8 +86,7 @@ def create_event_activity(sender, instance, created, **kwargs):
                         'location': instance.location or '',
                         'max_participants': instance.max_participants,
                         'min_points_required': float(instance.min_points_required) if instance.min_points_required else 0
-                    },
-                    importance_level=3  # Alta - eventos nuevos son importantes
+                    }
                 )
                 logger.info(f"Actividad de evento creado: {instance.title}")
             else:
@@ -94,6 +104,11 @@ def create_winner_activity(sender, instance, created, **kwargs):
     try:
         # Solo procesar si no es nuevo registro y ahora es ganador
         if not created and instance.winner_status != EventRegistration.WinnerStatus.NOT_WINNER:
+            
+            # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
+            if not ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.EVENT_WINNER):
+                logger.debug(f"Actividades de tipo 'event_winner' están deshabilitadas, omitiendo para: {instance.client}")
+                return
             
             # Verificar que no exista ya una actividad de ganador para este registro
             existing_activity = ActivityFeed.objects.filter(
