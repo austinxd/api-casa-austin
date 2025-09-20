@@ -4,14 +4,17 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from django.db.models import Q
 
 from apps.clients.models import Clients
 from apps.clients.auth_views import ClientJWTAuthentication
-from .models import EventCategory, Event, EventRegistration
+from .models import EventCategory, Event, EventRegistration, ActivityFeed
 from .serializers import (
     EventCategorySerializer, EventListSerializer, EventDetailSerializer,
-    EventRegistrationSerializer, EventRegistrationCreateSerializer, EventParticipantSerializer
+    EventRegistrationSerializer, EventRegistrationCreateSerializer, EventParticipantSerializer,
+    ActivityFeedSerializer, ActivityFeedCreateSerializer, ActivityFeedFilterSerializer
 )
 
 
@@ -135,6 +138,27 @@ class EventRegistrationView(APIView):
                     existing_registration.registration_date = timezone.now()
                     existing_registration.save()
                     
+                    # 📊 ACTIVITY FEED: Crear actividad para reactivación de registro
+                    try:
+                        ActivityFeed.create_activity(
+                            activity_type=ActivityFeed.ActivityType.EVENT_REGISTRATION,
+                            client=client,
+                            event=event,
+                            property_location=event.property_location,
+                            activity_data={
+                                'event_name': event.title,
+                                'event_id': str(event.id),
+                                'registration_id': str(existing_registration.id),
+                                'event_date': event.event_date.isoformat(),
+                                'category': event.category.name if event.category else 'General',
+                                'reactivated': True
+                            },
+                            importance_level=2  # Media
+                        )
+                        print(f"Actividad de reactivación de registro creada para cliente {client.id}")
+                    except Exception as e:
+                        print(f"Error creando actividad de reactivación de registro: {str(e)}")
+
                     return Response({
                         'success': True,
                         'message': 'Registro reactivado exitosamente',
@@ -159,6 +183,26 @@ class EventRegistrationView(APIView):
                 registration.status = EventRegistration.RegistrationStatus.APPROVED
                 registration.save()
                 
+                # 📊 ACTIVITY FEED: Crear actividad para registro a evento
+                try:
+                    ActivityFeed.create_activity(
+                        activity_type=ActivityFeed.ActivityType.EVENT_REGISTRATION,
+                        client=client,
+                        event=event,
+                        property_location=event.property_location,
+                        activity_data={
+                            'event_name': event.title,
+                            'event_id': str(event.id),
+                            'registration_id': str(registration.id),
+                            'event_date': event.event_date.isoformat(),
+                            'category': event.category.name if event.category else 'General'
+                        },
+                        importance_level=2  # Media
+                    )
+                    print(f"Actividad de registro a evento creada para cliente {client.id}")
+                except Exception as e:
+                    print(f"Error creando actividad de registro a evento: {str(e)}")
+
                 return Response({
                     'success': True,
                     'message': 'Registro exitoso al evento',
@@ -409,3 +453,329 @@ class EventParticipantsView(APIView):
             return 'upcoming'  # Próximo
         else:
             return 'past'      # Pasado
+
+
+# === FEED DE ACTIVIDADES DE CASA AUSTIN ===
+
+class ActivityFeedPagination(PageNumberPagination):
+    """Paginación personalizada para el feed de actividades"""
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
+class ActivityFeedView(generics.ListAPIView):
+    """
+    Feed público de actividades de Casa Austin
+    
+    GET /api/v1/activity-feed/
+    
+    Query Parameters:
+    - activity_type: Filtrar por tipo (points_earned, reservation_made, event_created, etc.)
+    - client_id: Filtrar por cliente específico
+    - importance_level: Filtrar por nivel de importancia (1-4)
+    - date_from: Actividades desde fecha (YYYY-MM-DD)
+    - date_to: Actividades hasta fecha (YYYY-MM-DD)
+    - page: Número de página
+    - page_size: Elementos por página (máx 100)
+    """
+    
+    serializer_class = ActivityFeedSerializer
+    permission_classes = [AllowAny]
+    pagination_class = ActivityFeedPagination
+    
+    def get_queryset(self):
+        """Obtener actividades con filtros aplicados"""
+        
+        # Base queryset - solo actividades públicas no eliminadas
+        queryset = ActivityFeed.objects.filter(
+            deleted=False,
+            is_public=True
+        ).select_related('client', 'event', 'property_location').order_by('-created')
+        
+        # Aplicar filtros de query parameters
+        activity_type = self.request.GET.get('activity_type')
+        if activity_type:
+            queryset = queryset.filter(activity_type=activity_type)
+        
+        client_id = self.request.GET.get('client_id')
+        if client_id:
+            try:
+                queryset = queryset.filter(client_id=client_id)
+            except ValueError:
+                # ID inválido, retornar queryset vacío
+                return ActivityFeed.objects.none()
+        
+        importance_level = self.request.GET.get('importance_level')
+        if importance_level:
+            try:
+                importance_level = int(importance_level)
+                if 1 <= importance_level <= 4:
+                    queryset = queryset.filter(importance_level=importance_level)
+            except (ValueError, TypeError):
+                pass
+        
+        date_from = self.request.GET.get('date_from')
+        if date_from:
+            try:
+                from datetime import datetime
+                date_from_parsed = datetime.fromisoformat(date_from)
+                queryset = queryset.filter(created__gte=date_from_parsed)
+            except ValueError:
+                pass
+        
+        date_to = self.request.GET.get('date_to')
+        if date_to:
+            try:
+                from datetime import datetime
+                date_to_parsed = datetime.fromisoformat(date_to)
+                queryset = queryset.filter(created__lte=date_to_parsed)
+            except ValueError:
+                pass
+        
+        return queryset
+    
+    def list(self, request, *args, **kwargs):
+        """Override para formato de respuesta personalizado"""
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            response_data = self.get_paginated_response(serializer.data)
+            
+            # Agregar metadatos del feed
+            response_data.data.update({
+                'success': True,
+                'feed_info': {
+                    'total_activities': queryset.count(),
+                    'filters_applied': self._get_applied_filters(),
+                    'last_updated': timezone.now().isoformat(),
+                }
+            })
+            
+            return response_data
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({
+            'success': True,
+            'results': serializer.data,
+            'count': queryset.count(),
+            'feed_info': {
+                'total_activities': queryset.count(),
+                'filters_applied': self._get_applied_filters(),
+                'last_updated': timezone.now().isoformat(),
+            }
+        })
+    
+    def _get_applied_filters(self):
+        """Helper para mostrar filtros aplicados en la respuesta"""
+        filters = {}
+        
+        for param in ['activity_type', 'client_id', 'importance_level', 'date_from', 'date_to']:
+            value = self.request.GET.get(param)
+            if value:
+                filters[param] = value
+        
+        return filters
+
+
+class RecentActivitiesView(APIView):
+    """
+    Endpoint rápido para obtener las actividades más recientes
+    
+    GET /api/v1/activity-feed/recent/
+    
+    Query Parameters:
+    - limit: Número de actividades a retornar (default: 10, max: 50)
+    - activity_type: Filtrar por tipo específico
+    """
+    
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        """Obtener las actividades más recientes"""
+        try:
+            # Parámetros
+            limit = int(request.GET.get('limit', 10))
+            if limit > 50:
+                limit = 50
+            
+            activity_type = request.GET.get('activity_type')
+            
+            # Queryset base
+            queryset = ActivityFeed.objects.filter(
+                deleted=False,
+                is_public=True
+            ).select_related('client', 'event', 'property_location').order_by('-created')
+            
+            # Filtrar por tipo si se especifica
+            if activity_type:
+                queryset = queryset.filter(activity_type=activity_type)
+            
+            # Limitar resultados
+            activities = queryset[:limit]
+            
+            # Serializar
+            serializer = ActivityFeedSerializer(activities, many=True)
+            
+            return Response({
+                'success': True,
+                'activities': serializer.data,
+                'count': len(activities),
+                'limit_applied': limit,
+                'last_updated': timezone.now().isoformat()
+            })
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'Error obteniendo actividades recientes: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ActivityFeedStatsView(APIView):
+    """
+    Estadísticas del feed de actividades
+    
+    GET /api/v1/activity-feed/stats/
+    """
+    
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        """Obtener estadísticas del feed de actividades"""
+        try:
+            from django.db.models import Count
+            from datetime import datetime, timedelta
+            
+            now = timezone.now()
+            
+            # Estadísticas generales
+            total_activities = ActivityFeed.objects.filter(deleted=False, is_public=True).count()
+            
+            # Actividades por tipo
+            activities_by_type = ActivityFeed.objects.filter(
+                deleted=False, 
+                is_public=True
+            ).values('activity_type').annotate(
+                count=Count('id')
+            ).order_by('-count')
+            
+            # Actividades de las últimas 24 horas
+            yesterday = now - timedelta(days=1)
+            recent_activities = ActivityFeed.objects.filter(
+                deleted=False,
+                is_public=True,
+                created__gte=yesterday
+            ).count()
+            
+            # Actividades de la última semana
+            last_week = now - timedelta(days=7)
+            weekly_activities = ActivityFeed.objects.filter(
+                deleted=False,
+                is_public=True,
+                created__gte=last_week
+            ).count()
+            
+            # Clientes más activos (último mes)
+            last_month = now - timedelta(days=30)
+            top_clients = ActivityFeed.objects.filter(
+                deleted=False,
+                is_public=True,
+                created__gte=last_month,
+                client__isnull=False
+            ).values(
+                'client__first_name', 'client__last_name', 'client_id'
+            ).annotate(
+                activity_count=Count('id')
+            ).order_by('-activity_count')[:5]
+            
+            return Response({
+                'success': True,
+                'stats': {
+                    'total_activities': total_activities,
+                    'recent_24h': recent_activities,
+                    'recent_week': weekly_activities,
+                    'activities_by_type': [
+                        {
+                            'type': item['activity_type'],
+                            'type_display': dict(ActivityFeed.ActivityType.choices).get(
+                                item['activity_type'], item['activity_type']
+                            ),
+                            'count': item['count']
+                        }
+                        for item in activities_by_type
+                    ],
+                    'top_clients_month': [
+                        {
+                            'client_id': client['client_id'],
+                            'name': f"{client['client__first_name']} {client['client__last_name'][0].upper() if client['client__last_name'] else ''}.",
+                            'activity_count': client['activity_count']
+                        }
+                        for client in top_clients
+                    ]
+                },
+                'generated_at': now.isoformat()
+            })
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'Error obteniendo estadísticas: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# === ENDPOINTS PARA ADMINISTRADORES (crear actividades manualmente) ===
+
+class ActivityFeedCreateView(APIView):
+    """
+    Crear actividades manualmente (solo para administradores o sistema interno)
+    
+    POST /api/v1/activity-feed/create/
+    
+    SEGURIDAD: Requiere clave secreta del sistema para prevenir spam/manipulación
+    """
+    
+    permission_classes = [AllowAny]  # Controlado por validación de clave secreta
+    
+    def post(self, request):
+        """Crear nueva actividad en el feed"""
+        try:
+            # 🔐 VALIDACIÓN DE SEGURIDAD: Verificar clave secreta del sistema
+            admin_key = request.headers.get('X-Admin-Key') or request.data.get('admin_key')
+            expected_key = "casa_austin_feed_admin_2025"  # TODO: Mover a settings/environment
+            
+            if admin_key != expected_key:
+                return Response({
+                    'success': False,
+                    'message': 'Acceso denegado: clave de administrador requerida'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Remover admin_key de los datos antes de validar
+            request_data = request.data.copy()
+            request_data.pop('admin_key', None)
+            
+            serializer = ActivityFeedCreateSerializer(data=request_data)
+            if serializer.is_valid():
+                activity = serializer.save()
+                
+                # Serializar respuesta
+                response_serializer = ActivityFeedSerializer(activity)
+                
+                return Response({
+                    'success': True,
+                    'message': 'Actividad creada exitosamente',
+                    'activity': response_serializer.data
+                }, status=status.HTTP_201_CREATED)
+            else:
+                return Response({
+                    'success': False,
+                    'errors': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'Error creando actividad: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

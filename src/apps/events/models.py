@@ -351,3 +351,240 @@ class EventRegistration(BaseModel):
             
         except Exception as e:
             print(f"Error notificando ganador: {e}")
+
+
+class ActivityFeed(BaseModel):
+    """Feed de actividades de Casa Austin - Últimos acontecimientos del sistema"""
+    
+    class ActivityType(models.TextChoices):
+        POINTS_EARNED = "points_earned", "Puntos Ganados"
+        RESERVATION_MADE = "reservation_made", "Reserva Realizada"
+        EVENT_CREATED = "event_created", "Evento Creado"
+        EVENT_REGISTRATION = "event_registration", "Registro a Evento"
+        EVENT_WINNER = "event_winner", "Ganador de Evento"
+        ACHIEVEMENT_EARNED = "achievement_earned", "Logro Obtenido"
+        PROPERTY_VISITED = "property_visited", "Propiedad Visitada"
+        PAYMENT_COMPLETED = "payment_completed", "Pago Completado"
+        DISCOUNT_USED = "discount_used", "Descuento Utilizado"
+        REVIEW_POSTED = "review_posted", "Reseña Publicada"
+        STAFF_ASSIGNED = "staff_assigned", "Personal Asignado"
+        MILESTONE_REACHED = "milestone_reached", "Hito Alcanzado"
+        SYSTEM_UPDATE = "system_update", "Actualización del Sistema"
+    
+    # Información básica de la actividad
+    activity_type = models.CharField(
+        max_length=20, 
+        choices=ActivityType.choices,
+        help_text="Tipo de actividad registrada"
+    )
+    title = models.CharField(
+        max_length=200, 
+        help_text="Título descriptivo de la actividad"
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Descripción detallada opcional"
+    )
+    
+    # Relaciones opcionales (dependiendo del tipo de actividad)
+    client = models.ForeignKey(
+        Clients,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='activities',
+        help_text="Cliente relacionado con la actividad (opcional)"
+    )
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='activities',
+        help_text="Evento relacionado con la actividad (opcional)"
+    )
+    property_location = models.ForeignKey(
+        Property,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='activities',
+        help_text="Propiedad relacionada con la actividad (opcional)"
+    )
+    
+    # Datos específicos de la actividad (JSON flexible)
+    activity_data = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Datos específicos de la actividad en formato JSON"
+    )
+    
+    # Metadatos
+    is_public = models.BooleanField(
+        default=True,
+        help_text="Si la actividad debe mostrarse en el feed público"
+    )
+    icon = models.CharField(
+        max_length=10, 
+        blank=True,
+        help_text="Emoji o icono representativo de la actividad"
+    )
+    importance_level = models.PositiveSmallIntegerField(
+        default=1,
+        help_text="Nivel de importancia (1=baja, 2=media, 3=alta, 4=crítica)"
+    )
+    
+    class Meta:
+        verbose_name = "Actividad del Feed"
+        verbose_name_plural = "Actividades del Feed"
+        ordering = ['-created']  # Más recientes primero
+        indexes = [
+            models.Index(fields=['activity_type', 'created']),
+            models.Index(fields=['client', 'created']),
+            models.Index(fields=['is_public', 'created']),
+        ]
+    
+    def __str__(self):
+        if self.client:
+            return f"{self.get_activity_type_display()}: {self.client.first_name} - {self.title}"
+        return f"{self.get_activity_type_display()}: {self.title}"
+    
+    def get_formatted_message(self):
+        """Genera mensaje formateado automáticamente según el tipo de actividad"""
+        
+        # Nombre del cliente con inicial del apellido
+        client_name = ""
+        if self.client:
+            last_initial = f" {self.client.last_name[0].upper()}." if self.client.last_name else ""
+            client_name = f"{self.client.first_name}{last_initial}"
+        
+        # Formatear según tipo de actividad
+        if self.activity_type == self.ActivityType.POINTS_EARNED:
+            points = self.activity_data.get('points', 0)
+            reason = self.activity_data.get('reason', 'una actividad')
+            property_name = self.activity_data.get('property_name', 'Casa Austin')
+            return f"{client_name} acaba de ganar {points} puntos por {reason} en {property_name}"
+        
+        elif self.activity_type == self.ActivityType.RESERVATION_MADE:
+            property_name = self.activity_data.get('property_name', 'Casa Austin')
+            dates = self.activity_data.get('dates', '')
+            return f"{client_name} hizo una reserva {dates} en {property_name}"
+        
+        elif self.activity_type == self.ActivityType.EVENT_CREATED:
+            event_name = self.event.title if self.event else self.activity_data.get('event_name', 'un evento')
+            return f"¡Nuevo evento creado! {event_name}"
+        
+        elif self.activity_type == self.ActivityType.EVENT_REGISTRATION:
+            event_name = self.event.title if self.event else self.activity_data.get('event_name', 'un evento')
+            return f"{client_name} se registró para el evento: {event_name}"
+        
+        elif self.activity_type == self.ActivityType.EVENT_WINNER:
+            event_name = self.event.title if self.event else self.activity_data.get('event_name', 'un evento')
+            position = self.activity_data.get('position', 'ganador')
+            prize = self.activity_data.get('prize', '')
+            prize_text = f" - {prize}" if prize else ""
+            return f"🏆 {client_name} es {position} del evento: {event_name}{prize_text}"
+        
+        elif self.activity_type == self.ActivityType.ACHIEVEMENT_EARNED:
+            achievement_name = self.activity_data.get('achievement_name', 'un logro')
+            achievement_icon = self.activity_data.get('achievement_icon', '🏅')
+            return f"{achievement_icon} {client_name} obtuvo el logro: {achievement_name}"
+        
+        elif self.activity_type == self.ActivityType.PROPERTY_VISITED:
+            property_name = self.activity_data.get('property_name', 'Casa Austin')
+            return f"{client_name} visitó {property_name}"
+        
+        elif self.activity_type == self.ActivityType.PAYMENT_COMPLETED:
+            amount = self.activity_data.get('amount', '')
+            property_name = self.activity_data.get('property_name', 'Casa Austin')
+            return f"{client_name} completó un pago{f' de {amount}' if amount else ''} para {property_name}"
+        
+        elif self.activity_type == self.ActivityType.DISCOUNT_USED:
+            discount_name = self.activity_data.get('discount_name', 'un descuento')
+            discount_amount = self.activity_data.get('discount_amount', '')
+            return f"{client_name} usó {discount_name}{f' ({discount_amount})' if discount_amount else ''}"
+        
+        elif self.activity_type == self.ActivityType.MILESTONE_REACHED:
+            milestone = self.activity_data.get('milestone', 'un hito importante')
+            return f"🎉 ¡Casa Austin alcanzó {milestone}!"
+        
+        elif self.activity_type == self.ActivityType.SYSTEM_UPDATE:
+            update_name = self.activity_data.get('update_name', 'una actualización')
+            return f"📢 {update_name}"
+        
+        # Fallback a título personalizado si existe
+        return self.title if self.title else f"Nueva actividad: {self.get_activity_type_display()}"
+    
+    def get_icon(self):
+        """Obtiene icono automático según tipo de actividad"""
+        if self.icon:
+            return self.icon
+        
+        icon_map = {
+            self.ActivityType.POINTS_EARNED: "⭐",
+            self.ActivityType.RESERVATION_MADE: "📅",
+            self.ActivityType.EVENT_CREATED: "🎉",
+            self.ActivityType.EVENT_REGISTRATION: "✅",
+            self.ActivityType.EVENT_WINNER: "🏆",
+            self.ActivityType.ACHIEVEMENT_EARNED: "🏅",
+            self.ActivityType.PROPERTY_VISITED: "🏠",
+            self.ActivityType.PAYMENT_COMPLETED: "💰",
+            self.ActivityType.DISCOUNT_USED: "🎫",
+            self.ActivityType.REVIEW_POSTED: "📝",
+            self.ActivityType.STAFF_ASSIGNED: "👥",
+            self.ActivityType.MILESTONE_REACHED: "🎯",
+            self.ActivityType.SYSTEM_UPDATE: "📢"
+        }
+        
+        return icon_map.get(self.activity_type, "📌")
+    
+    @property
+    def time_ago(self):
+        """Tiempo transcurrido desde la actividad"""
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        now = timezone.now()
+        diff = now - self.created
+        
+        if diff < timedelta(minutes=1):
+            return "hace un momento"
+        elif diff < timedelta(hours=1):
+            minutes = int(diff.total_seconds() / 60)
+            return f"hace {minutes} minuto{'s' if minutes != 1 else ''}"
+        elif diff < timedelta(days=1):
+            hours = int(diff.total_seconds() / 3600)
+            return f"hace {hours} hora{'s' if hours != 1 else ''}"
+        elif diff < timedelta(days=7):
+            days = diff.days
+            return f"hace {days} día{'s' if days != 1 else ''}"
+        else:
+            return self.created.strftime('%d/%m/%Y')
+    
+    @classmethod
+    def create_activity(cls, activity_type, title=None, client=None, event=None, 
+                       property_location=None, activity_data=None, **kwargs):
+        """Método helper para crear actividades fácilmente"""
+        
+        activity_data = activity_data or {}
+        
+        # Auto-generar título si no se proporciona
+        if not title:
+            temp_activity = cls(
+                activity_type=activity_type,
+                client=client,
+                event=event,
+                property_location=property_location,
+                activity_data=activity_data
+            )
+            title = temp_activity.get_formatted_message()
+        
+        return cls.objects.create(
+            activity_type=activity_type,
+            title=title,
+            client=client,
+            event=event,
+            property_location=property_location,
+            activity_data=activity_data,
+            **kwargs
+        )

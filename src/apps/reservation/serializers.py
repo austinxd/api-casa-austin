@@ -194,6 +194,29 @@ class ReservationSerializer(serializers.ModelSerializer):
         # Crear la reserva
         reservation = super().create(validated_data)
 
+        # 📊 ACTIVITY FEED: Crear actividad para nueva reserva
+        try:
+            from apps.events.models import ActivityFeed
+            dates_str = f"del {reservation.check_in_date.strftime('%d/%m')} al {reservation.check_out_date.strftime('%d/%m/%Y')}"
+            ActivityFeed.create_activity(
+                activity_type=ActivityFeed.ActivityType.RESERVATION_MADE,
+                client=reservation.client,
+                property_location=reservation.property,
+                activity_data={
+                    'property_name': reservation.property.name,
+                    'dates': dates_str,
+                    'check_in': reservation.check_in_date.isoformat(),
+                    'check_out': reservation.check_out_date.isoformat(),
+                    'guests': reservation.guests,
+                    'reservation_id': str(reservation.id),
+                    'price_sol': float(reservation.price_sol) if reservation.price_sol else 0
+                },
+                importance_level=2  # Media
+            )
+            print(f"Actividad de reserva creada para cliente {reservation.client.id if reservation.client else 'anónimo'}")
+        except Exception as e:
+            print(f"Error creando actividad de reserva: {str(e)}")
+
         # Si hay código de descuento, validarlo y procesarlo
         if discount_code and discount_code.strip():
             try:

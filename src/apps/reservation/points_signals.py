@@ -71,6 +71,26 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
             f"Puntos asignados: {points_to_add} puntos para cliente {instance.client.first_name} {instance.client.last_name}"
         )
 
+        # 📊 ACTIVITY FEED: Crear actividad para puntos ganados
+        try:
+            from apps.events.models import ActivityFeed
+            ActivityFeed.create_activity(
+                activity_type=ActivityFeed.ActivityType.POINTS_EARNED,
+                client=instance.client,
+                property_location=instance.property,
+                activity_data={
+                    'points': float(points_to_add),
+                    'reason': 'una reserva',
+                    'property_name': instance.property.name,
+                    'reservation_id': str(instance.id),
+                    'effective_price': effective_price
+                },
+                importance_level=2  # Media
+            )
+            logger.debug(f"Actividad de puntos creada para cliente {instance.client.id}")
+        except Exception as e:
+            logger.error(f"Error creando actividad de puntos: {str(e)}")
+
         # Asignar puntos por referido si aplica
         if instance.client.referred_by:
             try:
@@ -97,6 +117,26 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
                         )
 
                         logger.debug(f"Puntos por referido procesados: {instance.client.referred_by.first_name} recibió {referral_points} puntos por referir a {instance.client.first_name}")
+
+                        # 📊 ACTIVITY FEED: Crear actividad para puntos por referido
+                        try:
+                            from apps.events.models import ActivityFeed
+                            ActivityFeed.create_activity(
+                                activity_type=ActivityFeed.ActivityType.POINTS_EARNED,
+                                client=instance.client.referred_by,
+                                property_location=instance.property,
+                                activity_data={
+                                    'points': float(referral_points),
+                                    'reason': f'referir a {instance.client.first_name} {instance.client.last_name[0].upper()}.' if instance.client.last_name else instance.client.first_name,
+                                    'property_name': instance.property.name,
+                                    'reservation_id': str(instance.id),
+                                    'is_referral': True
+                                },
+                                importance_level=3  # Alta - los referidos son importantes
+                            )
+                            logger.debug(f"Actividad de referido creada para cliente {instance.client.referred_by.id}")
+                        except Exception as e:
+                            logger.error(f"Error creando actividad de referido: {str(e)}")
 
             except Exception as e:
                 logger.error(f"Error procesando puntos por referido: {str(e)}")

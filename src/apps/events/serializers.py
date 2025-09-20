@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import EventCategory, Event, EventRegistration
+from .models import EventCategory, Event, EventRegistration, ActivityFeed
 from apps.clients.models import Achievement
 from apps.property.models import Property
 
@@ -267,3 +267,91 @@ class EventParticipantSerializer(serializers.ModelSerializer):
             'description': 'Cliente recién registrado',
             'earned_at': obj.client.created
         }
+
+
+# 📊 SERIALIZERS PARA ACTIVITY FEED
+class ActivityFeedSerializer(serializers.ModelSerializer):
+    """Serializer para el feed de actividades de Casa Austin"""
+    
+    formatted_message = serializers.SerializerMethodField()
+    icon = serializers.SerializerMethodField()
+    time_ago = serializers.ReadOnlyField()
+    client_name = serializers.SerializerMethodField()
+    activity_type_display = serializers.CharField(source='get_activity_type_display', read_only=True)
+    
+    class Meta:
+        model = ActivityFeed
+        fields = [
+            'id', 'activity_type', 'activity_type_display', 'title', 'description',
+            'formatted_message', 'icon', 'time_ago', 'client_name', 
+            'importance_level', 'created', 'activity_data'
+        ]
+    
+    def get_formatted_message(self, obj):
+        """Obtiene el mensaje formateado automáticamente"""
+        return obj.get_formatted_message()
+    
+    def get_icon(self, obj):
+        """Obtiene el icono de la actividad"""
+        return obj.get_icon()
+    
+    def get_client_name(self, obj):
+        """Obtiene el nombre del cliente en formato: Primer Nombre + Inicial"""
+        if not obj.client:
+            return None
+        
+        full_first_name = obj.client.first_name or "Usuario"
+        first_name_only = full_first_name.strip().split()[0] if full_first_name.strip() else "Usuario"
+        
+        if obj.client.last_name and obj.client.last_name.strip():
+            last_initial = obj.client.last_name.strip()[0].upper()
+            return f"{first_name_only} {last_initial}."
+        
+        return first_name_only
+
+
+class ActivityFeedCreateSerializer(serializers.ModelSerializer):
+    """Serializer para crear actividades (uso interno del sistema)"""
+    
+    class Meta:
+        model = ActivityFeed
+        fields = [
+            'activity_type', 'title', 'description', 'client', 'event', 
+            'property_location', 'activity_data', 'is_public', 'icon', 'importance_level'
+        ]
+    
+    def create(self, validated_data):
+        """Crear actividad usando el método helper del modelo"""
+        return ActivityFeed.create_activity(**validated_data)
+
+
+class ActivityFeedFilterSerializer(serializers.Serializer):
+    """Serializer para filtros del feed de actividades"""
+    
+    activity_type = serializers.ChoiceField(
+        choices=ActivityFeed.ActivityType.choices,
+        required=False,
+        help_text="Filtrar por tipo de actividad"
+    )
+    client_id = serializers.UUIDField(
+        required=False,
+        help_text="Filtrar por cliente específico"
+    )
+    importance_level = serializers.ChoiceField(
+        choices=[(1, 'Baja'), (2, 'Media'), (3, 'Alta'), (4, 'Crítica')],
+        required=False,
+        help_text="Filtrar por nivel de importancia"
+    )
+    date_from = serializers.DateTimeField(
+        required=False,
+        help_text="Actividades desde esta fecha"
+    )
+    date_to = serializers.DateTimeField(
+        required=False,
+        help_text="Actividades hasta esta fecha"
+    )
+    is_public = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text="Solo actividades públicas"
+    )

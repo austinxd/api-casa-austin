@@ -10,6 +10,12 @@ from .views import (
     EventRegistrationView,
     ClientEventRegistrationsView,
     check_event_eligibility,
+    
+    # Activity Feed endpoints
+    ActivityFeedView,
+    RecentActivitiesView,
+    ActivityFeedStatsView,
+    ActivityFeedCreateView,
 )
 
 app_name = 'events'
@@ -25,4 +31,10 @@ urlpatterns = [
     path('<uuid:event_id>/register/', EventRegistrationView.as_view(), name='event-register'),
     path('my-registrations/', ClientEventRegistrationsView.as_view(), name='my-registrations'),
     path('<uuid:event_id>/check-eligibility/', check_event_eligibility, name='check-eligibility'),
+    
+    # === ACTIVITY FEED ENDPOINTS ===
+    path('activity-feed/', ActivityFeedView.as_view(), name='activity-feed'),
+    path('activity-feed/recent/', RecentActivitiesView.as_view(), name='activity-feed-recent'),
+    path('activity-feed/stats/', ActivityFeedStatsView.as_view(), name='activity-feed-stats'),
+    path('activity-feed/create/', ActivityFeedCreateView.as_view(), name='activity-feed-create'),
 ]
