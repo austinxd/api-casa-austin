@@ -496,13 +496,23 @@ class ActivityFeed(BaseModel):
                 return f"⏰ El sistema eliminó una reserva {dates} en {property_name} por {reason}"
         
         elif self.activity_type == self.ActivityType.CLIENT_REGISTERED:
-            referral_info = self.activity_data.get('referral_info', '')
-            referral_text = f" (referido por {referral_info})" if referral_info else ""
+            referred_by_info = self.activity_data.get('referred_by_info')
             
-            if client_name:
-                return f"👤 Se registró un nuevo cliente: {client_name}{referral_text}"
+            if referred_by_info:
+                # Cliente fue referido - mensaje completo con información de puntos
+                referrer_name = referred_by_info.get('name', 'alguien')
+                points_percentage = referred_by_info.get('points_percentage', 10.0)
+                
+                if client_name:
+                    return f"👤 {client_name} se acaba de registrar y fue referido por {referrer_name}, quien ganará {points_percentage}% de puntos por cada reserva que realice"
+                else:
+                    return f"👤 Se registró un nuevo cliente referido por {referrer_name}, quien ganará {points_percentage}% de puntos por cada reserva"
             else:
-                return f"👤 Se registró un nuevo cliente{referral_text}"
+                # Cliente normal sin referido
+                if client_name:
+                    return f"👤 Se registró un nuevo cliente: {client_name}"
+                else:
+                    return f"👤 Se registró un nuevo cliente"
         
         elif self.activity_type == self.ActivityType.EVENT_CREATED:
             event_name = self.event.title if self.event else self.activity_data.get('event_name', 'un evento')
