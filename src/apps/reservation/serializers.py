@@ -196,22 +196,30 @@ class ReservationSerializer(serializers.ModelSerializer):
 
         # 📊 ACTIVITY FEED: Crear actividad para nueva reserva
         try:
-            from apps.events.models import ActivityFeed
-            dates_str = f"del {reservation.check_in_date.strftime('%d/%m')} al {reservation.check_out_date.strftime('%d/%m/%Y')}"
-            ActivityFeed.create_activity(
-                activity_type=ActivityFeed.ActivityType.RESERVATION_MADE,
-                client=reservation.client,
-                property_location=reservation.property,
-                activity_data={
-                    'property_name': reservation.property.name,
-                    'dates': dates_str,
-                    'check_in': reservation.check_in_date.isoformat(),
-                    'check_out': reservation.check_out_date.isoformat(),
-                    'guests': reservation.guests,
-                    'reservation_id': str(reservation.id),
-                    'price_sol': float(reservation.price_sol) if reservation.price_sol else 0
-                },
-                importance_level=2  # Media
+            from apps.events.models import ActivityFeed, ActivityFeedConfig
+            
+            # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
+            if ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.RESERVATION_MADE):
+                dates_str = f"del {reservation.check_in_date.strftime('%d/%m')} al {reservation.check_out_date.strftime('%d/%m/%Y')}"
+                # Usar configuración por defecto para visibilidad e importancia
+                is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.RESERVATION_MADE)
+                importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.RESERVATION_MADE)
+                
+                ActivityFeed.create_activity(
+                    activity_type=ActivityFeed.ActivityType.RESERVATION_MADE,
+                    client=reservation.client,
+                    property_location=reservation.property,
+                    is_public=is_public,
+                    importance_level=importance,
+                    activity_data={
+                        'property_name': reservation.property.name,
+                        'dates': dates_str,
+                        'check_in': reservation.check_in_date.isoformat(),
+                        'check_out': reservation.check_out_date.isoformat(),
+                        'guests': reservation.guests,
+                        'reservation_id': str(reservation.id),
+                        'price_sol': float(reservation.price_sol) if reservation.price_sol else 0
+                    }
             )
             print(f"Actividad de reserva creada para cliente {reservation.client.id if reservation.client else 'anónimo'}")
         except Exception as e:

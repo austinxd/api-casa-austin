@@ -73,20 +73,28 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
 
         # 📊 ACTIVITY FEED: Crear actividad para puntos ganados
         try:
-            from apps.events.models import ActivityFeed
-            ActivityFeed.create_activity(
-                activity_type=ActivityFeed.ActivityType.POINTS_EARNED,
-                client=instance.client,
-                property_location=instance.property,
-                activity_data={
-                    'points': float(points_to_add),
-                    'reason': 'una reserva',
-                    'property_name': instance.property.name,
-                    'reservation_id': str(instance.id),
-                    'effective_price': effective_price
-                },
-                importance_level=2  # Media
-            )
+            from apps.events.models import ActivityFeed, ActivityFeedConfig
+            
+            # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
+            if ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.POINTS_EARNED):
+                # Usar configuración por defecto para visibilidad e importancia
+                is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.POINTS_EARNED)
+                importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.POINTS_EARNED)
+                
+                ActivityFeed.create_activity(
+                    activity_type=ActivityFeed.ActivityType.POINTS_EARNED,
+                    client=instance.client,
+                    property_location=instance.property,
+                    is_public=is_public,
+                    importance_level=importance,
+                    activity_data={
+                        'points': float(points_to_add),
+                        'reason': 'una reserva',
+                        'property_name': instance.property.name,
+                        'reservation_id': str(instance.id),
+                        'effective_price': effective_price
+                    }
+                )
             logger.debug(f"Actividad de puntos creada para cliente {instance.client.id}")
         except Exception as e:
             logger.error(f"Error creando actividad de puntos: {str(e)}")
@@ -120,20 +128,28 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
 
                         # 📊 ACTIVITY FEED: Crear actividad para puntos por referido
                         try:
-                            from apps.events.models import ActivityFeed
-                            ActivityFeed.create_activity(
-                                activity_type=ActivityFeed.ActivityType.POINTS_EARNED,
-                                client=instance.client.referred_by,
-                                property_location=instance.property,
-                                activity_data={
-                                    'points': float(referral_points),
-                                    'reason': f'referir a {instance.client.first_name} {instance.client.last_name[0].upper()}.' if instance.client.last_name else instance.client.first_name,
-                                    'property_name': instance.property.name,
-                                    'reservation_id': str(instance.id),
-                                    'is_referral': True
-                                },
-                                importance_level=3  # Alta - los referidos son importantes
-                            )
+                            from apps.events.models import ActivityFeed, ActivityFeedConfig
+                            
+                            # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
+                            if ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.POINTS_EARNED):
+                                # Usar configuración por defecto para visibilidad e importancia
+                                is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.POINTS_EARNED)
+                                importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.POINTS_EARNED)
+                                
+                                ActivityFeed.create_activity(
+                                    activity_type=ActivityFeed.ActivityType.POINTS_EARNED,
+                                    client=instance.client.referred_by,
+                                    property_location=instance.property,
+                                    is_public=is_public,
+                                    importance_level=importance,
+                                    activity_data={
+                                        'points': float(referral_points),
+                                        'reason': f'referir a {instance.client.first_name} {instance.client.last_name[0].upper()}.' if instance.client.last_name else instance.client.first_name,
+                                        'property_name': instance.property.name,
+                                        'reservation_id': str(instance.id),
+                                        'is_referral': True
+                                    }
+                                )
                             logger.debug(f"Actividad de referido creada para cliente {instance.client.referred_by.id}")
                         except Exception as e:
                             logger.error(f"Error creando actividad de referido: {str(e)}")

@@ -140,21 +140,30 @@ class EventRegistrationView(APIView):
                     
                     # 📊 ACTIVITY FEED: Crear actividad para reactivación de registro
                     try:
-                        ActivityFeed.create_activity(
-                            activity_type=ActivityFeed.ActivityType.EVENT_REGISTRATION,
-                            client=client,
-                            event=event,
-                            property_location=event.property_location,
-                            activity_data={
-                                'event_name': event.title,
-                                'event_id': str(event.id),
-                                'registration_id': str(existing_registration.id),
-                                'event_date': event.event_date.isoformat(),
-                                'category': event.category.name if event.category else 'General',
-                                'reactivated': True
-                            },
-                            importance_level=2  # Media
-                        )
+                        from apps.events.models import ActivityFeedConfig
+                        
+                        # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
+                        if ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.EVENT_REGISTRATION):
+                            # Usar configuración por defecto para visibilidad e importancia
+                            is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.EVENT_REGISTRATION)
+                            importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.EVENT_REGISTRATION)
+                            
+                            ActivityFeed.create_activity(
+                                activity_type=ActivityFeed.ActivityType.EVENT_REGISTRATION,
+                                client=client,
+                                event=event,
+                                property_location=event.property_location,
+                                is_public=is_public,
+                                importance_level=importance,
+                                activity_data={
+                                    'event_name': event.title,
+                                    'event_id': str(event.id),
+                                    'registration_id': str(existing_registration.id),
+                                    'event_date': event.event_date.isoformat(),
+                                    'category': event.category.name if event.category else 'General',
+                                    'reactivated': True
+                                }
+                            )
                         print(f"Actividad de reactivación de registro creada para cliente {client.id}")
                     except Exception as e:
                         print(f"Error creando actividad de reactivación de registro: {str(e)}")
@@ -185,20 +194,29 @@ class EventRegistrationView(APIView):
                 
                 # 📊 ACTIVITY FEED: Crear actividad para registro a evento
                 try:
-                    ActivityFeed.create_activity(
-                        activity_type=ActivityFeed.ActivityType.EVENT_REGISTRATION,
-                        client=client,
-                        event=event,
-                        property_location=event.property_location,
-                        activity_data={
-                            'event_name': event.title,
-                            'event_id': str(event.id),
-                            'registration_id': str(registration.id),
-                            'event_date': event.event_date.isoformat(),
-                            'category': event.category.name if event.category else 'General'
-                        },
-                        importance_level=2  # Media
-                    )
+                    from apps.events.models import ActivityFeedConfig
+                    
+                    # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
+                    if ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.EVENT_REGISTRATION):
+                        # Usar configuración por defecto para visibilidad e importancia
+                        is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.EVENT_REGISTRATION)
+                        importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.EVENT_REGISTRATION)
+                        
+                        ActivityFeed.create_activity(
+                            activity_type=ActivityFeed.ActivityType.EVENT_REGISTRATION,
+                            client=client,
+                            event=event,
+                            property_location=event.property_location,
+                            is_public=is_public,
+                            importance_level=importance,
+                            activity_data={
+                                'event_name': event.title,
+                                'event_id': str(event.id),
+                                'registration_id': str(registration.id),
+                                'event_date': event.event_date.isoformat(),
+                                'category': event.category.name if event.category else 'General'
+                            }
+                        )
                     print(f"Actividad de registro a evento creada para cliente {client.id}")
                 except Exception as e:
                     print(f"Error creando actividad de registro a evento: {str(e)}")
