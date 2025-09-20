@@ -195,12 +195,28 @@ def register_client_activity_feed(client):
         # Importación local para evitar problemas de dependencias circulares
         from apps.events.models import ActivityFeed
         
-        # Verificar si el cliente fue referido
+        # Verificar si el cliente fue referido y obtener información del referente
+        referred_by_info = None
         referral_info = ""
-        if hasattr(client, 'comentarios_clientes') and client.comentarios_clientes:
-            # Buscar información de referidos en los comentarios
-            if 'referido' in client.comentarios_clientes.lower():
-                referral_info = "cliente referido"
+        if client.referred_by:
+            # Usar formato de privacidad para el nombre del referente
+            private_name = ActivityFeed.format_client_name_private(client.referred_by)
+            referred_by_info = {
+                'id': str(client.referred_by.id),
+                'name': private_name,
+                'referral_code': client.referred_by.get_referral_code()
+            }
+            referral_info = f"referido por {private_name}"
+            
+            # Obtener porcentaje de puntos por referidos
+            try:
+                from apps.clients.models import ReferralPointsConfig
+                config = ReferralPointsConfig.objects.filter(is_active=True).first()
+                referral_percentage = float(config.percentage) if config else 10.0
+            except:
+                referral_percentage = 10.0
+                
+            referred_by_info['points_percentage'] = referral_percentage
         
         activity_data = {
             'client_id': str(client.id),
@@ -211,6 +227,7 @@ def register_client_activity_feed(client):
             'phone': client.tel_number,
             'referral_code': client.referral_code,
             'referral_info': referral_info,
+            'referred_by_info': referred_by_info,
             'password_set': client.is_password_set,
             'registration_method': 'web_form',  # Puede ser actualizado según el contexto
             'created_at': client.created.isoformat() if client.created else None
