@@ -810,6 +810,39 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
             # Marcar como enviado para evitar duplicados
             instance.payment_approved_notification_sent = True
             instance.save(update_fields=['payment_approved_notification_sent'])
+            
+            # 📊 ACTIVITY FEED: Crear actividad para reserva aprobada
+            if instance.client and instance.origin in ['aus', 'client']:
+                try:
+                    from apps.events.models import ActivityFeed, ActivityFeedConfig
+                    
+                    # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
+                    if ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.PAYMENT_COMPLETED):
+                        # Usar configuración por defecto para visibilidad e importancia
+                        is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.PAYMENT_COMPLETED)
+                        importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.PAYMENT_COMPLETED)
+                        
+                        dates_str = f"del {instance.check_in_date.strftime('%d/%m')} al {instance.check_out_date.strftime('%d/%m/%Y')}"
+                        
+                        ActivityFeed.create_activity(
+                            activity_type=ActivityFeed.ActivityType.PAYMENT_COMPLETED,
+                            client=instance.client,
+                            property_location=instance.property,
+                            is_public=is_public,
+                            importance_level=importance,
+                            activity_data={
+                                'property_name': instance.property.name,
+                                'dates': dates_str,
+                                'check_in': instance.check_in_date.isoformat(),
+                                'check_out': instance.check_out_date.isoformat(),
+                                'reservation_id': str(instance.id),
+                                'price_sol': float(instance.price_sol) if instance.price_sol else 0,
+                                'status_change': 'approved'
+                            }
+                        )
+                        logger.info(f"Actividad de pago completado creada para reserva {instance.id}")
+                except Exception as e:
+                    logger.error(f"Error creando actividad de pago completado para reserva {instance.id}: {str(e)}")
 
         # Verificar si cambió el campo full_payment a True (pago completado)
         if hasattr(instance, '_original_full_payment'):
@@ -840,6 +873,73 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
             
             # REORGANIZACIÓN INTELIGENTE: Evaluar si afecta prioridades de tareas existentes
             trigger_smart_reorganization(instance)
+            
+            # 📊 ACTIVITY FEED: Crear actividad para reserva aprobada (desde admin o otros orígenes)
+            if instance.client and instance.origin in ['aus', 'client'] and not instance.payment_approved_notification_sent:
+                try:
+                    from apps.events.models import ActivityFeed, ActivityFeedConfig
+                    
+                    # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
+                    if ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.PAYMENT_COMPLETED):
+                        # Usar configuración por defecto para visibilidad e importancia
+                        is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.PAYMENT_COMPLETED)
+                        importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.PAYMENT_COMPLETED)
+                        
+                        dates_str = f"del {instance.check_in_date.strftime('%d/%m')} al {instance.check_out_date.strftime('%d/%m/%Y')}"
+                        
+                        ActivityFeed.create_activity(
+                            activity_type=ActivityFeed.ActivityType.PAYMENT_COMPLETED,
+                            client=instance.client,
+                            property_location=instance.property,
+                            is_public=is_public,
+                            importance_level=importance,
+                            activity_data={
+                                'property_name': instance.property.name,
+                                'dates': dates_str,
+                                'check_in': instance.check_in_date.isoformat(),
+                                'check_out': instance.check_out_date.isoformat(),
+                                'reservation_id': str(instance.id),
+                                'price_sol': float(instance.price_sol) if instance.price_sol else 0,
+                                'status_change': 'approved_by_admin'
+                            }
+                        )
+                        logger.info(f"Actividad de reserva aprobada creada para reserva {instance.id}")
+                except Exception as e:
+                    logger.error(f"Error creando actividad de reserva aprobada para reserva {instance.id}: {str(e)}")
+                
+        # 📊 ACTIVITY FEED: Crear actividad para reserva cancelada
+        if instance.status == 'cancelled' and hasattr(instance, '_original_status') and instance._original_status != 'cancelled':
+            if instance.client and instance.origin in ['aus', 'client']:
+                try:
+                    from apps.events.models import ActivityFeed, ActivityFeedConfig
+                    
+                    # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
+                    if ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.RESERVATION_MADE):
+                        # Usar configuración por defecto para visibilidad e importancia
+                        is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.RESERVATION_MADE)
+                        importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.RESERVATION_MADE)
+                        
+                        dates_str = f"del {instance.check_in_date.strftime('%d/%m')} al {instance.check_out_date.strftime('%d/%m/%Y')}"
+                        
+                        ActivityFeed.create_activity(
+                            activity_type=ActivityFeed.ActivityType.RESERVATION_MADE,
+                            client=instance.client,
+                            property_location=instance.property,
+                            is_public=is_public,
+                            importance_level=importance,
+                            activity_data={
+                                'property_name': instance.property.name,
+                                'dates': dates_str,
+                                'check_in': instance.check_in_date.isoformat(),
+                                'check_out': instance.check_out_date.isoformat(),
+                                'reservation_id': str(instance.id),
+                                'price_sol': float(instance.price_sol) if instance.price_sol else 0,
+                                'status_change': 'cancelled'
+                            }
+                        )
+                        logger.info(f"Actividad de cancelación de reserva creada para reserva {instance.id}")
+                except Exception as e:
+                    logger.error(f"Error creando actividad de cancelación para reserva {instance.id}: {str(e)}")
 
         # NUEVO: Actualizar tareas de limpieza si cambió la fecha de checkout
         if hasattr(instance, '_original_check_out_date'):

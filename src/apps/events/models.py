@@ -465,7 +465,22 @@ class ActivityFeed(BaseModel):
         elif self.activity_type == self.ActivityType.RESERVATION_MADE:
             property_name = self.activity_data.get('property_name', 'Casa Austin')
             dates = self.activity_data.get('dates', '')
-            return f"{client_name} hizo una reserva {dates} en {property_name}"
+            status_change = self.activity_data.get('status_change', '')
+            
+            if status_change == 'cancelled':
+                return f"{client_name} canceló su reserva {dates} en {property_name}"
+            else:
+                return f"{client_name} hizo una reserva {dates} en {property_name}"
+        
+        elif self.activity_type == self.ActivityType.PAYMENT_COMPLETED:
+            property_name = self.activity_data.get('property_name', 'Casa Austin')
+            dates = self.activity_data.get('dates', '')
+            status_change = self.activity_data.get('status_change', '')
+            
+            if status_change == 'approved_by_admin':
+                return f"✅ Reserva de {client_name} fue aprobada {dates} en {property_name}"
+            else:
+                return f"💰 {client_name} completó el pago de su reserva {dates} en {property_name}"
         
         elif self.activity_type == self.ActivityType.EVENT_CREATED:
             event_name = self.event.title if self.event else self.activity_data.get('event_name', 'un evento')
