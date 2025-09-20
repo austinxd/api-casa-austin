@@ -359,6 +359,8 @@ class ActivityFeed(BaseModel):
     class ActivityType(models.TextChoices):
         POINTS_EARNED = "points_earned", "Puntos Ganados"
         RESERVATION_MADE = "reservation_made", "Reserva Realizada"
+        RESERVATION_AUTO_DELETED_CRON = "reservation_auto_deleted_cron", "Reserva Eliminada por Sistema"
+        CLIENT_REGISTERED = "client_registered", "Cliente Registrado"
         EVENT_CREATED = "event_created", "Evento Creado"
         EVENT_REGISTRATION = "event_registration", "Registro a Evento"
         EVENT_WINNER = "event_winner", "Ganador de Evento"
@@ -482,6 +484,26 @@ class ActivityFeed(BaseModel):
             else:
                 return f"💰 {client_name} completó el pago de su reserva {dates} en {property_name}"
         
+        elif self.activity_type == self.ActivityType.RESERVATION_AUTO_DELETED_CRON:
+            property_name = self.activity_data.get('property_name', 'una propiedad')
+            dates = self.activity_data.get('dates', '')
+            reason = self.activity_data.get('reason', 'inactividad')
+            reservation_id = self.activity_data.get('reservation_id', '')
+            
+            if client_name:
+                return f"⏰ El sistema eliminó la reserva de {client_name} {dates} en {property_name} por {reason}"
+            else:
+                return f"⏰ El sistema eliminó una reserva {dates} en {property_name} por {reason}"
+        
+        elif self.activity_type == self.ActivityType.CLIENT_REGISTERED:
+            referral_info = self.activity_data.get('referral_info', '')
+            referral_text = f" (referido por {referral_info})" if referral_info else ""
+            
+            if client_name:
+                return f"👤 Se registró un nuevo cliente: {client_name}{referral_text}"
+            else:
+                return f"👤 Se registró un nuevo cliente{referral_text}"
+        
         elif self.activity_type == self.ActivityType.EVENT_CREATED:
             event_name = self.event.title if self.event else self.activity_data.get('event_name', 'un evento')
             return f"¡Nuevo evento creado! {event_name}"
@@ -506,10 +528,6 @@ class ActivityFeed(BaseModel):
             property_name = self.activity_data.get('property_name', 'Casa Austin')
             return f"{client_name} visitó {property_name}"
         
-        elif self.activity_type == self.ActivityType.PAYMENT_COMPLETED:
-            amount = self.activity_data.get('amount', '')
-            property_name = self.activity_data.get('property_name', 'Casa Austin')
-            return f"{client_name} completó un pago{f' de {amount}' if amount else ''} para {property_name}"
         
         elif self.activity_type == self.ActivityType.DISCOUNT_USED:
             discount_name = self.activity_data.get('discount_name', 'un descuento')
@@ -620,6 +638,8 @@ class ActivityFeed(BaseModel):
         title_map = {
             cls.ActivityType.POINTS_EARNED: "Puntos Ganados",
             cls.ActivityType.RESERVATION_MADE: "Nueva Reserva",
+            cls.ActivityType.RESERVATION_AUTO_DELETED_CRON: "Reserva Expirada",
+            cls.ActivityType.CLIENT_REGISTERED: "Nuevo Cliente",
             cls.ActivityType.EVENT_CREATED: "Evento Creado",
             cls.ActivityType.EVENT_REGISTRATION: "Registro a Evento",
             cls.ActivityType.EVENT_WINNER: "Ganador de Evento",
