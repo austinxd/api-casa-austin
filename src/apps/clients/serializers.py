@@ -161,9 +161,13 @@ class ClientProfileSerializer(serializers.ModelSerializer):
     def get_referred_by_info(self, obj):
         """Información del cliente que refirió a este cliente"""
         if obj.referred_by:
+            # Usar formato de privacidad para el nombre
+            from apps.events.models import ActivityFeed
+            private_name = ActivityFeed.format_client_name_private(obj.referred_by)
+            
             return {
                 'id': obj.referred_by.id,
-                'name': f"{obj.referred_by.first_name} {obj.referred_by.last_name or ''}".strip(),
+                'name': private_name,
                 'referral_code': obj.referred_by.get_referral_code()
             }
         return None

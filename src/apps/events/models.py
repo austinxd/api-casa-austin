@@ -452,11 +452,8 @@ class ActivityFeed(BaseModel):
     def get_formatted_message(self):
         """Genera mensaje formateado automáticamente según el tipo de actividad"""
         
-        # Nombre del cliente con inicial del apellido
-        client_name = ""
-        if self.client:
-            last_initial = f" {self.client.last_name[0].upper()}." if self.client.last_name else ""
-            client_name = f"{self.client.first_name}{last_initial}"
+        # Nombre del cliente con formato de privacidad
+        client_name = self.format_client_name_private(self.client) or ""
         
         # Formatear según tipo de actividad
         if self.activity_type == self.ActivityType.POINTS_EARNED:
@@ -560,6 +557,26 @@ class ActivityFeed(BaseModel):
             return f"hace {days} día{'s' if days != 1 else ''}"
         else:
             return self.created.strftime('%d/%m/%Y')
+    
+    @staticmethod
+    def format_client_name_private(client):
+        """
+        Formatea el nombre del cliente para privacidad: 'Primer Nombre + Inicial'
+        Ejemplo: 'Augusto T.' en lugar de 'Augusto Torres'
+        """
+        if not client:
+            return None
+        
+        # Obtener solo el primer nombre (dividir por espacios y tomar el primero)
+        full_first_name = client.first_name or "Usuario"
+        first_name_only = full_first_name.strip().split()[0] if full_first_name.strip() else "Usuario"
+        
+        # Agregar inicial del apellido si existe
+        if client.last_name and client.last_name.strip():
+            last_initial = client.last_name.strip()[0].upper()
+            return f"{first_name_only} {last_initial}."
+        
+        return first_name_only
     
     @classmethod
     def create_activity(cls, activity_type, title=None, client=None, event=None, 
