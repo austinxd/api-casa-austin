@@ -775,9 +775,48 @@ def hash_data(data):
 def reservation_post_save_handler(sender, instance, created, **kwargs):
     """Maneja las notificaciones cuando se crea o actualiza una reserva"""
     if created:
-        logger.debug(
-            f"Nueva reserva creada: {instance.id} - Origen: {instance.origin}")
+        logger.info(f"🔥 SIGNAL EJECUTADO: Nueva reserva creada ID {instance.id} - Origen: {instance.origin} - Cliente: {instance.client}")
         notify_new_reservation(instance)
+        
+        # 📊 ACTIVITY FEED: Crear actividad para nueva reserva
+        if instance.client and instance.origin in ['aus', 'client']:
+            try:
+                from apps.events.models import ActivityFeed, ActivityFeedConfig
+                
+                logger.info(f"🎯 Intentando crear actividad de feed para reserva {instance.id}")
+                
+                # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
+                if ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.RESERVATION_MADE):
+                    # Usar configuración por defecto para visibilidad e importancia
+                    is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.RESERVATION_MADE)
+                    importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.RESERVATION_MADE)
+                    
+                    dates_str = f"del {instance.check_in_date.strftime('%d/%m')} al {instance.check_out_date.strftime('%d/%m/%Y')}"
+                    
+                    activity = ActivityFeed.create_activity(
+                        activity_type=ActivityFeed.ActivityType.RESERVATION_MADE,
+                        client=instance.client,
+                        property_location=instance.property,
+                        is_public=is_public,
+                        importance_level=importance,
+                        activity_data={
+                            'property_name': instance.property.name,
+                            'dates': dates_str,
+                            'check_in': instance.check_in_date.isoformat(),
+                            'check_out': instance.check_out_date.isoformat(),
+                            'reservation_id': str(instance.id),
+                            'price_sol': float(instance.price_sol) if instance.price_sol else 0,
+                            'origin': instance.origin
+                        }
+                    )
+                    logger.info(f"✅ Actividad de nueva reserva creada exitosamente: {activity.id}")
+                else:
+                    logger.info(f"⚠️ Actividades de tipo 'reservation_made' están deshabilitadas")
+                    
+            except Exception as e:
+                logger.error(f"❌ Error creando actividad de nueva reserva para reserva {instance.id}: {str(e)}")
+                import traceback
+                logger.error(f"📊 Traceback completo: {traceback.format_exc()}")
 
         # NUEVO: Crear tarea de limpieza automáticamente si la nueva reserva ya está aprobada
         if instance.status == 'approved':
