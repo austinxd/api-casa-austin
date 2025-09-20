@@ -47,6 +47,9 @@ class Command(BaseCommand):
             )
             
             if not dry_run:
+                # Registrar actividad en el feed ANTES de eliminar la reserva
+                self._register_activity_feed(reservation)
+                
                 # Enviar WhatsApp al cliente SIEMPRE que se cancele una reserva
                 self._send_whatsapp_notification(reservation)
                 
@@ -128,3 +131,48 @@ class Command(BaseCommand):
                 logger.error(f"Error enviando WhatsApp de cancelación para reserva {reservation.id}: {str(e)}")
         else:
             logger.warning(f"No se puede enviar WhatsApp para reserva {reservation.id}: cliente sin teléfono")
+
+    def _register_activity_feed(self, reservation):
+        """Registra la eliminación de la reserva en el Activity Feed"""
+        try:
+            # Importación local para evitar problemas de dependencias circulares
+            from apps.events.models import ActivityFeed
+            from apps.reservation.signals import format_date_es
+            
+            # Preparar datos de la actividad
+            dates = f"del {format_date_es(reservation.check_in_date)} al {format_date_es(reservation.check_out_date)}"
+            property_name = reservation.property.name if reservation.property else "Propiedad no disponible"
+            
+            activity_data = {
+                'reservation_id': str(reservation.id),
+                'property_name': property_name,
+                'dates': dates,
+                'check_in': reservation.check_in_date.isoformat() if reservation.check_in_date else None,
+                'check_out': reservation.check_out_date.isoformat() if reservation.check_out_date else None,
+                'reason': 'voucher no subido en 60 minutos',
+                'price_sol': float(reservation.price_sol) if reservation.price_sol else 0.0,
+                'deadline_expired': reservation.payment_voucher_deadline.isoformat() if reservation.payment_voucher_deadline else None,
+                'origin': 'cron_delete_expired'
+            }
+            
+            # Crear actividad usando get_or_create para evitar duplicados
+            activity, created = ActivityFeed.objects.get_or_create(
+                activity_type=ActivityFeed.ActivityType.RESERVATION_AUTO_DELETED_CRON,
+                client=reservation.client,
+                property_location=reservation.property,
+                activity_data__reservation_id=str(reservation.id),  # Deduplicación
+                defaults={
+                    'activity_data': activity_data,
+                    'is_public': False,  # Estas eliminaciones son internas
+                    'importance_level': 2,
+                    'icon': '⏰'
+                }
+            )
+            
+            if created:
+                logger.info(f"✅ Actividad registrada en feed para eliminación de reserva {reservation.id}")
+            else:
+                logger.info(f"⚠️ Actividad ya existía en feed para reserva {reservation.id}")
+                
+        except Exception as e:
+            logger.error(f"❌ Error registrando actividad en feed para reserva {reservation.id}: {str(e)}")
