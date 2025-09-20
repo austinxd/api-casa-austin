@@ -375,7 +375,7 @@ class ActivityFeed(BaseModel):
     
     # Información básica de la actividad
     activity_type = models.CharField(
-        max_length=20, 
+        max_length=35, 
         choices=ActivityType.choices,
         help_text="Tipo de actividad registrada"
     )
@@ -663,7 +663,7 @@ class ActivityFeedConfig(BaseModel):
     
     # Tipo de actividad a configurar
     activity_type = models.CharField(
-        max_length=20,
+        max_length=35,
         choices=ActivityFeed.ActivityType.choices,
         unique=True,
         help_text="Tipo de actividad a configurar"

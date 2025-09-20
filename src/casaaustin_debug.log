@@ -5442,3 +5442,115 @@ INFO 2025-09-16 19:59:08,823 signals 3919 140553745050816    • Tareas evaluada
 INFO 2025-09-16 19:59:08,823 signals 3919 140553745050816    • Prioridades actualizadas: 0
 INFO 2025-09-16 19:59:08,823 signals 3919 140553745050816    • Preemptions ejecutadas: 0
 INFO 2025-09-16 19:59:08,824 signals 3919 140553745050816    • Reasignaciones: 0
+DEBUG 2025-09-20 07:48:52,066 signals 1469 139891107142848 Nuevo cliente creado: Clients object (cf0dc897-de7e-4363-b91b-11751bfbbd22)
+DEBUG 2025-09-20 07:48:52,086 signals 1469 139891107142848 Cliente actualizado: Clients object (cf0dc897-de7e-4363-b91b-11751bfbbd22)
+WARNING 2025-09-20 07:48:52,181 signals 1469 139891107142848 Error al actualizar audiencia de cliente cf0dc897-de7e-4363-b91b-11751bfbbd22. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"ArApbYjLj9qHt4P5jn1L0g6"}}
+DEBUG 2025-09-20 07:48:52,223 signals 1469 139891107142848 Código de referido generado para cliente cf0dc897-de7e-4363-b91b-11751bfbbd22: MAR771
+WARNING 2025-09-20 07:48:52,306 signals 1469 139891107142848 Error al actualizar audiencia de cliente cf0dc897-de7e-4363-b91b-11751bfbbd22. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"ALf-3-Gjr-l162p2ZCIPxnZ"}}
+INFO 2025-09-20 07:48:52,358 signals 1469 139891107142848 ✅ Actividad de registro registrada en feed para cliente cf0dc897-de7e-4363-b91b-11751bfbbd22: 28b1a933-3436-47b1-baeb-d709735d131d
+DEBUG 2025-09-20 07:48:52,359 telegram_notifier 1469 139891107142848 Preparando para enviar mensaje: 🆕 **NUEVO CLIENTE REGISTRADO** 🆕
+👤 Cliente: Maria Rodriguez
+📄 Documento: Documento Nacional de Identidad: TEST69592
+📧 Email: maria.test.2035@example.com
+📱 Teléfono: +987654702
+🔑 Contraseña: ❌ Pendiente
+🔗 Código referido: MAR771
+DEBUG 2025-09-20 07:48:52,360 telegram_notifier 1469 139891107142848 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-20 07:48:53,015 telegram_notifier 1469 139891107142848 Mensaje enviado.
+DEBUG 2025-09-20 07:48:53,015 telegram_notifier 1469 139891107142848 Mensaje enviado a través del executor.
+DEBUG 2025-09-20 07:48:53,016 signals 1469 139891107142848 Notificación enviada para nuevo cliente: cf0dc897-de7e-4363-b91b-11751bfbbd22
+INFO 2025-09-20 07:48:53,017 signals 1469 139891107142848 Enviando WhatsApp de bienvenida a 987654702 para cliente cf0dc897-de7e-4363-b91b-11751bfbbd22
+INFO 2025-09-20 07:48:53,018 whatsapp_service 1469 139891107142848 Enviando template registro_exitoso a 51987654702
+INFO 2025-09-20 07:48:53,018 whatsapp_service 1469 139891107142848 Probando registro_exitoso con idioma es, parámetros: 1 (header)
+DEBUG 2025-09-20 07:48:53,732 whatsapp_service 1469 139891107142848 ❌ Fallo registro_exitoso (es, 1 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-20 07:48:53,734 whatsapp_service 1469 139891107142848 Probando registro_exitoso con idioma es, parámetros: 0 (sin params)
+DEBUG 2025-09-20 07:48:54,090 whatsapp_service 1469 139891107142848 ❌ Fallo registro_exitoso (es, 0 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-20 07:48:54,092 whatsapp_service 1469 139891107142848 Probando registro_exitoso con idioma es, parámetros: 2 (header)
+DEBUG 2025-09-20 07:48:54,424 whatsapp_service 1469 139891107142848 ❌ Fallo registro_exitoso (es, 2 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-20 07:48:54,426 whatsapp_service 1469 139891107142848 Probando registro_exitoso con idioma es, parámetros: 3 (header)
+DEBUG 2025-09-20 07:48:54,791 whatsapp_service 1469 139891107142848 ❌ Fallo registro_exitoso (es, 3 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-20 07:48:54,793 whatsapp_service 1469 139891107142848 Probando registro_exitoso con idioma es, parámetros: 4 (header)
+DEBUG 2025-09-20 07:48:55,252 whatsapp_service 1469 139891107142848 ❌ Fallo registro_exitoso (es, 4 params): (#132001) Template name does not exist in the translation
+ERROR 2025-09-20 07:48:55,254 whatsapp_service 1469 139891107142848 No se pudo enviar template registro_exitoso después de probar 0-4 parámetros
+ERROR 2025-09-20 07:48:55,255 signals 1469 139891107142848 Error al enviar WhatsApp de bienvenida para cliente cf0dc897-de7e-4363-b91b-11751bfbbd22
+INFO 2025-09-20 07:49:20,906 signals 1485 140205170764992 🔥 SIGNAL EJECUTADO: Nueva reserva creada ID 5ef29879-06de-4024-8d4f-d27ce6529a66 - Origen: client - Cliente: Clients object (463403e8-d000-4255-8962-aa5a6397e915)
+DEBUG 2025-09-20 07:49:20,909 signals 1485 140205170764992 Enviando mensaje de Telegram: 💻 **WEB CLIENTE** - Reserva en casa 1
+Cliente: Juan Cliente
+Check-in : Domingo 21 de septiembre
+Check-out : Martes 23 de septiembre
+Invitados : 2
+Temperado : No
+Precio (USD) : 0.00 dólares
+Precio (Soles) : 250.00 soles
+Adelanto : 0.00 SOL
+Teléfono : +123456789 con imagen: None
+DEBUG 2025-09-20 07:49:20,909 telegram_notifier 1485 140205170764992 Preparando para enviar mensaje: ******************************************
+💻 RESERVA DESDE PANEL WEB 💻
+Cliente: Juan Cliente
+Propiedad: casa 1
+Check-in : Domingo 21 de septiembre
+Check-out : Martes 23 de septiembre
+Invitados : 2
+Temperado : No
+💰 Total: 250.00 soles soles
+📱 Teléfono: +123456789
+******************************************
+DEBUG 2025-09-20 07:49:20,910 telegram_notifier 1485 140205170764992 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-20 07:49:21,525 telegram_notifier 1485 140205170764992 Mensaje enviado.
+DEBUG 2025-09-20 07:49:21,526 telegram_notifier 1485 140205170764992 Mensaje enviado a través del executor.
+DEBUG 2025-09-20 07:49:21,526 telegram_notifier 1485 140205170764992 Preparando para enviar mensaje: ******Reserva en casa 1******
+Cliente: Juan Cliente
+Cumpleaños: No disponible (Cumple No disponible años)
+Check-in : Domingo 21 de septiembre
+Check-out : Martes 23 de septiembre
+Invitados : 2
+Temperado : No
+Teléfono : https://wa.me/123456789
+DEBUG 2025-09-20 07:49:21,526 telegram_notifier 1485 140205170764992 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-20 07:49:21,798 telegram_notifier 1485 140205170764992 Mensaje enviado.
+DEBUG 2025-09-20 07:49:21,798 telegram_notifier 1485 140205170764992 Mensaje enviado a través del executor.
+INFO 2025-09-20 07:49:21,799 signals 1485 140205170764992 🎯 Intentando crear actividad de feed para reserva 5ef29879-06de-4024-8d4f-d27ce6529a66
+INFO 2025-09-20 07:49:21,879 signals 1485 140205170764992 ✅ Actividad de nueva reserva creada exitosamente: fe0f01c8-fe96-4d98-8f32-eff2e8a2de35
+INFO 2025-09-20 07:49:35,203 delete_expired_reservations 1507 140394833226944 ✅ Actividad registrada en feed para eliminación de reserva 5ef29879-06de-4024-8d4f-d27ce6529a66
+INFO 2025-09-20 07:49:35,204 delete_expired_reservations 1507 140394833226944 Enviando WhatsApp de cancelación a 123456789 para reserva 5ef29879-06de-4024-8d4f-d27ce6529a66
+INFO 2025-09-20 07:49:35,205 whatsapp_service 1507 140394833226944 Enviando mensaje de cancelación de reserva por WhatsApp a: 51123456789
+INFO 2025-09-20 07:49:35,205 whatsapp_service 1507 140394833226944 WhatsApp Reservation Cancelled Template: reserva_cancelada_ca
+INFO 2025-09-20 07:49:35,205 whatsapp_service 1507 140394833226944 Payload: {'messaging_product': 'whatsapp', 'to': '51123456789', 'type': 'template', 'template': {'name': 'reserva_cancelada_ca', 'language': {'code': 'es'}, 'components': [{'type': 'body', 'parameters': [{'type': 'text', 'text': 'Juan Cliente'}]}]}}
+INFO 2025-09-20 07:49:35,892 whatsapp_service 1507 140394833226944 WhatsApp API Response Status: 404
+INFO 2025-09-20 07:49:35,892 whatsapp_service 1507 140394833226944 WhatsApp API Response Body: {"error":{"message":"(#132001) Template name does not exist in the translation","type":"OAuthException","code":132001,"error_data":{"messaging_product":"whatsapp","details":"template name (reserva_cancelada_ca) does not exist in es"},"fbtrace_id":"AQtuYVyai-Nt7l02sAoIiCQ"}}
+ERROR 2025-09-20 07:49:35,893 whatsapp_service 1507 140394833226944 Error al enviar WhatsApp cancelación a 51123456789. Status: 404, Response: {"error":{"message":"(#132001) Template name does not exist in the translation","type":"OAuthException","code":132001,"error_data":{"messaging_product":"whatsapp","details":"template name (reserva_cancelada_ca) does not exist in es"},"fbtrace_id":"AQtuYVyai-Nt7l02sAoIiCQ"}}
+ERROR 2025-09-20 07:49:35,894 delete_expired_reservations 1507 140394833226944 Error al enviar WhatsApp de cancelación para reserva 5ef29879-06de-4024-8d4f-d27ce6529a66
+DEBUG 2025-09-20 07:49:35,895 telegram_notifier 1507 140394833226944 Preparando para enviar mensaje: ⚠️ **RESERVA ELIMINADA POR EXPIRACIÓN** ⚠️
+Cliente: Juan Cliente
+Propiedad: casa 1
+Check-in: Domingo 21 de septiembre
+Check-out: Martes 23 de septiembre
+💰 Total: S/250.00
+📱 Teléfono: +123456789
+❌ Motivo: No subió voucher a tiempo
+🆔 Reserva ID: 5ef29879-06de-4024-8d4f-d27ce6529a66
+⏰ Eliminada automáticamente por expiración
+DEBUG 2025-09-20 07:49:35,896 telegram_notifier 1507 140394833226944 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-20 07:49:36,521 telegram_notifier 1507 140394833226944 Mensaje enviado.
+DEBUG 2025-09-20 07:49:36,522 telegram_notifier 1507 140394833226944 Mensaje enviado a través del executor.
+INFO 2025-09-20 07:49:36,522 delete_expired_reservations 1507 140394833226944 Notificación de eliminación enviada por Telegram para reserva 5ef29879-06de-4024-8d4f-d27ce6529a66
+INFO 2025-09-20 07:49:36,522 delete_expired_reservations 1507 140394833226944 Eliminando reserva expirada ID: 5ef29879-06de-4024-8d4f-d27ce6529a66
+DEBUG 2025-09-20 07:49:36,523 models 1507 140394833226944 Verificando logros para cliente 463403e8-d000-4255-8962-aa5a6397e915 después de eliminar reserva 5ef29879-06de-4024-8d4f-d27ce6529a66
+DEBUG 2025-09-20 07:49:36,523 points_signals 1507 140394833226944 🔄 Verificando logros para cliente 463403e8-d000-4255-8962-aa5a6397e915
+INFO 2025-09-20 07:49:36,526 points_signals 1507 140394833226944 📊 Verificación de logros completada para cliente 463403e8-d000-4255-8962-aa5a6397e915. Sin cambios en logros
+DEBUG 2025-09-20 07:49:36,544 signals 1507 140394833226944 Reserva 5ef29879-06de-4024-8d4f-d27ce6529a66 cambió a estado pending - Voucher subido
+DEBUG 2025-09-20 07:49:36,548 signals 1507 140394833226944 Enviando notificación de voucher subido para reserva: 5ef29879-06de-4024-8d4f-d27ce6529a66 con imagen: None
+DEBUG 2025-09-20 07:49:36,548 telegram_notifier 1507 140394833226944 Preparando para enviar mensaje: 📄 **VOUCHER #0 RECIBIDO** 📄
+Cliente: Juan Cliente
+Propiedad: casa 1
+Check-in: Domingo 21 de septiembre
+Check-out: Martes 23 de septiembre
+💰 Total: 250.00 soles
+📱 Teléfono: +123456789
+⏰ Estado: Pendiente de validación
+🆔 Reserva ID: 5ef29879-06de-4024-8d4f-d27ce6529a66
+DEBUG 2025-09-20 07:49:36,549 telegram_notifier 1507 140394833226944 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-20 07:49:36,843 telegram_notifier 1507 140394833226944 Mensaje enviado.
+DEBUG 2025-09-20 07:49:36,844 telegram_notifier 1507 140394833226944 Mensaje enviado a través del executor.
+DEBUG 2025-09-20 07:49:36,846 points_signals 1507 140394833226944 🔄 Verificando logros para cliente 463403e8-d000-4255-8962-aa5a6397e915
+INFO 2025-09-20 07:49:36,848 points_signals 1507 140394833226944 📊 Verificación de logros completada para cliente 463403e8-d000-4255-8962-aa5a6397e915. Sin cambios en logros
