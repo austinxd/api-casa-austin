@@ -365,7 +365,6 @@ class ActivityFeed(BaseModel):
         EVENT_REGISTRATION = "event_registration", "Registro a Evento"
         EVENT_WINNER = "event_winner", "Ganador de Evento"
         ACHIEVEMENT_EARNED = "achievement_earned", "Logro Obtenido"
-        PROPERTY_VISITED = "property_visited", "Propiedad Visitada"
         PAYMENT_COMPLETED = "payment_completed", "Pago Completado"
         DISCOUNT_USED = "discount_used", "Descuento Utilizado"
         REVIEW_POSTED = "review_posted", "Reseña Publicada"
@@ -534,11 +533,6 @@ class ActivityFeed(BaseModel):
             achievement_icon = self.activity_data.get('achievement_icon', '🏅')
             return f"{achievement_icon} {client_name} obtuvo el logro: {achievement_name}"
         
-        elif self.activity_type == self.ActivityType.PROPERTY_VISITED:
-            property_name = self.activity_data.get('property_name', 'Casa Austin')
-            return f"{client_name} visitó {property_name}"
-        
-        
         elif self.activity_type == self.ActivityType.DISCOUNT_USED:
             discount_name = self.activity_data.get('discount_name', 'un descuento')
             discount_amount = self.activity_data.get('discount_amount', '')
@@ -567,7 +561,6 @@ class ActivityFeed(BaseModel):
             self.ActivityType.EVENT_REGISTRATION: "✅",
             self.ActivityType.EVENT_WINNER: "🏆",
             self.ActivityType.ACHIEVEMENT_EARNED: "🏅",
-            self.ActivityType.PROPERTY_VISITED: "🏠",
             self.ActivityType.PAYMENT_COMPLETED: "💰",
             self.ActivityType.DISCOUNT_USED: "🎫",
             self.ActivityType.REVIEW_POSTED: "📝",
@@ -654,7 +647,6 @@ class ActivityFeed(BaseModel):
             cls.ActivityType.EVENT_REGISTRATION: "Registro a Evento",
             cls.ActivityType.EVENT_WINNER: "Ganador de Evento",
             cls.ActivityType.ACHIEVEMENT_EARNED: "Logro Obtenido",
-            cls.ActivityType.PROPERTY_VISITED: "Visita a Propiedad",
             cls.ActivityType.PAYMENT_COMPLETED: "Pago Completado",
             cls.ActivityType.DISCOUNT_USED: "Descuento Aplicado",
             cls.ActivityType.REVIEW_POSTED: "Reseña Publicada",
