@@ -1,0 +1,46 @@
+NFO 2025-09-19 20:24:40,840 pricing_service 720878 140528771315520 ✅ Resultado para 'Mes de cumpleaños': False - 'Este descuento es exclusivo para: Austin Legend. Tus logros actuales (Cliente Recurrente, Cliente Casa Austin, Curioso) no califican.'
+INFO 2025-09-19 20:24:40,840 pricing_service 720878 140528771315520 🏆 MEJOR DESCUENTO SELECCIONADO: Descuento de cliente recurrente - $22.0000 USD
+INFO 2025-09-19 20:24:46,233 views 720878 140528771315520 ClientCreateReservationView: New reservation request from client
+INFO 2025-09-19 20:24:46,354 signals 720878 140528771315520 🔥 SIGNAL EJECUTADO: Nueva reserva creada ID 59921e30-e534-4af2-b230-9b8113830365 - Origen: client - Cliente: Clients object (405a0119-caba-467c-8f4c-835f45402367)
+DEBUG 2025-09-19 20:24:46,356 signals 720878 140528771315520 Enviando mensaje de Telegram: 💻 **WEB CLIENTE** - Reserva en Casa Austin 3
+Cliente: Augusto Ray Leonel Tantalean Marcatoma
+Check-in : Jueves 20 de noviembre
+Check-out : Viernes 21 de noviembre
+Invitados : 2
+Temperado : No
+Precio (USD) : 198.00 dólares
+Precio (Soles) : 712.80 soles
+Adelanto : 0.00 USD
+Teléfono : +51986607686 con imagen: None
+DEBUG 2025-09-19 20:24:46,356 telegram_notifier 720878 140528771315520 Preparando para enviar mensaje: ******************************************
+💻 RESERVA DESDE PANEL WEB 💻
+Cliente: Augusto Ray Leonel Tantalean Marcatoma
+Propiedad: Casa Austin 3
+Check-in : Jueves 20 de noviembre
+Check-out : Viernes 21 de noviembre
+Invitados : 2
+Temperado : No
+💰 Total: 712.80 soles soles
+📱 Teléfono: +51986607686
+******************************************
+DEBUG 2025-09-19 20:24:46,356 telegram_notifier 720878 140528771315520 Enviando mensaje asincrónicamente a Telegram.
+INFO 2025-09-19 20:24:46,776 _client 720878 140528771315520 HTTP Request: POST https://api.telegram.org/bot7321656705:AAEXB3h3x0Le4h9csLF8l0MP9HMbEytPfX0/sendMessage "HTTP/1.1 200 OK"
+DEBUG 2025-09-19 20:24:46,777 telegram_notifier 720878 140528771315520 Mensaje enviado.
+DEBUG 2025-09-19 20:24:46,777 telegram_notifier 720878 140528771315520 Mensaje enviado a través del executor.
+DEBUG 2025-09-19 20:24:46,777 telegram_notifier 720878 140528771315520 Preparando para enviar mensaje: ******Reserva en Casa Austin 3******
+Cliente: Augusto Ray Leonel Tantalean Marcatoma
+Cumpleaños: Domingo 30 de julio (Cumple 37 años)
+Check-in : Jueves 20 de noviembre
+Check-out : Viernes 21 de noviembre
+Invitados : 2
+Temperado : No
+Teléfono : https://wa.me/51986607686
+DEBUG 2025-09-19 20:24:46,777 telegram_notifier 720878 140528771315520 Enviando mensaje asincrónicamente a Telegram.
+INFO 2025-09-19 20:24:47,002 _client 720878 140528771315520 HTTP Request: POST https://api.telegram.org/bot7321656705:AAEXB3h3x0Le4h9csLF8l0MP9HMbEytPfX0/sendMessage "HTTP/1.1 200 OK"
+DEBUG 2025-09-19 20:24:47,003 telegram_notifier 720878 140528771315520 Mensaje enviado.
+DEBUG 2025-09-19 20:24:47,003 telegram_notifier 720878 140528771315520 Mensaje enviado a través del executor.
+INFO 2025-09-19 20:24:47,003 signals 720878 140528771315520 🎯 Intentando crear actividad de feed para reserva 59921e30-e534-4af2-b230-9b8113830365
+INFO 2025-09-19 20:24:47,088 signals 720878 140528771315520 ✅ Actividad de nueva reserva creada exitosamente: 2912d9de-763d-4a7d-8dee-e64b998cd765
+INFO 2025-09-19 20:24:47,088 views 720878 140528771315520 ClientCreateReservationView: Reservation created successfully - ID: 59921e30-e534-4af2-b230-9b8113830365
+INFO 2025-09-19 20:24:47,217 auth_views 720878 140528771315520 ClientProfileView: Profile request received [ID: 06cfe170]
+INFO 2025-09-19 20:24:47,218 auth_views 720878 140528771315520 ClientProfileView: Returning profile for client 405a0119-caba-467c-8f4c-835f45402367 [ID: 06cfe170]

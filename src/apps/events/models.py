@@ -602,14 +602,7 @@ class ActivityFeed(BaseModel):
         
         # Auto-generar título si no se proporciona
         if not title:
-            temp_activity = cls(
-                activity_type=activity_type,
-                client=client,
-                event=event,
-                property_location=property_location,
-                activity_data=activity_data
-            )
-            title = temp_activity.get_formatted_message()
+            title = cls._generate_simple_title(activity_type)
         
         return cls.objects.create(
             activity_type=activity_type,
@@ -620,6 +613,26 @@ class ActivityFeed(BaseModel):
             activity_data=activity_data,
             **kwargs
         )
+    
+    @classmethod
+    def _generate_simple_title(cls, activity_type):
+        """Genera títulos simples y descriptivos para cada tipo de actividad"""
+        title_map = {
+            cls.ActivityType.POINTS_EARNED: "Puntos Ganados",
+            cls.ActivityType.RESERVATION_MADE: "Nueva Reserva",
+            cls.ActivityType.EVENT_CREATED: "Evento Creado",
+            cls.ActivityType.EVENT_REGISTRATION: "Registro a Evento",
+            cls.ActivityType.EVENT_WINNER: "Ganador de Evento",
+            cls.ActivityType.ACHIEVEMENT_EARNED: "Logro Obtenido",
+            cls.ActivityType.PROPERTY_VISITED: "Visita a Propiedad",
+            cls.ActivityType.PAYMENT_COMPLETED: "Pago Completado",
+            cls.ActivityType.DISCOUNT_USED: "Descuento Aplicado",
+            cls.ActivityType.REVIEW_POSTED: "Reseña Publicada",
+            cls.ActivityType.STAFF_ASSIGNED: "Personal Asignado",
+            cls.ActivityType.MILESTONE_REACHED: "Hito Alcanzado",
+            cls.ActivityType.SYSTEM_UPDATE: "Actualización del Sistema"
+        }
+        return title_map.get(activity_type, "Actividad Registrada")
 
 
 class ActivityFeedConfig(BaseModel):
