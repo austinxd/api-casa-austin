@@ -189,6 +189,48 @@ def notify_new_achievements(client, achievements):
     except Exception as e:
         logger.error(f"Error enviando notificación de logros para cliente {client.id}: {str(e)}")
 
+def register_client_activity_feed(client):
+    """Registra el nuevo cliente en el Activity Feed"""
+    try:
+        # Importación local para evitar problemas de dependencias circulares
+        from apps.events.models import ActivityFeed
+        
+        # Verificar si el cliente fue referido
+        referral_info = ""
+        if hasattr(client, 'comentarios_clientes') and client.comentarios_clientes:
+            # Buscar información de referidos en los comentarios
+            if 'referido' in client.comentarios_clientes.lower():
+                referral_info = "cliente referido"
+        
+        activity_data = {
+            'client_id': str(client.id),
+            'client_name': f"{client.first_name} {client.last_name}".strip(),
+            'document_type': client.get_document_type_display() if client.document_type else None,
+            'document_number': client.number_doc,
+            'email': client.email,
+            'phone': client.tel_number,
+            'referral_code': client.referral_code,
+            'referral_info': referral_info,
+            'password_set': client.is_password_set,
+            'registration_method': 'web_form',  # Puede ser actualizado según el contexto
+            'created_at': client.created.isoformat() if client.created else None
+        }
+        
+        # Crear actividad en el feed
+        activity = ActivityFeed.create_activity(
+            activity_type=ActivityFeed.ActivityType.CLIENT_REGISTERED,
+            client=client,
+            activity_data=activity_data,
+            is_public=True,  # Los nuevos registros son públicos
+            importance_level=2,
+            icon='👤'
+        )
+        
+        logger.info(f"✅ Actividad de registro registrada en feed para cliente {client.id}: {activity.id}")
+        
+    except Exception as e:
+        logger.error(f"❌ Error registrando actividad en feed para cliente {client.id}: {str(e)}")
+
 @receiver(post_save, sender=Clients)
 def update_audience_on_client_creation(sender, instance, created, **kwargs):
     if created:
@@ -208,6 +250,9 @@ def update_audience_on_client_creation(sender, instance, created, **kwargs):
         check_and_assign_achievements(instance)
 
         update_meta_audience(instance)
+        
+        # Registrar actividad en el ActivityFeed
+        register_client_activity_feed(instance)
         
         # Enviar notificación interna de nuevo cliente registrado (Telegram)
         notify_new_client_registration(instance)
