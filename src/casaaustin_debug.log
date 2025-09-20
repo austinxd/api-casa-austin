@@ -5554,3 +5554,65 @@ DEBUG 2025-09-20 07:49:36,843 telegram_notifier 1507 140394833226944 Mensaje env
 DEBUG 2025-09-20 07:49:36,844 telegram_notifier 1507 140394833226944 Mensaje enviado a través del executor.
 DEBUG 2025-09-20 07:49:36,846 points_signals 1507 140394833226944 🔄 Verificando logros para cliente 463403e8-d000-4255-8962-aa5a6397e915
 INFO 2025-09-20 07:49:36,848 points_signals 1507 140394833226944 📊 Verificación de logros completada para cliente 463403e8-d000-4255-8962-aa5a6397e915. Sin cambios en logros
+DEBUG 2025-09-20 07:53:28,256 signals 2406 139632444562624 Nuevo cliente creado: Clients object (86daa301-af78-4edc-8648-d9b1831e1d46)
+DEBUG 2025-09-20 07:53:28,283 signals 2406 139632444562624 Cliente actualizado: Clients object (86daa301-af78-4edc-8648-d9b1831e1d46)
+WARNING 2025-09-20 07:53:28,451 signals 2406 139632444562624 Error al actualizar audiencia de cliente 86daa301-af78-4edc-8648-d9b1831e1d46. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"AM23wkPXWznN8YMg4qGbYO4"}}
+DEBUG 2025-09-20 07:53:28,472 signals 2406 139632444562624 Código de referido generado para cliente 86daa301-af78-4edc-8648-d9b1831e1d46: CAR116
+WARNING 2025-09-20 07:53:28,595 signals 2406 139632444562624 Error al actualizar audiencia de cliente 86daa301-af78-4edc-8648-d9b1831e1d46. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"Ar59v89aByOYN3klvScnlBC"}}
+INFO 2025-09-20 07:53:28,614 signals 2406 139632444562624 ✅ Actividad de registro registrada en feed para cliente 86daa301-af78-4edc-8648-d9b1831e1d46: 5042283f-6c35-43dd-99a2-eb0088497998
+DEBUG 2025-09-20 07:53:28,614 telegram_notifier 2406 139632444562624 Preparando para enviar mensaje: 🆕 **NUEVO CLIENTE REGISTRADO** 🆕
+👤 Cliente: Carlos Referente
+📄 Documento: Documento Nacional de Identidad: REF67026
+📧 Email: carlos.ref.3924@example.com
+📱 Teléfono: +912341669
+🔑 Contraseña: ❌ Pendiente
+🔗 Código referido: CAR116
+DEBUG 2025-09-20 07:53:28,615 telegram_notifier 2406 139632444562624 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-20 07:53:29,226 telegram_notifier 2406 139632444562624 Mensaje enviado.
+DEBUG 2025-09-20 07:53:29,227 telegram_notifier 2406 139632444562624 Mensaje enviado a través del executor.
+DEBUG 2025-09-20 07:53:29,227 signals 2406 139632444562624 Notificación enviada para nuevo cliente: 86daa301-af78-4edc-8648-d9b1831e1d46
+INFO 2025-09-20 07:53:29,229 signals 2406 139632444562624 Enviando WhatsApp de bienvenida a 912341669 para cliente 86daa301-af78-4edc-8648-d9b1831e1d46
+INFO 2025-09-20 07:53:29,229 whatsapp_service 2406 139632444562624 Enviando template registro_exitoso a 51912341669
+INFO 2025-09-20 07:53:29,229 whatsapp_service 2406 139632444562624 Probando registro_exitoso con idioma es, parámetros: 1 (header)
+DEBUG 2025-09-20 07:53:30,392 whatsapp_service 2406 139632444562624 ❌ Fallo registro_exitoso (es, 1 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-20 07:53:30,394 whatsapp_service 2406 139632444562624 Probando registro_exitoso con idioma es, parámetros: 0 (sin params)
+DEBUG 2025-09-20 07:53:30,804 whatsapp_service 2406 139632444562624 ❌ Fallo registro_exitoso (es, 0 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-20 07:53:30,806 whatsapp_service 2406 139632444562624 Probando registro_exitoso con idioma es, parámetros: 2 (header)
+DEBUG 2025-09-20 07:53:31,428 whatsapp_service 2406 139632444562624 ❌ Fallo registro_exitoso (es, 2 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-20 07:53:31,430 whatsapp_service 2406 139632444562624 Probando registro_exitoso con idioma es, parámetros: 3 (header)
+DEBUG 2025-09-20 07:53:31,991 whatsapp_service 2406 139632444562624 ❌ Fallo registro_exitoso (es, 3 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-20 07:53:31,993 whatsapp_service 2406 139632444562624 Probando registro_exitoso con idioma es, parámetros: 4 (header)
+DEBUG 2025-09-20 07:53:32,435 whatsapp_service 2406 139632444562624 ❌ Fallo registro_exitoso (es, 4 params): (#132001) Template name does not exist in the translation
+ERROR 2025-09-20 07:53:32,436 whatsapp_service 2406 139632444562624 No se pudo enviar template registro_exitoso después de probar 0-4 parámetros
+ERROR 2025-09-20 07:53:32,437 signals 2406 139632444562624 Error al enviar WhatsApp de bienvenida para cliente 86daa301-af78-4edc-8648-d9b1831e1d46
+DEBUG 2025-09-20 07:53:38,717 signals 2413 140640594709696 Nuevo cliente creado: Clients object (4fb86a3f-4761-4118-bca7-a3d92c800792)
+DEBUG 2025-09-20 07:53:38,747 signals 2413 140640594709696 Cliente actualizado: Clients object (4fb86a3f-4761-4118-bca7-a3d92c800792)
+WARNING 2025-09-20 07:53:38,890 signals 2413 140640594709696 Error al actualizar audiencia de cliente 4fb86a3f-4761-4118-bca7-a3d92c800792. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"A-qksODBCdQpW8Evq7pUyzk"}}
+DEBUG 2025-09-20 07:53:38,913 signals 2413 140640594709696 Código de referido generado para cliente 4fb86a3f-4761-4118-bca7-a3d92c800792: ANA472
+WARNING 2025-09-20 07:53:39,024 signals 2413 140640594709696 Error al actualizar audiencia de cliente 4fb86a3f-4761-4118-bca7-a3d92c800792. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"A2_LkTlbhjYwbEKqwWRtNVJ"}}
+INFO 2025-09-20 07:53:39,052 signals 2413 140640594709696 ✅ Actividad de registro registrada en feed para cliente 4fb86a3f-4761-4118-bca7-a3d92c800792: fe1de7c1-a946-4783-b1ed-9d8d2266e8a9
+DEBUG 2025-09-20 07:53:39,053 telegram_notifier 2413 140640594709696 Preparando para enviar mensaje: 🆕 **NUEVO CLIENTE REGISTRADO** 🆕
+👤 Cliente: Ana Referida
+📄 Documento: Documento Nacional de Identidad: REF17171
+📧 Email: ana.referida.8501@example.com
+📱 Teléfono: +923458555
+🔑 Contraseña: ❌ Pendiente
+🔗 Código referido: ANA472
+DEBUG 2025-09-20 07:53:39,054 telegram_notifier 2413 140640594709696 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-20 07:53:39,664 telegram_notifier 2413 140640594709696 Mensaje enviado.
+DEBUG 2025-09-20 07:53:39,668 telegram_notifier 2413 140640594709696 Mensaje enviado a través del executor.
+DEBUG 2025-09-20 07:53:39,670 signals 2413 140640594709696 Notificación enviada para nuevo cliente: 4fb86a3f-4761-4118-bca7-a3d92c800792
+INFO 2025-09-20 07:53:39,673 signals 2413 140640594709696 Enviando WhatsApp de bienvenida a 923458555 para cliente 4fb86a3f-4761-4118-bca7-a3d92c800792
+INFO 2025-09-20 07:53:39,676 whatsapp_service 2413 140640594709696 Enviando template registro_exitoso a 51923458555
+INFO 2025-09-20 07:53:39,677 whatsapp_service 2413 140640594709696 Probando registro_exitoso con idioma es, parámetros: 1 (header)
+DEBUG 2025-09-20 07:53:40,123 whatsapp_service 2413 140640594709696 ❌ Fallo registro_exitoso (es, 1 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-20 07:53:40,124 whatsapp_service 2413 140640594709696 Probando registro_exitoso con idioma es, parámetros: 0 (sin params)
+DEBUG 2025-09-20 07:53:40,571 whatsapp_service 2413 140640594709696 ❌ Fallo registro_exitoso (es, 0 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-20 07:53:40,573 whatsapp_service 2413 140640594709696 Probando registro_exitoso con idioma es, parámetros: 2 (header)
+DEBUG 2025-09-20 07:53:40,980 whatsapp_service 2413 140640594709696 ❌ Fallo registro_exitoso (es, 2 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-20 07:53:40,983 whatsapp_service 2413 140640594709696 Probando registro_exitoso con idioma es, parámetros: 3 (header)
+DEBUG 2025-09-20 07:53:41,342 whatsapp_service 2413 140640594709696 ❌ Fallo registro_exitoso (es, 3 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-20 07:53:41,344 whatsapp_service 2413 140640594709696 Probando registro_exitoso con idioma es, parámetros: 4 (header)
+DEBUG 2025-09-20 07:53:41,776 whatsapp_service 2413 140640594709696 ❌ Fallo registro_exitoso (es, 4 params): (#132001) Template name does not exist in the translation
+ERROR 2025-09-20 07:53:41,778 whatsapp_service 2413 140640594709696 No se pudo enviar template registro_exitoso después de probar 0-4 parámetros
+ERROR 2025-09-20 07:53:41,779 signals 2413 140640594709696 Error al enviar WhatsApp de bienvenida para cliente 4fb86a3f-4761-4118-bca7-a3d92c800792
