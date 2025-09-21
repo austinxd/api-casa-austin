@@ -279,7 +279,7 @@ class ActivityFeedConfigAdmin(admin.ModelAdmin):
             'description': 'Selecciona el tipo de actividad a configurar'
         }),
         ('⚙️ Configuración de Comportamiento', {
-            'fields': ('is_enabled', 'is_public_by_default', 'default_importance_level'),
+            'fields': ('is_enabled', 'is_public_by_default', 'default_importance_level', 'default_icon'),
             'description': 'Controla cómo se comportan automáticamente las actividades de este tipo'
         }),
         ('📝 Información Adicional', {
