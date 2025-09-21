@@ -119,7 +119,7 @@ class ActivityFeedAdmin(admin.ModelAdmin):
     # === ORGANIZACIÓN DEL FORMULARIO ===
     fieldsets = (
         ('🎯 Información Principal', {
-            'fields': ('activity_type', 'title', 'description', 'reason')
+            'fields': ('activity_type', 'title', 'description')
         }),
         ('🔗 Relaciones', {
             'fields': ('client', 'event', 'property_location'),
