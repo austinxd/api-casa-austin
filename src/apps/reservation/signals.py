@@ -550,6 +550,39 @@ def format_date_es(date):
     return f"{week_day} {day} de {month}"
 
 
+def format_date_range_es(check_in_date, check_out_date):
+    """
+    Formatea un rango de fechas en español legible.
+    Ejemplos:
+    - "del 11 al 12 de octubre" (mismo mes)
+    - "del 30 de octubre al 2 de noviembre" (diferentes meses, mismo año)
+    - "del 30 de diciembre al 2 de enero de 2025" (diferentes años)
+    """
+    if not check_in_date or not check_out_date:
+        return ""
+        
+    # Obtener día y mes de cada fecha
+    check_in_day = check_in_date.day
+    check_in_month = MONTHS_ES[check_in_date.month]
+    check_in_year = check_in_date.year
+    
+    check_out_day = check_out_date.day
+    check_out_month = MONTHS_ES[check_out_date.month]
+    check_out_year = check_out_date.year
+    
+    # Caso 1: Mismo mes y año
+    if check_in_date.month == check_out_date.month and check_in_year == check_out_year:
+        return f"del {check_in_day} al {check_out_day} de {check_in_month}"
+    
+    # Caso 2: Diferente mes, mismo año
+    elif check_in_year == check_out_year:
+        return f"del {check_in_day} de {check_in_month} al {check_out_day} de {check_out_month}"
+    
+    # Caso 3: Diferente año
+    else:
+        return f"del {check_in_day} de {check_in_month} al {check_out_day} de {check_out_month} de {check_out_year}"
+
+
 def calculate_upcoming_age(born):
     today = date.today()
     this_year_birthday = date(today.year, born.month, born.day)
