@@ -716,6 +716,12 @@ class ActivityFeedConfig(BaseModel):
         help_text="Emoji o icono por defecto para todas las actividades de este tipo"
     )
     
+    default_reason = models.CharField(
+        max_length=300,
+        blank=True,
+        help_text="Motivo por defecto para actividades de este tipo (ej: 'voucher no subido en el plazo indicado')"
+    )
+    
     description = models.TextField(
         blank=True,
         help_text="Descripción de qué incluye este tipo de actividad"
@@ -760,3 +766,13 @@ class ActivityFeedConfig(BaseModel):
         except cls.DoesNotExist:
             # Si no hay configuración, usar importancia media
             return 2
+    
+    @classmethod
+    def get_default_reason(cls, activity_type):
+        """Obtener el motivo por defecto para un tipo de actividad"""
+        try:
+            config = cls.objects.get(activity_type=activity_type)
+            return config.default_reason or ""
+        except cls.DoesNotExist:
+            # Si no hay configuración, sin reason específico
+            return ""

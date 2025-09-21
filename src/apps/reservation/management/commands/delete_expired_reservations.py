@@ -159,9 +159,10 @@ class Command(BaseCommand):
             # Importar configuración para respetar configuración global
             from apps.events.models import ActivityFeedConfig
             
-            # Usar configuración por defecto para visibilidad e importancia
+            # Usar configuración por defecto para visibilidad, importancia y reason
             is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.RESERVATION_AUTO_DELETED_CRON)
             importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.RESERVATION_AUTO_DELETED_CRON)
+            default_reason = ActivityFeedConfig.get_default_reason(ActivityFeed.ActivityType.RESERVATION_AUTO_DELETED_CRON)
             
             # Crear actividad usando get_or_create para evitar duplicados
             activity, created = ActivityFeed.objects.get_or_create(
@@ -173,7 +174,7 @@ class Command(BaseCommand):
                 defaults={
                     'title': 'Reserva Liberada por Sistema',
                     'description': 'La reserva fue liberada automáticamente debido a que no se confirmó el depósito en el plazo indicado',
-                    'reason': 'voucher no subido en el plazo indicado',
+                    'reason': default_reason or 'voucher no subido en el plazo indicado',
                     'activity_data': activity_data,
                     'is_public': is_public,
                     'importance_level': importance
