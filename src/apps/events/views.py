@@ -6,11 +6,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-from django.db.models import Q
+from django.db.models import Q, Count, Sum, Avg
+from django.db.models.functions import TruncDate, TruncMonth, TruncWeek
+from datetime import datetime, timedelta
 
-from apps.clients.models import Clients
+from apps.clients.models import Clients, SearchTracking
 from apps.clients.auth_views import ClientJWTAuthentication
-from .models import EventCategory, Event, EventRegistration, ActivityFeed
+from .models import EventCategory, Event, EventRegistration, ActivityFeed, ActivityFeedConfig
 from .serializers import (
     EventCategorySerializer, EventListSerializer, EventDetailSerializer,
     EventRegistrationSerializer, EventRegistrationCreateSerializer, EventParticipantSerializer,
@@ -74,7 +76,6 @@ class PublicEventDetailView(generics.RetrieveAPIView):
     
     serializer_class = EventDetailSerializer
     permission_classes = [AllowAny]
-    lookup_field = 'id'
     
     def get_queryset(self):
         return Event.objects.filter(
@@ -82,398 +83,258 @@ class PublicEventDetailView(generics.RetrieveAPIView):
             is_active=True,
             is_public=True,
             status=Event.EventStatus.PUBLISHED
-        ).select_related('category').prefetch_related('required_achievements')
+        ).select_related('category')
+
+
+class EventParticipantsView(generics.ListAPIView):
+    """Lista de participantes de un evento específico"""
+    
+    serializer_class = EventParticipantSerializer
+    permission_classes = [AllowAny]
+    
+    def get_queryset(self):
+        event_id = self.kwargs.get('event_id')
+        
+        # Verificar que el evento sea público
+        event = Event.objects.filter(
+            id=event_id,
+            deleted=False,
+            is_active=True,
+            is_public=True
+        ).first()
+        
+        if not event:
+            return EventRegistration.objects.none()
+        
+        # Retornar solo los registros aprobados y ganadores
+        return EventRegistration.objects.filter(
+            event_id=event_id,
+            status__in=[
+                EventRegistration.RegistrationStatus.APPROVED,
+                EventRegistration.RegistrationStatus.WINNER
+            ]
+        ).select_related('client', 'event').order_by('-registration_date')
 
 
 # === ENDPOINTS CON AUTENTICACIÓN DE CLIENTE ===
 
 class EventRegistrationView(APIView):
-    """Registrarse o cancelar registro de un evento"""
+    """Vista para registrarse a un evento"""
     
     authentication_classes = [ClientJWTAuthentication]
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny]  # La autenticación es opcional pero se verifica
     
     def post(self, request, event_id):
-        """Registrarse a un evento"""
+        """Registrar cliente a un evento"""
+        
+        # Intentar autenticar al cliente
+        authenticator = ClientJWTAuthentication()
         try:
-            # Autenticar cliente
-            authenticator = ClientJWTAuthentication()
-            auth_result = authenticator.authenticate(request)
-            
-            if auth_result is None:
-                return Response({
-                    'success': False,
-                    'message': 'Token inválido'
-                }, status=status.HTTP_401_UNAUTHORIZED)
-            
-            client, validated_token = auth_result
-            
-            # Obtener evento
+            user, validated_token = authenticator.authenticate(request)
+        except (InvalidToken, TokenError):
+            return Response({'error': 'Token de autenticación inválido'}, status=401)
+        
+        if not user:
+            return Response({'error': 'Token de autenticación inválido'}, status=401)
+        
+        # Verificar que el evento existe y esté activo
+        try:
             event = Event.objects.get(
                 id=event_id,
                 deleted=False,
                 is_active=True,
+                is_public=True,
                 status=Event.EventStatus.PUBLISHED
             )
-            
-            # Verificar si el cliente puede registrarse
-            can_register, message = event.client_can_register(client)
-            if not can_register:
-                return Response({
-                    'success': False,
-                    'message': message
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Verificar si ya existe un registro (incluyendo cancelados)
-            existing_registration = EventRegistration.objects.filter(
-                event=event,
-                client=client,
-                deleted=False
-            ).first()
-            
-            if existing_registration:
-                # Reutilizar registro existente si está cancelado o rechazado
-                if existing_registration.status in ['cancelled', 'rejected']:
-                    existing_registration.status = EventRegistration.RegistrationStatus.APPROVED
-                    existing_registration.registration_date = timezone.now()
-                    existing_registration.save()
-                    
-                    # 📊 ACTIVITY FEED: Crear actividad para reactivación de registro
-                    try:
-                        from apps.events.models import ActivityFeedConfig
-                        
-                        # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
-                        if ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.EVENT_REGISTRATION):
-                            # Usar configuración por defecto para visibilidad e importancia
-                            is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.EVENT_REGISTRATION)
-                            importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.EVENT_REGISTRATION)
-                            
-                            ActivityFeed.create_activity(
-                                activity_type=ActivityFeed.ActivityType.EVENT_REGISTRATION,
-                                client=client,
-                                event=event,
-                                property_location=event.property_location,
-                                is_public=is_public,
-                                importance_level=importance,
-                                activity_data={
-                                    'event_name': event.title,
-                                    'event_id': str(event.id),
-                                    'registration_id': str(existing_registration.id),
-                                    'event_date': event.event_date.isoformat(),
-                                    'category': event.category.name if event.category else 'General',
-                                    'reactivated': True
-                                }
-                            )
-                        print(f"Actividad de reactivación de registro creada para cliente {client.id}")
-                    except Exception as e:
-                        print(f"Error creando actividad de reactivación de registro: {str(e)}")
-
-                    return Response({
-                        'success': True,
-                        'message': 'Registro reactivado exitosamente',
-                        'registration_id': existing_registration.id
-                    }, status=status.HTTP_201_CREATED)
-                else:
-                    # Si está pending o approved, no debería llegar aquí por client_can_register
-                    return Response({
-                        'success': False,
-                        'message': 'Ya tienes un registro activo para este evento'
-                    }, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Crear nuevo registro si no existe
-            serializer = EventRegistrationCreateSerializer(
-                data=request.data,
-                context={'event': event, 'client': client}
-            )
-            if serializer.is_valid():
-                registration = serializer.save()
-                
-                # Aprobar automáticamente si no hay restricciones especiales
-                registration.status = EventRegistration.RegistrationStatus.APPROVED
-                registration.save()
-                
-                # 📊 ACTIVITY FEED: Crear actividad para registro a evento
-                try:
-                    from apps.events.models import ActivityFeedConfig
-                    
-                    # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
-                    if ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.EVENT_REGISTRATION):
-                        # Usar configuración por defecto para visibilidad e importancia
-                        is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.EVENT_REGISTRATION)
-                        importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.EVENT_REGISTRATION)
-                        
-                        ActivityFeed.create_activity(
-                            activity_type=ActivityFeed.ActivityType.EVENT_REGISTRATION,
-                            client=client,
-                            event=event,
-                            property_location=event.property_location,
-                            is_public=is_public,
-                            importance_level=importance,
-                            activity_data={
-                                'event_name': event.title,
-                                'event_id': str(event.id),
-                                'registration_id': str(registration.id),
-                                'event_date': event.event_date.isoformat(),
-                                'category': event.category.name if event.category else 'General'
-                            }
-                        )
-                    print(f"Actividad de registro a evento creada para cliente {client.id}")
-                except Exception as e:
-                    print(f"Error creando actividad de registro a evento: {str(e)}")
-
-                return Response({
-                    'success': True,
-                    'message': 'Registro exitoso al evento',
-                    'registration_id': registration.id
-                }, status=status.HTTP_201_CREATED)
-            else:
-                return Response({
-                    'success': False,
-                    'errors': serializer.errors
-                }, status=status.HTTP_400_BAD_REQUEST)
-                
         except Event.DoesNotExist:
+            return Response({'error': 'Evento no encontrado o no disponible'}, status=404)
+        
+        # Verificar que el evento no haya pasado su deadline
+        if timezone.now() > event.registration_deadline:
+            return Response({'error': 'La fecha límite de registro ha pasado'}, status=400)
+        
+        # Verificar si el cliente ya está registrado
+        existing_registration = EventRegistration.objects.filter(
+            event=event,
+            client=user
+        ).first()
+        
+        if existing_registration:
             return Response({
-                'success': False,
-                'message': 'Evento no encontrado'
-            }, status=status.HTTP_404_NOT_FOUND)
-        except (InvalidToken, TokenError):
-            return Response({
-                'success': False,
-                'message': 'Token inválido'
-            }, status=status.HTTP_401_UNAUTHORIZED)
-        except Exception as e:
-            return Response({
-                'success': False,
-                'message': f'Error al registrarse: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    def delete(self, request, event_id):
-        """Cancelar registro de un evento"""
-        try:
-            # Autenticar cliente
-            authenticator = ClientJWTAuthentication()
-            auth_result = authenticator.authenticate(request)
+                'error': 'Ya estás registrado en este evento',
+                'registration': EventRegistrationSerializer(existing_registration).data
+            }, status=400)
+        
+        # Verificar límite de participantes
+        if event.max_participants:
+            current_count = EventRegistration.objects.filter(
+                event=event,
+                status__in=[
+                    EventRegistration.RegistrationStatus.PENDING,
+                    EventRegistration.RegistrationStatus.APPROVED
+                ]
+            ).count()
             
-            if auth_result is None:
-                return Response({
-                    'success': False,
-                    'message': 'Token inválido'
-                }, status=status.HTTP_401_UNAUTHORIZED)
-            
-            client, validated_token = auth_result
-            
-            registration = EventRegistration.objects.get(
-                event_id=event_id,
-                client=client,
-                deleted=False
-            )
-            
-            # Solo permitir cancelar si está aprobado o pendiente
-            if registration.status in [EventRegistration.RegistrationStatus.APPROVED, 
-                                     EventRegistration.RegistrationStatus.PENDING]:
-                registration.status = EventRegistration.RegistrationStatus.CANCELLED
-                registration.save()
-                
-                return Response({
-                    'success': True,
-                    'message': 'Registro cancelado exitosamente'
-                })
-            else:
-                return Response({
-                    'success': False,
-                    'message': 'No puedes cancelar este registro'
-                }, status=status.HTTP_400_BAD_REQUEST)
-                
-        except EventRegistration.DoesNotExist:
-            return Response({
-                'success': False,
-                'message': 'No estás registrado en este evento'
-            }, status=status.HTTP_404_NOT_FOUND)
-        except (InvalidToken, TokenError):
-            return Response({
-                'success': False,
-                'message': 'Token inválido'
-            }, status=status.HTTP_401_UNAUTHORIZED)
-
-
-class ClientEventRegistrationsView(APIView):
-    """Lista de registros del cliente autenticado"""
-    
-    authentication_classes = [ClientJWTAuthentication]
-    permission_classes = [AllowAny]
-    
-    def get(self, request):
-        """Obtener registros del cliente autenticado"""
-        try:
-            # Autenticar cliente
-            authenticator = ClientJWTAuthentication()
-            auth_result = authenticator.authenticate(request)
-            
-            if auth_result is None:
-                return Response({
-                    'success': False,
-                    'message': 'Token inválido'
-                }, status=status.HTTP_401_UNAUTHORIZED)
-            
-            client, validated_token = auth_result
-            
-            # Obtener registros del cliente
-            registrations = EventRegistration.objects.filter(
-                client=client,
-                deleted=False
-            ).select_related('event', 'event__category').order_by('-registration_date')
-            
-            serializer = EventRegistrationSerializer(registrations, many=True)
+            if current_count >= event.max_participants:
+                return Response({'error': 'El evento ha alcanzado el máximo de participantes'}, status=400)
+        
+        # Verificar restricciones del evento
+        eligibility_error = self._check_event_eligibility(event, user)
+        if eligibility_error:
+            return Response({'error': eligibility_error}, status=400)
+        
+        # Crear el registro
+        registration_data = {
+            'event': event.id,
+            'client': user.id,
+            'status': EventRegistration.RegistrationStatus.PENDING
+        }
+        
+        serializer = EventRegistrationCreateSerializer(data=registration_data)
+        if serializer.is_valid():
+            registration = serializer.save()
             
             return Response({
                 'success': True,
-                'registrations': serializer.data
-            })
+                'message': 'Te has registrado exitosamente al evento',
+                'registration': EventRegistrationSerializer(registration).data
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response({
+            'error': 'Error al procesar el registro',
+            'details': serializer.errors
+        }, status=400)
+    
+    def _check_event_eligibility(self, event, client):
+        """Verificar si el cliente es elegible para el evento"""
+        
+        # Verificar puntos mínimos
+        if event.min_points_required and client.points_balance < event.min_points_required:
+            return f"Necesitas al menos {event.min_points_required} puntos para registrarte a este evento"
+        
+        # Verificar logros requeridos
+        if event.required_achievements.exists():
+            client_achievements = client.achievements.values_list('id', flat=True)
+            required_achievements = event.required_achievements.values_list('id', flat=True)
             
-        except (InvalidToken, TokenError):
-            return Response({
-                'success': False,
-                'message': 'Token inválido'
-            }, status=status.HTTP_401_UNAUTHORIZED)
+            # El cliente debe tener AL MENOS UNO de los logros requeridos
+            if not any(achievement_id in client_achievements for achievement_id in required_achievements):
+                required_names = event.required_achievements.values_list('name', flat=True)
+                return f"Necesitas tener uno de estos logros para registrarte: {', '.join(required_names)}"
+        
+        return None
 
 
-# === ENDPOINT PARA VERIFICAR ELEGIBILIDAD ===
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-@authentication_classes([])  # Deshabilita autenticación automática de DRF
-def check_event_eligibility(request, event_id):
-    """Verificar si el cliente puede registrarse a un evento específico"""
-    try:
+class ClientEventRegistrationsView(generics.ListAPIView):
+    """Lista de registros de eventos del cliente autenticado"""
+    
+    serializer_class = EventRegistrationSerializer
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [AllowAny]
+    
+    def get_queryset(self):
         # Autenticar cliente
         authenticator = ClientJWTAuthentication()
-        auth_result = authenticator.authenticate(request)
+        try:
+            user, validated_token = authenticator.authenticate(self.request)
+        except (InvalidToken, TokenError):
+            return EventRegistration.objects.none()
         
-        if auth_result is None:
-            return Response({
-                'success': False,
-                'message': 'Token inválido'
-            }, status=status.HTTP_401_UNAUTHORIZED)
+        if not user:
+            return EventRegistration.objects.none()
         
-        client, validated_token = auth_result
-        
+        return EventRegistration.objects.filter(
+            client=user
+        ).select_related('event', 'event__category').order_by('-registration_date')
+
+
+@api_view(['GET'])
+@authentication_classes([ClientJWTAuthentication])
+@permission_classes([AllowAny])
+def check_event_eligibility(request, event_id):
+    """Verificar elegibilidad del cliente para un evento"""
+    
+    # Autenticar cliente
+    authenticator = ClientJWTAuthentication()
+    try:
+        user, validated_token = authenticator.authenticate(request)
+    except (InvalidToken, TokenError):
+        return Response({'error': 'Token de autenticación inválido'}, status=401)
+    
+    if not user:
+        return Response({'error': 'Token de autenticación inválido'}, status=401)
+    
+    # Verificar que el evento existe
+    try:
         event = Event.objects.get(
             id=event_id,
             deleted=False,
             is_active=True,
+            is_public=True,
             status=Event.EventStatus.PUBLISHED
         )
-        
-        can_register, message = event.client_can_register(client)
-        
-        return Response({
-            'event_id': event_id,
-            'event_title': event.title,
-            'can_register': can_register,
-            'message': message,
-            'client_requirements': {
-                'current_points': float(client.points_balance),
-                'required_points': float(event.min_points_required),
-                'client_achievements': [
-                    {'id': ach.achievement.id, 'name': ach.achievement.name} 
-                    for ach in client.achievements.filter(deleted=False).select_related('achievement')
-                ],
-                'required_achievements': [
-                    {'id': ach.id, 'name': ach.name}
-                    for ach in event.required_achievements.all()
-                ]
-            }
-        })
-        
     except Event.DoesNotExist:
-        return Response({
-            'success': False,
-            'message': 'Evento no encontrado'
-        }, status=status.HTTP_404_NOT_FOUND)
-    except (InvalidToken, TokenError):
-        return Response({
-            'success': False,
-            'message': 'Token inválido'
-        }, status=status.HTTP_401_UNAUTHORIZED)
-    except Exception as e:
-        return Response({
-            'success': False,
-            'message': f'Error interno: {str(e)}'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-class EventParticipantsView(APIView):
-    """Endpoint para mostrar participantes de un evento"""
+        return Response({'error': 'Evento no encontrado'}, status=404)
     
-    permission_classes = [AllowAny]  # Público para mostrar participantes
+    # Verificar elegibilidad
+    eligibility_check = {
+        'eligible': True,
+        'reasons': []
+    }
     
-    def get(self, request, event_id):
-        """
-        GET /api/v1/events/{event_id}/participants/
+    # Verificar si ya está registrado
+    existing_registration = EventRegistration.objects.filter(
+        event=event,
+        client=user
+    ).first()
+    
+    if existing_registration:
+        eligibility_check['eligible'] = False
+        eligibility_check['reasons'].append('Ya estás registrado en este evento')
+        eligibility_check['existing_registration'] = EventRegistrationSerializer(existing_registration).data
+    
+    # Verificar deadline
+    if timezone.now() > event.registration_deadline:
+        eligibility_check['eligible'] = False
+        eligibility_check['reasons'].append('La fecha límite de registro ha pasado')
+    
+    # Verificar límite de participantes
+    if event.max_participants:
+        current_count = EventRegistration.objects.filter(
+            event=event,
+            status__in=[
+                EventRegistration.RegistrationStatus.PENDING,
+                EventRegistration.RegistrationStatus.APPROVED
+            ]
+        ).count()
         
-        Muestra todos los participantes aprobados de un evento con:
-        - Foto de perfil (prioriza Facebook, luego custom)
-        - Nombre formateado (Augusto T.)
-        - Nivel más alto con icono
-        """
-        try:
-            # Obtener evento
-            event = Event.objects.get(id=event_id, deleted=False)
-            
-            # Obtener solo participantes aprobados
-            participants = EventRegistration.objects.filter(
-                event=event,
-                status=EventRegistration.RegistrationStatus.APPROVED,
-                deleted=False
-            ).select_related('client').prefetch_related(
-                'client__achievements__achievement',
-                'client__event_registrations'
-            ).order_by('-registration_date')
-            
-            # Serializar datos
-            serializer = EventParticipantSerializer(
-                participants, 
-                many=True, 
-                context={'request': request}
-            )
-            
-            return Response({
-                'success': True,
-                'event': {
-                    'id': event.id,
-                    'title': event.title,
-                    'registered_users': participants.count(),
-                    'max_allowed_users': event.max_participants,
-                    'available_spots': event.available_spots,
-                    'event_status': self._get_event_status(event)
-                },
-                'participants': serializer.data
-            })
-            
-        except Event.DoesNotExist:
-            return Response({
-                'success': False,
-                'message': 'Evento no encontrado'
-            }, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({
-                'success': False,
-                'message': f'Error interno: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        if current_count >= event.max_participants:
+            eligibility_check['eligible'] = False
+            eligibility_check['reasons'].append('El evento ha alcanzado el máximo de participantes')
     
-    def _get_event_status(self, event):
-        """Helper para obtener el estado del evento"""
-        from django.utils import timezone
-        now = timezone.now()
+    # Verificar puntos mínimos
+    if event.min_points_required and user.points_balance < event.min_points_required:
+        eligibility_check['eligible'] = False
+        eligibility_check['reasons'].append(f"Necesitas al menos {event.min_points_required} puntos")
+    
+    # Verificar logros requeridos
+    if event.required_achievements.exists():
+        user_achievements = user.achievements.values_list('id', flat=True)
+        required_achievements = event.required_achievements.values_list('id', flat=True)
         
-        if event.event_date > now:
-            return 'upcoming'  # Próximo
-        else:
-            return 'past'      # Pasado
+        if not any(achievement_id in user_achievements for achievement_id in required_achievements):
+            required_names = event.required_achievements.values_list('name', flat=True)
+            eligibility_check['eligible'] = False
+            eligibility_check['reasons'].append(f"Necesitas uno de estos logros: {', '.join(required_names)}")
+    
+    return Response({
+        'event_id': str(event.id),
+        'event_title': event.title,
+        'eligibility': eligibility_check
+    })
 
 
-# === FEED DE ACTIVIDADES DE CASA AUSTIN ===
+# === ACTIVITY FEED ENDPOINTS ===
 
 class ActivityFeedPagination(PageNumberPagination):
     """Paginación personalizada para el feed de actividades"""
@@ -598,213 +459,692 @@ class ActivityFeedView(generics.ListAPIView):
         })
     
     def _get_applied_filters(self):
-        """Helper para mostrar filtros aplicados en la respuesta"""
+        """Obtener información de filtros aplicados"""
         filters = {}
         
-        for param in ['activity_type', 'client_id', 'importance_level', 'date_from', 'date_to']:
-            value = self.request.GET.get(param)
-            if value:
-                filters[param] = value
+        if self.request.GET.get('activity_type'):
+            filters['activity_type'] = self.request.GET.get('activity_type')
+        
+        if self.request.GET.get('client_id'):
+            filters['client_id'] = self.request.GET.get('client_id')
+        
+        if self.request.GET.get('importance_level'):
+            filters['importance_level'] = self.request.GET.get('importance_level')
+        
+        if self.request.GET.get('date_from'):
+            filters['date_from'] = self.request.GET.get('date_from')
+        
+        if self.request.GET.get('date_to'):
+            filters['date_to'] = self.request.GET.get('date_to')
         
         return filters
 
 
-class RecentActivitiesView(APIView):
-    """
-    Endpoint rápido para obtener las actividades más recientes
+class RecentActivitiesView(generics.ListAPIView):
+    """Actividades más recientes - versión compacta para widgets"""
     
-    GET /api/v1/activity-feed/recent/
+    serializer_class = ActivityFeedSerializer
+    permission_classes = [AllowAny]
+    
+    def get_queryset(self):
+        from .models import ActivityFeedConfig
+        
+        # Obtener tipos deshabilitados
+        disabled_types = ActivityFeedConfig.objects.filter(
+            is_enabled=False
+        ).values_list('activity_type', flat=True)
+        
+        queryset = ActivityFeed.objects.filter(
+            deleted=False,
+            is_public=True
+        ).select_related('client', 'event', 'property_location').order_by('-created')
+        
+        # Excluir tipos deshabilitados
+        if disabled_types:
+            queryset = queryset.exclude(activity_type__in=disabled_types)
+        
+        return queryset[:10]  # Solo las 10 más recientes
+    
+    def list(self, request, *args, **kwargs):
+        """Override para respuesta simplificada"""
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        
+        return Response({
+            'success': True,
+            'results': serializer.data,
+            'count': len(serializer.data),
+            'last_updated': timezone.now().isoformat(),
+        })
+
+
+class ComprehensiveStatsView(APIView):
+    """
+    📊 ENDPOINT COMPREHENSIVO DE ESTADÍSTICAS PARA GRÁFICAS
+    
+    GET /api/v1/stats/
     
     Query Parameters:
-    - limit: Número de actividades a retornar (default: 10, max: 50)
-    - activity_type: Filtrar por tipo específico
+    - period: 'day', 'week', 'month' (default: 'month')
+    - days_back: número de días hacia atrás (default: 30)
+    - date_from: fecha inicio (YYYY-MM-DD)
+    - date_to: fecha fin (YYYY-MM-DD)
+    - include_anonymous: incluir datos anónimos (default: true)
+    
+    Retorna estadísticas comprehensivas para gráficas:
+    - Search Analytics (búsquedas por cliente vs IP)
+    - Activity Analytics (por tipo, temporales)
+    - Client Analytics (nuevos clientes, más activos)
+    - Property Analytics (más buscadas)
     """
     
     permission_classes = [AllowAny]
     
     def get(self, request):
-        """Obtener las actividades más recientes"""
-        try:
-            # Parámetros
-            limit = int(request.GET.get('limit', 10))
-            if limit > 50:
-                limit = 50
-            
-            activity_type = request.GET.get('activity_type')
-            
-            # Queryset base
-            queryset = ActivityFeed.objects.filter(
-                deleted=False,
-                is_public=True
-            ).select_related('client', 'event', 'property_location').order_by('-created')
-            
-            # Filtrar por tipo si se especifica
-            if activity_type:
-                queryset = queryset.filter(activity_type=activity_type)
-            
-            # Limitar resultados
-            activities = queryset[:limit]
-            
-            # Serializar
-            serializer = ActivityFeedSerializer(activities, many=True)
-            
-            return Response({
-                'success': True,
-                'activities': serializer.data,
-                'count': len(activities),
-                'limit_applied': limit,
-                'last_updated': timezone.now().isoformat()
-            })
-            
-        except Exception as e:
-            return Response({
-                'success': False,
-                'message': f'Error obteniendo actividades recientes: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        """Obtener estadísticas comprehensivas"""
+        
+        # Parámetros de query
+        period = request.GET.get('period', 'month')  # day, week, month
+        days_back = int(request.GET.get('days_back', 30))
+        include_anonymous = request.GET.get('include_anonymous', 'true').lower() == 'true'
+        
+        # Calcular fechas
+        end_date = timezone.now()
+        
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        
+        if date_from and date_to:
+            try:
+                start_date = datetime.fromisoformat(date_from)
+                end_date = datetime.fromisoformat(date_to)
+            except ValueError:
+                return Response({'error': 'Formato de fecha inválido. Usar YYYY-MM-DD'}, status=400)
+        else:
+            start_date = end_date - timedelta(days=days_back)
+        
+        # Determinar función de truncado temporal
+        if period == 'day':
+            trunc_func = TruncDate
+        elif period == 'week':
+            trunc_func = TruncWeek
+        else:  # month
+            trunc_func = TruncMonth
+        
+        stats = {
+            'period_info': {
+                'period': period,
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat(),
+                'days_analyzed': (end_date - start_date).days
+            },
+            'search_analytics': self._get_search_analytics(start_date, end_date, trunc_func, include_anonymous),
+            'activity_analytics': self._get_activity_analytics(start_date, end_date, trunc_func),
+            'client_analytics': self._get_client_analytics(start_date, end_date, trunc_func),
+            'property_analytics': self._get_property_analytics(start_date, end_date),
+            'summary': {}
+        }
+        
+        # Generar resumen
+        stats['summary'] = self._generate_summary(stats)
+        
+        return Response({
+            'success': True,
+            'stats': stats,
+            'generated_at': timezone.now().isoformat()
+        })
+    
+    def _get_search_analytics(self, start_date, end_date, trunc_func, include_anonymous):
+        """Análisis de búsquedas con desglose por clientes vs anónimos"""
+        
+        # Base queryset
+        searches = SearchTracking.objects.filter(
+            search_timestamp__gte=start_date,
+            search_timestamp__lte=end_date
+        )
+        
+        # 1. Total de búsquedas por período
+        searches_by_period = searches.annotate(
+            period=trunc_func('search_timestamp')
+        ).values('period').annotate(
+            total_searches=Count('id'),
+            client_searches=Count('id', filter=Q(client__isnull=False)),
+            anonymous_searches=Count('id', filter=Q(client__isnull=True))
+        ).order_by('period')
+        
+        # 2. Búsquedas por tipo de usuario (cliente vs anónimo)
+        user_type_stats = {
+            'client_searches': searches.filter(client__isnull=False).count(),
+            'anonymous_searches': searches.filter(client__isnull=True).count()
+        }
+        
+        # 3. IPs únicas para búsquedas anónimas
+        unique_ips = searches.filter(
+            client__isnull=True,
+            ip_address__isnull=False
+        ).values('ip_address').distinct().count()
+        
+        # 4. Clientes únicos que buscaron
+        unique_clients = searches.filter(
+            client__isnull=False
+        ).values('client').distinct().count()
+        
+        # 5. Propiedades más buscadas
+        property_searches = searches.filter(
+            property__isnull=False
+        ).values(
+            'property__name'
+        ).annotate(
+            search_count=Count('id')
+        ).order_by('-search_count')[:10]
+        
+        # 6. Número de huéspedes más común
+        guests_stats = searches.values('guests').annotate(
+            count=Count('id')
+        ).order_by('-count')[:5]
+        
+        # 7. Patrones de fechas más buscadas (día de la semana)
+        day_patterns = searches.annotate(
+            weekday=TruncDate('check_in_date')
+        ).values('weekday').annotate(
+            search_count=Count('id')
+        ).order_by('-search_count')[:10]
+        
+        # 8. Top clientes que más buscan
+        top_searching_clients = searches.filter(
+            client__isnull=False
+        ).values(
+            'client__first_name', 
+            'client__last_name'
+        ).annotate(
+            search_count=Count('id')
+        ).order_by('-search_count')[:10]
+        
+        return {
+            'searches_by_period': list(searches_by_period),
+            'user_type_breakdown': user_type_stats,
+            'unique_anonymous_ips': unique_ips,
+            'unique_searching_clients': unique_clients,
+            'most_searched_properties': list(property_searches),
+            'guest_count_patterns': list(guests_stats),
+            'popular_checkin_dates': list(day_patterns),
+            'top_searching_clients': list(top_searching_clients)
+        }
+    
+    def _get_activity_analytics(self, start_date, end_date, trunc_func):
+        """Análisis de actividades del feed"""
+        
+        # Base queryset (solo actividades habilitadas)
+        disabled_types = ActivityFeedConfig.objects.filter(
+            is_enabled=False
+        ).values_list('activity_type', flat=True)
+        
+        activities = ActivityFeed.objects.filter(
+            created__gte=start_date,
+            created__lte=end_date,
+            deleted=False
+        )
+        
+        if disabled_types:
+            activities = activities.exclude(activity_type__in=disabled_types)
+        
+        # 1. Actividades por período
+        activities_by_period = activities.annotate(
+            period=trunc_func('created')
+        ).values('period').annotate(
+            total_activities=Count('id')
+        ).order_by('period')
+        
+        # 2. Actividades por tipo
+        activities_by_type = activities.values(
+            'activity_type'
+        ).annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        # 3. Clientes más activos
+        most_active_clients = activities.filter(
+            client__isnull=False
+        ).values(
+            'client__first_name',
+            'client__last_name'
+        ).annotate(
+            activity_count=Count('id')
+        ).order_by('-activity_count')[:10]
+        
+        # 4. Actividades por importancia
+        importance_breakdown = activities.values('importance_level').annotate(
+            count=Count('id')
+        ).order_by('importance_level')
+        
+        return {
+            'activities_by_period': list(activities_by_period),
+            'activities_by_type': list(activities_by_type),
+            'most_active_clients': list(most_active_clients),
+            'importance_breakdown': list(importance_breakdown)
+        }
+    
+    def _get_client_analytics(self, start_date, end_date, trunc_func):
+        """Análisis de clientes"""
+        
+        # 1. Nuevos clientes por período
+        new_clients = Clients.objects.filter(
+            created__gte=start_date,
+            created__lte=end_date,
+            deleted=False
+        ).annotate(
+            period=trunc_func('created')
+        ).values('period').annotate(
+            new_clients=Count('id')
+        ).order_by('period')
+        
+        # 2. Total de clientes activos
+        total_clients = Clients.objects.filter(deleted=False).count()
+        
+        # 3. Clientes con más puntos
+        top_clients_by_points = Clients.objects.filter(
+            deleted=False
+        ).order_by('-points_balance')[:10].values(
+            'first_name', 'last_name', 'points_balance'
+        )
+        
+        return {
+            'new_clients_by_period': list(new_clients),
+            'total_active_clients': total_clients,
+            'top_clients_by_points': list(top_clients_by_points)
+        }
+    
+    def _get_property_analytics(self, start_date, end_date):
+        """Análisis de propiedades"""
+        
+        # Propiedades más mencionadas en actividades
+        property_mentions = ActivityFeed.objects.filter(
+            created__gte=start_date,
+            created__lte=end_date,
+            property_location__isnull=False,
+            deleted=False
+        ).values(
+            'property_location__name'
+        ).annotate(
+            mentions=Count('id')
+        ).order_by('-mentions')[:10]
+        
+        return {
+            'most_mentioned_properties': list(property_mentions)
+        }
+    
+    def _generate_summary(self, stats):
+        """Generar resumen de estadísticas clave"""
+        
+        search_analytics = stats['search_analytics']
+        activity_analytics = stats['activity_analytics']
+        client_analytics = stats['client_analytics']
+        
+        total_searches = (search_analytics['user_type_breakdown']['client_searches'] + 
+                         search_analytics['user_type_breakdown']['anonymous_searches'])
+        
+        total_activities = sum(item['count'] for item in activity_analytics['activities_by_type'])
+        
+        return {
+            'total_searches': total_searches,
+            'total_activities': total_activities,
+            'unique_searchers': (search_analytics['unique_searching_clients'] + 
+                               search_analytics['unique_anonymous_ips']),
+            'new_clients': sum(item['new_clients'] for item in client_analytics['new_clients_by_period']),
+            'top_activity_type': (activity_analytics['activities_by_type'][0]['activity_type'] 
+                                if activity_analytics['activities_by_type'] else None),
+            'most_searched_property': (search_analytics['most_searched_properties'][0]['property__name'] 
+                                     if search_analytics['most_searched_properties'] else None)
+        }
 
 
 class ActivityFeedStatsView(APIView):
-    """
-    Estadísticas del feed de actividades
+    """Estadísticas básicas del Activity Feed"""
     
-    GET /api/v1/activity-feed/stats/
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        """Estadísticas básicas del feed de actividades"""
+        
+        # Actividades habilitadas
+        disabled_types = ActivityFeedConfig.objects.filter(
+            is_enabled=False
+        ).values_list('activity_type', flat=True)
+        
+        activities = ActivityFeed.objects.filter(
+            deleted=False,
+            is_public=True
+        )
+        
+        if disabled_types:
+            activities = activities.exclude(activity_type__in=disabled_types)
+        
+        # Estadísticas básicas
+        total_activities = activities.count()
+        
+        # Por tipo
+        by_type = activities.values('activity_type').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        # Por importancia
+        by_importance = activities.values('importance_level').annotate(
+            count=Count('id')
+        ).order_by('importance_level')
+        
+        # Actividades recientes (últimos 7 días)
+        week_ago = timezone.now() - timedelta(days=7)
+        recent_count = activities.filter(created__gte=week_ago).count()
+        
+        return Response({
+            'success': True,
+            'stats': {
+                'total_activities': total_activities,
+                'recent_activities_7_days': recent_count,
+                'by_activity_type': list(by_type),
+                'by_importance_level': list(by_importance),
+                'generated_at': timezone.now().isoformat()
+            }
+        })
+
+
+class ActivityFeedCreateView(generics.CreateAPIView):
+    """Crear nueva actividad en el feed (para uso interno/admin)"""
+    
+    serializer_class = ActivityFeedCreateSerializer
+    permission_classes = [AllowAny]  # Cambiar según necesidades de seguridad
+    
+    def create(self, request, *args, **kwargs):
+        """Override para respuesta personalizada"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        activity = serializer.save()
+        
+        response_serializer = ActivityFeedSerializer(activity)
+        
+        return Response({
+            'success': True,
+            'message': 'Actividad creada exitosamente',
+            'activity': response_serializer.data
+        }, status=status.HTTP_201_CREATED)
+
+
+class ComprehensiveStatsView(APIView):
+    """
+    📊 ENDPOINT COMPREHENSIVO DE ESTADÍSTICAS PARA GRÁFICAS
+    
+    GET /api/v1/stats/
+    
+    Query Parameters:
+    - period: 'day', 'week', 'month' (default: 'month')
+    - days_back: número de días hacia atrás (default: 30)
+    - date_from: fecha inicio (YYYY-MM-DD)
+    - date_to: fecha fin (YYYY-MM-DD)
+    - include_anonymous: incluir datos anónimos (default: true)
+    
+    Retorna estadísticas comprehensivas para gráficas:
+    - Search Analytics (búsquedas por cliente vs IP)
+    - Activity Analytics (por tipo, temporales)
+    - Client Analytics (nuevos clientes, más activos)
+    - Property Analytics (más buscadas)
     """
     
     permission_classes = [AllowAny]
     
     def get(self, request):
-        """Obtener estadísticas del feed de actividades"""
-        try:
-            from django.db.models import Count
-            from datetime import datetime, timedelta
-            
-            now = timezone.now()
-            
-            # Estadísticas generales
-            total_activities = ActivityFeed.objects.filter(deleted=False, is_public=True).count()
-            
-            # Actividades por tipo
-            activities_by_type = ActivityFeed.objects.filter(
-                deleted=False, 
-                is_public=True
-            ).values('activity_type').annotate(
-                count=Count('id')
-            ).order_by('-count')
-            
-            # Actividades de las últimas 24 horas
-            yesterday = now - timedelta(days=1)
-            recent_activities = ActivityFeed.objects.filter(
-                deleted=False,
-                is_public=True,
-                created__gte=yesterday
-            ).count()
-            
-            # Actividades de la última semana
-            last_week = now - timedelta(days=7)
-            weekly_activities = ActivityFeed.objects.filter(
-                deleted=False,
-                is_public=True,
-                created__gte=last_week
-            ).count()
-            
-            # Clientes más activos (último mes)
-            last_month = now - timedelta(days=30)
-            top_clients = ActivityFeed.objects.filter(
-                deleted=False,
-                is_public=True,
-                created__gte=last_month,
-                client__isnull=False
-            ).values(
-                'client__first_name', 'client__last_name', 'client_id'
-            ).annotate(
-                activity_count=Count('id')
-            ).order_by('-activity_count')[:5]
-            
-            return Response({
-                'success': True,
-                'stats': {
-                    'total_activities': total_activities,
-                    'recent_24h': recent_activities,
-                    'recent_week': weekly_activities,
-                    'activities_by_type': [
-                        {
-                            'type': item['activity_type'],
-                            'type_display': dict(ActivityFeed.ActivityType.choices).get(
-                                item['activity_type'], item['activity_type']
-                            ),
-                            'count': item['count']
-                        }
-                        for item in activities_by_type
-                    ],
-                    'top_clients_month': [
-                        {
-                            'client_id': client['client_id'],
-                            'name': f"{client['client__first_name']} {client['client__last_name'][0].upper() if client['client__last_name'] else ''}.",
-                            'activity_count': client['activity_count']
-                        }
-                        for client in top_clients
-                    ]
-                },
-                'generated_at': now.isoformat()
-            })
-            
-        except Exception as e:
-            return Response({
-                'success': False,
-                'message': f'Error obteniendo estadísticas: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-# === ENDPOINTS PARA ADMINISTRADORES (crear actividades manualmente) ===
-
-class ActivityFeedCreateView(APIView):
-    """
-    Crear actividades manualmente (solo para administradores o sistema interno)
+        """Obtener estadísticas comprehensivas"""
+        
+        # Parámetros de query
+        period = request.GET.get('period', 'month')  # day, week, month
+        days_back = int(request.GET.get('days_back', 30))
+        include_anonymous = request.GET.get('include_anonymous', 'true').lower() == 'true'
+        
+        # Calcular fechas
+        end_date = timezone.now()
+        
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        
+        if date_from and date_to:
+            try:
+                start_date = datetime.fromisoformat(date_from)
+                end_date = datetime.fromisoformat(date_to)
+            except ValueError:
+                return Response({'error': 'Formato de fecha inválido. Usar YYYY-MM-DD'}, status=400)
+        else:
+            start_date = end_date - timedelta(days=days_back)
+        
+        # Determinar función de truncado temporal
+        if period == 'day':
+            trunc_func = TruncDate
+        elif period == 'week':
+            trunc_func = TruncWeek
+        else:  # month
+            trunc_func = TruncMonth
+        
+        stats = {
+            'period_info': {
+                'period': period,
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat(),
+                'days_analyzed': (end_date - start_date).days
+            },
+            'search_analytics': self._get_search_analytics(start_date, end_date, trunc_func, include_anonymous),
+            'activity_analytics': self._get_activity_analytics(start_date, end_date, trunc_func),
+            'client_analytics': self._get_client_analytics(start_date, end_date, trunc_func),
+            'property_analytics': self._get_property_analytics(start_date, end_date),
+            'summary': {}
+        }
+        
+        # Generar resumen
+        stats['summary'] = self._generate_summary(stats)
+        
+        return Response({
+            'success': True,
+            'stats': stats,
+            'generated_at': timezone.now().isoformat()
+        })
     
-    POST /api/v1/activity-feed/create/
+    def _get_search_analytics(self, start_date, end_date, trunc_func, include_anonymous):
+        """Análisis de búsquedas con desglose por clientes vs anónimos"""
+        
+        # Base queryset
+        searches = SearchTracking.objects.filter(
+            search_timestamp__gte=start_date,
+            search_timestamp__lte=end_date
+        )
+        
+        # 1. Total de búsquedas por período
+        searches_by_period = searches.annotate(
+            period=trunc_func('search_timestamp')
+        ).values('period').annotate(
+            total_searches=Count('id'),
+            client_searches=Count('id', filter=Q(client__isnull=False)),
+            anonymous_searches=Count('id', filter=Q(client__isnull=True))
+        ).order_by('period')
+        
+        # 2. Búsquedas por tipo de usuario (cliente vs anónimo)
+        user_type_stats = {
+            'client_searches': searches.filter(client__isnull=False).count(),
+            'anonymous_searches': searches.filter(client__isnull=True).count()
+        }
+        
+        # 3. IPs únicas para búsquedas anónimas
+        unique_ips = searches.filter(
+            client__isnull=True,
+            ip_address__isnull=False
+        ).values('ip_address').distinct().count()
+        
+        # 4. Clientes únicos que buscaron
+        unique_clients = searches.filter(
+            client__isnull=False
+        ).values('client').distinct().count()
+        
+        # 5. Propiedades más buscadas
+        property_searches = searches.filter(
+            property__isnull=False
+        ).values(
+            'property__name'
+        ).annotate(
+            search_count=Count('id')
+        ).order_by('-search_count')[:10]
+        
+        # 6. Número de huéspedes más común
+        guests_stats = searches.values('guests').annotate(
+            count=Count('id')
+        ).order_by('-count')[:5]
+        
+        # 7. Patrones de fechas más buscadas (día de la semana)
+        day_patterns = searches.annotate(
+            weekday=TruncDate('check_in_date')
+        ).values('weekday').annotate(
+            search_count=Count('id')
+        ).order_by('-search_count')[:10]
+        
+        # 8. Top clientes que más buscan
+        top_searching_clients = searches.filter(
+            client__isnull=False
+        ).values(
+            'client__first_name', 
+            'client__last_name'
+        ).annotate(
+            search_count=Count('id')
+        ).order_by('-search_count')[:10]
+        
+        return {
+            'searches_by_period': list(searches_by_period),
+            'user_type_breakdown': user_type_stats,
+            'unique_anonymous_ips': unique_ips,
+            'unique_searching_clients': unique_clients,
+            'most_searched_properties': list(property_searches),
+            'guest_count_patterns': list(guests_stats),
+            'popular_checkin_dates': list(day_patterns),
+            'top_searching_clients': list(top_searching_clients)
+        }
     
-    SEGURIDAD: Requiere clave secreta del sistema para prevenir spam/manipulación
-    """
+    def _get_activity_analytics(self, start_date, end_date, trunc_func):
+        """Análisis de actividades del feed"""
+        
+        # Base queryset (solo actividades habilitadas)
+        disabled_types = ActivityFeedConfig.objects.filter(
+            is_enabled=False
+        ).values_list('activity_type', flat=True)
+        
+        activities = ActivityFeed.objects.filter(
+            created__gte=start_date,
+            created__lte=end_date,
+            deleted=False
+        )
+        
+        if disabled_types:
+            activities = activities.exclude(activity_type__in=disabled_types)
+        
+        # 1. Actividades por período
+        activities_by_period = activities.annotate(
+            period=trunc_func('created')
+        ).values('period').annotate(
+            total_activities=Count('id')
+        ).order_by('period')
+        
+        # 2. Actividades por tipo
+        activities_by_type = activities.values(
+            'activity_type'
+        ).annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        # 3. Clientes más activos
+        most_active_clients = activities.filter(
+            client__isnull=False
+        ).values(
+            'client__first_name',
+            'client__last_name'
+        ).annotate(
+            activity_count=Count('id')
+        ).order_by('-activity_count')[:10]
+        
+        # 4. Actividades por importancia
+        importance_breakdown = activities.values('importance_level').annotate(
+            count=Count('id')
+        ).order_by('importance_level')
+        
+        return {
+            'activities_by_period': list(activities_by_period),
+            'activities_by_type': list(activities_by_type),
+            'most_active_clients': list(most_active_clients),
+            'importance_breakdown': list(importance_breakdown)
+        }
     
-    permission_classes = [AllowAny]  # Controlado por validación de clave secreta
+    def _get_client_analytics(self, start_date, end_date, trunc_func):
+        """Análisis de clientes"""
+        
+        # 1. Nuevos clientes por período
+        new_clients = Clients.objects.filter(
+            created__gte=start_date,
+            created__lte=end_date,
+            deleted=False
+        ).annotate(
+            period=trunc_func('created')
+        ).values('period').annotate(
+            new_clients=Count('id')
+        ).order_by('period')
+        
+        # 2. Total de clientes activos
+        total_clients = Clients.objects.filter(deleted=False).count()
+        
+        # 3. Clientes con más puntos
+        top_clients_by_points = Clients.objects.filter(
+            deleted=False
+        ).order_by('-points_balance')[:10].values(
+            'first_name', 'last_name', 'points_balance'
+        )
+        
+        return {
+            'new_clients_by_period': list(new_clients),
+            'total_active_clients': total_clients,
+            'top_clients_by_points': list(top_clients_by_points)
+        }
     
-    def post(self, request):
-        """Crear nueva actividad en el feed"""
-        try:
-            # 🔐 VALIDACIÓN DE SEGURIDAD: Verificar clave secreta del sistema
-            admin_key = request.headers.get('X-Admin-Key') or request.data.get('admin_key')
-            expected_key = "casa_austin_feed_admin_2025"  # TODO: Mover a settings/environment
-            
-            if admin_key != expected_key:
-                return Response({
-                    'success': False,
-                    'message': 'Acceso denegado: clave de administrador requerida'
-                }, status=status.HTTP_401_UNAUTHORIZED)
-            
-            # Remover admin_key de los datos antes de validar
-            request_data = request.data.copy()
-            request_data.pop('admin_key', None)
-            
-            serializer = ActivityFeedCreateSerializer(data=request_data)
-            if serializer.is_valid():
-                activity = serializer.save()
-                
-                # Serializar respuesta
-                response_serializer = ActivityFeedSerializer(activity)
-                
-                return Response({
-                    'success': True,
-                    'message': 'Actividad creada exitosamente',
-                    'activity': response_serializer.data
-                }, status=status.HTTP_201_CREATED)
-            else:
-                return Response({
-                    'success': False,
-                    'errors': serializer.errors
-                }, status=status.HTTP_400_BAD_REQUEST)
-                
-        except Exception as e:
-            return Response({
-                'success': False,
-                'message': f'Error creando actividad: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    def _get_property_analytics(self, start_date, end_date):
+        """Análisis de propiedades"""
+        
+        # Propiedades más mencionadas en actividades
+        property_mentions = ActivityFeed.objects.filter(
+            created__gte=start_date,
+            created__lte=end_date,
+            property_location__isnull=False,
+            deleted=False
+        ).values(
+            'property_location__name'
+        ).annotate(
+            mentions=Count('id')
+        ).order_by('-mentions')[:10]
+        
+        return {
+            'most_mentioned_properties': list(property_mentions)
+        }
+    
+    def _generate_summary(self, stats):
+        """Generar resumen de estadísticas clave"""
+        
+        search_analytics = stats['search_analytics']
+        activity_analytics = stats['activity_analytics']
+        client_analytics = stats['client_analytics']
+        
+        total_searches = (search_analytics['user_type_breakdown']['client_searches'] + 
+                         search_analytics['user_type_breakdown']['anonymous_searches'])
+        
+        total_activities = sum(item['count'] for item in activity_analytics['activities_by_type'])
+        
+        return {
+            'total_searches': total_searches,
+            'total_activities': total_activities,
+            'unique_searchers': (search_analytics['unique_searching_clients'] + 
+                               search_analytics['unique_anonymous_ips']),
+            'new_clients': sum(item['new_clients'] for item in client_analytics['new_clients_by_period']),
+            'top_activity_type': (activity_analytics['activities_by_type'][0]['activity_type'] 
+                                if activity_analytics['activities_by_type'] else None),
+            'most_searched_property': (search_analytics['most_searched_properties'][0]['property__name'] 
+                                     if search_analytics['most_searched_properties'] else None)
+        }

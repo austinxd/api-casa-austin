@@ -16,6 +16,9 @@ from .views import (
     RecentActivitiesView,
     ActivityFeedStatsView,
     ActivityFeedCreateView,
+    
+    # Stats endpoints
+    ComprehensiveStatsView,
 )
 
 app_name = 'events'
@@ -37,4 +40,7 @@ urlpatterns = [
     path('activity-feed/recent/', RecentActivitiesView.as_view(), name='activity-feed-recent'),
     path('activity-feed/stats/', ActivityFeedStatsView.as_view(), name='activity-feed-stats'),
     path('activity-feed/create/', ActivityFeedCreateView.as_view(), name='activity-feed-create'),
+    
+    # === COMPREHENSIVE STATS ENDPOINTS ===
+    path('stats/', ComprehensiveStatsView.as_view(), name='comprehensive-stats'),
 ]
