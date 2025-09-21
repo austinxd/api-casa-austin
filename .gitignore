@@ -8,3 +8,6 @@ db_data/
 staticfiles/
 prueba.py
 bd-backups/
+
+# ActivityFeed backup files (contain sensitive data)
+activityfeed_backup_*.json
