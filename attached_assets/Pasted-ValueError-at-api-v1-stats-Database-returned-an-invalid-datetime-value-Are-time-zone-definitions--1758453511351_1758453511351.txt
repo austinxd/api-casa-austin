@@ -1,0 +1,46 @@
+ValueError at /api/v1/stats/
+Database returned an invalid datetime value. Are time zone definitions for your database installed?
+Request Method:	GET
+Request URL:	http://api.casaaustin.pe/api/v1/stats/
+Django Version:	4.2
+Exception Type:	ValueError
+Exception Value:	
+Database returned an invalid datetime value. Are time zone definitions for your database installed?
+Exception Location:	/home/almalinux/.local/lib/python3.9/site-packages/django/db/models/functions/datetime.py, line 348, in convert_value
+Raised during:	apps.events.views.ComprehensiveStatsView
+Python Executable:	/usr/bin/python3
+Python Version:	3.9.19
+Python Path:	
+['/srv/casaaustin/api-casa-austin/src',
+ '/home/almalinux/.local/bin',
+ '/usr/lib64/python39.zip',
+ '/usr/lib64/python3.9',
+ '/usr/lib64/python3.9/lib-dynload',
+ '/home/almalinux/.local/lib/python3.9/site-packages',
+ '/usr/local/lib64/python3.9/site-packages',
+ '/usr/local/lib/python3.9/site-packages',
+ '/usr/lib64/python3.9/site-packages',
+ '/usr/lib/python3.9/site-packages']
+Server time:	Sun, 21 Sep 2025 06:18:27 -0500
+Traceback Switch to copy-and-paste view
+/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/exception.py, line 55, in inner
+                response = get_response(request) …
+Local vars
+/home/almalinux/.local/lib/python3.9/site-packages/django/core/handlers/base.py, line 197, in _get_response
+                response = wrapped_callback(request, *callback_args, **callback_kwargs) …
+Local vars
+/home/almalinux/.local/lib/python3.9/site-packages/django/views/decorators/csrf.py, line 56, in wrapper_view
+        return view_func(*args, **kwargs) …
+Local vars
+/home/almalinux/.local/lib/python3.9/site-packages/django/views/generic/base.py, line 104, in view
+            return self.dispatch(request, *args, **kwargs) …
+Local vars
+/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py, line 509, in dispatch
+            response = self.handle_exception(exc) …
+Local vars
+/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py, line 469, in handle_exception
+            self.raise_uncaught_exception(exc) …
+Local vars
+/home/almalinux/.local/lib/python3.9/site-packages/rest_framework/views.py, line 480, in raise_uncaught_exception
+        raise exc …
+Local vars

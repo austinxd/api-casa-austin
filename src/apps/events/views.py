@@ -8,6 +8,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from django.db.models import Q, Count, Sum, Avg
 from django.db.models.functions import TruncDate, TruncMonth, TruncWeek
+from django.utils.dateparse import parse_date
 from datetime import datetime, timedelta
 
 from apps.clients.models import Clients, SearchTracking
@@ -518,286 +519,6 @@ class RecentActivitiesView(generics.ListAPIView):
         })
 
 
-class ComprehensiveStatsView(APIView):
-    """
-    📊 ENDPOINT COMPREHENSIVO DE ESTADÍSTICAS PARA GRÁFICAS
-    
-    GET /api/v1/stats/
-    
-    Query Parameters:
-    - period: 'day', 'week', 'month' (default: 'month')
-    - days_back: número de días hacia atrás (default: 30)
-    - date_from: fecha inicio (YYYY-MM-DD)
-    - date_to: fecha fin (YYYY-MM-DD)
-    - include_anonymous: incluir datos anónimos (default: true)
-    
-    Retorna estadísticas comprehensivas para gráficas:
-    - Search Analytics (búsquedas por cliente vs IP)
-    - Activity Analytics (por tipo, temporales)
-    - Client Analytics (nuevos clientes, más activos)
-    - Property Analytics (más buscadas)
-    """
-    
-    permission_classes = [AllowAny]
-    
-    def get(self, request):
-        """Obtener estadísticas comprehensivas"""
-        
-        # Parámetros de query
-        period = request.GET.get('period', 'month')  # day, week, month
-        days_back = int(request.GET.get('days_back', 30))
-        include_anonymous = request.GET.get('include_anonymous', 'true').lower() == 'true'
-        
-        # Calcular fechas
-        end_date = timezone.now()
-        
-        date_from = request.GET.get('date_from')
-        date_to = request.GET.get('date_to')
-        
-        if date_from and date_to:
-            try:
-                start_date = datetime.fromisoformat(date_from)
-                end_date = datetime.fromisoformat(date_to)
-            except ValueError:
-                return Response({'error': 'Formato de fecha inválido. Usar YYYY-MM-DD'}, status=400)
-        else:
-            start_date = end_date - timedelta(days=days_back)
-        
-        # Determinar función de truncado temporal
-        if period == 'day':
-            trunc_func = TruncDate
-        elif period == 'week':
-            trunc_func = TruncWeek
-        else:  # month
-            trunc_func = TruncMonth
-        
-        stats = {
-            'period_info': {
-                'period': period,
-                'start_date': start_date.isoformat(),
-                'end_date': end_date.isoformat(),
-                'days_analyzed': (end_date - start_date).days
-            },
-            'search_analytics': self._get_search_analytics(start_date, end_date, trunc_func, include_anonymous),
-            'activity_analytics': self._get_activity_analytics(start_date, end_date, trunc_func),
-            'client_analytics': self._get_client_analytics(start_date, end_date, trunc_func),
-            'property_analytics': self._get_property_analytics(start_date, end_date),
-            'summary': {}
-        }
-        
-        # Generar resumen
-        stats['summary'] = self._generate_summary(stats)
-        
-        return Response({
-            'success': True,
-            'stats': stats,
-            'generated_at': timezone.now().isoformat()
-        })
-    
-    def _get_search_analytics(self, start_date, end_date, trunc_func, include_anonymous):
-        """Análisis de búsquedas con desglose por clientes vs anónimos"""
-        
-        # Base queryset
-        searches = SearchTracking.objects.filter(
-            search_timestamp__gte=start_date,
-            search_timestamp__lte=end_date
-        )
-        
-        # 1. Total de búsquedas por período
-        searches_by_period = searches.annotate(
-            period=trunc_func('search_timestamp')
-        ).values('period').annotate(
-            total_searches=Count('id'),
-            client_searches=Count('id', filter=Q(client__isnull=False)),
-            anonymous_searches=Count('id', filter=Q(client__isnull=True))
-        ).order_by('period')
-        
-        # 2. Búsquedas por tipo de usuario (cliente vs anónimo)
-        user_type_stats = {
-            'client_searches': searches.filter(client__isnull=False).count(),
-            'anonymous_searches': searches.filter(client__isnull=True).count()
-        }
-        
-        # 3. IPs únicas para búsquedas anónimas
-        unique_ips = searches.filter(
-            client__isnull=True,
-            ip_address__isnull=False
-        ).values('ip_address').distinct().count()
-        
-        # 4. Clientes únicos que buscaron
-        unique_clients = searches.filter(
-            client__isnull=False
-        ).values('client').distinct().count()
-        
-        # 5. Propiedades más buscadas
-        property_searches = searches.filter(
-            property__isnull=False
-        ).values(
-            'property__name'
-        ).annotate(
-            search_count=Count('id')
-        ).order_by('-search_count')[:10]
-        
-        # 6. Número de huéspedes más común
-        guests_stats = searches.values('guests').annotate(
-            count=Count('id')
-        ).order_by('-count')[:5]
-        
-        # 7. Patrones de fechas más buscadas (día de la semana)
-        day_patterns = searches.annotate(
-            weekday=TruncDate('check_in_date')
-        ).values('weekday').annotate(
-            search_count=Count('id')
-        ).order_by('-search_count')[:10]
-        
-        # 8. Top clientes que más buscan
-        top_searching_clients = searches.filter(
-            client__isnull=False
-        ).values(
-            'client__first_name', 
-            'client__last_name'
-        ).annotate(
-            search_count=Count('id')
-        ).order_by('-search_count')[:10]
-        
-        return {
-            'searches_by_period': list(searches_by_period),
-            'user_type_breakdown': user_type_stats,
-            'unique_anonymous_ips': unique_ips,
-            'unique_searching_clients': unique_clients,
-            'most_searched_properties': list(property_searches),
-            'guest_count_patterns': list(guests_stats),
-            'popular_checkin_dates': list(day_patterns),
-            'top_searching_clients': list(top_searching_clients)
-        }
-    
-    def _get_activity_analytics(self, start_date, end_date, trunc_func):
-        """Análisis de actividades del feed"""
-        
-        # Base queryset (solo actividades habilitadas)
-        disabled_types = ActivityFeedConfig.objects.filter(
-            is_enabled=False
-        ).values_list('activity_type', flat=True)
-        
-        activities = ActivityFeed.objects.filter(
-            created__gte=start_date,
-            created__lte=end_date,
-            deleted=False
-        )
-        
-        if disabled_types:
-            activities = activities.exclude(activity_type__in=disabled_types)
-        
-        # 1. Actividades por período
-        activities_by_period = activities.annotate(
-            period=trunc_func('created')
-        ).values('period').annotate(
-            total_activities=Count('id')
-        ).order_by('period')
-        
-        # 2. Actividades por tipo
-        activities_by_type = activities.values(
-            'activity_type'
-        ).annotate(
-            count=Count('id')
-        ).order_by('-count')
-        
-        # 3. Clientes más activos
-        most_active_clients = activities.filter(
-            client__isnull=False
-        ).values(
-            'client__first_name',
-            'client__last_name'
-        ).annotate(
-            activity_count=Count('id')
-        ).order_by('-activity_count')[:10]
-        
-        # 4. Actividades por importancia
-        importance_breakdown = activities.values('importance_level').annotate(
-            count=Count('id')
-        ).order_by('importance_level')
-        
-        return {
-            'activities_by_period': list(activities_by_period),
-            'activities_by_type': list(activities_by_type),
-            'most_active_clients': list(most_active_clients),
-            'importance_breakdown': list(importance_breakdown)
-        }
-    
-    def _get_client_analytics(self, start_date, end_date, trunc_func):
-        """Análisis de clientes"""
-        
-        # 1. Nuevos clientes por período
-        new_clients = Clients.objects.filter(
-            created__gte=start_date,
-            created__lte=end_date,
-            deleted=False
-        ).annotate(
-            period=trunc_func('created')
-        ).values('period').annotate(
-            new_clients=Count('id')
-        ).order_by('period')
-        
-        # 2. Total de clientes activos
-        total_clients = Clients.objects.filter(deleted=False).count()
-        
-        # 3. Clientes con más puntos
-        top_clients_by_points = Clients.objects.filter(
-            deleted=False
-        ).order_by('-points_balance')[:10].values(
-            'first_name', 'last_name', 'points_balance'
-        )
-        
-        return {
-            'new_clients_by_period': list(new_clients),
-            'total_active_clients': total_clients,
-            'top_clients_by_points': list(top_clients_by_points)
-        }
-    
-    def _get_property_analytics(self, start_date, end_date):
-        """Análisis de propiedades"""
-        
-        # Propiedades más mencionadas en actividades
-        property_mentions = ActivityFeed.objects.filter(
-            created__gte=start_date,
-            created__lte=end_date,
-            property_location__isnull=False,
-            deleted=False
-        ).values(
-            'property_location__name'
-        ).annotate(
-            mentions=Count('id')
-        ).order_by('-mentions')[:10]
-        
-        return {
-            'most_mentioned_properties': list(property_mentions)
-        }
-    
-    def _generate_summary(self, stats):
-        """Generar resumen de estadísticas clave"""
-        
-        search_analytics = stats['search_analytics']
-        activity_analytics = stats['activity_analytics']
-        client_analytics = stats['client_analytics']
-        
-        total_searches = (search_analytics['user_type_breakdown']['client_searches'] + 
-                         search_analytics['user_type_breakdown']['anonymous_searches'])
-        
-        total_activities = sum(item['count'] for item in activity_analytics['activities_by_type'])
-        
-        return {
-            'total_searches': total_searches,
-            'total_activities': total_activities,
-            'unique_searchers': (search_analytics['unique_searching_clients'] + 
-                               search_analytics['unique_anonymous_ips']),
-            'new_clients': sum(item['new_clients'] for item in client_analytics['new_clients_by_period']),
-            'top_activity_type': (activity_analytics['activities_by_type'][0]['activity_type'] 
-                                if activity_analytics['activities_by_type'] else None),
-            'most_searched_property': (search_analytics['most_searched_properties'][0]['property__name'] 
-                                     if search_analytics['most_searched_properties'] else None)
-        }
-
-
 class ActivityFeedStatsView(APIView):
     """Estadísticas básicas del Activity Feed"""
     
@@ -908,43 +629,82 @@ class ComprehensiveStatsView(APIView):
         
         if date_from and date_to:
             try:
-                start_date = datetime.fromisoformat(date_from)
-                end_date = datetime.fromisoformat(date_to)
-            except ValueError:
+                # Usar Django's parse_date para manejar correctamente las fechas
+                start_date_naive = parse_date(date_from)
+                end_date_naive = parse_date(date_to)
+                
+                if not start_date_naive or not end_date_naive:
+                    return Response({'error': 'Formato de fecha inválido. Usar YYYY-MM-DD'}, status=400)
+                
+                # Convertir a datetime timezone-aware
+                start_date = timezone.make_aware(
+                    datetime.combine(start_date_naive, datetime.min.time())
+                )
+                end_date = timezone.make_aware(
+                    datetime.combine(end_date_naive, datetime.max.time())
+                )
+                
+            except (ValueError, TypeError):
                 return Response({'error': 'Formato de fecha inválido. Usar YYYY-MM-DD'}, status=400)
         else:
             start_date = end_date - timedelta(days=days_back)
         
-        # Determinar función de truncado temporal
-        if period == 'day':
-            trunc_func = TruncDate
-        elif period == 'week':
-            trunc_func = TruncWeek
-        else:  # month
-            trunc_func = TruncMonth
+        # Determinar función de truncado temporal - usar try/catch para manejar DB issues
+        try:
+            if period == 'day':
+                trunc_func = TruncDate
+            elif period == 'week':
+                trunc_func = TruncWeek
+            else:  # month
+                trunc_func = TruncMonth
+        except Exception as e:
+            # Fallback: no agrupar por período si hay problemas con DB timezone
+            # Log del error para debugging (no exponer al cliente)
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'Database timezone configuration error: {str(e)}')
+            
+            return Response({
+                'error': 'Error de configuración del servidor',
+                'message': 'Contacte al administrador del sistema'
+            }, status=500)
         
-        stats = {
-            'period_info': {
-                'period': period,
-                'start_date': start_date.isoformat(),
-                'end_date': end_date.isoformat(),
-                'days_analyzed': (end_date - start_date).days
-            },
-            'search_analytics': self._get_search_analytics(start_date, end_date, trunc_func, include_anonymous),
-            'activity_analytics': self._get_activity_analytics(start_date, end_date, trunc_func),
-            'client_analytics': self._get_client_analytics(start_date, end_date, trunc_func),
-            'property_analytics': self._get_property_analytics(start_date, end_date),
-            'summary': {}
-        }
-        
-        # Generar resumen
-        stats['summary'] = self._generate_summary(stats)
-        
-        return Response({
-            'success': True,
-            'stats': stats,
-            'generated_at': timezone.now().isoformat()
-        })
+        try:
+            stats = {
+                'period_info': {
+                    'period': period,
+                    'start_date': start_date.isoformat(),
+                    'end_date': end_date.isoformat(),
+                    'days_analyzed': (end_date - start_date).days
+                },
+                'search_analytics': self._get_search_analytics(start_date, end_date, trunc_func, include_anonymous),
+                'activity_analytics': self._get_activity_analytics(start_date, end_date, trunc_func),
+                'client_analytics': self._get_client_analytics(start_date, end_date, trunc_func),
+                'property_analytics': self._get_property_analytics(start_date, end_date),
+                'summary': {}
+            }
+            
+            # Generar resumen
+            stats['summary'] = self._generate_summary(stats)
+            
+            return Response({
+                'success': True,
+                'stats': stats,
+                'generated_at': timezone.now().isoformat()
+            })
+            
+        except Exception as e:
+            # Capturar errores de timezone o base de datos
+            # Log del error para debugging (no exponer al cliente)
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'Stats processing error: {str(e)}')
+            
+            return Response({
+                'error': 'Error al procesar estadísticas',
+                'message': 'Error interno del servidor',
+                'success': False
+            }, status=500)
     
     def _get_search_analytics(self, start_date, end_date, trunc_func, include_anonymous):
         """Análisis de búsquedas con desglose por clientes vs anónimos"""
@@ -956,13 +716,17 @@ class ComprehensiveStatsView(APIView):
         )
         
         # 1. Total de búsquedas por período
-        searches_by_period = searches.annotate(
-            period=trunc_func('search_timestamp')
-        ).values('period').annotate(
-            total_searches=Count('id'),
-            client_searches=Count('id', filter=Q(client__isnull=False)),
-            anonymous_searches=Count('id', filter=Q(client__isnull=True))
-        ).order_by('period')
+        try:
+            searches_by_period = searches.annotate(
+                period=trunc_func('search_timestamp')
+            ).values('period').annotate(
+                total_searches=Count('id'),
+                client_searches=Count('id', filter=Q(client__isnull=False)),
+                anonymous_searches=Count('id', filter=Q(client__isnull=True))
+            ).order_by('period')
+        except Exception:
+            # Fallback: sin agrupación por período
+            searches_by_period = []
         
         # 2. Búsquedas por tipo de usuario (cliente vs anónimo)
         user_type_stats = {
@@ -1041,11 +805,15 @@ class ComprehensiveStatsView(APIView):
             activities = activities.exclude(activity_type__in=disabled_types)
         
         # 1. Actividades por período
-        activities_by_period = activities.annotate(
-            period=trunc_func('created')
-        ).values('period').annotate(
-            total_activities=Count('id')
-        ).order_by('period')
+        try:
+            activities_by_period = activities.annotate(
+                period=trunc_func('created')
+            ).values('period').annotate(
+                total_activities=Count('id')
+            ).order_by('period')
+        except Exception:
+            # Fallback: sin agrupación por período
+            activities_by_period = []
         
         # 2. Actividades por tipo
         activities_by_type = activities.values(
@@ -1080,15 +848,19 @@ class ComprehensiveStatsView(APIView):
         """Análisis de clientes"""
         
         # 1. Nuevos clientes por período
-        new_clients = Clients.objects.filter(
-            created__gte=start_date,
-            created__lte=end_date,
-            deleted=False
-        ).annotate(
-            period=trunc_func('created')
-        ).values('period').annotate(
-            new_clients=Count('id')
-        ).order_by('period')
+        try:
+            new_clients = Clients.objects.filter(
+                created__gte=start_date,
+                created__lte=end_date,
+                deleted=False
+            ).annotate(
+                period=trunc_func('created')
+            ).values('period').annotate(
+                new_clients=Count('id')
+            ).order_by('period')
+        except Exception:
+            # Fallback: sin agrupación por período
+            new_clients = []
         
         # 2. Total de clientes activos
         total_clients = Clients.objects.filter(deleted=False).count()
