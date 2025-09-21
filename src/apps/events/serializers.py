@@ -274,7 +274,8 @@ class ActivityFeedSerializer(serializers.ModelSerializer):
     """Serializer para el feed de actividades de Casa Austin"""
     
     formatted_message = serializers.SerializerMethodField()
-    icon = serializers.SerializerMethodField()
+    # icon se obtiene directamente del campo del modelo, no del método get_icon()
+    # Esto permite que sea editable desde el admin Django
     time_ago = serializers.ReadOnlyField()
     client_name = serializers.SerializerMethodField()
     activity_type_display = serializers.CharField(source='get_activity_type_display', read_only=True)
@@ -291,9 +292,8 @@ class ActivityFeedSerializer(serializers.ModelSerializer):
         """Obtiene el mensaje formateado automáticamente"""
         return obj.get_formatted_message()
     
-    def get_icon(self, obj):
-        """Obtiene el icono de la actividad"""
-        return obj.get_icon()
+    # El icono ahora viene directamente del campo del modelo
+    # Si no tiene icono personalizado, el frontend puede usar get_icon() como fallback
     
     def get_client_name(self, obj):
         """Obtiene el nombre del cliente en formato: Primer Nombre + Inicial"""
