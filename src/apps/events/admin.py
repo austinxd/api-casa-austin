@@ -104,7 +104,7 @@ class ActivityFeedAdmin(admin.ModelAdmin):
     readonly_fields = ['created', 'updated', 'formatted_message_preview', 'time_ago']
     
     list_per_page = 25
-    date_hierarchy = 'created'
+    # date_hierarchy = 'created'  # Temporalmente desactivado por error de timezone
     ordering = ['-created']
     
     # === ACCIONES EN MASA ===

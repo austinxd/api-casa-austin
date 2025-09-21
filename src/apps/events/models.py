@@ -577,9 +577,19 @@ class ActivityFeed(BaseModel):
     
     def get_icon(self):
         """Obtiene icono automático según tipo de actividad"""
+        # 1. Si tiene icono personalizado, usarlo
         if self.icon:
             return self.icon
         
+        # 2. Si hay configuración con icono por defecto, usarlo
+        try:
+            config = ActivityFeedConfig.objects.get(activity_type=self.activity_type)
+            if config.default_icon:
+                return config.default_icon
+        except ActivityFeedConfig.DoesNotExist:
+            pass
+        
+        # 3. Fallback a iconos hardcodeados
         icon_map = {
             self.ActivityType.POINTS_EARNED: "⭐",
             self.ActivityType.RESERVATION_MADE: "📅",
@@ -592,7 +602,8 @@ class ActivityFeed(BaseModel):
             self.ActivityType.REVIEW_POSTED: "📝",
             self.ActivityType.STAFF_ASSIGNED: "👥",
             self.ActivityType.MILESTONE_REACHED: "🎯",
-            self.ActivityType.SYSTEM_UPDATE: "📢"
+            self.ActivityType.SYSTEM_UPDATE: "📢",
+            self.ActivityType.RESERVATION_AUTO_DELETED_CRON: "⏰"
         }
         
         return icon_map.get(self.activity_type, "📌")
@@ -712,6 +723,12 @@ class ActivityFeedConfig(BaseModel):
         default=2,
         choices=[(1, 'Muy Baja'), (2, 'Baja'), (3, 'Media'), (4, 'Alta'), (5, 'Crítica')],
         help_text="Nivel de importancia por defecto para este tipo"
+    )
+    
+    default_icon = models.CharField(
+        max_length=10,
+        blank=True,
+        help_text="Emoji o icono por defecto para todas las actividades de este tipo"
     )
     
     description = models.TextField(
