@@ -504,12 +504,23 @@ class ActivityFeedView(generics.ListAPIView):
     
     def get_queryset(self):
         """Obtener actividades con filtros aplicados"""
+        from .models import ActivityFeedConfig
         
         # Base queryset - solo actividades públicas no eliminadas
         queryset = ActivityFeed.objects.filter(
             deleted=False,
             is_public=True
         ).select_related('client', 'event', 'property_location').order_by('-created')
+        
+        # ✅ FILTRAR POR ACTIVIDADES HABILITADAS EN CONFIG
+        # Obtener todos los tipos de actividad deshabilitados
+        disabled_types = ActivityFeedConfig.objects.filter(
+            is_enabled=False
+        ).values_list('activity_type', flat=True)
+        
+        # Excluir actividades de tipos deshabilitados
+        if disabled_types:
+            queryset = queryset.exclude(activity_type__in=disabled_types)
         
         # Aplicar filtros de query parameters
         activity_type = self.request.GET.get('activity_type')
