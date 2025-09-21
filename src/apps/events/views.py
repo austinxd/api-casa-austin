@@ -9,7 +9,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Avg, Sum, Max, Min
 import logging
 
 from .models import EventCategory, Event, EventRegistration, ActivityFeed, ActivityFeedConfig

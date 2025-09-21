@@ -1,0 +1,107 @@
+Te explico exactamente cómo está estructurado el sistema de analytics/stats y cómo usa los endpoints:
+
+📡 Endpoints que Estoy Usando
+El sistema usa 3 endpoints especializados de tu backend Django:
+
+1. /api/v1/stats/search-tracking/    → SearchDashboard  
+2. /api/v1/stats/ingresos/           → IngresosDashboard
+3. /api/v1/upcoming-checkins/        → CheckinsDashboard
+🏗️ Arquitectura del Sistema
+1. Página Principal (StatsPage.tsx)
+Navigation: Tabs en el header (no sidebar)
+Filtros Globales: Un sistema unificado que se comparte entre todos los dashboards
+TabPanel: Renderiza cada dashboard según el tab activo
+2. Servicios RTK Query (/services/analytics/)
+Cada endpoint tiene su propio servicio:
+
+// searchTrackingService.ts
+baseUrl: `${ENV.API_URL}/stats`
+endpoint: `search-tracking?${params}`
+// ingresosService.ts  
+baseUrl: `${ENV.API_URL}/stats`
+endpoint: `ingresos?${params}`
+// newUpcomingCheckinsService.ts
+baseUrl: `${ENV.API_URL}`
+endpoint: `upcoming-checkins?${params}`
+3. Parámetros que Envío a Cada Endpoint
+Search Tracking:
+
+{
+  date_from: "2024-08-22",
+  date_to: "2024-09-21", 
+  include_clients: true,
+  include_anonymous: true
+}
+Ingresos:
+
+{
+  date_from: "2024-08-22",
+  date_to: "2024-09-21",
+  period: "week",        // day/week/month
+  currency: "PEN"        // PEN/USD
+}
+Upcoming Checkins:
+
+{
+  days_ahead: 60,
+  limit: 20,
+  include_anonymous: true
+}
+📊 Estructura de Datos (Interfaces)
+Cada endpoint devuelve una estructura específica:
+
+Search Tracking Response:
+{
+  success: boolean,
+  data: {
+    search_summary: { total_searches, unique_clients_searching, conversion_rate... }
+    searches_by_weekday: [{ weekday, searches_count, percentage }]
+    top_searched_properties: [{ property_name, search_count, percentage }]
+    top_searching_clients: [{ client_name, search_count, last_search_date }]
+    anonymous_ips_analysis: [{ ip_last_4, search_count, unique_dates }]
+  }
+}
+Ingresos Response:
+{
+  success: boolean,
+  data: {
+    revenue_summary: { total_revenue, total_reservations, avg_revenue_per_reservation... }
+    revenue_by_period: [{ period, revenue, nights, reservations }]
+    payment_distribution: [{ payment_method, amount, percentage }]
+    price_analysis: { min_price, max_price, avg_price, price_ranges }
+    growth_metrics: { revenue_growth, reservations_growth, comparison_period }
+  }
+}
+Upcoming Checkins Response:
+{
+  success: boolean,
+  data: {
+    summary_metrics: { total_upcoming_dates, avg_searches_per_date, most_popular_checkin }
+    top_upcoming_checkins: [{ checkin_date, searches_count, popularity_score }]
+  }
+}
+🔄 Flujo de Datos
+Filtros Globales → Se cambian en StatsPage
+Filtros → Se pasan como props a cada dashboard
+Dashboards → Usan useGetXXXQuery() hooks de RTK Query
+Servicios → Construyen URLs con parámetros y hacen requests
+Respuestas → Se procesan con utilidades de formateo seguro
+UI → Renderiza charts, tablas y métricas
+🛡️ Formateo Seguro
+Implementé utilidades que previenen crashes:
+
+// /utils/formatters.ts
+formatNumber(value)     → "1,234" (safe locale formatting)
+formatCurrency(value)   → "PEN 1,234" (safe currency) 
+formatPercent(value)    → "12.5%" (safe percentage)
+safeArray(value)        → [] (fallback for arrays)
+safeString(value)       → "N/A" (fallback for strings)
+📱 Sistema de Filtros Globales
+Los filtros se comparten entre todos los dashboards:
+
+Rangos de fechas: Presets (7d, 30d, 90d) + personalizado
+Tipos de usuarios: Incluir/excluir clientes y anónimos
+Moneda: PEN/USD (solo para ingresos)
+Período: day/week/month (solo para ingresos)
+Límites: days_ahead y limit (solo para checkins)
+Esta estructura es modular, tipo-segura y resistente a errores de API. Cada dashboard es independiente pero comparte filtros comunes.

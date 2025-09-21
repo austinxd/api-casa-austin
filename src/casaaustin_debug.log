@@ -5752,3 +5752,93 @@ ERROR 2025-09-21 13:55:19,431 views 7433 139762861927616 Revenue stats error: Ca
 ERROR 2025-09-21 13:57:01,440 views 7517 140179257572544 SearchTracking stats error: Cannot resolve keyword 'created_at' into field. Choices are: check_in_date, check_out_date, client, client_id, created, deleted, guests, id, ip_address, property, property_id, referrer, search_timestamp, session_key, updated, user_agent
 ERROR 2025-09-21 13:57:01,447 views 7517 140179257572544 Revenue stats error: Cannot resolve keyword 'total_cost' into field. Choices are: ManychatFecha, advance_payment, advance_payment_currency, check_in_date, check_out_date, client, client_id, clientpoints, comentarios_reservas, created, deleted, discount_code_used, fbc, fbclid, fbp, full_payment, guests, id, ip_cliente, late_check_out_date, late_checkout, origin, payment_approved_notification_sent, payment_confirmed, payment_voucher_deadline, payment_voucher_uploaded, paymenttoken, points_redeemed, price_latecheckout, price_sol, price_temperature_pool, price_usd, property, property_id, propertycleaninggap, referer, rentalreceipt, seller, seller_id, status, tel_contact_number, temperature_pool, updated, user_agent, utm_campaign, utm_medium, utm_source, uuid_external, worktask
 ERROR 2025-09-21 13:57:55,947 views 7560 140608625388736 Revenue stats error: Cannot resolve keyword 'nights' into field. Choices are: ManychatFecha, advance_payment, advance_payment_currency, check_in_date, check_out_date, client, client_id, clientpoints, comentarios_reservas, created, deleted, discount_code_used, fbc, fbclid, fbp, full_payment, guests, id, ip_cliente, late_check_out_date, late_checkout, origin, payment_approved_notification_sent, payment_confirmed, payment_voucher_deadline, payment_voucher_uploaded, paymenttoken, points_redeemed, price_latecheckout, price_sol, price_temperature_pool, price_usd, property, property_id, propertycleaninggap, referer, rentalreceipt, seller, seller_id, status, tel_contact_number, temperature_pool, updated, user_agent, utm_campaign, utm_medium, utm_source, uuid_external, worktask
+INFO 2025-09-21 14:52:43,407 models 11837 140261321907392 SearchTracking.save: About to save with:
+INFO 2025-09-21 14:52:43,408 models 11837 140261321907392   check_in_date=2025-10-09 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 9))
+INFO 2025-09-21 14:52:43,408 models 11837 140261321907392   check_out_date=2025-10-16 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 16))
+INFO 2025-09-21 14:52:43,409 models 11837 140261321907392   guests=3 (type: <class 'int'>, repr: 3)
+INFO 2025-09-21 14:52:43,409 models 11837 140261321907392 SearchTracking.save: All validations passed, calling super().save()
+INFO 2025-09-21 14:52:43,462 models 11837 140261321907392 SearchTracking.save: Successfully saved!
+INFO 2025-09-21 14:52:43,463 models 11837 140261321907392 SearchTracking.save: About to save with:
+INFO 2025-09-21 14:52:43,463 models 11837 140261321907392   check_in_date=2025-10-14 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 14))
+INFO 2025-09-21 14:52:43,464 models 11837 140261321907392   check_out_date=2025-10-19 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 19))
+INFO 2025-09-21 14:52:43,464 models 11837 140261321907392   guests=2 (type: <class 'int'>, repr: 2)
+INFO 2025-09-21 14:52:43,464 models 11837 140261321907392 SearchTracking.save: All validations passed, calling super().save()
+INFO 2025-09-21 14:52:43,503 models 11837 140261321907392 SearchTracking.save: Successfully saved!
+INFO 2025-09-21 14:52:43,504 models 11837 140261321907392 SearchTracking.save: About to save with:
+INFO 2025-09-21 14:52:43,505 models 11837 140261321907392   check_in_date=2025-11-08 (type: <class 'datetime.date'>, repr: datetime.date(2025, 11, 8))
+INFO 2025-09-21 14:52:43,505 models 11837 140261321907392   check_out_date=2025-11-13 (type: <class 'datetime.date'>, repr: datetime.date(2025, 11, 13))
+INFO 2025-09-21 14:52:43,505 models 11837 140261321907392   guests=5 (type: <class 'int'>, repr: 5)
+INFO 2025-09-21 14:52:43,506 models 11837 140261321907392 SearchTracking.save: All validations passed, calling super().save()
+INFO 2025-09-21 14:52:43,519 models 11837 140261321907392 SearchTracking.save: Successfully saved!
+INFO 2025-09-21 14:52:43,520 models 11837 140261321907392 SearchTracking.save: About to save with:
+INFO 2025-09-21 14:52:43,520 models 11837 140261321907392   check_in_date=2025-10-11 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 11))
+INFO 2025-09-21 14:52:43,520 models 11837 140261321907392   check_out_date=2025-10-15 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 15))
+INFO 2025-09-21 14:52:43,521 models 11837 140261321907392   guests=6 (type: <class 'int'>, repr: 6)
+INFO 2025-09-21 14:52:43,521 models 11837 140261321907392 SearchTracking.save: All validations passed, calling super().save()
+INFO 2025-09-21 14:52:43,539 models 11837 140261321907392 SearchTracking.save: Successfully saved!
+INFO 2025-09-21 14:52:43,539 models 11837 140261321907392 SearchTracking.save: About to save with:
+INFO 2025-09-21 14:52:43,539 models 11837 140261321907392   check_in_date=2025-10-31 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 31))
+INFO 2025-09-21 14:52:43,540 models 11837 140261321907392   check_out_date=2025-11-05 (type: <class 'datetime.date'>, repr: datetime.date(2025, 11, 5))
+INFO 2025-09-21 14:52:43,543 models 11837 140261321907392   guests=1 (type: <class 'int'>, repr: 1)
+INFO 2025-09-21 14:52:43,543 models 11837 140261321907392 SearchTracking.save: All validations passed, calling super().save()
+INFO 2025-09-21 14:52:43,569 models 11837 140261321907392 SearchTracking.save: Successfully saved!
+INFO 2025-09-21 14:52:43,570 models 11837 140261321907392 SearchTracking.save: About to save with:
+INFO 2025-09-21 14:52:43,570 models 11837 140261321907392   check_in_date=2025-10-16 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 16))
+INFO 2025-09-21 14:52:43,570 models 11837 140261321907392   check_out_date=2025-10-19 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 19))
+INFO 2025-09-21 14:52:43,570 models 11837 140261321907392   guests=4 (type: <class 'int'>, repr: 4)
+INFO 2025-09-21 14:52:43,571 models 11837 140261321907392 SearchTracking.save: All validations passed, calling super().save()
+INFO 2025-09-21 14:52:43,587 models 11837 140261321907392 SearchTracking.save: Successfully saved!
+INFO 2025-09-21 14:52:43,588 models 11837 140261321907392 SearchTracking.save: About to save with:
+INFO 2025-09-21 14:52:43,588 models 11837 140261321907392   check_in_date=2025-10-13 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 13))
+INFO 2025-09-21 14:52:43,588 models 11837 140261321907392   check_out_date=2025-10-19 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 19))
+INFO 2025-09-21 14:52:43,589 models 11837 140261321907392   guests=5 (type: <class 'int'>, repr: 5)
+INFO 2025-09-21 14:52:43,589 models 11837 140261321907392 SearchTracking.save: All validations passed, calling super().save()
+INFO 2025-09-21 14:52:43,607 models 11837 140261321907392 SearchTracking.save: Successfully saved!
+INFO 2025-09-21 14:52:43,608 models 11837 140261321907392 SearchTracking.save: About to save with:
+INFO 2025-09-21 14:52:43,609 models 11837 140261321907392   check_in_date=2025-10-29 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 29))
+INFO 2025-09-21 14:52:43,609 models 11837 140261321907392   check_out_date=2025-11-02 (type: <class 'datetime.date'>, repr: datetime.date(2025, 11, 2))
+INFO 2025-09-21 14:52:43,609 models 11837 140261321907392   guests=6 (type: <class 'int'>, repr: 6)
+INFO 2025-09-21 14:52:43,609 models 11837 140261321907392 SearchTracking.save: All validations passed, calling super().save()
+INFO 2025-09-21 14:52:43,628 models 11837 140261321907392 SearchTracking.save: Successfully saved!
+INFO 2025-09-21 14:52:43,629 models 11837 140261321907392 SearchTracking.save: About to save with:
+INFO 2025-09-21 14:52:43,629 models 11837 140261321907392   check_in_date=2025-10-20 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 20))
+INFO 2025-09-21 14:52:43,629 models 11837 140261321907392   check_out_date=2025-10-21 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 21))
+INFO 2025-09-21 14:52:43,629 models 11837 140261321907392   guests=1 (type: <class 'int'>, repr: 1)
+INFO 2025-09-21 14:52:43,630 models 11837 140261321907392 SearchTracking.save: All validations passed, calling super().save()
+INFO 2025-09-21 14:52:43,669 models 11837 140261321907392 SearchTracking.save: Successfully saved!
+INFO 2025-09-21 14:52:43,669 models 11837 140261321907392 SearchTracking.save: About to save with:
+INFO 2025-09-21 14:52:43,670 models 11837 140261321907392   check_in_date=2025-11-08 (type: <class 'datetime.date'>, repr: datetime.date(2025, 11, 8))
+INFO 2025-09-21 14:52:43,670 models 11837 140261321907392   check_out_date=2025-11-13 (type: <class 'datetime.date'>, repr: datetime.date(2025, 11, 13))
+INFO 2025-09-21 14:52:43,670 models 11837 140261321907392   guests=5 (type: <class 'int'>, repr: 5)
+INFO 2025-09-21 14:52:43,670 models 11837 140261321907392 SearchTracking.save: All validations passed, calling super().save()
+INFO 2025-09-21 14:52:43,692 models 11837 140261321907392 SearchTracking.save: Successfully saved!
+INFO 2025-09-21 14:52:43,693 models 11837 140261321907392 SearchTracking.save: About to save with:
+INFO 2025-09-21 14:52:43,693 models 11837 140261321907392   check_in_date=2025-10-21 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 21))
+INFO 2025-09-21 14:52:43,693 models 11837 140261321907392   check_out_date=2025-10-22 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 22))
+INFO 2025-09-21 14:52:43,693 models 11837 140261321907392   guests=1 (type: <class 'int'>, repr: 1)
+INFO 2025-09-21 14:52:43,694 models 11837 140261321907392 SearchTracking.save: All validations passed, calling super().save()
+INFO 2025-09-21 14:52:43,724 models 11837 140261321907392 SearchTracking.save: Successfully saved!
+INFO 2025-09-21 14:52:43,724 models 11837 140261321907392 SearchTracking.save: About to save with:
+INFO 2025-09-21 14:52:43,725 models 11837 140261321907392   check_in_date=2025-11-19 (type: <class 'datetime.date'>, repr: datetime.date(2025, 11, 19))
+INFO 2025-09-21 14:52:43,728 models 11837 140261321907392   check_out_date=2025-11-21 (type: <class 'datetime.date'>, repr: datetime.date(2025, 11, 21))
+INFO 2025-09-21 14:52:43,728 models 11837 140261321907392   guests=6 (type: <class 'int'>, repr: 6)
+INFO 2025-09-21 14:52:43,728 models 11837 140261321907392 SearchTracking.save: All validations passed, calling super().save()
+INFO 2025-09-21 14:52:43,743 models 11837 140261321907392 SearchTracking.save: Successfully saved!
+INFO 2025-09-21 14:52:43,744 models 11837 140261321907392 SearchTracking.save: About to save with:
+INFO 2025-09-21 14:52:43,744 models 11837 140261321907392   check_in_date=2025-11-07 (type: <class 'datetime.date'>, repr: datetime.date(2025, 11, 7))
+INFO 2025-09-21 14:52:43,744 models 11837 140261321907392   check_out_date=2025-11-12 (type: <class 'datetime.date'>, repr: datetime.date(2025, 11, 12))
+INFO 2025-09-21 14:52:43,744 models 11837 140261321907392   guests=4 (type: <class 'int'>, repr: 4)
+INFO 2025-09-21 14:52:43,745 models 11837 140261321907392 SearchTracking.save: All validations passed, calling super().save()
+INFO 2025-09-21 14:52:43,777 models 11837 140261321907392 SearchTracking.save: Successfully saved!
+INFO 2025-09-21 14:52:43,777 models 11837 140261321907392 SearchTracking.save: About to save with:
+INFO 2025-09-21 14:52:43,778 models 11837 140261321907392   check_in_date=2025-10-04 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 4))
+INFO 2025-09-21 14:52:43,779 models 11837 140261321907392   check_out_date=2025-10-09 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 9))
+INFO 2025-09-21 14:52:43,779 models 11837 140261321907392   guests=3 (type: <class 'int'>, repr: 3)
+INFO 2025-09-21 14:52:43,779 models 11837 140261321907392 SearchTracking.save: All validations passed, calling super().save()
+INFO 2025-09-21 14:52:43,804 models 11837 140261321907392 SearchTracking.save: Successfully saved!
+INFO 2025-09-21 14:52:43,804 models 11837 140261321907392 SearchTracking.save: About to save with:
+INFO 2025-09-21 14:52:43,805 models 11837 140261321907392   check_in_date=2025-10-07 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 7))
+INFO 2025-09-21 14:52:43,805 models 11837 140261321907392   check_out_date=2025-10-10 (type: <class 'datetime.date'>, repr: datetime.date(2025, 10, 10))
+INFO 2025-09-21 14:52:43,805 models 11837 140261321907392   guests=6 (type: <class 'int'>, repr: 6)
+INFO 2025-09-21 14:52:43,805 models 11837 140261321907392 SearchTracking.save: All validations passed, calling super().save()
+INFO 2025-09-21 14:52:43,819 models 11837 140261321907392 SearchTracking.save: Successfully saved!
