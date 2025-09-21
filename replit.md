@@ -8,6 +8,19 @@ Casa Austin is a Django REST API application for managing vacation rental proper
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### September 21, 2025 - Modular Analytics Architecture Implementation
+- **Breaking Change**: Replaced monolithic `/stats/` endpoint with specific modular endpoints:
+  - `/api/v1/stats/search-tracking/` - Dedicated search analytics with privacy-focused data
+  - `/api/v1/stats/ingresos/` - Specific revenue and financial metrics
+  - `/api/v1/upcoming-checkins/` - Check-ins analysis and trending dates
+- **Security Enhancement**: All analytics endpoints now require authentication (IsAuthenticated)
+- **Data Model Corrections**: Fixed field mappings for SearchTracking.search_timestamp and Reservation.price_sol
+- **Performance**: Manual nights calculation implemented since Reservation model lacks nights field
+- **Privacy**: Maintained IP anonymization and "FirstName L." format for client data
+- **Deprecation**: ComprehensiveStatsView marked as deprecated, use specific endpoints instead
+
 ## System Architecture
 
 ### Backend Framework
