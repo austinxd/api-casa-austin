@@ -200,7 +200,8 @@ class ReservationSerializer(serializers.ModelSerializer):
             
             # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
             if ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.RESERVATION_MADE):
-                dates_str = f"del {reservation.check_in_date.strftime('%d/%m')} al {reservation.check_out_date.strftime('%d/%m/%Y')}"
+                from apps.reservation.signals import format_date_range_es
+                dates_str = format_date_range_es(reservation.check_in_date, reservation.check_out_date)
                 # Usar configuración por defecto para visibilidad e importancia
                 is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.RESERVATION_MADE)
                 importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.RESERVATION_MADE)
