@@ -282,7 +282,7 @@ class ActivityFeedSerializer(serializers.ModelSerializer):
     class Meta:
         model = ActivityFeed
         fields = [
-            'id', 'activity_type', 'activity_type_display', 'title', 'description',
+            'id', 'activity_type', 'activity_type_display', 'title', 'description', 'reason',
             'formatted_message', 'icon', 'time_ago', 'client_name', 
             'importance_level', 'created', 'activity_data'
         ]
@@ -316,7 +316,7 @@ class ActivityFeedCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ActivityFeed
         fields = [
-            'activity_type', 'title', 'description', 'client', 'event', 
+            'activity_type', 'title', 'description', 'reason', 'client', 'event', 
             'property_location', 'activity_data', 'is_public', 'importance_level'
         ]
     

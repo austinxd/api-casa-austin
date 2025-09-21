@@ -386,6 +386,11 @@ class ActivityFeed(BaseModel):
         blank=True,
         help_text="Descripción detallada opcional"
     )
+    reason = models.CharField(
+        max_length=300,
+        blank=True,
+        help_text="Motivo específico de la actividad (ej: 'voucher no subido en 60 minutos')"
+    )
     
     # Relaciones opcionales (dependiendo del tipo de actividad)
     client = models.ForeignKey(

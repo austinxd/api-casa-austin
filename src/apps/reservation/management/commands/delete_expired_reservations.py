@@ -152,7 +152,6 @@ class Command(BaseCommand):
                 'dates': dates,
                 'check_in': reservation.check_in_date.isoformat() if reservation.check_in_date else None,
                 'check_out': reservation.check_out_date.isoformat() if reservation.check_out_date else None,
-                'reason': 'depósito no confirmado en el plazo indicado',
                 'deadline_expired': reservation.payment_voucher_deadline.isoformat() if reservation.payment_voucher_deadline else None,
                 'origin': 'cron_delete_expired'
             }
@@ -174,6 +173,7 @@ class Command(BaseCommand):
                 defaults={
                     'title': 'Reserva Liberada por Sistema',
                     'description': 'La reserva fue liberada automáticamente debido a que no se confirmó el depósito en el plazo indicado',
+                    'reason': 'voucher no subido en el plazo indicado',
                     'activity_data': activity_data,
                     'is_public': is_public,
                     'importance_level': importance
