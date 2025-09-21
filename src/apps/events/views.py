@@ -715,18 +715,10 @@ class ComprehensiveStatsView(APIView):
             search_timestamp__lte=end_date
         )
         
-        # 1. Total de búsquedas por período
-        try:
-            searches_by_period = searches.annotate(
-                period=trunc_func('search_timestamp')
-            ).values('period').annotate(
-                total_searches=Count('id'),
-                client_searches=Count('id', filter=Q(client__isnull=False)),
-                anonymous_searches=Count('id', filter=Q(client__isnull=True))
-            ).order_by('period')
-        except Exception:
-            # Fallback: sin agrupación por período
-            searches_by_period = []
+        # 1. Total de búsquedas por período - USAR PYTHON en lugar de DB truncation
+        searches_by_period = self._group_by_period_python(
+            searches, 'search_timestamp', trunc_func
+        )
         
         # 2. Búsquedas por tipo de usuario (cliente vs anónimo)
         user_type_stats = {
@@ -759,12 +751,16 @@ class ComprehensiveStatsView(APIView):
             count=Count('id')
         ).order_by('-count')[:5]
         
-        # 7. Patrones de fechas más buscadas (día de la semana)
-        day_patterns = searches.annotate(
-            weekday=TruncDate('check_in_date')
-        ).values('weekday').annotate(
-            search_count=Count('id')
-        ).order_by('-search_count')[:10]
+        # 7. Patrones de fechas más buscadas (día de la semana) - EVITAR TruncDate
+        try:
+            day_patterns = searches.annotate(
+                weekday=TruncDate('check_in_date')
+            ).values('weekday').annotate(
+                search_count=Count('id')
+            ).order_by('-search_count')[:10]
+        except Exception:
+            # Fallback: sin patrones de fecha si falla
+            day_patterns = []
         
         # 8. Top clientes que más buscan
         top_searching_clients = searches.filter(
@@ -777,7 +773,7 @@ class ComprehensiveStatsView(APIView):
         ).order_by('-search_count')[:10]
         
         return {
-            'searches_by_period': list(searches_by_period),
+            'searches_by_period': searches_by_period,
             'user_type_breakdown': user_type_stats,
             'unique_anonymous_ips': unique_ips,
             'unique_searching_clients': unique_clients,
@@ -804,16 +800,10 @@ class ComprehensiveStatsView(APIView):
         if disabled_types:
             activities = activities.exclude(activity_type__in=disabled_types)
         
-        # 1. Actividades por período
-        try:
-            activities_by_period = activities.annotate(
-                period=trunc_func('created')
-            ).values('period').annotate(
-                total_activities=Count('id')
-            ).order_by('period')
-        except Exception:
-            # Fallback: sin agrupación por período
-            activities_by_period = []
+        # 1. Actividades por período - USAR PYTHON en lugar de DB truncation
+        activities_by_period = self._group_by_period_python(
+            activities, 'created', trunc_func, count_field_name='total_activities'
+        )
         
         # 2. Actividades por tipo
         activities_by_type = activities.values(
@@ -838,7 +828,7 @@ class ComprehensiveStatsView(APIView):
         ).order_by('importance_level')
         
         return {
-            'activities_by_period': list(activities_by_period),
+            'activities_by_period': activities_by_period,
             'activities_by_type': list(activities_by_type),
             'most_active_clients': list(most_active_clients),
             'importance_breakdown': list(importance_breakdown)
@@ -847,20 +837,16 @@ class ComprehensiveStatsView(APIView):
     def _get_client_analytics(self, start_date, end_date, trunc_func):
         """Análisis de clientes"""
         
-        # 1. Nuevos clientes por período
-        try:
-            new_clients = Clients.objects.filter(
-                created__gte=start_date,
-                created__lte=end_date,
-                deleted=False
-            ).annotate(
-                period=trunc_func('created')
-            ).values('period').annotate(
-                new_clients=Count('id')
-            ).order_by('period')
-        except Exception:
-            # Fallback: sin agrupación por período
-            new_clients = []
+        # 1. Nuevos clientes por período - USAR PYTHON en lugar de DB truncation
+        new_clients_queryset = Clients.objects.filter(
+            created__gte=start_date,
+            created__lte=end_date,
+            deleted=False
+        )
+        
+        new_clients = self._group_by_period_python(
+            new_clients_queryset, 'created', trunc_func, count_field_name='new_clients'
+        )
         
         # 2. Total de clientes activos
         total_clients = Clients.objects.filter(deleted=False).count()
@@ -873,7 +859,7 @@ class ComprehensiveStatsView(APIView):
         )
         
         return {
-            'new_clients_by_period': list(new_clients),
+            'new_clients_by_period': new_clients,
             'total_active_clients': total_clients,
             'top_clients_by_points': list(top_clients_by_points)
         }
@@ -920,3 +906,69 @@ class ComprehensiveStatsView(APIView):
             'most_searched_property': (search_analytics['most_searched_properties'][0]['property__name'] 
                                      if search_analytics['most_searched_properties'] else None)
         }
+    
+    def _group_by_period_python(self, queryset, date_field, trunc_func, count_field_name='total_searches'):
+        """
+        Agrupar por período usando Python en lugar de SQL para evitar problemas de timezone en MySQL
+        """
+        from collections import defaultdict
+        from datetime import datetime, timedelta
+        
+        # Determinar qué campos necesitamos
+        fields_to_fetch = ['id', date_field]
+        
+        # Solo incluir client si es para SearchTracking (para distinguir cliente vs anónimo)
+        model_name = queryset.model.__name__
+        if model_name == 'SearchTracking':
+            fields_to_fetch.append('client')
+        
+        # Obtener todos los registros como objetos Python
+        records = list(queryset.values(*fields_to_fetch))
+        
+        # Determinar la función de agrupación
+        if trunc_func == TruncDate:
+            group_func = lambda dt: dt.date()
+        elif trunc_func == TruncWeek:
+            # Lunes de la semana
+            group_func = lambda dt: dt.date() - timedelta(days=dt.weekday())
+        else:  # TruncMonth
+            group_func = lambda dt: dt.date().replace(day=1)
+        
+        # Agrupar en Python
+        periods = defaultdict(lambda: {'total': 0, 'client': 0, 'anonymous': 0})
+        
+        for record in records:
+            dt = record[date_field]
+            if dt:
+                period_key = group_func(dt)
+                periods[period_key]['total'] += 1
+                
+                # Para búsquedas: distinguir cliente vs anónimo
+                if 'client' in record:
+                    if record['client']:
+                        periods[period_key]['client'] += 1
+                    else:
+                        periods[period_key]['anonymous'] += 1
+        
+        # Convertir a formato esperado
+        result = []
+        for period_key, counts in sorted(periods.items()):
+            period_data = {
+                'period': period_key.isoformat()
+            }
+            
+            # Para SearchTracking, agregar desglose cliente/anónimo
+            if count_field_name == 'total_searches':
+                period_data['total_searches'] = counts['total']
+                period_data['client_searches'] = counts['client']
+                period_data['anonymous_searches'] = counts['anonymous']
+            elif count_field_name == 'total_activities':
+                # Para actividades
+                period_data['total_activities'] = counts['total']
+            elif count_field_name == 'new_clients':
+                # Para clientes
+                period_data['new_clients'] = counts['total']
+            
+            result.append(period_data)
+        
+        return result
