@@ -271,29 +271,39 @@ class EventParticipantSerializer(serializers.ModelSerializer):
 
 # 📊 SERIALIZERS PARA ACTIVITY FEED
 class ActivityFeedSerializer(serializers.ModelSerializer):
-    """Serializer para el feed de actividades de Casa Austin"""
+    """Serializer optimizado para el feed de actividades de Casa Austin"""
     
-    formatted_message = serializers.SerializerMethodField()
     icon = serializers.SerializerMethodField()  # Obtenido del ActivityFeedConfig
     time_ago = serializers.ReadOnlyField()
     client_name = serializers.SerializerMethodField()
     activity_type_display = serializers.CharField(source='get_activity_type_display', read_only=True)
+    activity_data = serializers.SerializerMethodField()  # Incluir reason y formatted_message aquí
     
     class Meta:
         model = ActivityFeed
         fields = [
-            'id', 'activity_type', 'activity_type_display', 'title', 'description', 'reason',
-            'formatted_message', 'icon', 'time_ago', 'client_name', 
+            'id', 'activity_type', 'activity_type_display', 'title', 'description',
+            'icon', 'time_ago', 'client_name', 
             'importance_level', 'created', 'activity_data'
         ]
-    
-    def get_formatted_message(self, obj):
-        """Obtiene el mensaje formateado automáticamente"""
-        return obj.get_formatted_message()
     
     def get_icon(self, obj):
         """Obtiene el icono del ActivityFeedConfig o fallback"""
         return obj.get_icon()
+    
+    def get_activity_data(self, obj):
+        """Incluir reason y formatted_message dentro de activity_data"""
+        data = obj.activity_data.copy() if obj.activity_data else {}
+        
+        # Agregar formatted_message a activity_data
+        data['formatted_message'] = obj.get_formatted_message()
+        
+        # El reason ya debería estar en activity_data, pero si no está, usar default
+        if 'reason' not in data:
+            from .models import ActivityFeedConfig
+            data['reason'] = ActivityFeedConfig.get_default_reason(obj.activity_type)
+        
+        return data
     
     def get_client_name(self, obj):
         """Obtiene el nombre del cliente en formato: Primer Nombre + Inicial"""
@@ -316,7 +326,7 @@ class ActivityFeedCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ActivityFeed
         fields = [
-            'activity_type', 'title', 'description', 'reason', 'client', 'event', 
+            'activity_type', 'title', 'description', 'client', 'event', 
             'property_location', 'activity_data', 'is_public', 'importance_level'
         ]
     
