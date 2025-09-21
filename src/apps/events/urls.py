@@ -19,6 +19,8 @@ from .views import (
     
     # Analytics endpoints
     UpcomingCheckinsView,
+    SearchTrackingStatsView,
+    IngresosStatsView,
 )
 
 app_name = 'events'
@@ -43,4 +45,6 @@ urlpatterns = [
     
     # === ANALYTICS ENDPOINTS ===
     path('upcoming-checkins/', UpcomingCheckinsView.as_view(), name='upcoming-checkins'),
+    path('stats/search-tracking/', SearchTrackingStatsView.as_view(), name='stats-search-tracking'),
+    path('stats/ingresos/', IngresosStatsView.as_view(), name='stats-ingresos'),
 ]
