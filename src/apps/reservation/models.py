@@ -148,6 +148,17 @@ class Reservation(BaseModel):
             return f"Reserva desde API Airbnb (sin datos del cliente)"
 
     def delete(self, *args, **kwargs):
+        # Guardar información antes de eliminar para el activity feed
+        reservation_info = {
+            'id': self.id,
+            'client': self.client,
+            'property': self.property,
+            'check_in_date': self.check_in_date,
+            'check_out_date': self.check_out_date,
+            'price_sol': self.price_sol,
+            'guests': self.guests
+        }
+        
         # Si la reserva tenía puntos canjeados, devolverlos al cliente
         if self.points_redeemed and self.points_redeemed > 0 and self.client:
             from apps.clients.models import ClientPoints
@@ -165,6 +176,44 @@ class Reservation(BaseModel):
                 points=Decimal(str(self.points_redeemed)),
                 description=f"Devolución de puntos por eliminación de reserva #{self.id} - {self.property.name if self.property else 'Propiedad'}"
             )
+
+        # 📊 ACTIVITY FEED: Crear actividad para eliminación de reserva
+        if reservation_info['client']:
+            try:
+                from apps.events.models import ActivityFeed, ActivityFeedConfig
+                from .signals import format_date_range_es
+                
+                # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
+                activity_type = ActivityFeed.ActivityType.RESERVATION_AUTO_DELETED_CRON
+                if ActivityFeedConfig.is_type_enabled(activity_type):
+                    dates_str = format_date_range_es(reservation_info['check_in_date'], reservation_info['check_out_date'])
+                    
+                    # Usar configuración por defecto para visibilidad e importancia
+                    is_public = ActivityFeedConfig.should_be_public(activity_type)
+                    importance = ActivityFeedConfig.get_default_importance(activity_type)
+                    
+                    ActivityFeed.create_activity(
+                        activity_type=activity_type,
+                        client=reservation_info['client'],
+                        property_location=reservation_info['property'],
+                        is_public=is_public,
+                        importance_level=importance,
+                        activity_data={
+                            'property_name': reservation_info['property'].name if reservation_info['property'] else 'Propiedad',
+                            'dates': dates_str,
+                            'check_in': reservation_info['check_in_date'].isoformat() if reservation_info['check_in_date'] else '',
+                            'check_out': reservation_info['check_out_date'].isoformat() if reservation_info['check_out_date'] else '',
+                            'guests': reservation_info['guests'] or 0,
+                            'reservation_id': str(reservation_info['id']),
+                            'price_sol': float(reservation_info['price_sol']) if reservation_info['price_sol'] else 0,
+                            'deletion_reason': 'manual_deletion'
+                        }
+                    )
+                    print(f"✅ Actividad de eliminación de reserva creada para cliente {reservation_info['client'].id}")
+                else:
+                    print(f"⚠️ Actividades de tipo 'reservation_deleted' están deshabilitadas")
+            except Exception as e:
+                print(f"❌ Error creando actividad de eliminación de reserva: {str(e)}")
 
         # Verificar logros después de eliminar la reserva
         if self.client:

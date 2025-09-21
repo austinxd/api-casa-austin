@@ -5842,3 +5842,83 @@ INFO 2025-09-21 14:52:43,805 models 11837 140261321907392   check_out_date=2025-
 INFO 2025-09-21 14:52:43,805 models 11837 140261321907392   guests=6 (type: <class 'int'>, repr: 6)
 INFO 2025-09-21 14:52:43,805 models 11837 140261321907392 SearchTracking.save: All validations passed, calling super().save()
 INFO 2025-09-21 14:52:43,819 models 11837 140261321907392 SearchTracking.save: Successfully saved!
+INFO 2025-09-21 16:18:00,044 signals 328 139676147109056 🔥 SIGNAL EJECUTADO: Nueva reserva creada ID 44419d3e-c501-4ce7-9298-224148a5eab5 - Origen: test - Cliente: Clients object (463403e8-d000-4255-8962-aa5a6397e915)
+DEBUG 2025-09-21 16:18:00,051 signals 328 139676147109056 Enviando mensaje de Telegram:  **** - Reserva en casa 1
+Cliente: Juan Cliente
+Check-in : Miércoles 15 de octubre
+Check-out : Sábado 18 de octubre
+Invitados : 2
+Temperado : No
+Precio (USD) : 0.00 dólares
+Precio (Soles) : 300.00 soles
+Adelanto : 0.00 SOL
+Teléfono : +123456789 con imagen: None
+DEBUG 2025-09-21 16:18:00,052 telegram_notifier 328 139676147109056 Preparando para enviar mensaje:  **** - Reserva en casa 1
+Cliente: Juan Cliente
+Check-in : Miércoles 15 de octubre
+Check-out : Sábado 18 de octubre
+Invitados : 2
+Temperado : No
+Precio (USD) : 0.00 dólares
+Precio (Soles) : 300.00 soles
+Adelanto : 0.00 SOL
+Teléfono : +123456789
+DEBUG 2025-09-21 16:18:00,053 telegram_notifier 328 139676147109056 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-21 16:18:00,735 telegram_notifier 328 139676147109056 Mensaje enviado.
+DEBUG 2025-09-21 16:18:00,735 telegram_notifier 328 139676147109056 Mensaje enviado a través del executor.
+DEBUG 2025-09-21 16:18:00,736 telegram_notifier 328 139676147109056 Preparando para enviar mensaje: ******Reserva en casa 1******
+Cliente: Juan Cliente
+Cumpleaños: No disponible (Cumple No disponible años)
+Check-in : Miércoles 15 de octubre
+Check-out : Sábado 18 de octubre
+Invitados : 2
+Temperado : No
+Teléfono : https://wa.me/123456789
+DEBUG 2025-09-21 16:18:00,737 telegram_notifier 328 139676147109056 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-21 16:18:01,013 telegram_notifier 328 139676147109056 Mensaje enviado.
+DEBUG 2025-09-21 16:18:01,014 telegram_notifier 328 139676147109056 Mensaje enviado a través del executor.
+DEBUG 2025-09-21 16:18:01,023 models 328 139676147109056 Verificando logros para cliente 463403e8-d000-4255-8962-aa5a6397e915 después de eliminar reserva 44419d3e-c501-4ce7-9298-224148a5eab5
+DEBUG 2025-09-21 16:18:01,023 points_signals 328 139676147109056 🔄 Verificando logros para cliente 463403e8-d000-4255-8962-aa5a6397e915
+INFO 2025-09-21 16:18:01,029 points_signals 328 139676147109056 📊 Verificación de logros completada para cliente 463403e8-d000-4255-8962-aa5a6397e915. Sin cambios en logros
+DEBUG 2025-09-21 16:18:01,063 points_signals 328 139676147109056 🔄 Verificando logros para cliente 463403e8-d000-4255-8962-aa5a6397e915
+INFO 2025-09-21 16:18:01,067 points_signals 328 139676147109056 📊 Verificación de logros completada para cliente 463403e8-d000-4255-8962-aa5a6397e915. Sin cambios en logros
+INFO 2025-09-21 16:18:43,647 signals 432 139829283638464 🔥 SIGNAL EJECUTADO: Nueva reserva creada ID 6c73e7f2-187e-4f53-a67a-cc3ee7b9cbc1 - Origen: test - Cliente: Clients object (463403e8-d000-4255-8962-aa5a6397e915)
+DEBUG 2025-09-21 16:18:43,649 signals 432 139829283638464 Enviando mensaje de Telegram:  **** - Reserva en casa 1
+Cliente: Juan Cliente
+Check-in : Miércoles 15 de octubre
+Check-out : Sábado 18 de octubre
+Invitados : 2
+Temperado : No
+Precio (USD) : 0.00 dólares
+Precio (Soles) : 300.00 soles
+Adelanto : 0.00 SOL
+Teléfono : +123456789 con imagen: None
+DEBUG 2025-09-21 16:18:43,649 telegram_notifier 432 139829283638464 Preparando para enviar mensaje:  **** - Reserva en casa 1
+Cliente: Juan Cliente
+Check-in : Miércoles 15 de octubre
+Check-out : Sábado 18 de octubre
+Invitados : 2
+Temperado : No
+Precio (USD) : 0.00 dólares
+Precio (Soles) : 300.00 soles
+Adelanto : 0.00 SOL
+Teléfono : +123456789
+DEBUG 2025-09-21 16:18:43,650 telegram_notifier 432 139829283638464 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-21 16:18:44,335 telegram_notifier 432 139829283638464 Mensaje enviado.
+DEBUG 2025-09-21 16:18:44,335 telegram_notifier 432 139829283638464 Mensaje enviado a través del executor.
+DEBUG 2025-09-21 16:18:44,336 telegram_notifier 432 139829283638464 Preparando para enviar mensaje: ******Reserva en casa 1******
+Cliente: Juan Cliente
+Cumpleaños: No disponible (Cumple No disponible años)
+Check-in : Miércoles 15 de octubre
+Check-out : Sábado 18 de octubre
+Invitados : 2
+Temperado : No
+Teléfono : https://wa.me/123456789
+DEBUG 2025-09-21 16:18:44,336 telegram_notifier 432 139829283638464 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-21 16:18:44,609 telegram_notifier 432 139829283638464 Mensaje enviado.
+DEBUG 2025-09-21 16:18:44,611 telegram_notifier 432 139829283638464 Mensaje enviado a través del executor.
+DEBUG 2025-09-21 16:18:44,653 models 432 139829283638464 Verificando logros para cliente 463403e8-d000-4255-8962-aa5a6397e915 después de eliminar reserva 6c73e7f2-187e-4f53-a67a-cc3ee7b9cbc1
+DEBUG 2025-09-21 16:18:44,653 points_signals 432 139829283638464 🔄 Verificando logros para cliente 463403e8-d000-4255-8962-aa5a6397e915
+INFO 2025-09-21 16:18:44,655 points_signals 432 139829283638464 📊 Verificación de logros completada para cliente 463403e8-d000-4255-8962-aa5a6397e915. Sin cambios en logros
+DEBUG 2025-09-21 16:18:44,674 points_signals 432 139829283638464 🔄 Verificando logros para cliente 463403e8-d000-4255-8962-aa5a6397e915
+INFO 2025-09-21 16:18:44,675 points_signals 432 139829283638464 📊 Verificación de logros completada para cliente 463403e8-d000-4255-8962-aa5a6397e915. Sin cambios en logros
