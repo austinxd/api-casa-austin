@@ -707,7 +707,10 @@ class ComprehensiveStatsView(APIView):
             }, status=500)
     
     def _get_search_analytics(self, start_date, end_date, trunc_func, include_anonymous):
-        """Análisis de búsquedas con desglose por clientes vs anónimos"""
+        """Análisis COMPLETO de búsquedas con desglose detallado por fechas y usuarios"""
+        from django.db.models import Q, Count, Avg, Min, Max
+        from datetime import datetime, timedelta
+        from collections import defaultdict, Counter
         
         # Base queryset
         searches = SearchTracking.objects.filter(
@@ -715,29 +718,38 @@ class ComprehensiveStatsView(APIView):
             search_timestamp__lte=end_date
         )
         
-        # 1. Total de búsquedas por período - USAR PYTHON en lugar de DB truncation
+        # ===== 1. ANÁLISIS TEMPORAL BÁSICO =====
         searches_by_period = self._group_by_period_python(
             searches, 'search_timestamp', trunc_func
         )
         
-        # 2. Búsquedas por tipo de usuario (cliente vs anónimo)
         user_type_stats = {
             'client_searches': searches.filter(client__isnull=False).count(),
             'anonymous_searches': searches.filter(client__isnull=True).count()
         }
         
-        # 3. IPs únicas para búsquedas anónimas
-        unique_ips = searches.filter(
-            client__isnull=True,
-            ip_address__isnull=False
-        ).values('ip_address').distinct().count()
+        # ===== 2. ANÁLISIS DETALLADO DE FECHAS BUSCADAS =====
+        # Fechas de check-in más buscadas
+        checkin_dates_analysis = self._analyze_searched_dates(searches, 'check_in_date')
         
-        # 4. Clientes únicos que buscaron
-        unique_clients = searches.filter(
-            client__isnull=False
-        ).values('client').distinct().count()
+        # Fechas de check-out más buscadas  
+        checkout_dates_analysis = self._analyze_searched_dates(searches, 'check_out_date')
         
-        # 5. Propiedades más buscadas
+        # Duración de estadías más común
+        stay_duration_analysis = self._analyze_stay_duration(searches)
+        
+        # Patrones de días de la semana para check-in
+        weekday_patterns = self._analyze_weekday_patterns(searches)
+        
+        # Análisis de meses/temporadas más buscados
+        seasonal_patterns = self._analyze_seasonal_patterns(searches)
+        
+        # ===== 3. AGRUPACIÓN POR CLIENTE VS IP =====
+        client_search_groups = self._group_searches_by_client(searches)
+        ip_search_groups = self._group_searches_by_ip(searches)
+        
+        # ===== 4. ANÁLISIS DE COMPORTAMIENTO =====
+        # Propiedades más buscadas
         property_searches = searches.filter(
             property__isnull=False
         ).values(
@@ -746,41 +758,39 @@ class ComprehensiveStatsView(APIView):
             search_count=Count('id')
         ).order_by('-search_count')[:10]
         
-        # 6. Número de huéspedes más común
+        # Número de huéspedes más común
         guests_stats = searches.values('guests').annotate(
             count=Count('id')
-        ).order_by('-count')[:5]
+        ).order_by('-count')[:10]
         
-        # 7. Patrones de fechas más buscadas (día de la semana) - EVITAR TruncDate
-        try:
-            day_patterns = searches.annotate(
-                weekday=TruncDate('check_in_date')
-            ).values('weekday').annotate(
-                search_count=Count('id')
-            ).order_by('-search_count')[:10]
-        except Exception:
-            # Fallback: sin patrones de fecha si falla
-            day_patterns = []
-        
-        # 8. Top clientes que más buscan
-        top_searching_clients = searches.filter(
-            client__isnull=False
-        ).values(
-            'client__first_name', 
-            'client__last_name'
-        ).annotate(
-            search_count=Count('id')
-        ).order_by('-search_count')[:10]
-        
+        # ===== 5. RETORNO COMPLETO =====
         return {
+            # Análisis temporal básico
             'searches_by_period': searches_by_period,
             'user_type_breakdown': user_type_stats,
-            'unique_anonymous_ips': unique_ips,
-            'unique_searching_clients': unique_clients,
+            
+            # Análisis detallado de fechas
+            'checkin_dates_analysis': checkin_dates_analysis,
+            'checkout_dates_analysis': checkout_dates_analysis,
+            'stay_duration_analysis': stay_duration_analysis,
+            'weekday_patterns': weekday_patterns,
+            'seasonal_patterns': seasonal_patterns,
+            
+            # Agrupación por usuario
+            'client_search_groups': client_search_groups,
+            'ip_search_groups': ip_search_groups,
+            
+            # Comportamiento y preferencias
             'most_searched_properties': list(property_searches),
             'guest_count_patterns': list(guests_stats),
-            'popular_checkin_dates': list(day_patterns),
-            'top_searching_clients': list(top_searching_clients)
+            
+            # Resumen de métricas
+            'summary_metrics': {
+                'unique_anonymous_ips': searches.filter(client__isnull=True, ip_address__isnull=False).values('ip_address').distinct().count(),
+                'unique_searching_clients': searches.filter(client__isnull=False).values('client').distinct().count(),
+                'avg_stay_duration': stay_duration_analysis.get('average_duration', 0),
+                'total_searches': searches.count()
+            }
         }
     
     def _get_activity_analytics(self, start_date, end_date, trunc_func):
@@ -890,21 +900,23 @@ class ComprehensiveStatsView(APIView):
         activity_analytics = stats['activity_analytics']
         client_analytics = stats['client_analytics']
         
-        total_searches = (search_analytics['user_type_breakdown']['client_searches'] + 
-                         search_analytics['user_type_breakdown']['anonymous_searches'])
+        # Usar la nueva estructura de summary_metrics
+        search_summary = search_analytics.get('summary_metrics', {})
+        total_searches = search_summary.get('total_searches', 0)
         
         total_activities = sum(item['count'] for item in activity_analytics['activities_by_type'])
         
         return {
             'total_searches': total_searches,
             'total_activities': total_activities,
-            'unique_searchers': (search_analytics['unique_searching_clients'] + 
-                               search_analytics['unique_anonymous_ips']),
+            'unique_searchers': (search_summary.get('unique_searching_clients', 0) + 
+                               search_summary.get('unique_anonymous_ips', 0)),
             'new_clients': sum(item['new_clients'] for item in client_analytics['new_clients_by_period']),
             'top_activity_type': (activity_analytics['activities_by_type'][0]['activity_type'] 
                                 if activity_analytics['activities_by_type'] else None),
             'most_searched_property': (search_analytics['most_searched_properties'][0]['property__name'] 
-                                     if search_analytics['most_searched_properties'] else None)
+                                     if search_analytics['most_searched_properties'] else None),
+            'avg_stay_duration': search_summary.get('avg_stay_duration', 0)
         }
     
     def _group_by_period_python(self, queryset, date_field, trunc_func, count_field_name='total_searches'):
@@ -972,3 +984,222 @@ class ComprehensiveStatsView(APIView):
             result.append(period_data)
         
         return result
+    
+    # ===== MÉTODOS AUXILIARES PARA ANÁLISIS DETALLADO DE BÚSQUEDAS =====
+    
+    def _analyze_searched_dates(self, searches, date_field):
+        """Analizar fechas específicas más buscadas"""
+        from collections import Counter
+        
+        dates_searched = searches.values_list(date_field, flat=True)
+        dates_counter = Counter(date for date in dates_searched if date)
+        
+        # Top 20 fechas más buscadas
+        most_searched = [
+            {
+                'date': date.isoformat(),
+                'search_count': count,
+                'weekday': date.strftime('%A'),
+                'month': date.strftime('%B')
+            }
+            for date, count in dates_counter.most_common(20)
+        ]
+        
+        return {
+            'most_searched_dates': most_searched,
+            'total_unique_dates': len(dates_counter),
+            'date_range': {
+                'earliest': min(dates_counter.keys()).isoformat() if dates_counter else None,
+                'latest': max(dates_counter.keys()).isoformat() if dates_counter else None
+            }
+        }
+    
+    def _analyze_stay_duration(self, searches):
+        """Analizar duración de estadías más comunes"""
+        from collections import Counter
+        
+        durations = []
+        for search in searches.values('check_in_date', 'check_out_date'):
+            if search['check_in_date'] and search['check_out_date']:
+                duration = (search['check_out_date'] - search['check_in_date']).days
+                if duration > 0:  # Solo estadías válidas
+                    durations.append(duration)
+        
+        duration_counter = Counter(durations)
+        
+        return {
+            'most_common_durations': [
+                {'duration_days': duration, 'search_count': count}
+                for duration, count in duration_counter.most_common(10)
+            ],
+            'average_duration': sum(durations) / len(durations) if durations else 0,
+            'total_valid_searches': len(durations)
+        }
+    
+    def _analyze_weekday_patterns(self, searches):
+        """Analizar patrones de días de la semana para check-in"""
+        from collections import Counter
+        
+        weekdays = []
+        for search in searches.values('check_in_date'):
+            if search['check_in_date']:
+                weekday = search['check_in_date'].weekday()  # 0=Lunes, 6=Domingo
+                weekdays.append(weekday)
+        
+        weekday_counter = Counter(weekdays)
+        weekday_names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+        
+        return {
+            'weekday_preferences': [
+                {
+                    'weekday': weekday_names[weekday],
+                    'weekday_number': weekday,
+                    'search_count': count
+                }
+                for weekday, count in sorted(weekday_counter.items())
+            ],
+            'most_popular_weekday': weekday_names[weekday_counter.most_common(1)[0][0]] if weekday_counter else None
+        }
+    
+    def _analyze_seasonal_patterns(self, searches):
+        """Analizar patrones estacionales y por mes"""
+        from collections import Counter
+        
+        months = []
+        seasons = []
+        
+        for search in searches.values('check_in_date'):
+            if search['check_in_date']:
+                month = search['check_in_date'].month
+                months.append(month)
+                
+                # Determinar temporada (basado en hemisferio norte)
+                if month in [12, 1, 2]:
+                    seasons.append('Invierno')
+                elif month in [3, 4, 5]:
+                    seasons.append('Primavera')
+                elif month in [6, 7, 8]:
+                    seasons.append('Verano')
+                else:
+                    seasons.append('Otoño')
+        
+        month_counter = Counter(months)
+        season_counter = Counter(seasons)
+        month_names = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+        
+        return {
+            'monthly_patterns': [
+                {
+                    'month': month_names[month - 1],
+                    'month_number': month,
+                    'search_count': count
+                }
+                for month, count in sorted(month_counter.items())
+            ],
+            'seasonal_patterns': [
+                {
+                    'season': season,
+                    'search_count': count
+                }
+                for season, count in season_counter.most_common()
+            ],
+            'peak_month': month_names[month_counter.most_common(1)[0][0] - 1] if month_counter else None,
+            'peak_season': season_counter.most_common(1)[0][0] if season_counter else None
+        }
+    
+    def _group_searches_by_client(self, searches):
+        """Agrupar búsquedas por cliente registrado"""
+        from django.db.models import Count
+        
+        client_searches = searches.filter(
+            client__isnull=False
+        ).values(
+            'client__id',
+            'client__first_name',
+            'client__last_name',
+            'client__email'
+        ).annotate(
+            search_count=Count('id')
+        ).order_by('-search_count')[:20]
+        
+        # Análisis adicional por cliente
+        client_details = []
+        for client_search in client_searches:
+            client_id = client_search['client__id']
+            
+            # Búsquedas de este cliente
+            client_search_queryset = searches.filter(client__id=client_id)
+            
+            # Propiedades más buscadas por este cliente
+            client_properties = client_search_queryset.filter(
+                property__isnull=False
+            ).values('property__name').annotate(
+                count=Count('id')
+            ).order_by('-count')[:3]
+            
+            # Fechas buscadas por este cliente
+            client_dates = client_search_queryset.values_list('check_in_date', flat=True)
+            unique_dates = len(set(date for date in client_dates if date))
+            
+            client_details.append({
+                'client_id': client_id,
+                'client_name': f"{client_search['client__first_name']} {client_search['client__last_name'][:1]}.".strip(),
+                'client_email': client_search['client__email'],
+                'total_searches': client_search['search_count'],
+                'unique_dates_searched': unique_dates,
+                'favorite_properties': list(client_properties)
+            })
+        
+        return {
+            'top_searching_clients': client_details,
+            'total_clients_searching': searches.filter(client__isnull=False).values('client').distinct().count()
+        }
+    
+    def _group_searches_by_ip(self, searches):
+        """Agrupar búsquedas por IP (usuarios anónimos)"""
+        from django.db.models import Count
+        
+        ip_searches = searches.filter(
+            client__isnull=True,
+            ip_address__isnull=False
+        ).values(
+            'ip_address'
+        ).annotate(
+            search_count=Count('id')
+        ).order_by('-search_count')[:20]
+        
+        # Análisis adicional por IP
+        ip_details = []
+        for ip_search in ip_searches:
+            ip_address = ip_search['ip_address']
+            
+            # Búsquedas de esta IP
+            ip_search_queryset = searches.filter(ip_address=ip_address)
+            
+            # Propiedades más buscadas por esta IP
+            ip_properties = ip_search_queryset.filter(
+                property__isnull=False
+            ).values('property__name').annotate(
+                count=Count('id')
+            ).order_by('-count')[:3]
+            
+            # Fechas buscadas por esta IP
+            ip_dates = ip_search_queryset.values_list('check_in_date', flat=True)
+            unique_dates = len(set(date for date in ip_dates if date))
+            
+            # User agents diferentes (para detectar diferentes dispositivos)
+            user_agents = ip_search_queryset.values('user_agent').distinct().count()
+            
+            ip_details.append({
+                'ip_address': ip_address,
+                'total_searches': ip_search['search_count'],
+                'unique_dates_searched': unique_dates,
+                'different_devices': user_agents,
+                'favorite_properties': list(ip_properties)
+            })
+        
+        return {
+            'top_searching_ips': ip_details,
+            'total_anonymous_ips': searches.filter(client__isnull=True, ip_address__isnull=False).values('ip_address').distinct().count()
+        }

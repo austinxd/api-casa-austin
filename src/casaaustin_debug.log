@@ -5745,3 +5745,5 @@ INFO 2025-09-21 00:44:45,694 whatsapp_service 1209 139696602016960 Probando regi
 DEBUG 2025-09-21 00:44:46,010 whatsapp_service 1209 139696602016960 ❌ Fallo registro_exitoso (es, 4 params): (#132001) Template name does not exist in the translation
 ERROR 2025-09-21 00:44:46,012 whatsapp_service 1209 139696602016960 No se pudo enviar template registro_exitoso después de probar 0-4 parámetros
 ERROR 2025-09-21 00:44:46,013 signals 1209 139696602016960 Error al enviar WhatsApp de bienvenida para cliente a150649d-225c-4ae8-8411-7d139dffef8c
+ERROR 2025-09-21 12:05:41,448 views 4562 139686778191040 Stats processing error: 'unique_searching_clients'
+ERROR 2025-09-21 12:05:45,685 views 4546 140508705842880 Stats processing error: 'unique_searching_clients'
