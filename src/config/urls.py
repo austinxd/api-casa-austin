@@ -9,6 +9,9 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
+# Estadísticas comprehensivas
+from apps.events.views import ComprehensiveStatsView
+
 
 urlpatterns = [
     path(settings.DJANGO_ADMIN_PATH, admin.site.urls),
@@ -25,6 +28,9 @@ urlpatterns = [
     path("api/v1/", include("apps.dashboard.urls")),
     path("api/v1/events/", include("apps.events.urls")),
     path("api/v1/bot/", include("apps.property.bot_urls")),
+    
+    # === COMPREHENSIVE STATS ENDPOINT ===
+    path('api/v1/stats/', ComprehensiveStatsView.as_view(), name='comprehensive-stats'),
 ]
 
 # Serve media files in development
