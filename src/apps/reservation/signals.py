@@ -837,8 +837,6 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
                             'dates': dates_str,
                             'check_in': instance.check_in_date.isoformat(),
                             'check_out': instance.check_out_date.isoformat(),
-                            'reservation_id': str(instance.id),
-                            'price_sol': float(instance.price_sol) if instance.price_sol else 0,
                             'origin': instance.origin
                         }
                     )
@@ -907,8 +905,6 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
                                 'dates': dates_str,
                                 'check_in': instance.check_in_date.isoformat(),
                                 'check_out': instance.check_out_date.isoformat(),
-                                'reservation_id': str(instance.id),
-                                'price_sol': float(instance.price_sol) if instance.price_sol else 0,
                                 'status_change': 'approved'
                             }
                         )
@@ -970,8 +966,6 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
                                 'dates': dates_str,
                                 'check_in': instance.check_in_date.isoformat(),
                                 'check_out': instance.check_out_date.isoformat(),
-                                'reservation_id': str(instance.id),
-                                'price_sol': float(instance.price_sol) if instance.price_sol else 0,
                                 'status_change': 'approved_by_admin'
                             }
                         )
@@ -1004,8 +998,6 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
                                 'dates': dates_str,
                                 'check_in': instance.check_in_date.isoformat(),
                                 'check_out': instance.check_out_date.isoformat(),
-                                'reservation_id': str(instance.id),
-                                'price_sol': float(instance.price_sol) if instance.price_sol else 0,
                                 'status_change': 'cancelled'
                             }
                         )
