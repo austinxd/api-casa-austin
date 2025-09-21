@@ -497,9 +497,9 @@ class ActivityFeed(BaseModel):
             clock_icon = "⏰ " if not self.icon else ""
             
             if client_name:
-                return f"{clock_icon}El sistema eliminó la reserva de {client_name} {dates} en {property_name} por {reason}"
+                return f"{clock_icon}Reserva liberada: La reserva de {client_name} {dates} en {property_name} se liberó automáticamente al no confirmarse el depósito en el plazo indicado"
             else:
-                return f"{clock_icon}El sistema eliminó una reserva {dates} en {property_name} por {reason}"
+                return f"{clock_icon}Reserva liberada: Una reserva {dates} en {property_name} se liberó automáticamente al no confirmarse el depósito en el plazo indicado"
         
         elif self.activity_type == self.ActivityType.CLIENT_REGISTERED:
             referred_by_info = self.activity_data.get('referred_by_info')
