@@ -134,11 +134,17 @@ class Command(BaseCommand):
         """Registra la eliminación de la reserva en el Activity Feed"""
         try:
             # Importación local para evitar problemas de dependencias circulares
-            from apps.events.models import ActivityFeed
+            from apps.events.models import ActivityFeed, ActivityFeedConfig
             from apps.reservation.signals import format_date_es
             
-            # Preparar datos de la actividad
-            dates = f"del {format_date_es(reservation.check_in_date)} al {format_date_es(reservation.check_out_date)}"
+            # Verificar si el tipo de actividad está habilitado
+            if not ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.RESERVATION_AUTO_DELETED_CRON):
+                logger.info(f"⚠️ ActivityFeed deshabilitado para tipo RESERVATION_AUTO_DELETED_CRON - no se registra actividad para reserva {reservation.id}")
+                return
+            
+            # Preparar datos de la actividad  
+            from apps.reservation.signals import format_date_range_es
+            dates = format_date_range_es(reservation.check_in_date, reservation.check_out_date)
             property_name = reservation.property.name if reservation.property else "Propiedad no disponible"
             
             activity_data = {
