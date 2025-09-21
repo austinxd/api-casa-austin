@@ -489,9 +489,9 @@ class ActivityFeed(BaseModel):
             # Los iconos se manejan por get_icon(), no en el mensaje
             
             if client_name:
-                return f"Reserva liberada: La reserva de {client_name} {dates} en {property_name} se liberó automáticamente al no confirmarse el depósito en el plazo indicado"
+                return f"La reserva de {client_name} {dates} en {property_name} se liberó."
             else:
-                return f"Reserva liberada: Una reserva {dates} en {property_name} se liberó automáticamente al no confirmarse el depósito en el plazo indicado"
+                return f"Una reserva {dates} en {property_name} se liberó."
         
         elif self.activity_type == self.ActivityType.CLIENT_REGISTERED:
             referred_by_info = self.activity_data.get('referred_by_info')
