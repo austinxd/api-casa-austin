@@ -1203,3 +1203,218 @@ class ComprehensiveStatsView(APIView):
             'top_searching_ips': ip_details,
             'total_anonymous_ips': searches.filter(client__isnull=True, ip_address__isnull=False).values('ip_address').distinct().count()
         }
+
+
+class UpcomingCheckinsView(APIView):
+    """
+    Endpoint para analizar check-ins próximos más buscados
+    
+    Parámetros:
+    - days_ahead: días hacia adelante para analizar (default: 60)
+    - limit: número máximo de fechas a mostrar (default: 20)
+    - include_anonymous: incluir búsquedas anónimas (default: true)
+    
+    Retorna:
+    - Fechas de check-in más buscadas que están próximas
+    - Usuarios que han buscado cada fecha
+    - Detalles de popularidad por fecha
+    """
+    
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        """Obtener check-ins próximos más buscados"""
+        from django.utils import timezone
+        from datetime import timedelta
+        from django.db.models import Count, Q
+        from collections import defaultdict
+        
+        # Parámetros de query con validación segura
+        try:
+            days_ahead = int(request.GET.get('days_ahead', 60))
+            if not (1 <= days_ahead <= 180):
+                days_ahead = 60
+        except (ValueError, TypeError):
+            days_ahead = 60
+            
+        try:
+            limit = int(request.GET.get('limit', 20))
+            if not (1 <= limit <= 100):
+                limit = 20
+        except (ValueError, TypeError):
+            limit = 20
+            
+        include_anonymous = request.GET.get('include_anonymous', 'true').lower() == 'true'
+        
+        # Calcular rango de fechas (desde hoy hasta días hacia adelante)
+        today = timezone.now().date()
+        future_date = today + timedelta(days=days_ahead)
+        
+        try:
+            # Base queryset: búsquedas con check-in en el futuro próximo
+            upcoming_searches = SearchTracking.objects.filter(
+                check_in_date__gte=today,
+                check_in_date__lte=future_date
+            )
+            
+            if not include_anonymous:
+                upcoming_searches = upcoming_searches.filter(client__isnull=False)
+            
+            # 1. Agrupar por fecha de check-in específica
+            checkin_popularity = self._analyze_upcoming_checkins_by_date(upcoming_searches)
+            
+            # 2. Limitar resultados
+            top_checkin_dates = checkin_popularity[:limit]
+            
+            # 3. Métricas generales
+            total_upcoming_searches = upcoming_searches.count()
+            unique_dates_searched = upcoming_searches.values('check_in_date').distinct().count()
+            unique_clients = upcoming_searches.filter(client__isnull=False).values('client').distinct().count()
+            unique_ips = upcoming_searches.filter(client__isnull=True, ip_address__isnull=False).values('ip_address').distinct().count()
+            
+            return Response({
+                'success': True,
+                'data': {
+                    'period_info': {
+                        'analysis_from': today.isoformat(),
+                        'analysis_to': future_date.isoformat(),
+                        'days_ahead': days_ahead
+                    },
+                    'top_upcoming_checkins': top_checkin_dates,
+                    'summary_metrics': {
+                        'total_upcoming_searches': total_upcoming_searches,
+                        'unique_dates_searched': unique_dates_searched,
+                        'unique_clients_searching': unique_clients,
+                        'unique_anonymous_ips': unique_ips,
+                        'avg_searches_per_date': round(total_upcoming_searches / unique_dates_searched, 2) if unique_dates_searched > 0 else 0
+                    }
+                },
+                'generated_at': timezone.now().isoformat()
+            })
+            
+        except Exception as e:
+            # Log del error para debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'Upcoming checkins processing error: {str(e)}')
+            
+            return Response({
+                'error': 'Error al procesar check-ins próximos',
+                'message': 'Error interno del servidor',
+                'success': False
+            }, status=500)
+    
+    def _analyze_upcoming_checkins_by_date(self, searches):
+        """Analizar check-ins próximos agrupados por fecha específica"""
+        from django.db.models import Count
+        from collections import defaultdict
+        
+        # Agrupar búsquedas por fecha de check-in
+        checkin_groups = defaultdict(list)
+        
+        # Obtener todas las búsquedas con detalles
+        search_details = searches.values(
+            'check_in_date', 'check_out_date', 'guests', 'property__name',
+            'client__id', 'client__first_name', 'client__last_name', 'client__email',
+            'ip_address', 'user_agent'
+        )
+        
+        for search in search_details:
+            checkin_date = search['check_in_date']
+            if checkin_date:
+                checkin_groups[checkin_date].append(search)
+        
+        # Procesar cada fecha
+        result = []
+        for checkin_date, searches_list in checkin_groups.items():
+            
+            # Separar clientes registrados de anónimos
+            client_searches = [s for s in searches_list if s['client__id']]
+            anonymous_searches = [s for s in searches_list if not s['client__id']]
+            
+            # Analizar clientes que buscaron esta fecha (con privacidad)
+            clients_details = []
+            for search in client_searches:
+                # Enmascarar nombre para privacidad: "FirstName L."
+                first_name = search['client__first_name'] or 'Usuario'
+                last_name = search['client__last_name'] or ''
+                masked_name = f"{first_name} {last_name[:1]}.".strip() if last_name else first_name
+                
+                client_info = {
+                    'client_id': search['client__id'],
+                    'client_name': masked_name,
+                    'client_email': search['client__email'][:3] + "***@" + search['client__email'].split('@')[1] if search['client__email'] else None,  # Email parcialmente enmascarado
+                    'checkout_date': search['check_out_date'].isoformat() if search['check_out_date'] else None,
+                    'guests': search['guests'],
+                    'property': search['property__name']
+                }
+                clients_details.append(client_info)
+            
+            # Analizar IPs que buscaron esta fecha (con anonimización)
+            ips_details = []
+            unique_ips = {}
+            for search in anonymous_searches:
+                ip = search['ip_address']
+                if ip:
+                    # Anonimizar IP: mantener solo /24 network (ej: 192.168.1.xxx)
+                    ip_parts = ip.split('.')
+                    if len(ip_parts) == 4:
+                        anonymized_ip = f"{ip_parts[0]}.{ip_parts[1]}.{ip_parts[2]}.xxx"
+                    else:
+                        anonymized_ip = "xxx.xxx.xxx.xxx"
+                    
+                    if anonymized_ip not in unique_ips:
+                        unique_ips[anonymized_ip] = {
+                            'ip_address': anonymized_ip,
+                            'searches_count': 0,
+                            'checkout_dates': set(),
+                            'guests_counts': set(),
+                            'properties': set()
+                        }
+                    
+                    unique_ips[anonymized_ip]['searches_count'] += 1
+                    if search['check_out_date']:
+                        unique_ips[anonymized_ip]['checkout_dates'].add(search['check_out_date'].isoformat())
+                    unique_ips[anonymized_ip]['guests_counts'].add(search['guests'])
+                    if search['property__name']:
+                        unique_ips[anonymized_ip]['properties'].add(search['property__name'])
+            
+            # Convertir sets a lists para JSON
+            for ip_data in unique_ips.values():
+                ip_data['checkout_dates'] = list(ip_data['checkout_dates'])
+                ip_data['guests_counts'] = list(ip_data['guests_counts'])
+                ip_data['properties'] = list(ip_data['properties'])
+                ips_details.append(ip_data)
+            
+            # Calcular duración de estadía más común
+            durations = []
+            for search in searches_list:
+                if search['check_in_date'] and search['check_out_date']:
+                    duration = (search['check_out_date'] - search['check_in_date']).days
+                    if duration > 0:
+                        durations.append(duration)
+            
+            avg_duration = sum(durations) / len(durations) if durations else 0
+            
+            # Calcular días hasta la fecha
+            from django.utils import timezone
+            days_until_checkin = (checkin_date - timezone.now().date()).days
+            
+            result.append({
+                'checkin_date': checkin_date.isoformat(),
+                'weekday': checkin_date.strftime('%A'),
+                'days_until_checkin': days_until_checkin,
+                'total_searches': len(searches_list),
+                'client_searches': len(client_searches),
+                'anonymous_searches': len(anonymous_searches),
+                'avg_stay_duration': round(avg_duration, 1),
+                'searching_clients': clients_details,
+                'searching_ips': ips_details,
+                'unique_clients_count': len(set(s['client__id'] for s in client_searches if s['client__id'])),
+                'unique_ips_count': len(unique_ips)
+            })
+        
+        # Ordenar por número total de búsquedas (más popular primero)
+        result.sort(key=lambda x: x['total_searches'], reverse=True)
+        
+        return result

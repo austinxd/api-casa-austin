@@ -10,7 +10,7 @@ from rest_framework_simplejwt.views import (
 )
 
 # Estadísticas comprehensivas
-from apps.events.views import ComprehensiveStatsView
+from apps.events.views import ComprehensiveStatsView, UpcomingCheckinsView
 
 
 urlpatterns = [
@@ -29,8 +29,9 @@ urlpatterns = [
     path("api/v1/events/", include("apps.events.urls")),
     path("api/v1/bot/", include("apps.property.bot_urls")),
     
-    # === COMPREHENSIVE STATS ENDPOINT ===
+    # === ANALYTICS ENDPOINTS ===
     path('api/v1/stats/', ComprehensiveStatsView.as_view(), name='comprehensive-stats'),
+    path('api/v1/upcoming-checkins/', UpcomingCheckinsView.as_view(), name='upcoming-checkins'),
 ]
 
 # Serve media files in development
