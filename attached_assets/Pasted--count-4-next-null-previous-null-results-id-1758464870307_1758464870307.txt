@@ -1,0 +1,94 @@
+{
+    "count": 4,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": "314110e7-a692-488e-9883-00fbfb045b12",
+            "activity_type": "reservation_made",
+            "activity_type_display": "Reserva Realizada",
+            "title": "Nueva Reserva",
+            "description": "",
+            "icon": "📅",
+            "time_ago": "hace 1 minuto",
+            "client_name": "Catherine A.",
+            "importance_level": 4,
+            "created": "2025-09-21T09:25:27.102643-05:00",
+            "activity_data": {
+                "dates": "del 21/09 al 23/09/2025",
+                "guests": 4,
+                "check_in": "2025-09-21",
+                "check_out": "2025-09-23",
+                "price_sol": 629.0,
+                "property_name": "Casa Austin 2",
+                "reservation_id": "05a15cd0-2d92-4cda-bc2d-8485b0281d6f",
+                "formatted_message": "Catherine A. hizo una reserva del 21/09 al 23/09/2025 en Casa Austin 2",
+                "reason": "Nueva reserva"
+            }
+        },
+        {
+            "id": "4496259f-b232-40bf-92f5-ec79faa383e8",
+            "activity_type": "reservation_made",
+            "activity_type_display": "Reserva Realizada",
+            "title": "Nueva Reserva",
+            "description": "",
+            "icon": "📅",
+            "time_ago": "hace 1 minuto",
+            "client_name": "Catherine A.",
+            "importance_level": 4,
+            "created": "2025-09-21T09:25:27.088044-05:00",
+            "activity_data": {
+                "dates": "del 21 al 23 de septiembre",
+                "origin": "aus",
+                "check_in": "2025-09-21",
+                "check_out": "2025-09-23",
+                "property_name": "Casa Austin 2",
+                "formatted_message": "Catherine A. hizo una reserva del 21 al 23 de septiembre en Casa Austin 2",
+                "reason": "Nueva reserva"
+            }
+        },
+        {
+            "id": "8e5b11b1-c042-4417-99ef-4d7bca665dc8",
+            "activity_type": "reservation_made",
+            "activity_type_display": "Reserva Realizada",
+            "title": "Nueva Reserva",
+            "description": "",
+            "icon": "📅",
+            "time_ago": "hace 14 minutos",
+            "client_name": "Catherine A.",
+            "importance_level": 4,
+            "created": "2025-09-21T09:12:39.109588-05:00",
+            "activity_data": {
+                "dates": "del 21/09 al 22/09/2025",
+                "guests": 4,
+                "check_in": "2025-09-21",
+                "check_out": "2025-09-22",
+                "price_sol": 314.5,
+                "property_name": "Casa Austin 1",
+                "reservation_id": "7f268b61-f4da-4161-830f-88b5ac0c3185",
+                "formatted_message": "Catherine A. hizo una reserva del 21/09 al 22/09/2025 en Casa Austin 1",
+                "reason": "Nueva reserva"
+            }
+        },
+        {
+            "id": "bd3b9975-3f50-4028-8691-11630f6d55cc",
+            "activity_type": "reservation_made",
+            "activity_type_display": "Reserva Realizada",
+            "title": "Nueva Reserva",
+            "description": "",
+            "icon": "📅",
+            "time_ago": "hace 14 minutos",
+            "client_name": "Catherine A.",
+            "importance_level": 4,
+            "created": "2025-09-21T09:12:39.093394-05:00",
+            "activity_data": {
+                "dates": "del 21 al 22 de septiembre",
+                "origin": "aus",
+                "check_in": "2025-09-21",
+                "check_out": "2025-09-22",
+                "property_name": "Casa Austin 1",
+                "formatted_message": "Catherine A. hizo una reserva del 21 al 22 de septiembre en Casa Austin 1",
+                "reason": "Nueva reserva"
+            }
+        }
+    ],
