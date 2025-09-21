@@ -245,30 +245,40 @@ def check_event_eligibility(request, event_id):
 
 # ==================== ACTIVITY FEED ENDPOINTS ====================
 
-class ActivityFeedView(APIView):
-    """Feed de actividades principal"""
-    permission_classes = [AllowAny]
+from rest_framework.generics import ListAPIView
 
-    def get(self, request):
-        # Parámetros de filtrado
-        activity_type = request.GET.get('type')
-        client_id = request.GET.get('client_id')
-        limit = int(request.GET.get('limit', 20))
-        
+class ActivityFeedView(ListAPIView):
+    """Feed de actividades principal con paginación DRF"""
+    permission_classes = [AllowAny]
+    serializer_class = ActivityFeedSerializer
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        from apps.core.paginator import CustomPagination
+        self.pagination_class = CustomPagination
+
+    def get_queryset(self):
         # Base queryset
         activities = ActivityFeed.objects.all().order_by('-created')
+        
+        # Parámetros de filtrado
+        activity_type = self.request.GET.get('type')
+        client_id = self.request.GET.get('client_id')
+        importance_level = self.request.GET.get('importance_level')
+        is_public = self.request.GET.get('is_public')
         
         # Aplicar filtros
         if activity_type:
             activities = activities.filter(activity_type=activity_type)
         if client_id:
             activities = activities.filter(client_id=client_id)
+        if importance_level:
+            activities = activities.filter(importance_level=importance_level)
+        if is_public is not None:
+            is_public_bool = is_public.lower() in ['true', '1', 'yes']
+            activities = activities.filter(is_public=is_public_bool)
         
-        # Limitar resultados
-        activities = activities[:limit]
-        
-        serializer = ActivityFeedSerializer(activities, many=True)
-        return Response(serializer.data)
+        return activities
 
 
 class RecentActivitiesView(APIView):
