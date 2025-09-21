@@ -218,19 +218,11 @@ def register_client_activity_feed(client):
                 
             referred_by_info['points_percentage'] = referral_percentage
         
+        # Solo datos mínimos necesarios para el mensaje público
         activity_data = {
-            'client_id': str(client.id),
-            'client_name': f"{client.first_name} {client.last_name}".strip(),
-            'document_type': client.get_document_type_display() if client.document_type else None,
-            'document_number': client.number_doc,
-            'email': client.email,
-            'phone': client.tel_number,
-            'referral_code': client.referral_code,
             'referral_info': referral_info,
             'referred_by_info': referred_by_info,
-            'password_set': client.is_password_set,
-            'registration_method': 'web_form',  # Puede ser actualizado según el contexto
-            'created_at': client.created.isoformat() if client.created else None
+            'registration_method': 'web_form'  # Información pública general
         }
         
         # Crear actividad en el feed
