@@ -1418,3 +1418,326 @@ class UpcomingCheckinsView(APIView):
         result.sort(key=lambda x: x['total_searches'], reverse=True)
         
         return result
+
+
+class SearchTrackingStatsView(APIView):
+    """
+    Endpoint específico para análisis de SearchTracking
+    
+    Parámetros:
+    - date_from: fecha inicio análisis (default: hace 30 días)
+    - date_to: fecha fin análisis (default: hoy)
+    - include_clients: incluir análisis de clientes registrados (default: true)
+    - include_anonymous: incluir análisis de IPs anónimas (default: true)
+    
+    Retorna:
+    - Métricas de búsquedas
+    - Top clientes que buscan
+    - Top IPs anónimas
+    - Análisis por día de la semana
+    - Propiedades más buscadas
+    """
+    
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        """Obtener estadísticas específicas de SearchTracking"""
+        from django.utils import timezone
+        from datetime import timedelta
+        from django.db.models import Count, Q
+        
+        # Parámetros de query con validación
+        try:
+            date_from_str = request.GET.get('date_from')
+            if date_from_str:
+                date_from = timezone.datetime.strptime(date_from_str, '%Y-%m-%d').date()
+            else:
+                date_from = timezone.now().date() - timedelta(days=30)
+        except ValueError:
+            date_from = timezone.now().date() - timedelta(days=30)
+            
+        try:
+            date_to_str = request.GET.get('date_to')
+            if date_to_str:
+                date_to = timezone.datetime.strptime(date_to_str, '%Y-%m-%d').date()
+            else:
+                date_to = timezone.now().date()
+        except ValueError:
+            date_to = timezone.now().date()
+            
+        include_clients = request.GET.get('include_clients', 'true').lower() == 'true'
+        include_anonymous = request.GET.get('include_anonymous', 'true').lower() == 'true'
+        
+        try:
+            # Filtro base de SearchTracking por fechas
+            searches = SearchTracking.objects.filter(
+                created_at__date__gte=date_from,
+                created_at__date__lte=date_to
+            )
+            
+            # Métricas generales
+            total_searches = searches.count()
+            unique_clients = searches.filter(client__isnull=False).values('client').distinct().count()
+            anonymous_searches = searches.filter(client__isnull=True).count()
+            conversion_rate = self._calculate_conversion_rate(searches, date_from, date_to)
+            
+            # Análisis específicos según filtros
+            result_data = {
+                'period_info': {
+                    'date_from': date_from.isoformat(),
+                    'date_to': date_to.isoformat(),
+                    'total_days': (date_to - date_from).days + 1
+                },
+                'search_summary': {
+                    'total_searches': total_searches,
+                    'unique_clients_searching': unique_clients,
+                    'anonymous_searches': anonymous_searches,
+                    'conversion_rate': conversion_rate,
+                    'avg_searches_per_day': round(total_searches / ((date_to - date_from).days + 1), 2)
+                }
+            }
+            
+            # Análisis por día de la semana
+            result_data['searches_by_weekday'] = self._analyze_searches_by_weekday(searches)
+            
+            # Top propiedades buscadas
+            result_data['top_searched_properties'] = self._analyze_top_searched_properties(searches)
+            
+            # Análisis de clientes (si incluido)
+            if include_clients:
+                result_data['top_searching_clients'] = self._analyze_top_searching_clients(searches)
+            
+            # Análisis de IPs anónimas (si incluido)
+            if include_anonymous:
+                result_data['anonymous_ips_analysis'] = self._analyze_anonymous_ips(searches)
+            
+            return Response({
+                'success': True,
+                'data': result_data,
+                'generated_at': timezone.now().isoformat()
+            })
+            
+        except Exception as e:
+            # Log del error para debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'SearchTracking stats error: {str(e)}')
+            
+            return Response({
+                'error': 'Error al procesar estadísticas de búsquedas',
+                'message': 'Error interno del servidor',
+                'success': False
+            }, status=500)
+    
+    def _calculate_conversion_rate(self, searches, date_from, date_to):
+        """Calcular tasa de conversión búsquedas -> reservas"""
+        from apps.reservation.models import Reservation
+        
+        # Reservas en el mismo período
+        reservations = Reservation.objects.filter(
+            check_in_date__gte=date_from,
+            check_in_date__lte=date_to
+        ).count()
+        
+        total_searches = searches.count()
+        if total_searches > 0:
+            return round(reservations / total_searches, 3)
+        return 0.0
+    
+    def _analyze_searches_by_weekday(self, searches):
+        """Analizar búsquedas por día de la semana"""
+        from collections import defaultdict
+        
+        weekday_counts = defaultdict(int)
+        weekday_guests = defaultdict(list)
+        
+        for search in searches.values('created_at', 'guests'):
+            weekday = search['created_at'].strftime('%A')
+            weekday_counts[weekday] += 1
+            if search['guests']:
+                weekday_guests[weekday].append(search['guests'])
+        
+        result = []
+        total_searches = sum(weekday_counts.values())
+        
+        for day_name in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']:
+            searches_count = weekday_counts[day_name]
+            guests_list = weekday_guests[day_name]
+            avg_guests = sum(guests_list) / len(guests_list) if guests_list else 0
+            
+            result.append({
+                'day_name': day_name,
+                'day_number': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].index(day_name) + 1,
+                'searches_count': searches_count,
+                'percentage': round(searches_count / total_searches, 3) if total_searches > 0 else 0,
+                'avg_guests_searched': round(avg_guests, 1)
+            })
+        
+        return result
+    
+    def _analyze_top_searched_properties(self, searches):
+        """Analizar propiedades más buscadas"""
+        from django.db.models import Count
+        
+        property_searches = searches.filter(
+            property__isnull=False
+        ).values(
+            'property__name',
+            'property__slug'
+        ).annotate(
+            searches_count=Count('id')
+        ).order_by('-searches_count')[:10]
+        
+        total_searches = searches.count()
+        
+        result = []
+        for prop in property_searches:
+            result.append({
+                'property_name': prop['property__name'],
+                'property_slug': prop['property__slug'],
+                'searches_count': prop['searches_count'],
+                'percentage': round(prop['searches_count'] / total_searches, 3) if total_searches > 0 else 0
+            })
+        
+        return result
+    
+    def _analyze_top_searching_clients(self, searches):
+        """Analizar top clientes que buscan (con privacidad)"""
+        from django.db.models import Count
+        from collections import defaultdict
+        
+        # Agrupar por cliente
+        client_searches = searches.filter(
+            client__isnull=False
+        ).values(
+            'client__id',
+            'client__first_name',
+            'client__last_name', 
+            'client__email',
+            'property__name',
+            'guests',
+            'created_at'
+        )
+        
+        # Procesar datos por cliente
+        clients_data = defaultdict(lambda: {
+            'searches_count': 0,
+            'properties': set(),
+            'guest_counts': set(),
+            'last_search': None,
+            'converted': False
+        })
+        
+        for search in client_searches:
+            client_id = search['client__id']
+            clients_data[client_id]['client_id'] = client_id
+            clients_data[client_id]['client_first_name'] = search['client__first_name']
+            clients_data[client_id]['client_last_name'] = search['client__last_name']
+            clients_data[client_id]['client_email'] = search['client__email']
+            clients_data[client_id]['searches_count'] += 1
+            
+            if search['property__name']:
+                clients_data[client_id]['properties'].add(search['property__name'])
+            if search['guests']:
+                clients_data[client_id]['guest_counts'].add(search['guests'])
+            
+            # Última búsqueda
+            if not clients_data[client_id]['last_search'] or search['created_at'] > clients_data[client_id]['last_search']:
+                clients_data[client_id]['last_search'] = search['created_at']
+        
+        # Convertir a lista y aplicar privacidad
+        result = []
+        for client_data in clients_data.values():
+            # Enmascarar datos para privacidad
+            first_name = client_data['client_first_name'] or 'Usuario'
+            last_name = client_data['client_last_name'] or ''
+            masked_name = f"{first_name} {last_name[:1]}.".strip() if last_name else first_name
+            
+            email = client_data['client_email'] or ''
+            masked_email = f"{email[:3]}***@{email.split('@')[1]}" if '@' in email else "***@***.com"
+            
+            result.append({
+                'client_id': client_data['client_id'],
+                'client_name': masked_name,
+                'client_email': masked_email,
+                'searches_count': client_data['searches_count'],
+                'last_search_date': client_data['last_search'].isoformat() if client_data['last_search'] else None,
+                'favorite_properties': list(client_data['properties']),
+                'guest_counts_searched': list(client_data['guest_counts']),
+                'avg_guests': round(sum(client_data['guest_counts']) / len(client_data['guest_counts']), 1) if client_data['guest_counts'] else 0
+            })
+        
+        # Ordenar por número de búsquedas
+        result.sort(key=lambda x: x['searches_count'], reverse=True)
+        
+        return result[:15]  # Top 15 clientes
+    
+    def _analyze_anonymous_ips(self, searches):
+        """Analizar IPs anónimas que buscan (con anonimización)"""
+        from collections import defaultdict
+        
+        # Agrupar por IP anónima
+        anonymous_searches = searches.filter(
+            client__isnull=True,
+            ip_address__isnull=False
+        ).values(
+            'ip_address',
+            'property__name',
+            'guests',
+            'user_agent',
+            'created_at'
+        )
+        
+        # Procesar datos por IP
+        ips_data = defaultdict(lambda: {
+            'searches_count': 0,
+            'properties': set(),
+            'guest_counts': set(),
+            'user_agents': set(),
+            'last_search': None
+        })
+        
+        for search in anonymous_searches:
+            original_ip = search['ip_address']
+            
+            # Anonimizar IP
+            ip_parts = original_ip.split('.')
+            if len(ip_parts) == 4:
+                anonymized_ip = f"{ip_parts[0]}.{ip_parts[1]}.{ip_parts[2]}.xxx"
+            else:
+                anonymized_ip = "xxx.xxx.xxx.xxx"
+            
+            ips_data[anonymized_ip]['ip_address'] = anonymized_ip
+            ips_data[anonymized_ip]['searches_count'] += 1
+            
+            if search['property__name']:
+                ips_data[anonymized_ip]['properties'].add(search['property__name'])
+            if search['guests']:
+                ips_data[anonymized_ip]['guest_counts'].add(search['guests'])
+            if search['user_agent']:
+                ips_data[anonymized_ip]['user_agents'].add(search['user_agent'][:50])  # Truncar user agent
+            
+            # Última búsqueda
+            if not ips_data[anonymized_ip]['last_search'] or search['created_at'] > ips_data[anonymized_ip]['last_search']:
+                ips_data[anonymized_ip]['last_search'] = search['created_at']
+        
+        # Convertir a lista
+        result = []
+        for ip_data in ips_data.values():
+            result.append({
+                'ip_address': ip_data['ip_address'],
+                'searches_count': ip_data['searches_count'],
+                'last_search': ip_data['last_search'].isoformat() if ip_data['last_search'] else None,
+                'favorite_properties': list(ip_data['properties']),
+                'guest_counts_searched': list(ip_data['guest_counts']),
+                'different_devices': len(ip_data['user_agents']),
+                'avg_guests': round(sum(ip_data['guest_counts']) / len(ip_data['guest_counts']), 1) if ip_data['guest_counts'] else 0
+            })
+        
+        # Ordenar por número de búsquedas
+        result.sort(key=lambda x: x['searches_count'], reverse=True)
+        
+        return {
+            'top_searching_ips': result[:15],  # Top 15 IPs
+            'total_anonymous_ips': len(ips_data)
+        }
