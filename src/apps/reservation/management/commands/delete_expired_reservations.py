@@ -89,8 +89,6 @@ class Command(BaseCommand):
                 f"Propiedad: {property_name}\n"
                 f"Check-in: {check_in_date}\n"
                 f"Check-out: {check_out_date}\n"
-                f"💰 Total: S/{reservation.price_sol:.2f}\n"
-                f"📱 Teléfono: {'+' + reservation.client.tel_number if reservation.client and reservation.client.tel_number else 'N/A'}\n"
                 f"❌ Motivo: No subió voucher a tiempo\n"
                 f"🆔 Reserva ID: {reservation.id}\n"
                 f"⏰ Eliminada automáticamente por expiración"
