@@ -298,10 +298,14 @@ class ActivityFeedSerializer(serializers.ModelSerializer):
         # Agregar formatted_message a activity_data
         data['formatted_message'] = obj.get_formatted_message()
         
-        # El reason ya debería estar en activity_data, pero si no está, usar default
-        if 'reason' not in data:
-            from .models import ActivityFeedConfig
-            data['reason'] = ActivityFeedConfig.get_default_reason(obj.activity_type)
+        # SIEMPRE usar reason del config admin (prioridad sobre activity_data existente)
+        from .models import ActivityFeedConfig
+        config_reason = ActivityFeedConfig.get_default_reason(obj.activity_type)
+        if config_reason:
+            data['reason'] = config_reason
+        elif 'reason' not in data:
+            # Solo usar fallback si no hay config admin Y no hay reason en activity_data
+            data['reason'] = ''
         
         return data
     
