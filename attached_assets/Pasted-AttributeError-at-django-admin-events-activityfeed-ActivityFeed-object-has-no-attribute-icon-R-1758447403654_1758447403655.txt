@@ -1,0 +1,56 @@
+AttributeError at /django-admin/events/activityfeed/
+'ActivityFeed' object has no attribute 'icon'
+Request Method:	GET
+Request URL:	http://api.casaaustin.pe/django-admin/events/activityfeed/
+Django Version:	4.2
+Exception Type:	AttributeError
+Exception Value:	
+'ActivityFeed' object has no attribute 'icon'
+Exception Location:	/srv/casaaustin/api-casa-austin/src/apps/events/models.py, line 492, in get_formatted_message
+Raised during:	django.contrib.admin.options.changelist_view
+Python Executable:	/usr/bin/python3
+Python Version:	3.9.19
+Python Path:	
+['/srv/casaaustin/api-casa-austin/src',
+ '/home/almalinux/.local/bin',
+ '/usr/lib64/python39.zip',
+ '/usr/lib64/python3.9',
+ '/usr/lib64/python3.9/lib-dynload',
+ '/home/almalinux/.local/lib/python3.9/site-packages',
+ '/usr/local/lib64/python3.9/site-packages',
+ '/usr/local/lib/python3.9/site-packages',
+ '/usr/lib64/python3.9/site-packages',
+ '/usr/lib/python3.9/site-packages']
+Server time:	Sun, 21 Sep 2025 04:36:38 -0500
+Error during template rendering
+In template /home/almalinux/.local/lib/python3.9/site-packages/django/contrib/admin/templates/admin/change_list.html, error at line 68
+
+'ActivityFeed' object has no attribute 'icon'
+58	        {% block search %}{% search_form cl %}{% endblock %}
+59	        {% block date_hierarchy %}{% if cl.date_hierarchy %}{% date_hierarchy cl %}{% endif %}{% endblock %}
+60	
+61	        <form id="changelist-form" method="post"{% if cl.formset and cl.formset.is_multipart %} enctype="multipart/form-data"{% endif %} novalidate>{% csrf_token %}
+62	        {% if cl.formset %}
+63	          <div>{{ cl.formset.management_form }}</div>
+64	        {% endif %}
+65	
+66	        {% block result_list %}
+67	          {% if action_form and actions_on_top and cl.show_admin_actions %}{% admin_actions %}{% endif %}
+68	          {% result_list cl %}
+69	          {% if action_form and actions_on_bottom and cl.show_admin_actions %}{% admin_actions %}{% endif %}
+70	        {% endblock %}
+71	        {% block pagination %}{% pagination cl %}{% endblock %}
+72	        </form>
+73	      </div>
+74	      {% block filters %}
+75	        {% if cl.has_filters %}
+76	          <div id="changelist-filter">
+77	            <h2>{% translate 'Filter' %}</h2>
+78	            {% if cl.has_active_filters %}<h3 id="changelist-filter-clear">
+Traceback Switch to copy-and-paste view
+/home/almalinux/.local/lib/python3.9/site-packages/django/db/models/options.py, line 681, in get_field
+            return self.fields_map[field_name] …
+Local vars
+During handling of the above exception ('formatted_title_display'), another exception occurred:
+/home/almalinux/.local/lib/python3.9/site-packages/django/contrib/admin/utils.py, line 272, in lookup_field
+        f = _get_non_gfk_field(opts, name) 
