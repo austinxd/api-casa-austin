@@ -535,8 +535,7 @@ class ActivityFeed(BaseModel):
         
         elif self.activity_type == self.ActivityType.DISCOUNT_USED:
             discount_name = self.activity_data.get('discount_name', 'un descuento')
-            discount_amount = self.activity_data.get('discount_amount', '')
-            return f"{client_name} usó {discount_name}{f' ({discount_amount})' if discount_amount else ''}"
+            return f"{client_name} usó {discount_name}"
         
         elif self.activity_type == self.ActivityType.MILESTONE_REACHED:
             milestone = self.activity_data.get('milestone', 'un hito importante')

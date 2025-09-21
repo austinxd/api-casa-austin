@@ -150,7 +150,6 @@ class Command(BaseCommand):
                 'check_in': reservation.check_in_date.isoformat() if reservation.check_in_date else None,
                 'check_out': reservation.check_out_date.isoformat() if reservation.check_out_date else None,
                 'reason': 'voucher no subido en 60 minutos',
-                'price_sol': float(reservation.price_sol) if reservation.price_sol else 0.0,
                 'deadline_expired': reservation.payment_voucher_deadline.isoformat() if reservation.payment_voucher_deadline else None,
                 'origin': 'cron_delete_expired'
             }
