@@ -109,7 +109,7 @@ class Command(BaseCommand):
         backup_data = []
         for activity in activities:
             backup_data.append({
-                'id': activity['id'],
+                'id': str(activity['id']),  # Convertir UUID a string
                 'activity_type': activity['activity_type'],
                 'created': activity['created'].isoformat(),
                 'activity_data': activity['activity_data']
