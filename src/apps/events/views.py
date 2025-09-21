@@ -109,7 +109,7 @@ class EventParticipantsView(APIView):
                 name = f"{registration.client.first_name} {registration.client.last_name[0]}." if registration.client.last_name else registration.client.first_name
                 participants_data.append({
                     'participant_name': name,
-                    'registration_date': registration.created_at.date(),
+                    'registration_date': registration.created.date(),
                     'status': registration.get_status_display()
                 })
         
@@ -201,7 +201,7 @@ class ClientEventRegistrationsView(APIView):
         client = request.user
         registrations = EventRegistration.objects.filter(
             client=client
-        ).select_related('event').order_by('-created_at')
+        ).select_related('event').order_by('-created')
         
         registrations_data = []
         for registration in registrations:
@@ -256,7 +256,7 @@ class ActivityFeedView(APIView):
         limit = int(request.GET.get('limit', 20))
         
         # Base queryset
-        activities = ActivityFeed.objects.all().order_by('-created_at')
+        activities = ActivityFeed.objects.all().order_by('-created')
         
         # Aplicar filtros
         if activity_type:
@@ -283,8 +283,8 @@ class RecentActivitiesView(APIView):
         since = timezone.now() - timedelta(hours=hours)
         
         activities = ActivityFeed.objects.filter(
-            created_at__gte=since
-        ).order_by('-created_at')[:50]
+            created__gte=since
+        ).order_by('-created')[:50]
         
         serializer = ActivityFeedSerializer(activities, many=True)
         
@@ -306,7 +306,7 @@ class ActivityFeedStatsView(APIView):
         days = int(request.GET.get('days', 7))
         since = timezone.now() - timedelta(days=days)
         
-        activities = ActivityFeed.objects.filter(created_at__gte=since)
+        activities = ActivityFeed.objects.filter(created__gte=since)
         
         # Estadísticas por tipo
         stats_by_type = activities.values('activity_type').annotate(
@@ -317,7 +317,7 @@ class ActivityFeedStatsView(APIView):
         daily_stats = []
         for i in range(days):
             day = timezone.now().date() - timedelta(days=i)
-            day_activities = activities.filter(created_at__date=day)
+            day_activities = activities.filter(created__date=day)
             daily_stats.append({
                 'date': day.isoformat(),
                 'total_activities': day_activities.count(),
