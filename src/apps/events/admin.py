@@ -297,23 +297,28 @@ class ActivityFeedConfigAdmin(admin.ModelAdmin):
     
     def activity_type_icon_display(self, obj):
         """Icono del tipo de actividad"""
-        # Mapeo de iconos según el tipo
-        icon_map = {
-            'points_earned': "⭐",
-            'reservation_made': "📅",
-            'event_created': "🎉",
-            'event_registration': "✅",
-            'event_winner': "🏆",
-            'achievement_earned': "🏅",
-            'property_visited': "🏠",
-            'payment_completed': "💰",
-            'discount_used': "🎫",
-            'review_posted': "📝",
-            'staff_assigned': "👥",
-            'milestone_reached': "🎯",
-            'system_update': "📢"
-        }
-        icon = icon_map.get(obj.activity_type, "📌")
+        # Usar el icono configurado por el usuario o fallback
+        if obj.default_icon:
+            icon = obj.default_icon
+        else:
+            # Mapeo de iconos por defecto solo si no hay configurado
+            icon_map = {
+                'points_earned': "⭐",
+                'reservation_made': "📅",
+                'event_created': "🎉",
+                'event_registration': "✅",
+                'event_winner': "🏆",
+                'achievement_earned': "🏅",
+                'property_visited': "🏠",
+                'payment_completed': "💰",
+                'discount_used': "🎫",
+                'review_posted': "📝",
+                'staff_assigned': "👥",
+                'milestone_reached': "🎯",
+                'system_update': "📢"
+            }
+            icon = icon_map.get(obj.activity_type, "📌")
+        
         return format_html('<span style="font-size: 1.5em;">{}</span>', icon)
     activity_type_icon_display.short_description = '🎯'
     
