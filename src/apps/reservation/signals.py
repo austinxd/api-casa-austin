@@ -824,7 +824,7 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
                     is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.RESERVATION_MADE)
                     importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.RESERVATION_MADE)
                     
-                    dates_str = f"del {instance.check_in_date.strftime('%d/%m')} al {instance.check_out_date.strftime('%d/%m/%Y')}"
+                    dates_str = format_date_range_es(instance.check_in_date, instance.check_out_date)
                     
                     activity = ActivityFeed.create_activity(
                         activity_type=ActivityFeed.ActivityType.RESERVATION_MADE,
@@ -894,7 +894,7 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
                         is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.PAYMENT_COMPLETED)
                         importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.PAYMENT_COMPLETED)
                         
-                        dates_str = f"del {instance.check_in_date.strftime('%d/%m')} al {instance.check_out_date.strftime('%d/%m/%Y')}"
+                        dates_str = format_date_range_es(instance.check_in_date, instance.check_out_date)
                         
                         ActivityFeed.create_activity(
                             activity_type=ActivityFeed.ActivityType.PAYMENT_COMPLETED,
@@ -957,7 +957,7 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
                         is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.PAYMENT_COMPLETED)
                         importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.PAYMENT_COMPLETED)
                         
-                        dates_str = f"del {instance.check_in_date.strftime('%d/%m')} al {instance.check_out_date.strftime('%d/%m/%Y')}"
+                        dates_str = format_date_range_es(instance.check_in_date, instance.check_out_date)
                         
                         ActivityFeed.create_activity(
                             activity_type=ActivityFeed.ActivityType.PAYMENT_COMPLETED,
@@ -991,7 +991,7 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
                         is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.RESERVATION_MADE)
                         importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.RESERVATION_MADE)
                         
-                        dates_str = f"del {instance.check_in_date.strftime('%d/%m')} al {instance.check_out_date.strftime('%d/%m/%Y')}"
+                        dates_str = format_date_range_es(instance.check_in_date, instance.check_out_date)
                         
                         ActivityFeed.create_activity(
                             activity_type=ActivityFeed.ActivityType.RESERVATION_MADE,
