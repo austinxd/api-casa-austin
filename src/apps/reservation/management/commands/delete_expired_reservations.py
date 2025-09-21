@@ -172,10 +172,11 @@ class Command(BaseCommand):
                 activity_data__property_name=property_name,  # Deduplicación por propiedad y fechas
                 activity_data__dates=dates,
                 defaults={
+                    'title': 'Reserva Liberada por Sistema',
+                    'description': 'La reserva fue liberada automáticamente debido a que no se confirmó el depósito en el plazo indicado',
                     'activity_data': activity_data,
                     'is_public': is_public,
-                    'importance_level': importance,
-                    'icon': '⏰'
+                    'importance_level': importance
                 }
             )
             
