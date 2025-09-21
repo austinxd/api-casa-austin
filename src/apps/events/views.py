@@ -1252,9 +1252,27 @@ class SearchTrackingStatsView(APIView):
             # Top propiedades buscadas
             result_data['top_searched_properties'] = self._analyze_top_searched_properties(searches)
             
+            # NUEVOS ANÁLISIS ENRIQUECIDOS
+            # 1. Fechas más buscadas (check-in dates populares)
+            result_data['popular_checkin_dates'] = self._analyze_popular_checkin_dates(searches)
+            
+            # 2. Análisis de duraciones de estadía
+            result_data['stay_duration_analysis'] = self._analyze_stay_durations(searches)
+            
+            # 3. Análisis de número de huéspedes
+            result_data['guest_count_analysis'] = self._analyze_guest_counts(searches)
+            
+            # 4. Análisis temporal (por hora del día)
+            result_data['searches_by_hour'] = self._analyze_searches_by_hour(searches)
+            
+            # 5. Actividad diaria (búsquedas por día)
+            result_data['daily_search_activity'] = self._analyze_daily_activity(searches, date_from, date_to)
+            
             # Análisis de clientes (si incluido)
             if include_clients:
                 result_data['top_searching_clients'] = self._analyze_top_searching_clients(searches)
+                # 6. Búsquedas por cliente único
+                result_data['searches_per_client'] = self._analyze_searches_per_client(searches)
             
             # Análisis de IPs anónimas (si incluido)
             if include_anonymous:
@@ -1500,6 +1518,232 @@ class SearchTrackingStatsView(APIView):
             'top_searching_ips': result[:15],  # Top 15 IPs
             'total_anonymous_ips': len(ips_data)
         }
+    
+    def _analyze_popular_checkin_dates(self, searches):
+        """Analizar fechas de check-in más buscadas"""
+        from collections import defaultdict
+        from datetime import datetime
+        
+        checkin_counts = defaultdict(int)
+        checkin_guests = defaultdict(list)
+        
+        for search in searches.values('check_in_date', 'guests'):
+            if search['check_in_date']:
+                date_str = search['check_in_date'].isoformat()
+                checkin_counts[date_str] += 1
+                if search['guests']:
+                    checkin_guests[date_str].append(search['guests'])
+        
+        result = []
+        for date_str, count in sorted(checkin_counts.items(), key=lambda x: x[1], reverse=True)[:20]:
+            guests_list = checkin_guests[date_str]
+            avg_guests = sum(guests_list) / len(guests_list) if guests_list else 0
+            
+            # Convertir fecha para mostrar info adicional
+            date_obj = datetime.fromisoformat(date_str).date()
+            weekday = date_obj.strftime('%A')
+            
+            result.append({
+                'check_in_date': date_str,
+                'searches_count': count,
+                'weekday': weekday,
+                'avg_guests': round(avg_guests, 1),
+                'total_guests_searched': sum(guests_list)
+            })
+        
+        return result
+    
+    def _analyze_stay_durations(self, searches):
+        """Analizar duraciones de estadía buscadas"""
+        from collections import defaultdict
+        
+        duration_counts = defaultdict(int)
+        duration_searches = defaultdict(list)
+        
+        for search in searches.values('check_in_date', 'check_out_date', 'guests'):
+            if search['check_in_date'] and search['check_out_date']:
+                nights = (search['check_out_date'] - search['check_in_date']).days
+                duration_counts[nights] += 1
+                duration_searches[nights].append(search)
+        
+        result = []
+        total_searches = sum(duration_counts.values())
+        
+        for nights, count in sorted(duration_counts.items()):
+            if nights > 0:  # Solo estadías válidas
+                searches_info = duration_searches[nights]
+                avg_guests = sum([s['guests'] for s in searches_info if s['guests']]) / len([s for s in searches_info if s['guests']]) if any(s['guests'] for s in searches_info) else 0
+                
+                result.append({
+                    'nights': nights,
+                    'duration_label': f'{nights} noche{"s" if nights != 1 else ""}',
+                    'searches_count': count,
+                    'percentage': round(count / total_searches * 100, 2) if total_searches > 0 else 0,
+                    'avg_guests': round(avg_guests, 1)
+                })
+        
+        return result
+    
+    def _analyze_guest_counts(self, searches):
+        """Analizar número de huéspedes buscados"""
+        from collections import defaultdict
+        
+        guest_counts = defaultdict(int)
+        guest_searches = defaultdict(list)
+        
+        for search in searches.values('guests', 'check_in_date', 'check_out_date'):
+            if search['guests']:
+                guest_counts[search['guests']] += 1
+                guest_searches[search['guests']].append(search)
+        
+        result = []
+        total_searches = sum(guest_counts.values())
+        
+        for guests, count in sorted(guest_counts.items()):
+            searches_info = guest_searches[guests]
+            
+            # Calcular duración promedio para este número de huéspedes
+            valid_durations = []
+            for s in searches_info:
+                if s['check_in_date'] and s['check_out_date']:
+                    nights = (s['check_out_date'] - s['check_in_date']).days
+                    if nights > 0:
+                        valid_durations.append(nights)
+            
+            avg_nights = sum(valid_durations) / len(valid_durations) if valid_durations else 0
+            
+            result.append({
+                'guest_count': guests,
+                'guest_label': f'{guests} huésped{"es" if guests != 1 else ""}',
+                'searches_count': count,
+                'percentage': round(count / total_searches * 100, 2) if total_searches > 0 else 0,
+                'avg_nights': round(avg_nights, 1)
+            })
+        
+        return result
+    
+    def _analyze_searches_by_hour(self, searches):
+        """Analizar búsquedas por hora del día"""
+        from collections import defaultdict
+        
+        hour_counts = defaultdict(int)
+        
+        for search in searches.values('search_timestamp'):
+            if search['search_timestamp']:
+                hour = search['search_timestamp'].hour
+                hour_counts[hour] += 1
+        
+        result = []
+        total_searches = sum(hour_counts.values())
+        
+        for hour in range(24):
+            count = hour_counts[hour]
+            
+            # Determinar período del día
+            if 5 <= hour < 12:
+                period = 'Mañana'
+            elif 12 <= hour < 18:
+                period = 'Tarde'
+            elif 18 <= hour < 22:
+                period = 'Noche'
+            else:
+                period = 'Madrugada'
+            
+            result.append({
+                'hour': hour,
+                'hour_label': f'{hour:02d}:00',
+                'period': period,
+                'searches_count': count,
+                'percentage': round(count / total_searches * 100, 2) if total_searches > 0 else 0
+            })
+        
+        return result
+    
+    def _analyze_daily_activity(self, searches, date_from, date_to):
+        """Analizar actividad diaria de búsquedas"""
+        from collections import defaultdict
+        from datetime import datetime, timedelta
+        
+        daily_counts = defaultdict(int)
+        daily_clients = defaultdict(set)
+        
+        for search in searches.values('search_timestamp', 'client', 'ip_address'):
+            if search['search_timestamp']:
+                date_str = search['search_timestamp'].date().isoformat()
+                daily_counts[date_str] += 1
+                
+                # Contar usuarios únicos por día
+                if search['client']:
+                    daily_clients[date_str].add(search['client'])
+                elif search['ip_address']:
+                    daily_clients[date_str].add(f"ip:{search['ip_address']}")
+        
+        result = []
+        current_date = date_from
+        
+        while current_date <= date_to:
+            date_str = current_date.isoformat()
+            searches_count = daily_counts[date_str]
+            unique_users = len(daily_clients[date_str])
+            weekday = current_date.strftime('%A')
+            
+            result.append({
+                'date': date_str,
+                'weekday': weekday,
+                'searches_count': searches_count,
+                'unique_users': unique_users,
+                'searches_per_user': round(searches_count / unique_users, 2) if unique_users > 0 else 0
+            })
+            
+            current_date += timedelta(days=1)
+        
+        return result
+    
+    def _analyze_searches_per_client(self, searches):
+        """Analizar búsquedas por cliente específico"""
+        from collections import defaultdict
+        
+        client_searches = defaultdict(int)
+        client_details = {}
+        
+        # Solo clientes registrados (no anónimos)
+        client_search_data = searches.filter(client__isnull=False).values(
+            'client', 'client__first_name', 'client__last_name', 'search_timestamp'
+        )
+        
+        for search in client_search_data:
+            client_id = search['client']
+            client_searches[client_id] += 1
+            
+            if client_id not in client_details:
+                first_name = search['client__first_name'] or ''
+                last_name = search['client__last_name'] or ''
+                client_details[client_id] = {
+                    'name': f"{first_name} {last_name}".strip() or f"Cliente {client_id}",
+                    'first_search': search['search_timestamp'],
+                    'last_search': search['search_timestamp']
+                }
+            else:
+                # Actualizar primera y última búsqueda
+                if search['search_timestamp'] < client_details[client_id]['first_search']:
+                    client_details[client_id]['first_search'] = search['search_timestamp']
+                if search['search_timestamp'] > client_details[client_id]['last_search']:
+                    client_details[client_id]['last_search'] = search['search_timestamp']
+        
+        result = []
+        for client_id, count in sorted(client_searches.items(), key=lambda x: x[1], reverse=True)[:20]:
+            details = client_details[client_id]
+            
+            result.append({
+                'client_id': client_id,
+                'client_name': details['name'],
+                'searches_count': count,
+                'first_search': details['first_search'].isoformat(),
+                'last_search': details['last_search'].isoformat(),
+                'search_frequency': 'Recurrente' if count >= 3 else 'Ocasional'
+            })
+        
+        return result
 
 
 class IngresosStatsView(APIView):
