@@ -1,0 +1,60 @@
+✅ ENDPOINTS QUE FUNCIONAN
+1. Search Tracking /api/v1/stats/search-tracking/
+{
+  "success": true,
+  "data": {
+    "search_summary": { "total_searches": 0, "conversion_rate": 0.0 },
+    "searches_by_weekday": [
+      {"day_name": "Monday", "searches_count": 0, "percentage": 0}
+    ],
+    "anonymous_ips_analysis": {
+      "top_searching_ips": [],
+      "total_anonymous_ips": 0
+    }
+  }
+}
+2. Ingresos /api/v1/stats/ingresos/ ✅ CON DATOS REALES
+{
+  "success": true,
+  "data": {
+    "revenue_summary": {
+      "total_revenue": 43226.86,
+      "total_reservations": 47,
+      "avg_revenue_per_reservation": 919.72
+    },
+    "revenue_by_period": [
+      {"period": "2025-08-22", "revenue": 6131.0, "reservations_count": 4}
+    ],
+    "price_analysis": {
+      "price_distribution": [
+        {"price_range": "0-500 PEN", "reservations_count": 19, "percentage": 40.43}
+      ]
+    }
+  }
+}
+🚨 PROBLEMAS ESPECÍFICOS IDENTIFICADOS
+1. Nombres de Campos Diferentes
+Search Tracking:
+
+// LO QUE ESPERO:                    // LO QUE RECIBO:
+searches_by_weekday[].weekday        → day_name
+anonymous_ips_analysis[]             → anonymous_ips_analysis.top_searching_ips[]
+Ingresos:
+
+// LO QUE ESPERO:                    // LO QUE RECIBO:  
+price_analysis.price_ranges[]        → price_analysis.price_distribution[]
+price_ranges[].range                 → price_distribution[].price_range
+price_ranges[].count                 → price_distribution[].reservations_count
+2. Datos Vacíos vs Datos Reales
+Search Tracking: Todos los valores en 0 (sin actividad de búsquedas)
+Ingresos: ✅ Datos reales y completos
+Upcoming Checkins: Respuesta cortada, necesito verificar
+3. Endpoint de Login Correcto
+El endpoint correcto es /api/v1/login/ (no /api/v1/auth/login/)
+
+🔧 NECESITO CORREGIR
+Actualizar interfaces para que coincidan con la respuesta real del backend
+Mapear correctamente los nombres de campos en los componentes
+Verificar upcoming-checkins endpoint completo
+Actualizar el authentication service para usar el endpoint correcto
+Los espacios vacíos en Search Dashboard son porque realmente no hay datos de búsquedas en el periodo, pero Ingresos Dashboard debería mostrar datos reales.

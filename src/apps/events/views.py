@@ -613,7 +613,7 @@ class ComprehensiveStatsView(APIView):
         for dist in distribution:
             result.append({
                 'guest_count': dist['guests'],
-                'reservations_count': dist['reservations_count'],
+                'count': dist['reservations_count'],
                 'percentage': round(dist['reservations_count'] / total_reservations * 100, 2) if total_reservations > 0 else 0,
                 'total_revenue': round(dist['total_revenue'] or 0, 2),
                 'revenue_percentage': round((dist['total_revenue'] or 0) / total_revenue * 100, 2) if total_revenue > 0 else 0
@@ -685,7 +685,7 @@ class ComprehensiveStatsView(APIView):
             if count_field_name == 'reservations_count':
                 # Para reservas
                 period_queryset = queryset.filter(**period_filter)
-                period_data['reservations_count'] = period_queryset.count()
+                period_data['count'] = period_queryset.count()
                 period_data['revenue'] = round(period_queryset.aggregate(Sum('price_sol'))['price_sol__sum'] or 0, 2)
                 
                 # Calcular noches para el período
@@ -754,7 +754,7 @@ class ComprehensiveStatsView(APIView):
             avg_guests = sum(guests_list) / len(guests_list) if guests_list else 0
             
             result.append({
-                'day_name': day_name,
+                'weekday': day_name,
                 'day_number': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].index(day_name) + 1,
                 'searches_count': searches_count,
                 'percentage': round(searches_count / total_searches, 3) if total_searches > 0 else 0,
@@ -1258,7 +1258,8 @@ class SearchTrackingStatsView(APIView):
             
             # Análisis de IPs anónimas (si incluido)
             if include_anonymous:
-                result_data['anonymous_ips_analysis'] = self._analyze_anonymous_ips(searches)
+                anonymous_data = self._analyze_anonymous_ips(searches)
+                result_data['anonymous_ips_analysis'] = anonymous_data['top_searching_ips']
             
             return Response({
                 'success': True,
@@ -1318,7 +1319,7 @@ class SearchTrackingStatsView(APIView):
             avg_guests = sum(guests_list) / len(guests_list) if guests_list else 0
             
             result.append({
-                'day_name': day_name,
+                'weekday': day_name,
                 'day_number': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].index(day_name) + 1,
                 'searches_count': searches_count,
                 'percentage': round(searches_count / total_searches, 3) if total_searches > 0 else 0,
@@ -1674,7 +1675,7 @@ class IngresosStatsView(APIView):
                 'period': current_date.isoformat(),
                 'period_label': period_label,
                 'revenue': round(period_revenue, 2),
-                'reservations_count': period_count,
+                'count': period_count,
                 'nights_count': period_nights,
                 'avg_revenue_per_reservation': round(period_revenue / period_count, 2) if period_count > 0 else 0,
                 'revenue_per_night': round(period_revenue / period_nights, 2) if period_nights > 0 else 0
@@ -1707,7 +1708,7 @@ class IngresosStatsView(APIView):
             for payment in payment_data:
                 payment_methods.append({
                     'payment_method': payment['payment_method'] or 'No especificado',
-                    'reservations_count': payment['count'],
+                    'count': payment['count'],
                     'total_revenue': round(payment['total_revenue'] or 0, 2),
                     'percentage': round((payment['total_revenue'] or 0) / total_revenue * 100, 2) if total_revenue > 0 else 0
                 })
@@ -1715,7 +1716,7 @@ class IngresosStatsView(APIView):
             # Si no hay campo payment_method, devolver estructura básica
             payment_methods.append({
                 'payment_method': 'Todos los métodos',
-                'reservations_count': reservations.count(),
+                'count': reservations.count(),
                 'total_revenue': round(reservations.aggregate(Sum('price_sol'))['price_sol__sum'] or 0, 2),
                 'percentage': 100.0
             })
@@ -1771,8 +1772,8 @@ class IngresosStatsView(APIView):
             ).count()
             
             price_distribution.append({
-                'price_range': price_range['label'],
-                'reservations_count': count,
+                'range': price_range['label'],
+                'count': count,
                 'percentage': round(count / reservations.count() * 100, 2) if reservations.count() > 0 else 0
             })
         
@@ -1782,7 +1783,7 @@ class IngresosStatsView(APIView):
             'max_total_cost': round(price_stats['max_price_sol'] or 0, 2),
             'avg_price_per_night': round(avg_price_per_night, 2),
             'avg_nights_per_reservation': round(avg_nights, 1),
-            'price_distribution': price_distribution
+            'price_ranges': price_distribution
         }
     
     def _calculate_revenue_growth(self, current_reservations, date_from, date_to, period):
