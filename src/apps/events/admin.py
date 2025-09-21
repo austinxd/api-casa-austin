@@ -126,7 +126,7 @@ class ActivityFeedAdmin(admin.ModelAdmin):
             'description': 'Conectar con cliente, evento o propiedad específica'
         }),
         ('⚙️ Configuración de Visibilidad', {
-            'fields': ('is_public', 'importance_level', 'icon'),
+            'fields': ('is_public', 'importance_level'),
             'description': 'Controlar si aparece en el feed público y su importancia'
         }),
         ('📄 Datos Adicionales (JSON)', {
