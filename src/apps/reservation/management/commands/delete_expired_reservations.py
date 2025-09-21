@@ -152,6 +152,13 @@ class Command(BaseCommand):
                 'origin': 'cron_delete_expired'
             }
             
+            # Importar configuración para respetar configuración global
+            from apps.events.models import ActivityFeedConfig
+            
+            # Usar configuración por defecto para visibilidad e importancia
+            is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.RESERVATION_AUTO_DELETED_CRON)
+            importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.RESERVATION_AUTO_DELETED_CRON)
+            
             # Crear actividad usando get_or_create para evitar duplicados
             activity, created = ActivityFeed.objects.get_or_create(
                 activity_type=ActivityFeed.ActivityType.RESERVATION_AUTO_DELETED_CRON,
@@ -160,8 +167,8 @@ class Command(BaseCommand):
                 activity_data__reservation_id=str(reservation.id),  # Deduplicación
                 defaults={
                     'activity_data': activity_data,
-                    'is_public': False,  # Estas eliminaciones son internas
-                    'importance_level': 2,
+                    'is_public': is_public,
+                    'importance_level': importance,
                     'icon': '⏰'
                 }
             )
