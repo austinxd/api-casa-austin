@@ -478,10 +478,14 @@ class ActivityFeed(BaseModel):
             dates = self.activity_data.get('dates', '')
             status_change = self.activity_data.get('status_change', '')
             
+            # No incluir iconos si ya existe uno en el campo icon
+            check_icon = "✅ " if not self.icon else ""
+            money_icon = "💰 " if not self.icon else ""
+            
             if status_change == 'approved_by_admin':
-                return f"✅ Reserva de {client_name} fue aprobada {dates} en {property_name}"
+                return f"{check_icon}Reserva de {client_name} fue aprobada {dates} en {property_name}"
             else:
-                return f"💰 {client_name} completó el pago de su reserva {dates} en {property_name}"
+                return f"{money_icon}{client_name} completó el pago de su reserva {dates} en {property_name}"
         
         elif self.activity_type == self.ActivityType.RESERVATION_AUTO_DELETED_CRON:
             property_name = self.activity_data.get('property_name', 'una propiedad')
@@ -489,13 +493,19 @@ class ActivityFeed(BaseModel):
             reason = self.activity_data.get('reason', 'inactividad')
             reservation_id = self.activity_data.get('reservation_id', '')
             
+            # No incluir icono si ya existe uno en el campo icon
+            clock_icon = "⏰ " if not self.icon else ""
+            
             if client_name:
-                return f"⏰ El sistema eliminó la reserva de {client_name} {dates} en {property_name} por {reason}"
+                return f"{clock_icon}El sistema eliminó la reserva de {client_name} {dates} en {property_name} por {reason}"
             else:
-                return f"⏰ El sistema eliminó una reserva {dates} en {property_name} por {reason}"
+                return f"{clock_icon}El sistema eliminó una reserva {dates} en {property_name} por {reason}"
         
         elif self.activity_type == self.ActivityType.CLIENT_REGISTERED:
             referred_by_info = self.activity_data.get('referred_by_info')
+            
+            # No incluir icono si ya existe uno en el campo icon
+            user_icon = "👤 " if not self.icon else ""
             
             if referred_by_info:
                 # Cliente fue referido - mensaje completo con información de puntos
@@ -503,15 +513,15 @@ class ActivityFeed(BaseModel):
                 points_percentage = referred_by_info.get('points_percentage', 10.0)
                 
                 if client_name:
-                    return f"👤 {client_name} se acaba de registrar y fue referido por {referrer_name}, quien ganará {points_percentage}% de puntos por cada reserva que realice"
+                    return f"{user_icon}{client_name} se acaba de registrar y fue referido por {referrer_name}, quien ganará {points_percentage}% de puntos por cada reserva que realice"
                 else:
-                    return f"👤 Se registró un nuevo cliente referido por {referrer_name}, quien ganará {points_percentage}% de puntos por cada reserva"
+                    return f"{user_icon}Se registró un nuevo cliente referido por {referrer_name}, quien ganará {points_percentage}% de puntos por cada reserva"
             else:
                 # Cliente normal sin referido
                 if client_name:
-                    return f"👤 Se registró un nuevo cliente: {client_name}"
+                    return f"{user_icon}Se registró un nuevo cliente: {client_name}"
                 else:
-                    return f"👤 Se registró un nuevo cliente"
+                    return f"{user_icon}Se registró un nuevo cliente"
         
         elif self.activity_type == self.ActivityType.EVENT_CREATED:
             event_name = self.event.title if self.event else self.activity_data.get('event_name', 'un evento')
@@ -526,12 +536,21 @@ class ActivityFeed(BaseModel):
             position = self.activity_data.get('position', 'ganador')
             prize = self.activity_data.get('prize', '')
             prize_text = f" - {prize}" if prize else ""
-            return f"🏆 {client_name} es {position} del evento: {event_name}{prize_text}"
+            
+            # No incluir icono si ya existe uno en el campo icon
+            trophy_icon = "🏆 " if not self.icon else ""
+            
+            return f"{trophy_icon}{client_name} es {position} del evento: {event_name}{prize_text}"
         
         elif self.activity_type == self.ActivityType.ACHIEVEMENT_EARNED:
             achievement_name = self.activity_data.get('achievement_name', 'un logro')
-            achievement_icon = self.activity_data.get('achievement_icon', '🏅')
-            return f"{achievement_icon} {client_name} obtuvo el logro: {achievement_name}"
+            
+            # No incluir icono si ya existe uno en el campo icon
+            if not self.icon:
+                achievement_icon = self.activity_data.get('achievement_icon', '🏅')
+                return f"{achievement_icon} {client_name} obtuvo el logro: {achievement_name}"
+            else:
+                return f"{client_name} obtuvo el logro: {achievement_name}"
         
         elif self.activity_type == self.ActivityType.DISCOUNT_USED:
             discount_name = self.activity_data.get('discount_name', 'un descuento')
@@ -539,11 +558,19 @@ class ActivityFeed(BaseModel):
         
         elif self.activity_type == self.ActivityType.MILESTONE_REACHED:
             milestone = self.activity_data.get('milestone', 'un hito importante')
-            return f"🎉 ¡Casa Austin alcanzó {milestone}!"
+            
+            # No incluir icono si ya existe uno en el campo icon
+            party_icon = "🎉 " if not self.icon else ""
+            
+            return f"{party_icon}¡Casa Austin alcanzó {milestone}!"
         
         elif self.activity_type == self.ActivityType.SYSTEM_UPDATE:
             update_name = self.activity_data.get('update_name', 'una actualización')
-            return f"📢 {update_name}"
+            
+            # No incluir icono si ya existe uno en el campo icon
+            speaker_icon = "📢 " if not self.icon else ""
+            
+            return f"{speaker_icon}{update_name}"
         
         # Fallback a título personalizado si existe
         return self.title if self.title else f"Nueva actividad: {self.get_activity_type_display()}"
