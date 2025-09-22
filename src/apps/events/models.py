@@ -470,6 +470,13 @@ class ActivityFeed(BaseModel):
             else:
                 return f"{client_name} hizo una reserva {dates} en {property_name}"
         
+        elif self.activity_type == self.ActivityType.RESERVATION_CONFIRMED:
+            property_name = self.activity_data.get('property_name', 'Casa Austin')
+            dates = self.activity_data.get('dates', '')
+            
+            # Formato específico: "Se confirmó la reserva del [fechas] en [propiedad] para [cliente]"
+            return f"Se confirmó la reserva del {dates} en {property_name} para {client_name}"
+        
         elif self.activity_type == self.ActivityType.PAYMENT_COMPLETED:
             property_name = self.activity_data.get('property_name', 'Casa Austin')
             dates = self.activity_data.get('dates', '')
