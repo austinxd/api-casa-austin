@@ -268,13 +268,38 @@ class EventCancelRegistrationView(APIView):
         event = get_object_or_404(Event, id=event_id, is_active=True)
         client = request.user
         
-        # Buscar registro existente
-        registration = get_object_or_404(
-            EventRegistration,
-            event=event,
-            client=client,
-            status__in=['pending', 'approved']  # Solo cancelar registros activos
-        )
+        # Buscar registro existente con mejor manejo de errores
+        try:
+            registration = EventRegistration.objects.get(
+                event=event,
+                client=client,
+                status__in=['pending', 'approved']
+            )
+        except EventRegistration.DoesNotExist:
+            # Debug: verificar si existe registro con cualquier estado
+            any_registration = EventRegistration.objects.filter(
+                event=event,
+                client=client
+            ).first()
+            
+            if any_registration:
+                if any_registration.status == 'cancelled':
+                    return Response({
+                        'error': 'Tu registro ya fue cancelado anteriormente',
+                        'status': any_registration.status,
+                        'cancelled_date': any_registration.updated.isoformat()
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    return Response({
+                        'error': f'Tu registro tiene estado "{any_registration.status}" y no puede ser cancelado',
+                        'valid_states': ['pending', 'approved']
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({
+                    'error': 'No tienes un registro para este evento',
+                    'event_id': str(event_id),
+                    'client_id': str(client.id) if hasattr(client, 'id') else str(client)
+                }, status=status.HTTP_404_NOT_FOUND)
         
         # Verificar si el evento ya pasó
         if event.event_date < timezone.now():
