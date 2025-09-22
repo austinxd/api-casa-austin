@@ -3,6 +3,8 @@ from .views import (
     # Endpoints públicos
     PublicEventCategoryListView,
     PublicEventListView,
+    PastEventsView,
+    ComingEventsView,
     PublicEventDetailView,
     EventParticipantsView,
     
@@ -29,6 +31,8 @@ urlpatterns = [
     # === ENDPOINTS PÚBLICOS (sin autenticación) ===
     path('categories/', PublicEventCategoryListView.as_view(), name='public-categories'),
     path('', PublicEventListView.as_view(), name='public-event-list'),
+    path('past/', PastEventsView.as_view(), name='past-events'),
+    path('coming/', ComingEventsView.as_view(), name='coming-events'), 
     path('<uuid:id>/', PublicEventDetailView.as_view(), name='public-event-detail'),
     path('<uuid:event_id>/participants/', EventParticipantsView.as_view(), name='event-participants'),
     

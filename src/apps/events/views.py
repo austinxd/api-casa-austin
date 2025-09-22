@@ -7,6 +7,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework import status
+from rest_framework.generics import ListAPIView
+from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Q, Count, Avg, Sum, Max, Min
@@ -23,6 +25,15 @@ from .serializers import (
 from apps.clients.auth_views import ClientJWTAuthentication
 
 logger = logging.getLogger(__name__)
+
+
+# ==================== PAGINACIÓN ====================
+
+class EventPagination(PageNumberPagination):
+    """Paginación personalizada para eventos"""
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 50
 
 
 # ==================== ENDPOINTS PÚBLICOS ====================
@@ -63,6 +74,59 @@ class PublicEventListView(APIView):
         
         serializer = EventListSerializer(events, many=True)
         return Response(serializer.data)
+
+
+class PastEventsView(ListAPIView):
+    """Lista eventos pasados con paginación"""
+    permission_classes = [AllowAny]
+    serializer_class = EventListSerializer
+    pagination_class = EventPagination
+
+    def get_queryset(self):
+        # Eventos pasados - antes de hoy
+        queryset = Event.objects.filter(
+            is_active=True,
+            event_date__lt=timezone.now()
+        ).order_by('-event_date')
+
+        # Filtros opcionales
+        category = self.request.GET.get('category')
+        location = self.request.GET.get('location')
+        
+        if category:
+            queryset = queryset.filter(category__name__icontains=category)
+        if location:
+            queryset = queryset.filter(location__icontains=location)
+            
+        return queryset
+
+
+class ComingEventsView(ListAPIView):
+    """Lista eventos futuros/próximos con paginación"""
+    permission_classes = [AllowAny]
+    serializer_class = EventListSerializer
+    pagination_class = EventPagination
+
+    def get_queryset(self):
+        # Eventos futuros - a partir de hoy
+        queryset = Event.objects.filter(
+            is_active=True,
+            event_date__gte=timezone.now()
+        ).order_by('event_date')
+
+        # Filtros opcionales
+        category = self.request.GET.get('category')
+        location = self.request.GET.get('location')
+        date_from = self.request.GET.get('date_from')
+        
+        if category:
+            queryset = queryset.filter(category__name__icontains=category)
+        if location:
+            queryset = queryset.filter(location__icontains=location)
+        if date_from:
+            queryset = queryset.filter(event_date__gte=date_from)
+            
+        return queryset
 
 
 class PublicEventDetailView(APIView):
@@ -195,21 +259,38 @@ class EventRegistrationView(APIView):
             logger.error(f'Error logging registration activity: {e}')
 
 
-class ClientEventRegistrationsView(APIView):
-    """Lista las inscripciones del cliente"""
+class ClientEventRegistrationsView(ListAPIView):
+    """Lista las inscripciones del cliente con paginación"""
     authentication_classes = [ClientJWTAuthentication]
     permission_classes = [IsAuthenticated]
+    serializer_class = EventRegistrationSerializer
+    pagination_class = EventPagination
 
-    def get(self, request):
-        client = request.user
-        registrations = EventRegistration.objects.filter(
+    def get_queryset(self):
+        client = self.request.user
+        return EventRegistration.objects.filter(
             client=client
         ).select_related('event').order_by('-created')
+
+    def list(self, request, *args, **kwargs):
+        """Override para agregar detalles del evento"""
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
         
+        if page is not None:
+            registrations_data = []
+            for registration in page:
+                registration_data = EventRegistrationSerializer(registration).data
+                # Agregar información del evento
+                registration_data['event_details'] = EventListSerializer(registration.event).data
+                registrations_data.append(registration_data)
+            
+            return self.get_paginated_response(registrations_data)
+        
+        # Sin paginación (fallback)
         registrations_data = []
-        for registration in registrations:
+        for registration in queryset:
             registration_data = EventRegistrationSerializer(registration).data
-            # Agregar información del evento
             registration_data['event_details'] = EventListSerializer(registration.event).data
             registrations_data.append(registration_data)
         
