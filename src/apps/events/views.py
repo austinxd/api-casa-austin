@@ -196,18 +196,25 @@ class EventRegistrationView(APIView):
         event = get_object_or_404(Event, id=event_id, is_active=True)
         client = request.user
         
-        # Verificar si ya está registrado (SOLO registros activos)
-        existing_registration = EventRegistration.objects.filter(
+        # Verificar si ya tiene un registro activo
+        active_registration = EventRegistration.objects.filter(
             event=event,
             client=client,
-            status__in=['pending', 'approved']  # ✅ Excluir cancelados
+            status__in=['pending', 'approved']
         ).first()
         
-        if existing_registration:
+        if active_registration:
             return Response({
                 'error': 'Ya estás registrado en este evento',
-                'registration_id': existing_registration.id
+                'registration_id': active_registration.id
             }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verificar si tiene un registro cancelado que podemos reactivar
+        cancelled_registration = EventRegistration.objects.filter(
+            event=event,
+            client=client,
+            status='cancelled'
+        ).first()
         
         # Verificar capacidad
         current_registrations = EventRegistration.objects.filter(
@@ -220,12 +227,27 @@ class EventRegistrationView(APIView):
                 'error': 'El evento está lleno'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Crear registro
+        # Si existe registro cancelado, reactivarlo
+        if cancelled_registration:
+            cancelled_registration.status = 'approved'
+            cancelled_registration.notes = request.data.get('special_requests', '')
+            cancelled_registration.save()
+            
+            # Log de actividad
+            self._log_registration_activity(cancelled_registration)
+            
+            serializer = EventRegistrationSerializer(cancelled_registration)
+            return Response({
+                'message': 'Registro reactivado exitosamente',
+                'registration': serializer.data
+            }, status=status.HTTP_200_OK)
+        
+        # Si no hay registro previo, crear uno nuevo
         registration_data = {
             'event': event.id,
             'client': client.id,
             'status': 'approved',
-            'special_requests': request.data.get('special_requests', '')
+            'notes': request.data.get('special_requests', '')
         }
         
         serializer = EventRegistrationSerializer(data=registration_data)
