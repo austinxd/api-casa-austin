@@ -390,15 +390,16 @@ def check_event_eligibility(request, event_id):
     event = get_object_or_404(Event, id=event_id, is_active=True)
     client = request.user
     
-    # Verificaciones
+    # Verificaciones - SOLO considerar registros activos (no cancelados)
     is_registered = EventRegistration.objects.filter(
         event=event,
-        client=client
+        client=client,
+        status__in=['pending', 'approved']  # ✅ Excluir cancelados
     ).exists()
     
     current_registrations = EventRegistration.objects.filter(
         event=event,
-        status='CONFIRMED'
+        status='approved'  # ✅ Corregir estado válido
     ).count()
     
     is_full = current_registrations >= event.max_participants
