@@ -267,15 +267,17 @@ class EventRegistrationView(APIView):
     def _log_registration_activity(self, registration):
         """Registrar actividad de inscripción"""
         try:
-            ActivityFeed.objects.create(
-                activity_type='registration',
+            ActivityFeed.create_activity(
+                activity_type=ActivityFeed.ActivityType.EVENT_REGISTRATION,
                 title='Nueva inscripción a evento',
-                description=f'{registration.client.first_name} se inscribió a {registration.event.title}',
                 client=registration.client,
-                metadata={
+                event=registration.event,
+                property_location=registration.event.property_location,
+                activity_data={
                     'event_id': str(registration.event.id),
                     'event_name': registration.event.title,
-                    'registration_id': str(registration.id)
+                    'registration_id': str(registration.id),
+                    'action': 'registered'
                 }
             )
         except Exception as e:
@@ -351,12 +353,13 @@ class EventCancelRegistrationView(APIView):
     def _log_cancellation_activity(self, registration):
         """Registrar actividad de cancelación"""
         try:
-            ActivityFeed.objects.create(
-                activity_type='event_registration',
+            ActivityFeed.create_activity(
+                activity_type=ActivityFeed.ActivityType.EVENT_REGISTRATION,
                 title='Registro cancelado',
-                description=f'{registration.client.first_name} canceló su registro a {registration.event.title}',
                 client=registration.client,
-                metadata={
+                event=registration.event,
+                property_location=registration.event.property_location,
+                activity_data={
                     'event_id': str(registration.event.id),
                     'event_name': registration.event.title,
                     'registration_id': str(registration.id),
