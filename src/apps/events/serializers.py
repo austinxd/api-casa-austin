@@ -282,6 +282,7 @@ class ActivityFeedSerializer(serializers.ModelSerializer):
     icon = serializers.SerializerMethodField()  # Obtenido del ActivityFeedConfig
     time_ago = serializers.ReadOnlyField()
     client_name = serializers.SerializerMethodField()
+    client_info = serializers.SerializerMethodField()  # ✅ Nueva información completa del cliente
     activity_type_display = serializers.CharField(source='get_activity_type_display', read_only=True)
     activity_data = serializers.SerializerMethodField()  # Incluir reason y formatted_message aquí
     
@@ -289,7 +290,7 @@ class ActivityFeedSerializer(serializers.ModelSerializer):
         model = ActivityFeed
         fields = [
             'id', 'activity_type', 'activity_type_display', 'title', 'description',
-            'icon', 'time_ago', 'client_name', 
+            'icon', 'time_ago', 'client_name', 'client_info',  # ✅ Agregado client_info
             'importance_level', 'created', 'activity_data'
         ]
     
@@ -328,6 +329,18 @@ class ActivityFeedSerializer(serializers.ModelSerializer):
             return f"{first_name_only} {last_initial}."
         
         return first_name_only
+    
+    def get_client_info(self, obj):
+        """Obtiene información completa del cliente incluyendo Facebook"""
+        if not obj.client:
+            return None
+        
+        return {
+            'id': str(obj.client.id),
+            'name': self.get_client_name(obj),
+            'facebook_linked': obj.client.facebook_linked,  # ✅ Facebook vinculado
+            'facebook_profile_picture': obj.client.get_facebook_profile_picture()  # ✅ Foto de perfil
+        }
 
 
 class ActivityFeedCreateSerializer(serializers.ModelSerializer):
