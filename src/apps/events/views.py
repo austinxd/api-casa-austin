@@ -196,10 +196,11 @@ class EventRegistrationView(APIView):
         event = get_object_or_404(Event, id=event_id, is_active=True)
         client = request.user
         
-        # Verificar si ya está registrado
+        # Verificar si ya está registrado (SOLO registros activos)
         existing_registration = EventRegistration.objects.filter(
             event=event,
-            client=client
+            client=client,
+            status__in=['pending', 'approved']  # ✅ Excluir cancelados
         ).first()
         
         if existing_registration:
