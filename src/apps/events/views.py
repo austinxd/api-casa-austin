@@ -269,7 +269,7 @@ class EventRegistrationView(APIView):
         try:
             ActivityFeed.create_activity(
                 activity_type=ActivityFeed.ActivityType.EVENT_REGISTRATION,
-                title='Nueva inscripción a evento',
+                title='Inscripción a evento',  # ✅ Título específico para registro
                 client=registration.client,
                 event=registration.event,
                 property_location=registration.event.property_location,
@@ -355,7 +355,7 @@ class EventCancelRegistrationView(APIView):
         try:
             ActivityFeed.create_activity(
                 activity_type=ActivityFeed.ActivityType.EVENT_REGISTRATION,
-                title='Registro cancelado',
+                title='Cancelación a evento',  # ✅ Título específico para cancelación
                 client=registration.client,
                 event=registration.event,
                 property_location=registration.event.property_location,
