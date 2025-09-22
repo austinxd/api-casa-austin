@@ -143,7 +143,7 @@ class PublicEventDetailView(APIView):
         # Agregar estadísticas públicas
         registrations = EventRegistration.objects.filter(event=event)
         spots_taken = registrations.filter(
-            status__in=['APPROVED', 'PENDING']
+            status__in=['approved', 'pending']
         ).count()
         
         event_data['spots_taken'] = spots_taken
@@ -163,7 +163,7 @@ class EventParticipantsView(APIView):
         # Solo mostrar participantes aprobados con información limitada
         participants = EventRegistration.objects.filter(
             event=event,
-            status='APPROVED'
+            status='approved'
         ).select_related('client')
         
         # Información limitada por privacidad
@@ -211,7 +211,7 @@ class EventRegistrationView(APIView):
         # Verificar capacidad
         current_registrations = EventRegistration.objects.filter(
             event=event,
-            status='APPROVED'
+            status='approved'
         ).count()
         
         if current_registrations >= event.max_participants:
@@ -223,7 +223,7 @@ class EventRegistrationView(APIView):
         registration_data = {
             'event': event.id,
             'client': client.id,
-            'status': 'APPROVED',
+            'status': 'approved',
             'special_requests': request.data.get('special_requests', '')
         }
         
@@ -273,7 +273,7 @@ class EventCancelRegistrationView(APIView):
             EventRegistration,
             event=event,
             client=client,
-            status__in=['PENDING', 'APPROVED']  # Solo cancelar registros activos
+            status__in=['pending', 'approved']  # Solo cancelar registros activos
         )
         
         # Verificar si el evento ya pasó
@@ -283,7 +283,7 @@ class EventCancelRegistrationView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Cambiar estado a cancelado (no eliminar para mantener historial)
-        registration.status = 'CANCELLED'
+        registration.status = 'cancelled'
         registration.save()
         
         # Log de actividad
