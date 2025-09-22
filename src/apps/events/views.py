@@ -143,7 +143,7 @@ class PublicEventDetailView(APIView):
         # Agregar estadísticas públicas
         registrations = EventRegistration.objects.filter(event=event)
         spots_taken = registrations.filter(
-            status__in=['CONFIRMED', 'CHECKED_IN']
+            status__in=['APPROVED', 'PENDING']
         ).count()
         
         event_data['spots_taken'] = spots_taken
@@ -160,10 +160,10 @@ class EventParticipantsView(APIView):
     def get(self, request, event_id):
         event = get_object_or_404(Event, id=event_id)
         
-        # Solo mostrar participantes confirmados con información limitada
+        # Solo mostrar participantes aprobados con información limitada
         participants = EventRegistration.objects.filter(
             event=event,
-            status='CONFIRMED'
+            status='APPROVED'
         ).select_related('client')
         
         # Información limitada por privacidad
@@ -211,7 +211,7 @@ class EventRegistrationView(APIView):
         # Verificar capacidad
         current_registrations = EventRegistration.objects.filter(
             event=event,
-            status='CONFIRMED'
+            status='APPROVED'
         ).count()
         
         if current_registrations >= event.max_participants:
@@ -223,7 +223,7 @@ class EventRegistrationView(APIView):
         registration_data = {
             'event': event.id,
             'client': client.id,
-            'status': 'CONFIRMED',
+            'status': 'APPROVED',
             'special_requests': request.data.get('special_requests', '')
         }
         
@@ -273,7 +273,7 @@ class EventCancelRegistrationView(APIView):
             EventRegistration,
             event=event,
             client=client,
-            status__in=['PENDING', 'CONFIRMED']  # Solo cancelar registros activos
+            status__in=['PENDING', 'APPROVED']  # Solo cancelar registros activos
         )
         
         # Verificar si el evento ya pasó
