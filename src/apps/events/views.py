@@ -179,7 +179,7 @@ class EventParticipantsView(APIView):
                 })
         
         return Response({
-            'event_name': event.name,
+            'event_name': event.title,
             'total_participants': len(participants_data),
             'participants': participants_data
         })
@@ -247,11 +247,11 @@ class EventRegistrationView(APIView):
             ActivityFeed.objects.create(
                 activity_type='registration',
                 title='Nueva inscripción a evento',
-                description=f'{registration.client.first_name} se inscribió a {registration.event.name}',
+                description=f'{registration.client.first_name} se inscribió a {registration.event.title}',
                 client=registration.client,
                 metadata={
                     'event_id': str(registration.event.id),
-                    'event_name': registration.event.name,
+                    'event_name': registration.event.title,
                     'registration_id': str(registration.id)
                 }
             )
@@ -294,7 +294,7 @@ class EventCancelRegistrationView(APIView):
             'message': 'Registro cancelado exitosamente',
             'registration': {
                 'id': str(registration.id),
-                'event_name': event.name,
+                'event_name': event.title,
                 'status': registration.get_status_display(),
                 'cancelled_at': timezone.now().isoformat()
             }
@@ -306,11 +306,11 @@ class EventCancelRegistrationView(APIView):
             ActivityFeed.objects.create(
                 activity_type='event_registration',
                 title='Registro cancelado',
-                description=f'{registration.client.first_name} canceló su registro a {registration.event.name}',
+                description=f'{registration.client.first_name} canceló su registro a {registration.event.title}',
                 client=registration.client,
                 metadata={
                     'event_id': str(registration.event.id),
-                    'event_name': registration.event.name,
+                    'event_name': registration.event.title,
                     'registration_id': str(registration.id),
                     'action': 'cancelled'
                 }
