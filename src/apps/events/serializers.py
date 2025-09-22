@@ -110,9 +110,6 @@ class EventDetailSerializer(serializers.ModelSerializer):
 class EventRegistrationSerializer(serializers.ModelSerializer):
     """Serializer para registros de eventos"""
     
-    event = EventListSerializer(read_only=True)
-    client_name = serializers.CharField(source='client.first_name', read_only=True)
-    
     class Meta:
         model = EventRegistration
         fields = [
@@ -124,7 +121,9 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         """Personalizar la representación para mostrar detalles del evento"""
         representation = super().to_representation(instance)
+        # Mostrar detalles completos del evento en la lectura
         representation['event'] = EventListSerializer(instance.event).data
+        # Agregar nombre del cliente
         representation['client_name'] = instance.client.first_name if instance.client else None
         return representation
 
