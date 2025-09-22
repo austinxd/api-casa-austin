@@ -363,6 +363,7 @@ class ActivityFeed(BaseModel):
         CLIENT_REGISTERED = "client_registered", "Cliente Registrado"
         EVENT_CREATED = "event_created", "Evento Creado"
         EVENT_REGISTRATION = "event_registration", "Registro a Evento"
+        EVENT_CANCELLATION = "event_cancellation", "Cancelación a Evento"  # ✅ Nuevo tipo
         EVENT_WINNER = "event_winner", "Ganador de Evento"
         ACHIEVEMENT_EARNED = "achievement_earned", "Logro Obtenido"
         PAYMENT_COMPLETED = "payment_completed", "Pago Completado"
@@ -522,6 +523,10 @@ class ActivityFeed(BaseModel):
             event_name = self.event.title if self.event else self.activity_data.get('event_name', 'un evento')
             return f"{client_name} se registró para el evento: {event_name}"
         
+        elif self.activity_type == self.ActivityType.EVENT_CANCELLATION:
+            event_name = self.event.title if self.event else self.activity_data.get('event_name', 'un evento')
+            return f"{client_name} canceló su registro al evento: {event_name}"
+        
         elif self.activity_type == self.ActivityType.EVENT_WINNER:
             event_name = self.event.title if self.event else self.activity_data.get('event_name', 'un evento')
             position = self.activity_data.get('position', 'ganador')
@@ -575,6 +580,7 @@ class ActivityFeed(BaseModel):
             self.ActivityType.RESERVATION_MADE: "📅",
             self.ActivityType.EVENT_CREATED: "🎉",
             self.ActivityType.EVENT_REGISTRATION: "✅",
+            self.ActivityType.EVENT_CANCELLATION: "❌",  # ✅ Nuevo emoji
             self.ActivityType.EVENT_WINNER: "🏆",
             self.ActivityType.ACHIEVEMENT_EARNED: "🏅",
             self.ActivityType.PAYMENT_COMPLETED: "💰",

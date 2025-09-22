@@ -354,8 +354,8 @@ class EventCancelRegistrationView(APIView):
         """Registrar actividad de cancelación"""
         try:
             ActivityFeed.create_activity(
-                activity_type=ActivityFeed.ActivityType.EVENT_REGISTRATION,
-                title='Cancelación a evento',  # ✅ Título específico para cancelación
+                activity_type=ActivityFeed.ActivityType.EVENT_CANCELLATION,  # ✅ Nuevo activity type
+                title='Cancelación a evento',
                 client=registration.client,
                 event=registration.event,
                 property_location=registration.event.property_location,
