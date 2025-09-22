@@ -5922,3 +5922,70 @@ DEBUG 2025-09-21 16:18:44,653 points_signals 432 139829283638464 🔄 Verificand
 INFO 2025-09-21 16:18:44,655 points_signals 432 139829283638464 📊 Verificación de logros completada para cliente 463403e8-d000-4255-8962-aa5a6397e915. Sin cambios en logros
 DEBUG 2025-09-21 16:18:44,674 points_signals 432 139829283638464 🔄 Verificando logros para cliente 463403e8-d000-4255-8962-aa5a6397e915
 INFO 2025-09-21 16:18:44,675 points_signals 432 139829283638464 📊 Verificación de logros completada para cliente 463403e8-d000-4255-8962-aa5a6397e915. Sin cambios en logros
+DEBUG 2025-09-22 08:57:13,116 signals 518 140600495422656 Nuevo cliente creado: Clients object (0719f60d-7896-4d2b-b6ea-52cdce9035c8)
+DEBUG 2025-09-22 08:57:13,137 signals 518 140600495422656 Cliente actualizado: Clients object (0719f60d-7896-4d2b-b6ea-52cdce9035c8)
+WARNING 2025-09-22 08:57:13,241 signals 518 140600495422656 Error al actualizar audiencia de cliente 0719f60d-7896-4d2b-b6ea-52cdce9035c8. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"Au5cmv1YjKWUybBso6SH4PX"}}
+DEBUG 2025-09-22 08:57:13,265 signals 518 140600495422656 Código de referido generado para cliente 0719f60d-7896-4d2b-b6ea-52cdce9035c8: TES909
+WARNING 2025-09-22 08:57:13,337 signals 518 140600495422656 Error al actualizar audiencia de cliente 0719f60d-7896-4d2b-b6ea-52cdce9035c8. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"ASkxbNeLEf_WZry9r5_w4E1"}}
+ERROR 2025-09-22 08:57:13,341 signals 518 140600495422656 ❌ Error registrando actividad en feed para cliente 0719f60d-7896-4d2b-b6ea-52cdce9035c8: ActivityFeed() got unexpected keyword arguments: 'icon'
+DEBUG 2025-09-22 08:57:13,341 telegram_notifier 518 140600495422656 Preparando para enviar mensaje: 🆕 **NUEVO CLIENTE REGISTRADO** 🆕
+👤 Cliente: Test Manual
+📄 Documento: Documento Nacional de Identidad: 78544888
+📧 Email: test.manual.854488@test.com
+📱 Teléfono: +999854488
+🔑 Contraseña: ❌ Pendiente
+🔗 Código referido: TES909
+DEBUG 2025-09-22 08:57:13,342 telegram_notifier 518 140600495422656 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-22 08:57:14,019 telegram_notifier 518 140600495422656 Mensaje enviado.
+DEBUG 2025-09-22 08:57:14,023 telegram_notifier 518 140600495422656 Mensaje enviado a través del executor.
+DEBUG 2025-09-22 08:57:14,027 signals 518 140600495422656 Notificación enviada para nuevo cliente: 0719f60d-7896-4d2b-b6ea-52cdce9035c8
+INFO 2025-09-22 08:57:14,032 signals 518 140600495422656 Enviando WhatsApp de bienvenida a 999854488 para cliente 0719f60d-7896-4d2b-b6ea-52cdce9035c8
+INFO 2025-09-22 08:57:14,033 whatsapp_service 518 140600495422656 Enviando template registro_exitoso a 51999854488
+INFO 2025-09-22 08:57:14,036 whatsapp_service 518 140600495422656 Probando registro_exitoso con idioma es, parámetros: 1 (header)
+DEBUG 2025-09-22 08:57:14,506 whatsapp_service 518 140600495422656 ❌ Fallo registro_exitoso (es, 1 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-22 08:57:14,508 whatsapp_service 518 140600495422656 Probando registro_exitoso con idioma es, parámetros: 0 (sin params)
+DEBUG 2025-09-22 08:57:14,773 whatsapp_service 518 140600495422656 ❌ Fallo registro_exitoso (es, 0 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-22 08:57:14,775 whatsapp_service 518 140600495422656 Probando registro_exitoso con idioma es, parámetros: 2 (header)
+DEBUG 2025-09-22 08:57:15,012 whatsapp_service 518 140600495422656 ❌ Fallo registro_exitoso (es, 2 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-22 08:57:15,014 whatsapp_service 518 140600495422656 Probando registro_exitoso con idioma es, parámetros: 3 (header)
+DEBUG 2025-09-22 08:57:15,274 whatsapp_service 518 140600495422656 ❌ Fallo registro_exitoso (es, 3 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-22 08:57:15,276 whatsapp_service 518 140600495422656 Probando registro_exitoso con idioma es, parámetros: 4 (header)
+DEBUG 2025-09-22 08:57:15,520 whatsapp_service 518 140600495422656 ❌ Fallo registro_exitoso (es, 4 params): (#132001) Template name does not exist in the translation
+ERROR 2025-09-22 08:57:15,522 whatsapp_service 518 140600495422656 No se pudo enviar template registro_exitoso después de probar 0-4 parámetros
+ERROR 2025-09-22 08:57:15,522 signals 518 140600495422656 Error al enviar WhatsApp de bienvenida para cliente 0719f60d-7896-4d2b-b6ea-52cdce9035c8
+ERROR 2025-09-22 08:57:17,526 signals 518 140600495422656 ❌ Error registrando actividad en feed para cliente 0719f60d-7896-4d2b-b6ea-52cdce9035c8: ActivityFeed() got unexpected keyword arguments: 'icon'
+DEBUG 2025-09-22 08:57:17,544 signals 518 140600495422656 Cliente actualizado: Clients object (0719f60d-7896-4d2b-b6ea-52cdce9035c8)
+WARNING 2025-09-22 08:57:17,630 signals 518 140600495422656 Error al actualizar audiencia de cliente 0719f60d-7896-4d2b-b6ea-52cdce9035c8. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"AD9PywmE836MKTjA_E2YnhG"}}
+DEBUG 2025-09-22 08:57:52,479 signals 554 140626159099072 Nuevo cliente creado: Clients object (eab2349b-5ebe-422a-8ab7-6d10f2703d40)
+DEBUG 2025-09-22 08:57:52,507 signals 554 140626159099072 Cliente actualizado: Clients object (eab2349b-5ebe-422a-8ab7-6d10f2703d40)
+WARNING 2025-09-22 08:57:52,579 signals 554 140626159099072 Error al actualizar audiencia de cliente eab2349b-5ebe-422a-8ab7-6d10f2703d40. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"AaT7tmZev06LxoagGf9o7Pr"}}
+DEBUG 2025-09-22 08:57:52,599 signals 554 140626159099072 Código de referido generado para cliente eab2349b-5ebe-422a-8ab7-6d10f2703d40: NUE233
+WARNING 2025-09-22 08:57:52,662 signals 554 140626159099072 Error al actualizar audiencia de cliente eab2349b-5ebe-422a-8ab7-6d10f2703d40. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"AGHYAWIOG_P9kmCg-DD4D91"}}
+INFO 2025-09-22 08:57:52,685 signals 554 140626159099072 ✅ Actividad de registro registrada en feed para cliente eab2349b-5ebe-422a-8ab7-6d10f2703d40: 3e169bca-a313-4eb3-b7ff-80e45e0a745a
+DEBUG 2025-09-22 08:57:52,686 telegram_notifier 554 140626159099072 Preparando para enviar mensaje: 🆕 **NUEVO CLIENTE REGISTRADO** 🆕
+👤 Cliente: Nuevo TestCorregido
+📄 Documento: Documento Nacional de Identidad: 15548909
+📧 Email: nuevo.test.554890@test.com
+📱 Teléfono: +988554890
+🔑 Contraseña: ❌ Pendiente
+🔗 Código referido: NUE233
+DEBUG 2025-09-22 08:57:52,687 telegram_notifier 554 140626159099072 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-09-22 08:57:53,342 telegram_notifier 554 140626159099072 Mensaje enviado.
+DEBUG 2025-09-22 08:57:53,342 telegram_notifier 554 140626159099072 Mensaje enviado a través del executor.
+DEBUG 2025-09-22 08:57:53,342 signals 554 140626159099072 Notificación enviada para nuevo cliente: eab2349b-5ebe-422a-8ab7-6d10f2703d40
+INFO 2025-09-22 08:57:53,344 signals 554 140626159099072 Enviando WhatsApp de bienvenida a 988554890 para cliente eab2349b-5ebe-422a-8ab7-6d10f2703d40
+INFO 2025-09-22 08:57:53,344 whatsapp_service 554 140626159099072 Enviando template registro_exitoso a 51988554890
+INFO 2025-09-22 08:57:53,344 whatsapp_service 554 140626159099072 Probando registro_exitoso con idioma es, parámetros: 1 (header)
+DEBUG 2025-09-22 08:57:53,647 whatsapp_service 554 140626159099072 ❌ Fallo registro_exitoso (es, 1 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-22 08:57:53,648 whatsapp_service 554 140626159099072 Probando registro_exitoso con idioma es, parámetros: 0 (sin params)
+DEBUG 2025-09-22 08:57:53,908 whatsapp_service 554 140626159099072 ❌ Fallo registro_exitoso (es, 0 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-22 08:57:53,910 whatsapp_service 554 140626159099072 Probando registro_exitoso con idioma es, parámetros: 2 (header)
+DEBUG 2025-09-22 08:57:54,197 whatsapp_service 554 140626159099072 ❌ Fallo registro_exitoso (es, 2 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-22 08:57:54,200 whatsapp_service 554 140626159099072 Probando registro_exitoso con idioma es, parámetros: 3 (header)
+DEBUG 2025-09-22 08:57:54,488 whatsapp_service 554 140626159099072 ❌ Fallo registro_exitoso (es, 3 params): (#132001) Template name does not exist in the translation
+INFO 2025-09-22 08:57:54,489 whatsapp_service 554 140626159099072 Probando registro_exitoso con idioma es, parámetros: 4 (header)
+DEBUG 2025-09-22 08:57:55,420 whatsapp_service 554 140626159099072 ❌ Fallo registro_exitoso (es, 4 params): (#132001) Template name does not exist in the translation
+ERROR 2025-09-22 08:57:55,422 whatsapp_service 554 140626159099072 No se pudo enviar template registro_exitoso después de probar 0-4 parámetros
+ERROR 2025-09-22 08:57:55,423 signals 554 140626159099072 Error al enviar WhatsApp de bienvenida para cliente eab2349b-5ebe-422a-8ab7-6d10f2703d40
+DEBUG 2025-09-22 08:57:58,514 signals 554 140626159099072 Cliente actualizado: Clients object (eab2349b-5ebe-422a-8ab7-6d10f2703d40)
+WARNING 2025-09-22 08:57:58,575 signals 554 140626159099072 Error al actualizar audiencia de cliente eab2349b-5ebe-422a-8ab7-6d10f2703d40. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"AIgsiDTy5Ebnknc2Im1e-7A"}}

@@ -231,8 +231,7 @@ def register_client_activity_feed(client):
             client=client,
             activity_data=activity_data,
             is_public=True,  # Los nuevos registros son públicos
-            importance_level=2,
-            icon='👤'
+            importance_level=2
         )
         
         logger.info(f"✅ Actividad de registro registrada en feed para cliente {client.id}: {activity.id}")
