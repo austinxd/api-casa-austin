@@ -359,6 +359,7 @@ class ActivityFeed(BaseModel):
     class ActivityType(models.TextChoices):
         POINTS_EARNED = "points_earned", "Puntos Ganados"
         RESERVATION_MADE = "reservation_made", "Reserva Realizada"
+        RESERVATION_CONFIRMED = "reservation_confirmed", "Reserva Confirmada"  # ✅ Nuevo tipo para pending → approved
         RESERVATION_AUTO_DELETED_CRON = "reservation_auto_deleted_cron", "Reserva Eliminada por Sistema"
         CLIENT_REGISTERED = "client_registered", "Cliente Registrado"
         EVENT_CREATED = "event_created", "Evento Creado"
@@ -578,6 +579,7 @@ class ActivityFeed(BaseModel):
         icon_map = {
             self.ActivityType.POINTS_EARNED: "⭐",
             self.ActivityType.RESERVATION_MADE: "📅",
+            self.ActivityType.RESERVATION_CONFIRMED: "✅",  # ✅ Nuevo emoji para reserva confirmada
             self.ActivityType.EVENT_CREATED: "🎉",
             self.ActivityType.EVENT_REGISTRATION: "✅",
             self.ActivityType.EVENT_CANCELLATION: "❌",  # ✅ Nuevo emoji

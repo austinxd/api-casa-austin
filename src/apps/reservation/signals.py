@@ -881,21 +881,21 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
             instance.payment_approved_notification_sent = True
             instance.save(update_fields=['payment_approved_notification_sent'])
             
-            # 📊 ACTIVITY FEED: Crear actividad para reserva aprobada
+            # 📊 ACTIVITY FEED: Crear actividad para reserva confirmada (pending → approved)
             if instance.client and instance.origin in ['aus', 'client']:
                 try:
                     from apps.events.models import ActivityFeed, ActivityFeedConfig
                     
                     # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
-                    if ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.PAYMENT_COMPLETED):
+                    if ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.RESERVATION_CONFIRMED):
                         # Usar configuración por defecto para visibilidad e importancia
-                        is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.PAYMENT_COMPLETED)
-                        importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.PAYMENT_COMPLETED)
+                        is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.RESERVATION_CONFIRMED)
+                        importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.RESERVATION_CONFIRMED)
                         
                         dates_str = format_date_range_es(instance.check_in_date, instance.check_out_date)
                         
                         ActivityFeed.create_activity(
-                            activity_type=ActivityFeed.ActivityType.PAYMENT_COMPLETED,
+                            activity_type=ActivityFeed.ActivityType.RESERVATION_CONFIRMED,  # ✅ Cambio a RESERVATION_CONFIRMED
                             client=instance.client,
                             property_location=instance.property,
                             is_public=is_public,
@@ -908,9 +908,9 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
                                 'status_change': 'approved'
                             }
                         )
-                        logger.info(f"Actividad de pago completado creada para reserva {instance.id}")
+                        logger.info(f"Actividad de reserva confirmada creada para reserva {instance.id}")  # ✅ Mensaje actualizado
                 except Exception as e:
-                    logger.error(f"Error creando actividad de pago completado para reserva {instance.id}: {str(e)}")
+                    logger.error(f"Error creando actividad de reserva confirmada para reserva {instance.id}: {str(e)}")  # ✅ Mensaje actualizado
 
         # Verificar si cambió el campo full_payment a True (pago completado)
         if hasattr(instance, '_original_full_payment'):
