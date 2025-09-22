@@ -341,6 +341,17 @@ class ActivityFeedSerializer(serializers.ModelSerializer):
             'facebook_linked': obj.client.facebook_linked,  # ✅ Facebook vinculado
             'facebook_profile_picture': obj.client.get_facebook_profile_picture()  # ✅ Foto de perfil
         }
+    
+    def to_representation(self, instance):
+        """Personalizar la representación para omitir campos de cliente cuando son null"""
+        representation = super().to_representation(instance)
+        
+        # Si no hay cliente, remover completamente los campos de cliente
+        if not instance.client:
+            representation.pop('client_name', None)
+            representation.pop('client_info', None)
+        
+        return representation
 
 
 class ActivityFeedCreateSerializer(serializers.ModelSerializer):
