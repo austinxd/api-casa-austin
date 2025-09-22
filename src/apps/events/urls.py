@@ -10,6 +10,7 @@ from .views import (
     
     # Endpoints con autenticación
     EventRegistrationView,
+    EventCancelRegistrationView,
     ClientEventRegistrationsView,
     check_event_eligibility,
     
@@ -38,6 +39,7 @@ urlpatterns = [
     
     # === ENDPOINTS CON AUTENTICACIÓN DE CLIENTE ===
     path('<uuid:event_id>/register/', EventRegistrationView.as_view(), name='event-register'),
+    path('<uuid:event_id>/cancel/', EventCancelRegistrationView.as_view(), name='event-cancel'),
     path('my-registrations/', ClientEventRegistrationsView.as_view(), name='my-registrations'),
     path('<uuid:event_id>/check-eligibility/', check_event_eligibility, name='check-eligibility'),
     

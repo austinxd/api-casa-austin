@@ -259,6 +259,66 @@ class EventRegistrationView(APIView):
             logger.error(f'Error logging registration activity: {e}')
 
 
+class EventCancelRegistrationView(APIView):
+    """Cancelar registro de cliente a un evento"""
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, event_id):
+        event = get_object_or_404(Event, id=event_id, is_active=True)
+        client = request.user
+        
+        # Buscar registro existente
+        registration = get_object_or_404(
+            EventRegistration,
+            event=event,
+            client=client,
+            status__in=['PENDING', 'CONFIRMED']  # Solo cancelar registros activos
+        )
+        
+        # Verificar si el evento ya pasó
+        if event.event_date < timezone.now():
+            return Response({
+                'error': 'No puedes cancelar tu registro a un evento que ya ocurrió'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Cambiar estado a cancelado (no eliminar para mantener historial)
+        registration.status = 'CANCELLED'
+        registration.save()
+        
+        # Log de actividad
+        self._log_cancellation_activity(registration)
+        
+        return Response({
+            'success': True,
+            'message': 'Registro cancelado exitosamente',
+            'registration': {
+                'id': str(registration.id),
+                'event_name': event.name,
+                'status': registration.get_status_display(),
+                'cancelled_at': timezone.now().isoformat()
+            }
+        }, status=status.HTTP_200_OK)
+
+    def _log_cancellation_activity(self, registration):
+        """Registrar actividad de cancelación"""
+        try:
+            ActivityFeed.objects.create(
+                activity_type='event_registration',
+                title='Registro cancelado',
+                description=f'{registration.client.first_name} canceló su registro a {registration.event.name}',
+                client=registration.client,
+                metadata={
+                    'event_id': str(registration.event.id),
+                    'event_name': registration.event.name,
+                    'registration_id': str(registration.id),
+                    'action': 'cancelled'
+                }
+            )
+        except Exception as e:
+            logger.error(f'Error logging cancellation activity: {e}')
+
+
 class ClientEventRegistrationsView(ListAPIView):
     """Lista las inscripciones del cliente con paginación"""
     authentication_classes = [ClientJWTAuthentication]
