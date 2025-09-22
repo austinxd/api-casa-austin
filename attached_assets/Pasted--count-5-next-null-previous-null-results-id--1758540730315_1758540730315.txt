@@ -1,0 +1,55 @@
+    "count": 5,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": "e2676c56-7b79-41c4-b62e-e149d01e36fa",
+            "activity_type": "event_cancellation",
+            "activity_type_display": "Cancelación a Evento",
+            "title": "Cancelación a evento",
+            "description": "",
+            "icon": "❌",
+            "time_ago": "hace 14 minutos",
+            "client_name": "Augusto T.",
+            "client_info": {
+                "id": "405a0119-caba-467c-8f4c-835f45402367",
+                "name": "Augusto T.",
+                "facebook_linked": true,
+                "facebook_profile_picture": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=10230405741550716&height=200&width=200&ext=1760802868&hash=AT92z8Q35RFvjWv6W963hqZe"
+            },
+            "importance_level": 1,
+            "created": "2025-09-22T06:17:31.648511-05:00",
+            "activity_data": {
+                "action": "cancelled",
+                "event_id": "803cc868-db82-4e9e-bba4-4e789b1e6b80",
+                "event_name": "Evento Relampago",
+                "registration_id": "b7ce53eb-9b5f-4ac0-988b-dc2476bc4a9a",
+                "formatted_message": "Augusto T. canceló su registro al evento: Evento Relampago",
+                "reason": "Se retiro del evento."
+            }
+        },
+        {
+            "id": "889f9742-c215-40dc-ae50-e0c5b2ab89b7",
+            "activity_type": "event_registration",
+            "activity_type_display": "Registro a Evento",
+            "title": "Inscripción a evento",
+            "description": "",
+            "icon": "🎟️",
+            "time_ago": "hace 14 minutos",
+            "client_name": "Augusto T.",
+            "client_info": {
+                "id": "405a0119-caba-467c-8f4c-835f45402367",
+                "name": "Augusto T.",
+                "facebook_linked": true,
+                "facebook_profile_picture": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=10230405741550716&height=200&width=200&ext=1760802868&hash=AT92z8Q35RFvjWv6W963hqZe"
+            },
+            "importance_level": 1,
+            "created": "2025-09-22T06:17:28.539814-05:00",
+            "activity_data": {
+                "action": "registered",
+                "event_id": "803cc868-db82-4e9e-bba4-4e789b1e6b80",
+                "event_name": "Evento Relampago",
+                "registration_id": "b7ce53eb-9b5f-4ac0-988b-dc2476bc4a9a",
+                "formatted_message": "Augusto T. se registró para el evento: Evento Relampago",
+                "reason": "Se registro a evento"
+            }
