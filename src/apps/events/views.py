@@ -5,7 +5,7 @@ Views para el sistema de eventos, activity feed y analytics de Casa Austin
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -20,6 +20,7 @@ from .serializers import (
     ActivityFeedSerializer,
     ActivityFeedCreateSerializer
 )
+from apps.clients.auth_views import ClientJWTAuthentication
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +125,7 @@ class EventParticipantsView(APIView):
 
 class EventRegistrationView(APIView):
     """Registro de cliente a un evento"""
+    authentication_classes = [ClientJWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request, event_id):
@@ -195,6 +197,7 @@ class EventRegistrationView(APIView):
 
 class ClientEventRegistrationsView(APIView):
     """Lista las inscripciones del cliente"""
+    authentication_classes = [ClientJWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -214,6 +217,7 @@ class ClientEventRegistrationsView(APIView):
 
 
 @api_view(['GET'])
+@authentication_classes([ClientJWTAuthentication])
 @permission_classes([IsAuthenticated])
 def check_event_eligibility(request, event_id):
     """Verificar si el cliente puede inscribirse al evento"""
