@@ -158,6 +158,8 @@ class EventParticipantsView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, event_id):
+        from django.utils.timesince import timesince
+        
         event = get_object_or_404(Event, id=event_id)
         
         # Solo mostrar participantes aprobados con información limitada
@@ -170,11 +172,28 @@ class EventParticipantsView(APIView):
         participants_data = []
         for registration in participants:
             if registration.client:
-                # Solo mostrar nombre y apellido inicial
-                name = f"{registration.client.first_name} {registration.client.last_name[0]}." if registration.client.last_name else registration.client.first_name
+                client = registration.client
+                
+                # Nombre y apellido inicial
+                name = f"{client.first_name} {client.last_name[0]}." if client.last_name else client.first_name
+                
+                # Tiempo relativo desde el registro
+                registration_time_ago = timesince(registration.created)
+                
+                # Imagen de Facebook
+                facebook_image = None
+                if client.facebook_profile_data and isinstance(client.facebook_profile_data, dict):
+                    facebook_image = client.facebook_profile_data.get('picture', {}).get('data', {}).get('url')
+                
+                # Estado de Facebook
+                facebook_status = client.facebook_linked
+                
                 participants_data.append({
                     'participant_name': name,
                     'registration_date': registration.created.date(),
+                    'registration_time_ago': f"hace {registration_time_ago}",
+                    'facebook_image': facebook_image,
+                    'facebook_status': facebook_status,
                     'status': registration.get_status_display()
                 })
         
