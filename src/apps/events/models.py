@@ -298,15 +298,11 @@ class EventRegistration(BaseModel):
     
     def mark_as_winner(self, winner_status, prize_description=""):
         """Marcar como ganador - la notificación se enviará automáticamente en la fecha programada"""
-        from django.utils import timezone
-        
         self.winner_status = winner_status
-        # Usar la fecha del evento como fecha de anuncio del ganador (convertir a datetime con timezone)
-        event_datetime = timezone.datetime.combine(
-            self.event.event_date,
-            timezone.datetime.min.time().replace(tzinfo=timezone.get_current_timezone())
-        )
-        self.winner_announcement_date = timezone.make_aware(event_datetime)
+        
+        # Si no tiene winner_announcement_date, usar la fecha del evento
+        if not self.winner_announcement_date:
+            self.winner_announcement_date = self.event.event_date
         
         if prize_description:
             self.prize_description = prize_description
@@ -314,7 +310,7 @@ class EventRegistration(BaseModel):
         # No enviar notificación inmediata - se enviará cuando llegue winner_announcement_date
         self.winner_notified = False
         
-        self.save()
+        self.save(update_fields=['winner_status', 'winner_announcement_date', 'prize_description', 'winner_notified'])
     
     def _notify_winner(self):
         """Notificar ganador por WhatsApp"""

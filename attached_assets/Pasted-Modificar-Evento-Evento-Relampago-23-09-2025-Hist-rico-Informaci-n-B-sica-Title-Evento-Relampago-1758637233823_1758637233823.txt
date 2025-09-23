@@ -1,0 +1,101 @@
+Modificar Evento
+Evento Relampago - 23/09/2025
+Histórico
+
+Información Básica
+Title:
+Evento Relampago
+Título del evento
+Description:
+Relampaguito xd
+Descripción detallada del evento
+Category:
+
+🏝️🍾 Austin Experience
+ ModificarAñadirVista
+Image:
+Actualmente: events/logo_centrado_Mesa_de_trabajo_1.webp  Limpiar
+Modificar: Sin archivos seleccionados
+
+Imagen del evento (se convertirá automáticamente a WebP)
+
+Fechas y Ubicación
+Event date:
+Fecha: 
+23/09/2025
+ Hoy | 
+Hora: 
+09:20:12
+ Ahora | 
+Nota: Usted va 7 horas por delante de la hora del servidor.
+
+Fecha y hora del sorteo/evento
+Registration deadline:
+Fecha: 
+23/09/2025
+ Hoy | 
+Hora: 
+05:24:59
+ Ahora | 
+Nota: Usted va 7 horas por delante de la hora del servidor.
+
+Fecha límite para registrarse
+Location:
+casa austin 2
+Ubicación del evento
+
+Configuración
+Status:
+
+Publicado
+Max participants:
+1000
+Máximo número de participantes
+
+Is public
+Mostrar en listado público
+
+Is active
+Evento activo
+
+Restricciones
+Min points required:
+0.00
+Puntos mínimos requeridos para registrarse
+Required achievements:
+Añadir
+required achievements Disponibles 
+Filtro
+
+
+Selecciona todos
+Elegir
+Eliminar
+required achievements elegidos 
+Filtro
+
+Curioso (0 reservas, 0 referidos, 0 reservas de referidos)Cliente Casa Austin (1 reservas, 0 referidos, 0 reservas de referidos)Cliente Recurrente (3 reservas, 0 referidos, 0 reservas de referidos)Cliente Premium (3 reservas, 1 referidos, 1 reservas de referidos)Austin Legend (10 reservas, 3 referidos, 5 reservas de referidos)
+Eliminar todos
+Logros requeridos para registrarse (cliente debe tener AL MENOS UNO) Mantenga presionado "Control" o "Comando" en una Mac, para seleccionar más de uno.
+
+Propiedad (solo para estadías)
+Seleccionar propiedad solo cuando el evento sea sorteo de estadía/noche gratis
+Propiedad:
+
+Casa Austin 2
+ ModificarAñadirEliminarVista
+Propiedad asociada (solo para sorteos de estadías/noches gratis)
+
+Timestamps (Mostrar)
+
+Registros de Eventos
+Client	Status	Winner status (Estado del participante en el evento)	Prize description (Descripción del premio ganado)	Winner notified (Si el ganador fue notificado por WhatsApp)	Registration date	¿Eliminar?
+🏆 Augusto Ray Leonel - Evento Relampago (approved)	
+Clients object (405a0119-caba-467c-8f4c-835f45402367)
+ ModificarAñadirVista	
+Aprobado
+
+🏆 Ganador
+	
+23 de septiembre de 2025 a las 09:19
+

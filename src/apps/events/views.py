@@ -217,12 +217,16 @@ class EventWinnersView(APIView):
         
         # Solo mostrar participantes que son ganadores Y cuya fecha de anuncio ya llegó
         from django.utils import timezone
+        from django.db.models import Q
         now = timezone.now()
         
         winners = EventRegistration.objects.filter(
             event=event,
             winner_status=EventRegistration.WinnerStatus.WINNER,
-            winner_announcement_date__lte=now  # Solo ganadores cuya fecha de anuncio ya pasó o es hoy
+        ).filter(
+            # Mostrar si: fecha de anuncio llegó O si no tiene fecha pero la fecha del evento ya pasó
+            Q(winner_announcement_date__lte=now) | 
+            Q(winner_announcement_date__isnull=True, event__event_date__lte=now)
         ).select_related('client').order_by('-winner_announcement_date')
         
         # Información de ganadores
