@@ -177,8 +177,10 @@ class EventParticipantsView(APIView):
                 # Nombre y apellido inicial
                 name = f"{client.first_name} {client.last_name[0]}." if client.last_name else client.first_name
                 
-                # Tiempo relativo desde el registro
-                registration_time_ago = timesince(registration.created)
+                # Tiempo relativo desde el registro (usar fecha más reciente si fue reactivado)
+                # Si updated es diferente de created, significa que fue reactivado
+                effective_date = registration.updated if registration.updated > registration.created else registration.created
+                registration_time_ago = timesince(effective_date)
                 
                 # Imagen de Facebook
                 facebook_image = None
