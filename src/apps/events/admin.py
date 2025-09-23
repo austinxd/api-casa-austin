@@ -91,7 +91,7 @@ class EventRegistrationAdmin(admin.ModelAdmin):
         'event__category'
     ]
     search_fields = ['event__title', 'client__first_name', 'client__last_name']
-    readonly_fields = ['registration_date', 'created', 'updated']
+    readonly_fields = ['registration_date', 'winner_announcement_date', 'created', 'updated']
     list_per_page = 20
     
     # Acciones personalizadas para marcar ganadores

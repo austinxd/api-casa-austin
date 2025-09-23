@@ -269,7 +269,7 @@ class EventRegistration(BaseModel):
     winner_announcement_date = models.DateTimeField(
         blank=True, 
         null=True, 
-        help_text="Fecha cuando se anunció como ganador"
+        help_text="Fecha cuando se anunciará como ganador (se calcula automáticamente usando la fecha del evento)"
     )
     prize_description = models.CharField(
         max_length=200, 
