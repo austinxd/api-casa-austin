@@ -296,17 +296,16 @@ class EventRegistration(BaseModel):
         """Verifica si este registro es ganador (cualquier posición)"""
         return self.winner_status != self.WinnerStatus.NOT_WINNER
     
-    def mark_as_winner(self, winner_status, prize_description="", notify=True):
-        """Marcar como ganador y opcionalmente notificar"""
+    def mark_as_winner(self, winner_status, prize_description=""):
+        """Marcar como ganador - la notificación se enviará automáticamente en la fecha programada"""
         self.winner_status = winner_status
         # Usar la fecha del evento como fecha de anuncio del ganador
         self.winner_announcement_date = self.event.event_date
         if prize_description:
             self.prize_description = prize_description
         
-        # Notificar por WhatsApp si se requiere
-        if notify and not self.winner_notified:
-            self._notify_winner()
+        # No enviar notificación inmediata - se enviará cuando llegue winner_announcement_date
+        self.winner_notified = False
         
         self.save()
     
