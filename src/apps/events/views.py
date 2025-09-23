@@ -218,12 +218,8 @@ class EventWinnersView(APIView):
         # Solo mostrar participantes que son ganadores
         winners = EventRegistration.objects.filter(
             event=event,
-            winner_status__in=[
-                EventRegistration.WinnerStatus.WINNER,
-                EventRegistration.WinnerStatus.RUNNER_UP,
-                EventRegistration.WinnerStatus.THIRD_PLACE
-            ]
-        ).select_related('client').order_by('winner_status')
+            winner_status=EventRegistration.WinnerStatus.WINNER
+        ).select_related('client').order_by('-winner_announcement_date')
         
         # Información de ganadores
         winners_data = []

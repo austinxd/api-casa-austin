@@ -249,8 +249,6 @@ class EventRegistration(BaseModel):
     class WinnerStatus(models.TextChoices):
         NOT_WINNER = "not_winner", "No ganador"
         WINNER = "winner", "🏆 Ganador"
-        RUNNER_UP = "runner_up", "🥈 Segundo lugar"
-        THIRD_PLACE = "third_place", "🥉 Tercer lugar"
     
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='registrations')
     client = models.ForeignKey(Clients, on_delete=models.CASCADE, related_name='event_registrations')
@@ -290,14 +288,7 @@ class EventRegistration(BaseModel):
         ordering = ['-registration_date']
     
     def __str__(self):
-        winner_emoji = ""
-        if self.winner_status == self.WinnerStatus.WINNER:
-            winner_emoji = "🏆 "
-        elif self.winner_status == self.WinnerStatus.RUNNER_UP:
-            winner_emoji = "🥈 "
-        elif self.winner_status == self.WinnerStatus.THIRD_PLACE:
-            winner_emoji = "🥉 "
-            
+        winner_emoji = "🏆 " if self.winner_status == self.WinnerStatus.WINNER else ""
         return f"{winner_emoji}{self.client.first_name} - {self.event.title} ({self.status})"
     
     @property
@@ -325,15 +316,11 @@ class EventRegistration(BaseModel):
         try:
             from apps.clients.whatsapp_service import WhatsAppService
             
-            # Determinar mensaje según posición
-            if self.winner_status == self.WinnerStatus.WINNER:
-                template = "ganador_primer_lugar"
-            elif self.winner_status == self.WinnerStatus.RUNNER_UP:
-                template = "ganador_segundo_lugar"
-            elif self.winner_status == self.WinnerStatus.THIRD_PLACE:
-                template = "ganador_tercer_lugar"
-            else:
+            # Solo notificar si es ganador
+            if self.winner_status != self.WinnerStatus.WINNER:
                 return
+            
+            template = "ganador_evento"
             
             # Enviar notificación
             WhatsAppService.send_template_message(

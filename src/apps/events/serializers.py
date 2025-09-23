@@ -173,25 +173,17 @@ class EventWinnersSerializer(serializers.ModelSerializer):
         ]
     
     def get_winners(self, obj):
-        """Obtener lista de ganadores ordenada por posición"""
+        """Obtener lista de ganadores ordenada por fecha de anuncio"""
         winners_queryset = obj.registrations.filter(
-            winner_status__in=[
-                EventRegistration.WinnerStatus.WINNER,
-                EventRegistration.WinnerStatus.RUNNER_UP,
-                EventRegistration.WinnerStatus.THIRD_PLACE
-            ]
-        ).order_by('winner_status')
+            winner_status=EventRegistration.WinnerStatus.WINNER
+        ).order_by('-winner_announcement_date')
         
         return WinnerSerializer(winners_queryset, many=True).data
     
     def get_total_winners(self, obj):
         """Contar total de ganadores"""
         return obj.registrations.filter(
-            winner_status__in=[
-                EventRegistration.WinnerStatus.WINNER,
-                EventRegistration.WinnerStatus.RUNNER_UP,
-                EventRegistration.WinnerStatus.THIRD_PLACE
-            ]
+            winner_status=EventRegistration.WinnerStatus.WINNER
         ).count()
 
 
