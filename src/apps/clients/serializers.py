@@ -3,7 +3,7 @@ from django.contrib.auth.hashers import make_password, check_password
 from rest_framework.validators import UniqueTogetherValidator
 from decimal import Decimal
 
-from .models import Clients, MensajeFidelidad, TokenApiClients, ClientPoints, SearchTracking, Achievement, ClientAchievement
+from .models import Clients, MensajeFidelidad, TokenApiClients, ClientPoints, SearchTracking, Achievement, ClientAchievement, ReferralRanking
 
 
 class MensajeFidelidadSerializer(serializers.ModelSerializer):
@@ -445,3 +445,35 @@ class ClientAchievementStatsSerializer(serializers.Serializer):
     recent_achievements = ClientAchievementSerializer(many=True)
     available_achievements = AchievementSerializer(many=True)
     client_stats = serializers.DictField()
+
+
+class ClientReferralRankingSerializer(serializers.ModelSerializer):
+    """Serializer para el ranking de referidos de un cliente"""
+    client_name = serializers.CharField(source='client.first_name', read_only=True)
+    client_last_name = serializers.CharField(source='client.last_name', read_only=True)
+    ranking_date_display = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = ReferralRanking
+        fields = [
+            'id',
+            'client_name',
+            'client_last_name', 
+            'year',
+            'month',
+            'ranking_date_display',
+            'referral_reservations_count',
+            'total_referral_revenue',
+            'referrals_made_count',
+            'position',
+            'points_earned'
+        ]
+
+
+class ReferralRankingListSerializer(serializers.Serializer):
+    """Serializer para el listado de ranking con metadatos"""
+    ranking_period = serializers.CharField(help_text="Período del ranking (ej: 'Septiembre 2025')")
+    year = serializers.IntegerField()
+    month = serializers.IntegerField()
+    total_participants = serializers.IntegerField()
+    rankings = ClientReferralRankingSerializer(many=True)
