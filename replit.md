@@ -15,8 +15,10 @@ Preferred communication style: Simple, everyday language.
 - **Database Schema**: New `ReferralRanking` model tracks monthly statistics for each client
 - **API Endpoints**: Three new endpoints for referral analytics:
   - `/api/v1/clients/referral-ranking/` - Historical ranking data with year/month parameters
-  - `/api/v1/clients/referral-ranking/current/` - Current month ranking leaderboard
-  - `/api/v1/clients/referral-stats/` - Personal referral statistics for authenticated clients
+  - `/api/v1/clients/referral-ranking/current/` - Current month ranking leaderboard  
+  - `/api/v1/clients/referral-stats/` - **Public access** general referral statistics (no authentication required)
+- **Authentication Changes**: Made referral-stats endpoint public while maintaining authentication for other client endpoints
+- **URL Routing Fix**: Resolved URL pattern conflicts by placing specific patterns before router includes
 - **Management Command**: `calculate_referral_ranking` command for monthly ranking calculation
 - **Admin Interface**: Full Django admin integration with ranking recalculation actions
 - **Metrics Tracked**: Reservations by referrals, referral revenue, new referrals made, points earned, ranking position

@@ -10,7 +10,7 @@ from .views import (
     ReferralConfigView, ReferralStatsView, SearchTrackingView, SearchTrackingTestView,
     SearchTrackingExportView, ClientCreateReservationView, ClientReservationsListView, 
     ClientReservationDetailView, GoogleSheetsDebugView, ReferralRankingView,
-    CurrentReferralRankingView, ClientReferralStatsView
+    CurrentReferralRankingView, ClientReferralStatsView, PublicReferralStatsView
 )
 
 router = DefaultRouter()
@@ -36,6 +36,11 @@ urlpatterns = [
          SearchTrackingExportView.as_view(),
          name='client-track-search-export'),
     path('clients/track-search-test/', SearchTrackingTestView.as_view(), name='track-search-test'),
+
+    # Referral ranking endpoints (must be before router to avoid conflicts)
+    path('clients/referral-ranking/', ReferralRankingView.as_view(), name='referral-ranking'),
+    path('clients/referral-ranking/current/', CurrentReferralRankingView.as_view(), name='current-referral-ranking'),
+    path('clients/referral-stats/', PublicReferralStatsView.as_view(), name='public-referral-stats'),
 
     path('', include(router.urls)),
 
@@ -139,14 +144,10 @@ urlpatterns = [
          name='client-reservation-status'),
     path('clients/csrf-token/', auth_views.get_csrf_token, name='csrf-token'),
 
-    # Debug endpoints for Sheets and Webhook issues
-    path('api/v1/clients/track-search/', SearchTrackingView.as_view(), name='search-tracking'),
-    path('api/v1/clients/track-search/test/', SearchTrackingTestView.as_view(), name='search-tracking-test'),
-    path('api/v1/clients/track-search/export/', SearchTrackingExportView.as_view(), name='search-tracking-export'),
-    path('api/v1/clients/track-search/debug-sheets/', GoogleSheetsDebugView.as_view(), name='google-sheets-debug'),
+    # Debug endpoints for Sheets and Webhook issues  
+    path('clients/track-search-admin/', SearchTrackingView.as_view(), name='search-tracking'),
+    path('clients/track-search-test/', SearchTrackingTestView.as_view(), name='search-tracking-test'),
+    path('clients/track-search-export/', SearchTrackingExportView.as_view(), name='search-tracking-export'),
+    path('clients/debug-sheets/', GoogleSheetsDebugView.as_view(), name='google-sheets-debug'),
     
-    # Referral ranking endpoints
-    path('clients/referral-ranking/', ReferralRankingView.as_view(), name='referral-ranking'),
-    path('clients/referral-ranking/current/', CurrentReferralRankingView.as_view(), name='current-referral-ranking'),
-    path('clients/referral-stats/', ClientReferralStatsView.as_view(), name='client-referral-stats'),
 ]

@@ -1367,6 +1367,67 @@ class ClientReferralStatsView(APIView):
             }, status=500)
 
 
+class PublicReferralStatsView(APIView):
+    """Vista pública para obtener estadísticas generales de referidos"""
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        """Obtiene estadísticas generales de referidos - acceso público"""
+        try:
+            # No requiere autenticación - vista pública
+            from django.utils import timezone
+            from .models import ReferralRanking
+            
+            # Obtener parámetros
+            year = request.GET.get('year')
+            month = request.GET.get('month')
+            
+            # Si no se especifica año/mes, usar mes actual
+            now = timezone.now()
+            target_year = int(year) if year else now.year
+            target_month = int(month) if month else now.month
+            
+            # Obtener resumen general de ranking para el mes
+            rankings = ReferralRanking.objects.filter(
+                year=target_year,
+                month=target_month,
+                deleted=False
+            ).order_by('position')
+            
+            months = {
+                1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+                5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+                9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+            }
+            
+            # Estadísticas generales del período
+            stats = {
+                'year': target_year,
+                'month': target_month,
+                'period_display': f"{months.get(target_month, target_month)} {target_year}",
+                'total_participants': rankings.count(),
+                'total_referral_reservations': sum(r.referral_reservations for r in rankings),
+                'total_referral_revenue': sum(r.referral_revenue for r in rankings),
+                'total_new_referrals': sum(r.new_referrals for r in rankings),
+                'total_points_awarded': sum(r.points_earned for r in rankings),
+                'top_10_rankings': []
+            }
+            
+            # Top 10 del ranking (información pública básica)
+            from .serializers import ClientReferralRankingSerializer
+            top_rankings = rankings[:10]
+            stats['top_10_rankings'] = ClientReferralRankingSerializer(top_rankings, many=True).data
+            
+            return Response(stats)
+            
+        except Exception as e:
+            logger.error(f"PublicReferralStatsView: Error getting public stats: {str(e)}")
+            return Response({
+                'error': 'Error obteniendo estadísticas públicas de referidos'
+            }, status=500)
+
+
 # Added helper method to get client IP address
     def get_client_ip(self, request):
         """Obtener IP real del cliente"""
