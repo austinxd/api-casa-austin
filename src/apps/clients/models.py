@@ -332,6 +332,68 @@ class Clients(BaseModel):
     def get_client_by_facebook_id(cls, facebook_id):
         """Obtiene un cliente por su Facebook ID"""
         return cls.objects.filter(facebook_id=facebook_id, deleted=False).first()
+    
+    def get_referral_stats(self, year, month):
+        """
+        Obtiene estadísticas de referidos para un mes específico
+        
+        Args:
+            year (int): Año
+            month (int): Mes (1-12)
+            
+        Returns:
+            dict: Estadísticas del mes
+        """
+        from django.db.models import Sum, Count, Q
+        from django.utils import timezone
+        from datetime import datetime, date
+        import calendar
+        
+        # Calcular rango de fechas del mes
+        start_date = date(year, month, 1)
+        last_day = calendar.monthrange(year, month)[1]
+        end_date = date(year, month, last_day)
+        
+        # 1. Reservas hechas por referidos en este mes
+        referral_reservations = self.get_related_reservation_model().objects.filter(
+            client__referred_by=self,
+            created__date__gte=start_date,
+            created__date__lte=end_date,
+            status='approved',
+            deleted=False
+        ).aggregate(
+            count=Count('id'),
+            total_revenue=Sum('price_sol')
+        )
+        
+        # 2. Nuevos referidos registrados en este mes
+        new_referrals = Clients.objects.filter(
+            referred_by=self,
+            created__date__gte=start_date,
+            created__date__lte=end_date,
+            deleted=False
+        ).count()
+        
+        # 3. Puntos ganados por referidos en este mes
+        referral_points = ClientPoints.objects.filter(
+            client=self,
+            transaction_type=ClientPoints.TransactionType.REFERRAL,
+            created__date__gte=start_date,
+            created__date__lte=end_date,
+            deleted=False
+        ).aggregate(total=Sum('points'))
+        
+        return {
+            'referral_reservations_count': referral_reservations['count'] or 0,
+            'total_referral_revenue': referral_reservations['total_revenue'] or 0,
+            'referrals_made_count': new_referrals,
+            'points_earned': referral_points['total'] or 0,
+        }
+    
+    def get_related_reservation_model(self):
+        """Obtiene el modelo Reservation de forma lazy para evitar imports circulares"""
+        from apps.reservation.models import Reservation
+        return Reservation
 
 
 class ClientPoints(BaseModel):
