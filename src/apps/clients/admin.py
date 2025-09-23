@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Clients, MensajeFidelidad, TokenApiClients, ReferralPointsConfig, ClientPoints, Achievement, ClientAchievement
+from .models import Clients, MensajeFidelidad, TokenApiClients, ReferralPointsConfig, ClientPoints, Achievement, ClientAchievement, ReferralRanking
 from apps.core.utils import ExportCsvMixin, ExportJsonMixin
 
 
@@ -90,6 +90,58 @@ class ClientAchievementAdmin(admin.ModelAdmin):
     search_fields = ('client__first_name', 'client__last_name', 'achievement__name')
     readonly_fields = ('earned_at',)
     autocomplete_fields = ('client', 'achievement')
+
+@admin.register(ReferralRanking)
+class ReferralRankingAdmin(admin.ModelAdmin):
+    list_display = ('ranking_date_display', 'position', 'client', 'referral_reservations_count', 'total_referral_revenue', 'points_earned')
+    list_filter = ('year', 'month', 'position')
+    search_fields = ('client__first_name', 'client__last_name')
+    readonly_fields = ('created', 'updated')
+    ordering = ('-year', '-month', 'position')
+    
+    fieldsets = (
+        ('Cliente y Período', {
+            'fields': ('client', 'year', 'month', 'ranking_date_display')
+        }),
+        ('Estadísticas del Mes', {
+            'fields': ('referral_reservations_count', 'total_referral_revenue', 'referrals_made_count', 'points_earned')
+        }),
+        ('Posición en Ranking', {
+            'fields': ('position',)
+        }),
+        ('Fechas del Sistema', {
+            'fields': ('created', 'updated'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def ranking_date_display(self, obj):
+        return obj.ranking_date_display
+    ranking_date_display.short_description = 'Período'
+    
+    actions = ['recalculate_rankings']
+    
+    def recalculate_rankings(self, request, queryset):
+        """Acción admin para recalcular rankings seleccionados"""
+        from django.core.management import call_command
+        
+        # Obtener períodos únicos de los registros seleccionados
+        periods = set()
+        for ranking in queryset:
+            periods.add((ranking.year, ranking.month))
+        
+        recalculated = 0
+        for year, month in periods:
+            try:
+                call_command('calculate_referral_ranking', year=year, month=month, force=True, verbosity=0)
+                recalculated += 1
+            except Exception as e:
+                self.message_user(request, f'Error recalculando {month}/{year}: {str(e)}', level='ERROR')
+        
+        if recalculated > 0:
+            self.message_user(request, f'Se recalcularon {recalculated} períodos de ranking')
+    recalculate_rankings.short_description = "Recalcular rankings de períodos seleccionados"
+
 
 admin.site.register(MensajeFidelidad, MensajeFidelidadAdmin)
 admin.site.register(TokenApiClients)
