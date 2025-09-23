@@ -10,6 +10,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### September 23, 2025 - Referral Ranking System Implementation
+- **New Feature**: Complete monthly referral ranking system to track clients with highest referral activity
+- **Database Schema**: New `ReferralRanking` model tracks monthly statistics for each client
+- **API Endpoints**: Three new endpoints for referral analytics:
+  - `/api/v1/clients/referral-ranking/` - Historical ranking data with year/month parameters
+  - `/api/v1/clients/referral-ranking/current/` - Current month ranking leaderboard
+  - `/api/v1/clients/referral-stats/` - Personal referral statistics for authenticated clients
+- **Management Command**: `calculate_referral_ranking` command for monthly ranking calculation
+- **Admin Interface**: Full Django admin integration with ranking recalculation actions
+- **Metrics Tracked**: Reservations by referrals, referral revenue, new referrals made, points earned, ranking position
+
 ### September 21, 2025 - Modular Analytics Architecture Implementation
 - **Breaking Change**: Replaced monolithic `/stats/` endpoint with specific modular endpoints:
   - `/api/v1/stats/search-tracking/` - Dedicated search analytics with privacy-focused data
