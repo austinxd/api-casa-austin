@@ -206,6 +206,68 @@ class EventParticipantsView(APIView):
         })
 
 
+class EventWinnersView(APIView):
+    """Lista solo los ganadores de un evento específico"""
+    permission_classes = [AllowAny]
+
+    def get(self, request, event_id):
+        from django.utils.timesince import timesince
+        
+        event = get_object_or_404(Event, id=event_id)
+        
+        # Solo mostrar participantes que son ganadores
+        winners = EventRegistration.objects.filter(
+            event=event,
+            winner_status__in=[
+                EventRegistration.WinnerStatus.WINNER,
+                EventRegistration.WinnerStatus.RUNNER_UP,
+                EventRegistration.WinnerStatus.THIRD_PLACE
+            ]
+        ).select_related('client').order_by('winner_status')
+        
+        # Información de ganadores
+        winners_data = []
+        for registration in winners:
+            if registration.client:
+                client = registration.client
+                
+                # Nombre y apellido inicial
+                name = f"{client.first_name} {client.last_name[0]}." if client.last_name else client.first_name
+                
+                # Tiempo relativo desde el anuncio del ganador
+                announcement_time_ago = None
+                if registration.winner_announcement_date:
+                    announcement_time_ago = f"hace {timesince(registration.winner_announcement_date)}"
+                
+                # Imagen de Facebook
+                facebook_image = None
+                if client.facebook_profile_data and isinstance(client.facebook_profile_data, dict):
+                    facebook_image = client.facebook_profile_data.get('picture', {}).get('data', {}).get('url')
+                
+                # Estado de Facebook
+                facebook_status = client.facebook_linked
+                
+                winners_data.append({
+                    'participant_name': name,
+                    'winner_status': registration.winner_status,
+                    'position_name': registration.get_winner_status_display(),
+                    'prize_description': registration.prize_description,
+                    'winner_announcement_date': registration.winner_announcement_date,
+                    'announcement_time_ago': announcement_time_ago,
+                    'winner_notified': registration.winner_notified,
+                    'facebook_image': facebook_image,
+                    'facebook_status': facebook_status,
+                    'registration_date': registration.created.date(),
+                })
+        
+        return Response({
+            'event_name': event.title,
+            'event_date': event.event_date,
+            'total_winners': len(winners_data),
+            'winners': winners_data
+        })
+
+
 # ==================== ENDPOINTS CON AUTENTICACIÓN ====================
 
 class EventRegistrationView(APIView):

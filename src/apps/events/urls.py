@@ -7,6 +7,7 @@ from .views import (
     ComingEventsView,
     PublicEventDetailView,
     EventParticipantsView,
+    EventWinnersView,
     
     # Endpoints con autenticación
     EventRegistrationView,
@@ -36,6 +37,7 @@ urlpatterns = [
     path('coming/', ComingEventsView.as_view(), name='coming-events'), 
     path('<uuid:id>/', PublicEventDetailView.as_view(), name='public-event-detail'),
     path('<uuid:event_id>/participants/', EventParticipantsView.as_view(), name='event-participants'),
+    path('<uuid:event_id>/participants/winners/', EventWinnersView.as_view(), name='event-winners'),
     
     # === ENDPOINTS CON AUTENTICACIÓN DE CLIENTE ===
     path('<uuid:event_id>/register/', EventRegistrationView.as_view(), name='event-register'),
