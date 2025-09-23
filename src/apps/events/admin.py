@@ -46,21 +46,71 @@ class EventAdmin(admin.ModelAdmin):
 
 @admin.register(EventRegistration)
 class EventRegistrationAdmin(admin.ModelAdmin):
-    list_display = ['event', 'client', 'registration_date', 'status']
-    list_filter = ['status', 'registration_date', 'event__category']
+    list_display = ['event', 'client', 'registration_date', 'status', 'winner_display', 'prize_description']
+    list_filter = [
+        'status', 
+        'winner_status',
+        ('event', admin.RelatedOnlyFieldListFilter),  # Filtrar por evento específico
+        'registration_date', 
+        'event__category'
+    ]
     search_fields = ['event__title', 'client__first_name', 'client__last_name']
     readonly_fields = ['registration_date', 'created', 'updated']
     list_per_page = 20
     
+    # Acciones personalizadas para marcar ganadores
+    actions = ['mark_as_winner', 'mark_as_not_winner']
+    
     fieldsets = (
         ('Información del Registro', {
             'fields': ('event', 'client', 'status')
+        }),
+        ('🏆 Sistema de Ganadores', {
+            'fields': ('winner_status', 'prize_description', 'winner_announcement_date', 'winner_notified'),
+            'classes': ('collapse',)
+        }),
+        ('Notas', {
+            'fields': ('notes', 'admin_notes'),
+            'classes': ('collapse',)
         }),
         ('Timestamps', {
             'fields': ('registration_date', 'created', 'updated'),
             'classes': ('collapse',)
         })
     )
+    
+    def winner_display(self, obj):
+        """Mostrar estado de ganador con emoji"""
+        if obj.winner_status == EventRegistration.WinnerStatus.WINNER:
+            return "🏆 Ganador"
+        return "❌ No ganador"
+    winner_display.short_description = "Estado Ganador"
+    
+    def mark_as_winner(self, request, queryset):
+        """Marcar registros seleccionados como ganadores"""
+        updated = 0
+        for registration in queryset:
+            if registration.status == EventRegistration.RegistrationStatus.APPROVED:
+                registration.mark_as_winner(
+                    winner_status=EventRegistration.WinnerStatus.WINNER,
+                    prize_description="Premio del sorteo",
+                    notify=True
+                )
+                updated += 1
+        
+        if updated:
+            self.message_user(request, f"✅ {updated} participantes marcados como ganadores y notificados")
+        else:
+            self.message_user(request, "⚠️ Solo se pueden marcar como ganadores los participantes aprobados")
+    
+    mark_as_winner.short_description = "🏆 Marcar como ganador y notificar"
+    
+    def mark_as_not_winner(self, request, queryset):
+        """Quitar estado de ganador a registros seleccionados"""
+        updated = queryset.update(winner_status=EventRegistration.WinnerStatus.NOT_WINNER)
+        self.message_user(request, f"❌ {updated} participantes ya no son ganadores")
+    
+    mark_as_not_winner.short_description = "❌ Quitar estado de ganador"
 
 
 @admin.register(ActivityFeed)
