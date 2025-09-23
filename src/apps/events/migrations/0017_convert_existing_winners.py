@@ -3,6 +3,24 @@
 from django.db import migrations
 
 
+def convert_winner_statuses(apps, schema_editor):
+    """Convertir todos los RUNNER_UP y THIRD_PLACE a WINNER"""
+    EventRegistration = apps.get_model('events', 'EventRegistration')
+    
+    # Actualizar todos los segundos y terceros lugares a ganadores
+    updated_count = EventRegistration.objects.filter(
+        winner_status__in=['runner_up', 'third_place']
+    ).update(winner_status='winner')
+    
+    if updated_count > 0:
+        print(f"✅ Convertidos {updated_count} registros de runner_up/third_place a winner")
+
+
+def reverse_convert_winner_statuses(apps, schema_editor):
+    """Función de reverso - no hacer nada ya que perdimos la información original"""
+    pass
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,4 +28,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(convert_winner_statuses, reverse_convert_winner_statuses),
     ]
