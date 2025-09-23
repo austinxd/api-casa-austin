@@ -463,16 +463,16 @@ class ActivityFeed(BaseModel):
             status_change = self.activity_data.get('status_change', '')
             
             if status_change == 'cancelled':
-                return f"{client_name} canceló su reserva {dates} en {property_name}"
+                return f"{client_name} canceló su reserva en {property_name} ({dates})"
             else:
-                return f"{client_name} hizo una reserva {dates} en {property_name}"
+                return f"{client_name} reservó {property_name} ({dates})"
         
         elif self.activity_type == self.ActivityType.RESERVATION_CONFIRMED:
             property_name = self.activity_data.get('property_name', 'Casa Austin')
             dates = self.activity_data.get('dates', '')
             
-            # Formato específico: "Se confirmó la reserva del [fechas] en [propiedad] para [cliente]"
-            return f"Se confirmó la reserva del {dates} en {property_name} para {client_name}"
+            # Formato mejorado: "Se confirmó la reserva de [cliente] en [propiedad] ([fechas])"
+            return f"Se confirmó la reserva de {client_name} en {property_name} ({dates})"
         
         elif self.activity_type == self.ActivityType.PAYMENT_COMPLETED:
             property_name = self.activity_data.get('property_name', 'Casa Austin')
@@ -495,9 +495,9 @@ class ActivityFeed(BaseModel):
             # Los iconos se manejan por get_icon(), no en el mensaje
             
             if client_name:
-                return f"La reserva de {client_name} {dates} en {property_name} se liberó."
+                return f"La reserva de {client_name} en {property_name} ({dates}) se liberó"
             else:
-                return f"Una reserva {dates} en {property_name} se liberó."
+                return f"Una reserva en {property_name} ({dates}) se liberó"
         
         elif self.activity_type == self.ActivityType.CLIENT_REGISTERED:
             referred_by_info = self.activity_data.get('referred_by_info')
@@ -516,7 +516,7 @@ class ActivityFeed(BaseModel):
             else:
                 # Cliente normal sin referido
                 if client_name:
-                    return f"Se registró un nuevo cliente: {client_name}"
+                    return f"Se registró {client_name}"
                 else:
                     return f"Se registró un nuevo cliente"
         
