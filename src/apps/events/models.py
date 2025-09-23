@@ -298,10 +298,9 @@ class EventRegistration(BaseModel):
     
     def mark_as_winner(self, winner_status, prize_description="", notify=True):
         """Marcar como ganador y opcionalmente notificar"""
-        from django.utils import timezone
-        
         self.winner_status = winner_status
-        self.winner_announcement_date = timezone.now()
+        # Usar la fecha del evento como fecha de anuncio del ganador
+        self.winner_announcement_date = self.event.event_date
         if prize_description:
             self.prize_description = prize_description
         
