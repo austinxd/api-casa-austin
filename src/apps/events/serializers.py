@@ -44,7 +44,7 @@ class EventListSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'category', 'property', 'image', 'thumbnail',
             'event_date', 'registration_deadline', 'location',
             'max_participants', 'registered_count', 'available_spots',
-            'min_points_required', 'can_register_status', 'event_status'
+            'min_points_required', 'requires_facebook_verification', 'can_register_status', 'event_status'
         ]
     
     def get_can_register_status(self, obj):
@@ -82,7 +82,7 @@ class EventDetailSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'category', 'image',
             'event_date', 'registration_deadline', 'location',
             'max_participants', 'registered_count', 'available_spots',
-            'min_points_required', 'required_achievements',
+            'min_points_required', 'requires_facebook_verification', 'required_achievements',
             'can_register_status', 'client_can_register'
         ]
     

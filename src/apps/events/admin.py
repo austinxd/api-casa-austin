@@ -44,7 +44,7 @@ class EventAdmin(admin.ModelAdmin):
             'fields': ('status', 'max_participants', 'is_public', 'is_active')
         }),
         ('Restricciones', {
-            'fields': ('min_points_required', 'required_achievements')
+            'fields': ('min_points_required', 'required_achievements', 'requires_facebook_verification')
         }),
         ('Propiedad (solo para estadías)', {
             'fields': ('property_location',),
