@@ -146,7 +146,7 @@ urlpatterns = [
     path('api/v1/clients/track-search/debug-sheets/', GoogleSheetsDebugView.as_view(), name='google-sheets-debug'),
     
     # Referral ranking endpoints
-    path('api/v1/clients/referral-ranking/', ReferralRankingView.as_view(), name='referral-ranking'),
-    path('api/v1/clients/referral-ranking/current/', CurrentReferralRankingView.as_view(), name='current-referral-ranking'),
-    path('api/v1/clients/referral-stats/', ClientReferralStatsView.as_view(), name='client-referral-stats'),
+    path('clients/referral-ranking/', ReferralRankingView.as_view(), name='referral-ranking'),
+    path('clients/referral-ranking/current/', CurrentReferralRankingView.as_view(), name='current-referral-ranking'),
+    path('clients/referral-stats/', ClientReferralStatsView.as_view(), name='client-referral-stats'),
 ]

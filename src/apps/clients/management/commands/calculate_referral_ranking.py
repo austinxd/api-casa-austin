@@ -94,9 +94,10 @@ class Command(BaseCommand):
 
         self.stdout.write(f"📅 Período: {start_date} a {end_date}")
 
-        # Obtener todos los clientes con referidos
+        # Obtener todos los clientes que han hecho referidos
+        # referred_by apunta al cliente que refirió, así que buscamos clientes que aparezcan como referred_by
         clients_with_referrals = Clients.objects.filter(
-            referrals__isnull=False,  # Clientes que han hecho referidos
+            id__in=Clients.objects.filter(referred_by__isnull=False).values('referred_by'),
             deleted=False
         ).distinct()
 
