@@ -485,3 +485,55 @@ class ClientAchievement(BaseModel):
     def __str__(self):
         return f"{self.client.first_name} - {self.achievement.name}"
 
+
+class ReferralRanking(BaseModel):
+    """Modelo para almacenar estadísticas mensuales de ranking de referidos"""
+    
+    client = models.ForeignKey(Clients, on_delete=models.CASCADE, related_name='referral_rankings')
+    year = models.PositiveIntegerField(help_text="Año del ranking")
+    month = models.PositiveIntegerField(help_text="Mes del ranking (1-12)")
+    referral_reservations_count = models.PositiveIntegerField(default=0, help_text="Cantidad de reservas hechas por referidos en este mes")
+    total_referral_revenue = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Total facturado por reservas de referidos en soles")
+    referrals_made_count = models.PositiveIntegerField(default=0, help_text="Cantidad de nuevos referidos en este mes")
+    position = models.PositiveIntegerField(null=True, blank=True, help_text="Posición en el ranking mensual (1 = primer lugar)")
+    points_earned = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Puntos ganados por referidos este mes")
+    
+    class Meta:
+        unique_together = ('client', 'year', 'month')
+        ordering = ['-year', '-month', 'position']
+        verbose_name = "Ranking Mensual de Referidos"
+        verbose_name_plural = "Ranking Mensual de Referidos"
+        
+    def __str__(self):
+        return f"{self.client.first_name} - {self.month}/{self.year} - {self.referral_reservations_count} reservas de referidos"
+    
+    @property
+    def ranking_date_display(self):
+        """Retorna fecha del ranking en formato legible"""
+        months = {
+            1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 
+            5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+            9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+        }
+        return f"{months.get(self.month, self.month)} {self.year}"
+    
+    @classmethod
+    def get_current_month_ranking(cls, limit=10):
+        """Obtiene el ranking del mes actual"""
+        from django.utils import timezone
+        now = timezone.now()
+        return cls.objects.filter(
+            year=now.year,
+            month=now.month,
+            deleted=False
+        ).select_related('client').order_by('position')[:limit]
+    
+    @classmethod
+    def get_month_ranking(cls, year, month, limit=10):
+        """Obtiene el ranking de un mes específico"""
+        return cls.objects.filter(
+            year=year,
+            month=month,
+            deleted=False
+        ).select_related('client').order_by('position')[:limit]
+
