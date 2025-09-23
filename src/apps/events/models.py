@@ -64,6 +64,10 @@ class Event(BaseModel):
         default=0, 
         help_text="Puntos mínimos requeridos para registrarse"
     )
+    requires_facebook_verification = models.BooleanField(
+        default=False,
+        help_text="Solo cuentas verificadas con Facebook pueden participar"
+    )
     
     # 🏠 Propiedad asociada (para sorteos de estadías)
     property_location = models.ForeignKey(
@@ -122,6 +126,11 @@ class Event(BaseModel):
         if self.min_points_required > 0:
             if client.points_balance < self.min_points_required:
                 return False, f"Necesitas al menos {self.min_points_required} puntos"
+        
+        # Verificar verificación de Facebook
+        if self.requires_facebook_verification:
+            if not client.facebook_linked:
+                return False, "Este evento requiere verificación con Facebook. Ve a tu perfil y vincula tu cuenta de Facebook."
         
         # Verificar logros requeridos
         if self.required_achievements.exists():
