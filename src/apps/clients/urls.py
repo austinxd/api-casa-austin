@@ -38,8 +38,8 @@ urlpatterns = [
     path('clients/track-search-test/', SearchTrackingTestView.as_view(), name='track-search-test'),
 
     # Referral ranking endpoints (Must be before router to avoid conflicts)
-    path('clients/referral-ranking/', ReferralRankingView.as_view(), name='referral-ranking'),
-    path('clients/referral-ranking/current/', CurrentReferralRankingView.as_view(), name='current-referral-ranking'),
+    path('referral-ranking/', ReferralRankingView.as_view(), name='referral-ranking'),
+    path('referral-ranking/current/', CurrentReferralRankingView.as_view(), name='current-referral-ranking'),
     path('clients/referral-stats/', ClientReferralStatsView.as_view(), name='client-referral-stats'),
 
     path('', include(router.urls)),
