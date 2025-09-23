@@ -1218,10 +1218,11 @@ class ReferralRankingView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        """Obtiene el ranking del mes actual o específico"""
+        """Obtiene el ranking histórico global o de un mes específico"""
         from django.utils import timezone
         from .serializers import ReferralRankingListSerializer, ClientReferralRankingSerializer
         from .models import ReferralRanking
+        from django.db.models import Sum, Count
         
         try:
             # Parámetros opcionales
@@ -1229,28 +1230,101 @@ class ReferralRankingView(APIView):
             month = request.GET.get('month')
             limit = int(request.GET.get('limit', 10))
             
-            # Si no se especifica año/mes, usar mes actual
-            now = timezone.now()
-            target_year = int(year) if year else now.year
-            target_month = int(month) if month else now.month
+            # Si se especifican parámetros, devolver ranking de mes específico
+            if year and month:
+                target_year = int(year)
+                target_month = int(month)
+                
+                rankings = ReferralRanking.get_month_ranking(target_year, target_month, limit)
+                
+                months = {
+                    1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+                    5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+                    9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+                }
+                
+                response_data = {
+                    'type': 'monthly',
+                    'ranking_period': f"{months.get(target_month, target_month)} {target_year}",
+                    'year': target_year,
+                    'month': target_month,
+                    'total_participants': rankings.count(),
+                    'rankings': ClientReferralRankingSerializer(rankings, many=True).data
+                }
             
-            # Obtener ranking del mes especificado
-            rankings = ReferralRanking.get_month_ranking(target_year, target_month, limit)
-            
-            # Preparar respuesta
-            months = {
-                1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
-                5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
-                9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
-            }
-            
-            response_data = {
-                'ranking_period': f"{months.get(target_month, target_month)} {target_year}",
-                'year': target_year,
-                'month': target_month,
-                'total_participants': rankings.count(),
-                'rankings': ClientReferralRankingSerializer(rankings, many=True).data
-            }
+            else:
+                # Sin parámetros: devolver ranking histórico global
+                from django.db.models import Sum, Count, Max
+                from collections import defaultdict
+                
+                # Obtener todos los rankings históricos y agrupar por cliente
+                all_rankings = ReferralRanking.objects.filter(deleted=False).select_related('client')
+                
+                # Agrupar stats por cliente (totales históricos)
+                client_totals = defaultdict(lambda: {
+                    'client': None,
+                    'total_referral_reservations': 0,
+                    'total_referral_revenue': 0,
+                    'total_new_referrals': 0,
+                    'total_points_earned': 0,
+                    'months_active': set(),
+                    'best_position': 999
+                })
+                
+                for ranking in all_rankings:
+                    client_id = ranking.client.id
+                    client_totals[client_id]['client'] = ranking.client
+                    client_totals[client_id]['total_referral_reservations'] += ranking.referral_reservations
+                    client_totals[client_id]['total_referral_revenue'] += ranking.referral_revenue
+                    client_totals[client_id]['total_new_referrals'] += ranking.new_referrals
+                    client_totals[client_id]['total_points_earned'] += ranking.points_earned
+                    client_totals[client_id]['months_active'].add(f"{ranking.year}-{ranking.month:02d}")
+                    if ranking.position < client_totals[client_id]['best_position']:
+                        client_totals[client_id]['best_position'] = ranking.position
+                
+                # Convertir a lista y ordenar por total de reservas de referidos
+                global_rankings = []
+                for client_id, totals in client_totals.items():
+                    if totals['client'] and totals['total_referral_reservations'] > 0:
+                        global_rankings.append({
+                            'client': totals['client'],
+                            'total_referral_reservations': totals['total_referral_reservations'],
+                            'total_referral_revenue': totals['total_referral_revenue'],
+                            'total_new_referrals': totals['total_new_referrals'],
+                            'total_points_earned': totals['total_points_earned'],
+                            'months_active': len(totals['months_active']),
+                            'best_position': totals['best_position'] if totals['best_position'] < 999 else None
+                        })
+                
+                # Ordenar por total de reservas de referidos (descendente)
+                global_rankings.sort(key=lambda x: x['total_referral_reservations'], reverse=True)
+                
+                # Asignar posiciones globales
+                for i, ranking in enumerate(global_rankings[:limit]):
+                    ranking['global_position'] = i + 1
+                
+                # Serializar para respuesta
+                rankings_data = []
+                for ranking in global_rankings[:limit]:
+                    rankings_data.append({
+                        'global_position': ranking['global_position'],
+                        'client_id': ranking['client'].id,
+                        'client_name': f"{ranking['client'].first_name} {ranking['client'].last_name or ''}".strip(),
+                        'total_referral_reservations': ranking['total_referral_reservations'],
+                        'total_referral_revenue': ranking['total_referral_revenue'],
+                        'total_new_referrals': ranking['total_new_referrals'],
+                        'total_points_earned': ranking['total_points_earned'],
+                        'months_active': ranking['months_active'],
+                        'best_monthly_position': ranking['best_position']
+                    })
+                
+                response_data = {
+                    'type': 'global_historical',
+                    'ranking_period': 'Ranking Histórico Global',
+                    'total_participants': len(global_rankings),
+                    'showing': min(limit, len(global_rankings)),
+                    'rankings': rankings_data
+                }
             
             return Response(response_data)
             
@@ -1287,6 +1361,7 @@ class CurrentReferralRankingView(APIView):
             }
             
             response_data = {
+                'type': 'current_month',
                 'ranking_period': f"{months.get(now.month, now.month)} {now.year}",
                 'year': now.year,
                 'month': now.month,
@@ -2697,162 +2772,4 @@ class BotClientProfileView(APIView):
             return Response({
                 'success': False,
                 'message': 'Error interno del servidor'
-            }, status=500)
-
-
-# Configuración de serializers y paginación importados al principio del archivo.
-
-
-class ReferralRankingView(APIView):
-    """Vista para obtener el ranking mensual de referidos"""
-    authentication_classes = [ClientJWTAuthentication]
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        """Obtiene el ranking del mes actual o específico"""
-        from django.utils import timezone
-        from .serializers import ReferralRankingListSerializer, ClientReferralRankingSerializer
-        from .models import ReferralRanking
-        
-        try:
-            # Parámetros opcionales
-            year = request.GET.get('year')
-            month = request.GET.get('month')
-            limit = int(request.GET.get('limit', 10))
-            
-            # Si no se especifica año/mes, usar mes actual
-            now = timezone.now()
-            target_year = int(year) if year else now.year
-            target_month = int(month) if month else now.month
-            
-            # Obtener ranking del mes especificado
-            rankings = ReferralRanking.get_month_ranking(target_year, target_month, limit)
-            
-            # Preparar respuesta
-            months = {
-                1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
-                5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
-                9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
-            }
-            
-            response_data = {
-                'ranking_period': f"{months.get(target_month, target_month)} {target_year}",
-                'year': target_year,
-                'month': target_month,
-                'total_participants': rankings.count(),
-                'rankings': ClientReferralRankingSerializer(rankings, many=True).data
-            }
-            
-            return Response(response_data)
-            
-        except Exception as e:
-            logger.error(f"ReferralRankingView: Error getting ranking: {str(e)}")
-            return Response({
-                'error': 'Error obteniendo el ranking de referidos'
-            }, status=500)
-
-
-class CurrentReferralRankingView(APIView):
-    """Vista para obtener el ranking del mes actual"""
-    authentication_classes = [ClientJWTAuthentication] 
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        """Obtiene el ranking del mes actual"""
-        from django.utils import timezone
-        from .serializers import ReferralRankingListSerializer, ClientReferralRankingSerializer
-        from .models import ReferralRanking
-        
-        try:
-            limit = int(request.GET.get('limit', 10))
-            
-            # Obtener ranking del mes actual
-            rankings = ReferralRanking.get_current_month_ranking(limit)
-            
-            # Preparar respuesta
-            now = timezone.now()
-            months = {
-                1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
-                5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto", 
-                9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
-            }
-            
-            response_data = {
-                'ranking_period': f"{months.get(now.month, now.month)} {now.year}",
-                'year': now.year,
-                'month': now.month,
-                'total_participants': rankings.count(),
-                'rankings': ClientReferralRankingSerializer(rankings, many=True).data
-            }
-            
-            return Response(response_data)
-            
-        except Exception as e:
-            logger.error(f"CurrentReferralRankingView: Error getting current ranking: {str(e)}")
-            return Response({
-                'error': 'Error obteniendo el ranking actual de referidos'
-            }, status=500)
-
-
-class ClientReferralStatsView(APIView):
-    """Vista para obtener estadísticas de referidos del cliente autenticado"""
-    authentication_classes = [ClientJWTAuthentication]
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        """Obtiene estadísticas de referidos del cliente autenticado"""
-        try:
-            # Autenticar cliente
-            authenticator = ClientJWTAuthentication()
-            auth_result = authenticator.authenticate(request)
-
-            if auth_result is None:
-                return Response({'message': 'Token inválido'}, status=401)
-
-            client, validated_token = auth_result
-
-            if not client:
-                return Response({'message': 'Token inválido'}, status=401)
-
-            # Obtener parámetros
-            year = request.GET.get('year')
-            month = request.GET.get('month')
-            
-            # Si no se especifica año/mes, usar mes actual
-            from django.utils import timezone
-            now = timezone.now()
-            target_year = int(year) if year else now.year
-            target_month = int(month) if month else now.month
-            
-            # Obtener estadísticas del cliente para el mes
-            stats = client.get_referral_stats(target_year, target_month)
-            
-            # Obtener posición en el ranking si existe
-            from .models import ReferralRanking
-            ranking_entry = ReferralRanking.objects.filter(
-                client=client,
-                year=target_year,
-                month=target_month,
-                deleted=False
-            ).first()
-            
-            # Agregar información de ranking
-            stats['ranking_position'] = ranking_entry.position if ranking_entry else None
-            stats['is_in_ranking'] = ranking_entry is not None
-            stats['year'] = target_year
-            stats['month'] = target_month
-            
-            months = {
-                1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
-                5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
-                9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
-            }
-            stats['period_display'] = f"{months.get(target_month, target_month)} {target_year}"
-            
-            return Response(stats)
-            
-        except Exception as e:
-            logger.error(f"ClientReferralStatsView: Error getting client stats: {str(e)}")
-            return Response({
-                'error': 'Error obteniendo estadísticas de referidos'
             }, status=500)
