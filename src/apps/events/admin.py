@@ -11,14 +11,27 @@ class EventCategoryAdmin(admin.ModelAdmin):
     list_per_page = 20
 
 
+class EventRegistrationInline(admin.TabularInline):
+    """Inline para gestionar participantes directamente desde el evento"""
+    model = EventRegistration
+    extra = 0
+    readonly_fields = ['registration_date', 'winner_announcement_date']
+    fields = ['client', 'status', 'winner_status', 'prize_description', 'winner_notified', 'registration_date']
+    
+    def has_add_permission(self, request, obj=None):
+        # No permitir agregar participantes desde aquí (solo desde el frontend)
+        return False
+
+
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ['title', 'category', 'property_location', 'status', 'event_date', 'registration_deadline', 'max_participants', 'is_public', 'is_active']
+    list_display = ['title', 'category', 'property_location', 'status', 'event_date', 'participants_count', 'winners_count', 'manage_participants_link']
     list_filter = ['category', 'status', 'is_public', 'is_active', 'event_date']
     search_fields = ['title', 'description']
     filter_horizontal = ['required_achievements']
     readonly_fields = ['created', 'updated']
     list_per_page = 20
+    inlines = [EventRegistrationInline]
     
     fieldsets = (
         ('Información Básica', {
@@ -42,6 +55,29 @@ class EventAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         })
     )
+    
+    def participants_count(self, obj):
+        """Mostrar total de participantes aprobados"""
+        count = obj.registrations.filter(status='approved').count()
+        return f"{count} participantes"
+    participants_count.short_description = "Participantes"
+    
+    def winners_count(self, obj):
+        """Mostrar total de ganadores"""
+        count = obj.registrations.filter(winner_status='winner').count()
+        if count > 0:
+            return f"🏆 {count} ganadores"
+        return "Sin ganadores"
+    winners_count.short_description = "Ganadores"
+    
+    def manage_participants_link(self, obj):
+        """Link directo para gestionar participantes del evento"""
+        from django.urls import reverse
+        from django.utils.safestring import mark_safe
+        
+        url = reverse('admin:events_eventregistration_changelist') + f'?event__id__exact={obj.id}'
+        return mark_safe(f'<a href="{url}" class="button">👥 Gestionar Participantes</a>')
+    manage_participants_link.short_description = "Gestión"
 
 
 @admin.register(EventRegistration)
