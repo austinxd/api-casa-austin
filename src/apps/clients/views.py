@@ -1274,18 +1274,18 @@ class ReferralRankingView(APIView):
                 for ranking in all_rankings:
                     client_id = ranking.client.id
                     client_totals[client_id]['client'] = ranking.client
-                    client_totals[client_id]['total_referral_reservations'] += ranking.referral_reservations
-                    client_totals[client_id]['total_referral_revenue'] += ranking.referral_revenue
-                    client_totals[client_id]['total_new_referrals'] += ranking.new_referrals
+                    client_totals[client_id]['total_referral_reservations'] += ranking.referral_reservations_count
+                    client_totals[client_id]['total_referral_revenue'] += ranking.total_referral_revenue
+                    client_totals[client_id]['total_new_referrals'] += ranking.referrals_made_count
                     client_totals[client_id]['total_points_earned'] += ranking.points_earned
                     client_totals[client_id]['months_active'].add(f"{ranking.year}-{ranking.month:02d}")
                     if ranking.position < client_totals[client_id]['best_position']:
                         client_totals[client_id]['best_position'] = ranking.position
                 
-                # Convertir a lista y ordenar por total de reservas de referidos
+                # Convertir a lista - incluir todos los que han hecho referidos (aunque no tengan reservas)
                 global_rankings = []
                 for client_id, totals in client_totals.items():
-                    if totals['client'] and totals['total_referral_reservations'] > 0:
+                    if totals['client'] and totals['total_new_referrals'] > 0:  # Cambiar criterio: que hayan hecho referidos
                         global_rankings.append({
                             'client': totals['client'],
                             'total_referral_reservations': totals['total_referral_reservations'],
@@ -1296,8 +1296,8 @@ class ReferralRankingView(APIView):
                             'best_position': totals['best_position'] if totals['best_position'] < 999 else None
                         })
                 
-                # Ordenar por total de reservas de referidos (descendente)
-                global_rankings.sort(key=lambda x: x['total_referral_reservations'], reverse=True)
+                # Ordenar por: 1) reservas de referidos, 2) cantidad de referidos hechos
+                global_rankings.sort(key=lambda x: (x['total_referral_reservations'], x['total_new_referrals']), reverse=True)
                 
                 # Asignar posiciones globales
                 for i, ranking in enumerate(global_rankings[:limit]):
