@@ -15,8 +15,15 @@ class EventRegistrationInline(admin.TabularInline):
     """Inline para gestionar participantes directamente desde el evento"""
     model = EventRegistration
     extra = 0
-    readonly_fields = ['registration_date', 'winner_announcement_date']
-    fields = ['client', 'status', 'winner_status', 'prize_description', 'winner_notified', 'registration_date']
+    readonly_fields = ['registration_date', 'winner_announcement_date', 'evidence_preview']
+    fields = ['client', 'status', 'evidence_preview', 'winner_status', 'prize_description', 'winner_notified', 'registration_date']
+    
+    def evidence_preview(self, obj):
+        """Vista previa de la evidencia subida"""
+        if obj.evidence_image:
+            return format_html('<img src="{}" style="max-width: 100px; max-height: 100px;" />', obj.evidence_image.url)
+        return "Sin evidencia"
+    evidence_preview.short_description = "Evidencia"
     
     def has_add_permission(self, request, obj=None):
         # No permitir agregar participantes desde aquí (solo desde el frontend)
@@ -26,7 +33,7 @@ class EventRegistrationInline(admin.TabularInline):
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
     list_display = ['title', 'slug', 'category', 'property_location', 'status', 'event_date', 'participants_count', 'winners_count', 'manage_participants_link']
-    list_filter = ['category', 'status', 'is_public', 'is_active', 'event_date']
+    list_filter = ['category', 'status', 'is_public', 'is_active', 'requires_evidence', 'event_date']
     search_fields = ['title', 'slug', 'description']
     filter_horizontal = ['required_achievements']
     readonly_fields = ['created', 'updated']
@@ -45,7 +52,7 @@ class EventAdmin(admin.ModelAdmin):
             'fields': ('status', 'max_participants', 'is_public', 'is_active')
         }),
         ('Restricciones', {
-            'fields': ('min_points_required', 'required_achievements', 'requires_facebook_verification')
+            'fields': ('min_points_required', 'required_achievements', 'requires_facebook_verification', 'requires_evidence')
         }),
         ('Propiedad (solo para estadías)', {
             'fields': ('property_location',),
@@ -83,7 +90,7 @@ class EventAdmin(admin.ModelAdmin):
 
 @admin.register(EventRegistration)
 class EventRegistrationAdmin(admin.ModelAdmin):
-    list_display = ['event', 'client', 'registration_date', 'status', 'winner_display', 'prize_description']
+    list_display = ['event', 'client', 'registration_date', 'status', 'evidence_status', 'winner_display', 'prize_description']
     list_filter = [
         'status', 
         'winner_status',
@@ -92,7 +99,7 @@ class EventRegistrationAdmin(admin.ModelAdmin):
         'event__category'
     ]
     search_fields = ['event__title', 'client__first_name', 'client__last_name']
-    readonly_fields = ['registration_date', 'winner_announcement_date', 'winner_notified', 'created', 'updated']
+    readonly_fields = ['registration_date', 'winner_announcement_date', 'winner_notified', 'evidence_preview', 'created', 'updated']
     list_per_page = 20
     
     # Acciones personalizadas para marcar ganadores
@@ -101,6 +108,10 @@ class EventRegistrationAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Información del Registro', {
             'fields': ('event', 'client', 'status')
+        }),
+        ('📷 Evidencia de Participación', {
+            'fields': ('evidence_image', 'evidence_preview'),
+            'description': 'Evidencia subida por el participante (solo si el evento lo requiere)'
         }),
         ('🏆 Sistema de Ganadores', {
             'fields': ('winner_status', 'prize_description', 'winner_announcement_date', 'winner_notified'),
@@ -148,6 +159,27 @@ class EventRegistrationAdmin(admin.ModelAdmin):
         self.message_user(request, f"❌ {updated} participantes ya no son ganadores")
     
     mark_as_not_winner.short_description = "❌ Quitar estado de ganador"
+    
+    def evidence_status(self, obj):
+        """Estado de la evidencia"""
+        if obj.event.requires_evidence:
+            if obj.evidence_image:
+                return format_html('<span style="color: green;">✅ Subida</span>')
+            else:
+                return format_html('<span style="color: red;">❌ Falta</span>')
+        else:
+            return format_html('<span style="color: gray;">No requerida</span>')
+    evidence_status.short_description = "Evidencia"
+    
+    def evidence_preview(self, obj):
+        """Vista previa de la evidencia"""
+        if obj.evidence_image:
+            return format_html(
+                '<img src="{}" style="max-width: 150px; max-height: 150px; border-radius: 5px;" />',
+                obj.evidence_image.url
+            )
+        return "Sin evidencia subida"
+    evidence_preview.short_description = "Vista Previa"
 
 
 @admin.register(ActivityFeed)
