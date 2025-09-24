@@ -139,9 +139,10 @@ class EventRegistrationCreateSerializer(serializers.ModelSerializer):
         fields = ['notes']
     
     def create(self, validated_data):
-        # El evento y cliente se asignan en la vista
+        # El evento, cliente y estado se asignan desde el contexto
         validated_data['event'] = self.context['event']
         validated_data['client'] = self.context['client']
+        validated_data['status'] = self.context['status']
         return super().create(validated_data)
 
 

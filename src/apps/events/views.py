@@ -19,6 +19,7 @@ from .serializers import (
     EventCategorySerializer, 
     EventListSerializer, 
     EventRegistrationSerializer,
+    EventRegistrationCreateSerializer,
     ActivityFeedSerializer,
     ActivityFeedCreateSerializer
 )
@@ -340,13 +341,18 @@ class EventRegistrationView(APIView):
         initial_status = 'incomplete' if event.requires_evidence else 'approved'
         
         registration_data = {
-            'event': event.id,
-            'client': client.id,
-            'status': initial_status,
             'notes': request.data.get('special_requests', '')
         }
         
-        serializer = EventRegistrationSerializer(data=registration_data)
+        # Usar el serializer específico para crear registros
+        serializer = EventRegistrationCreateSerializer(
+            data=registration_data,
+            context={
+                'event': event,
+                'client': client,
+                'status': initial_status
+            }
+        )
         if serializer.is_valid():
             registration = serializer.save()
             
