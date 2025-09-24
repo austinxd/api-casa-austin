@@ -75,6 +75,24 @@ class Event(BaseModel):
         help_text="Los participantes deben subir una foto/evidencia para participar"
     )
     
+    # 🏆 CONFIGURACIÓN DE CONCURSO
+    is_contest = models.BooleanField(
+        default=False,
+        help_text="Este evento es un concurso de referidos o reservas"
+    )
+    
+    class ContestType(models.TextChoices):
+        REFERRAL_COUNT = "referral_count", "Cantidad de Referidos"
+        REFERRAL_BOOKINGS = "referral_bookings", "Reservas de Referidos"
+    
+    contest_type = models.CharField(
+        max_length=20,
+        choices=ContestType.choices,
+        blank=True,
+        null=True,
+        help_text="Tipo de concurso (solo si is_contest=True)"
+    )
+    
     # 🏠 Propiedad asociada (para sorteos de estadías)
     property_location = models.ForeignKey(
         Property,
@@ -270,6 +288,75 @@ class Event(BaseModel):
         if not self.max_participants:
             return None
         return self.max_participants - self.registered_count
+    
+    def calculate_contest_stats_for_participant(self, client):
+        """Calcular estadísticas de concurso para un participante específico"""
+        if not self.is_contest or not client:
+            return 0
+        
+        from django.utils import timezone
+        from apps.clients.models import Clients
+        from apps.reservation.models import Reservation
+        
+        # Obtener fecha de registro del participante en este evento
+        registration = self.registrations.filter(client=client).first()
+        if not registration:
+            return 0
+        
+        # Periodo de contabilización: desde registro hasta deadline
+        start_date = registration.registration_date
+        end_date = self.registration_deadline or timezone.now()
+        
+        if self.contest_type == self.ContestType.REFERRAL_COUNT:
+            # Contar clientes referidos en el periodo
+            referred_clients = Clients.objects.filter(
+                referred_by=client,
+                created__gte=start_date,
+                created__lte=end_date,
+                deleted=False
+            ).count()
+            return referred_clients
+            
+        elif self.contest_type == self.ContestType.REFERRAL_BOOKINGS:
+            # Contar reservas de clientes referidos en el periodo
+            # Primero obtener clientes referidos por este cliente
+            referred_clients = Clients.objects.filter(
+                referred_by=client,
+                deleted=False
+            ).values_list('id', flat=True)
+            
+            # Contar reservas de esos clientes en el periodo
+            bookings_count = Reservation.objects.filter(
+                client_id__in=referred_clients,
+                created__gte=start_date,
+                created__lte=end_date,
+                deleted=False,
+                status__in=['confirmed', 'pending']  # Solo reservas válidas
+            ).count()
+            return bookings_count
+        
+        return 0
+    
+    def get_contest_leaderboard(self):
+        """Obtener ranking del concurso"""
+        if not self.is_contest:
+            return []
+        
+        # Obtener participantes aprobados
+        participants = self.registrations.filter(status='approved').select_related('client')
+        
+        leaderboard = []
+        for registration in participants:
+            stats = self.calculate_contest_stats_for_participant(registration.client)
+            if stats > 0:  # Solo incluir participantes con actividad
+                leaderboard.append({
+                    'client': registration.client,
+                    'registration': registration,
+                    'stats': stats
+                })
+        
+        # Ordenar por estadísticas descendente
+        return sorted(leaderboard, key=lambda x: x['stats'], reverse=True)
 
 
 class EventRegistration(BaseModel):

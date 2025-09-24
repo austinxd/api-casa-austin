@@ -33,7 +33,7 @@ class EventRegistrationInline(admin.TabularInline):
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
     list_display = ['title', 'slug', 'category', 'property_location', 'status', 'event_date', 'participants_count', 'winners_count', 'manage_participants_link']
-    list_filter = ['category', 'status', 'is_public', 'is_active', 'requires_evidence', 'event_date']
+    list_filter = ['category', 'status', 'is_public', 'is_active', 'requires_evidence', 'is_contest', 'contest_type', 'event_date']
     search_fields = ['title', 'slug', 'description']
     filter_horizontal = ['required_achievements']
     readonly_fields = ['created', 'updated']
@@ -53,6 +53,10 @@ class EventAdmin(admin.ModelAdmin):
         }),
         ('Restricciones', {
             'fields': ('min_points_required', 'required_achievements', 'requires_facebook_verification', 'requires_evidence')
+        }),
+        ('🏆 Configuración de Concurso', {
+            'fields': ('is_contest', 'contest_type'),
+            'description': 'Configurar si este evento es un concurso de referidos o reservas'
         }),
         ('Propiedad (solo para estadías)', {
             'fields': ('property_location',),
