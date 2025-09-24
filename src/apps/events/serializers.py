@@ -44,7 +44,7 @@ class EventListSerializer(serializers.ModelSerializer):
             'id', 'slug', 'title', 'description', 'category', 'property', 'image', 'thumbnail',
             'event_date', 'registration_deadline', 'location',
             'max_participants', 'registered_count', 'available_spots',
-            'min_points_required', 'requires_facebook_verification', 'can_register_status', 'event_status'
+            'min_points_required', 'requires_facebook_verification', 'requires_evidence', 'can_register_status', 'event_status'
         ]
         read_only_fields = ['slug']
     
@@ -83,7 +83,7 @@ class EventDetailSerializer(serializers.ModelSerializer):
             'id', 'slug', 'title', 'description', 'category', 'image',
             'event_date', 'registration_deadline', 'location',
             'max_participants', 'registered_count', 'available_spots',
-            'min_points_required', 'requires_facebook_verification', 'required_achievements',
+            'min_points_required', 'requires_facebook_verification', 'requires_evidence', 'required_achievements',
             'can_register_status', 'client_can_register'
         ]
         read_only_fields = ['slug']
@@ -116,7 +116,7 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
         model = EventRegistration
         fields = [
             'id', 'event', 'client', 'status', 
-            'registration_date', 'notes'
+            'registration_date', 'notes', 'evidence_image'
         ]
         read_only_fields = ['registration_date']
         
