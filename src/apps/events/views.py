@@ -171,6 +171,12 @@ class EventParticipantsView(APIView):
         
         # Información limitada por privacidad
         participants_data = []
+        contest_leaderboard = []
+        
+        # Si es concurso, obtener leaderboard para posiciones
+        if event.is_contest:
+            contest_leaderboard = event.get_contest_leaderboard()
+            
         for registration in participants:
             if registration.client:
                 client = registration.client
@@ -191,20 +197,53 @@ class EventParticipantsView(APIView):
                 # Estado de Facebook
                 facebook_status = client.facebook_linked
                 
-                participants_data.append({
+                participant_info = {
                     'participant_name': name,
                     'registration_date': registration.created.date(),
                     'registration_time_ago': f"hace {registration_time_ago}",
                     'facebook_image': facebook_image,
                     'facebook_status': facebook_status,
                     'status': registration.get_status_display()
-                })
+                }
+                
+                # Si es concurso, agregar información de concurso
+                if event.is_contest:
+                    # Buscar posición en el leaderboard
+                    contest_position = None
+                    contest_stats = 0
+                    
+                    for i, entry in enumerate(contest_leaderboard, 1):
+                        if entry['client'].id == client.id:
+                            contest_position = i
+                            contest_stats = entry['stats']
+                            break
+                    
+                    participant_info.update({
+                        'contest_position': contest_position,
+                        'contest_stats': contest_stats,
+                        'contest_stats_label': 'Referidos' if event.contest_type == event.ContestType.REFERRAL_COUNT else 'Reservas de Referidos'
+                    })
+                
+                participants_data.append(participant_info)
         
-        return Response({
+        # Respuesta base
+        response_data = {
             'event_name': event.title,
             'total_participants': len(participants_data),
             'participants': participants_data
-        })
+        }
+        
+        # Si es concurso, agregar información adicional
+        if event.is_contest:
+            response_data.update({
+                'is_contest': True,
+                'contest_type': event.contest_type,
+                'contest_type_display': event.get_contest_type_display(),
+                'contest_deadline': event.registration_deadline,
+                'contest_description': f"Concurso de {event.get_contest_type_display().lower()}. Los participantes compiten por la mayor cantidad de {'referidos' if event.contest_type == event.ContestType.REFERRAL_COUNT else 'reservas de referidos'}."
+            })
+        
+        return Response(response_data)
 
 
 class EventWinnersView(APIView):
