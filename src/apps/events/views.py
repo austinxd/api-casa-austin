@@ -287,7 +287,7 @@ class EventRegistrationView(APIView):
         active_registration = EventRegistration.objects.filter(
             event=event,
             client=client,
-            status__in=['pending', 'approved']
+            status__in=['incomplete', 'pending', 'approved']
         ).first()
         
         if active_registration:
@@ -316,7 +316,12 @@ class EventRegistrationView(APIView):
         
         # Si existe registro cancelado, reactivarlo
         if cancelled_registration:
-            cancelled_registration.status = 'approved'
+            # Determinar estado según si el evento requiere evidencia
+            if event.requires_evidence:
+                cancelled_registration.status = 'incomplete'  # Necesita subir evidencia
+            else:
+                cancelled_registration.status = 'approved'  # Flujo normal
+            
             cancelled_registration.notes = request.data.get('special_requests', '')
             cancelled_registration.save()
             
@@ -326,14 +331,18 @@ class EventRegistrationView(APIView):
             serializer = EventRegistrationSerializer(cancelled_registration)
             return Response({
                 'message': 'Registro reactivado exitosamente',
-                'registration': serializer.data
+                'registration': serializer.data,
+                'requires_evidence': event.requires_evidence
             }, status=status.HTTP_200_OK)
         
         # Si no hay registro previo, crear uno nuevo
+        # Determinar estado inicial según si requiere evidencia
+        initial_status = 'incomplete' if event.requires_evidence else 'approved'
+        
         registration_data = {
             'event': event.id,
             'client': client.id,
-            'status': 'approved',
+            'status': initial_status,
             'notes': request.data.get('special_requests', '')
         }
         
@@ -346,7 +355,9 @@ class EventRegistrationView(APIView):
             
             return Response({
                 'message': 'Registro exitoso',
-                'registration': serializer.data
+                'registration': serializer.data,
+                'requires_evidence': event.requires_evidence,
+                'next_step': 'upload_evidence' if event.requires_evidence else 'wait_approval'
             }, status=status.HTTP_201_CREATED)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -369,6 +380,80 @@ class EventRegistrationView(APIView):
             )
         except Exception as e:
             logger.error(f'Error logging registration activity: {e}')
+
+
+class EventUploadEvidenceView(APIView):
+    """Subir evidencia para eventos que lo requieren"""
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, event_id):
+        """Subir evidencia para completar el registro"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            event = get_object_or_404(Event, id=event_id)
+            client = request.client
+            
+            # Verificar que el evento requiere evidencia
+            if not event.requires_evidence:
+                return Response({
+                    'error': 'Este evento no requiere evidencia'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Buscar registro incompleto del cliente
+            registration = EventRegistration.objects.filter(
+                event=event,
+                client=client,
+                status='incomplete'
+            ).first()
+            
+            if not registration:
+                return Response({
+                    'error': 'No tienes un registro incompleto para este evento'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Verificar que se subió una imagen
+            if 'evidence_image' not in request.FILES:
+                return Response({
+                    'error': 'Debes subir una imagen como evidencia'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Guardar la evidencia y cambiar estado a pending
+            registration.evidence_image = request.FILES['evidence_image']
+            registration.status = 'pending'  # Ahora espera aprobación del admin
+            registration.save()
+            
+            # Log de actividad
+            try:
+                ActivityFeed.create_activity(
+                    activity_type=ActivityFeed.ActivityType.EVENT_REGISTRATION,
+                    title='Evidencia subida',
+                    client=registration.client,
+                    event=registration.event,
+                    property_location=registration.event.property_location,
+                    activity_data={
+                        'event_id': str(registration.event.id),
+                        'event_name': registration.event.title,
+                        'registration_id': str(registration.id),
+                        'action': 'evidence_uploaded'
+                    }
+                )
+            except Exception as e:
+                logger.error(f'Error logging evidence upload activity: {e}')
+            
+            return Response({
+                'message': 'Evidencia subida exitosamente. Tu registro está ahora pendiente de aprobación.',
+                'registration_status': registration.status,
+                'evidence_uploaded': True
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f'Error uploading evidence: {e}')
+            return Response({
+                'error': 'Error interno del servidor'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class EventCancelRegistrationView(APIView):
