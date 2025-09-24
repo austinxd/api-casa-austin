@@ -118,7 +118,7 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
             'id', 'event', 'client', 'status', 
             'registration_date', 'notes', 'evidence_image'
         ]
-        read_only_fields = ['registration_date']
+        read_only_fields = ['registration_date', 'status', 'event', 'client', 'evidence_image']
         
     def to_representation(self, instance):
         """Personalizar la representación para mostrar detalles del evento"""

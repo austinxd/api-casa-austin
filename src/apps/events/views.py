@@ -394,7 +394,7 @@ class EventUploadEvidenceView(APIView):
         
         try:
             event = get_object_or_404(Event, id=event_id)
-            client = request.client
+            client = request.user
             
             # Verificar que el evento requiere evidencia
             if not event.requires_evidence:
@@ -418,6 +418,22 @@ class EventUploadEvidenceView(APIView):
             if 'evidence_image' not in request.FILES:
                 return Response({
                     'error': 'Debes subir una imagen como evidencia'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Validar archivo de imagen
+            evidence_file = request.FILES['evidence_image']
+            
+            # Validar tipo de archivo
+            allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+            if evidence_file.content_type not in allowed_types:
+                return Response({
+                    'error': 'Solo se permiten archivos de imagen (JPEG, PNG, WebP)'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Validar tamaño (máximo 10MB)
+            if evidence_file.size > 10 * 1024 * 1024:
+                return Response({
+                    'error': 'El archivo es demasiado grande. Máximo 10MB'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             # Guardar la evidencia y cambiar estado a pending
