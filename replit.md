@@ -10,7 +10,24 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### September 24, 2025 - Event Slug Implementation
+### September 24, 2025 - Event Contest System and Evidence Upload Implementation
+
+#### Contest System for Referral Competitions
+- **New Feature**: Configurable contest system for events with two competition types
+- **Referral Count Contest**: Track number of new clients referred during event period
+- **Referral Bookings Contest**: Track reservations made by referred clients during event period
+- **Time-based Tracking**: Statistics calculated from participant registration to event deadline
+- **Leaderboard API**: Public endpoint `/contest/leaderboard/` for real-time rankings
+- **Admin Interface**: Full contest configuration in Django admin panel
+
+#### Evidence Upload System for Event Participation
+- **Configurable Evidence**: Events can require photo evidence for participation
+- **Three-stage Flow**: Registration → Evidence Upload → Admin Approval
+- **Security Validation**: File type, size limits, and ownership verification
+- **Admin Interface**: Evidence preview and approval workflow
+- **API Endpoints**: Dedicated upload endpoint with comprehensive validation
+
+#### Event Slug Implementation
 - **New Feature**: Added slug field to Event model for SEO-friendly URLs
 - **Auto-generation**: Slugs automatically generated from event titles using Django's slugify
 - **Uniqueness**: Automatic handling of duplicate slugs with numbered suffixes

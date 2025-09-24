@@ -13,6 +13,7 @@ from .views import (
     EventRegistrationView,
     EventUploadEvidenceView,
     EventCancelRegistrationView,
+    EventContestLeaderboardView,
     ClientEventRegistrationsView,
     check_event_eligibility,
     
@@ -39,6 +40,7 @@ urlpatterns = [
     path('<uuid:id>/', PublicEventDetailView.as_view(), name='public-event-detail'),
     path('<uuid:event_id>/participants/', EventParticipantsView.as_view(), name='event-participants'),
     path('<uuid:event_id>/participants/winners/', EventWinnersView.as_view(), name='event-winners'),
+    path('<uuid:event_id>/contest/leaderboard/', EventContestLeaderboardView.as_view(), name='event-contest-leaderboard'),
     
     # === ENDPOINTS CON AUTENTICACIÓN DE CLIENTE ===
     path('<uuid:event_id>/register/', EventRegistrationView.as_view(), name='event-register'),

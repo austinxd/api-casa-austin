@@ -472,6 +472,61 @@ class EventUploadEvidenceView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class EventContestLeaderboardView(APIView):
+    """Vista para mostrar el ranking del concurso de un evento"""
+    
+    def get(self, request, event_id):
+        """Obtener ranking del concurso"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # Intentar buscar por UUID primero
+            try:
+                event = get_object_or_404(Event, id=event_id, is_active=True)
+            except ValidationError:
+                # Si falla, buscar por slug
+                event = get_object_or_404(Event, slug=event_id, is_active=True)
+            
+            # Verificar que es un concurso
+            if not event.is_contest:
+                return Response({
+                    'error': 'Este evento no es un concurso'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Obtener leaderboard
+            leaderboard = event.get_contest_leaderboard()
+            
+            # Formatear respuesta
+            result = []
+            for i, entry in enumerate(leaderboard, 1):
+                client = entry['client']
+                result.append({
+                    'position': i,
+                    'client_name': f"{client.first_name} {client.last_name[0]}." if client.last_name else client.first_name,
+                    'client_avatar': client.avatar.url if client.avatar else None,
+                    'stats': entry['stats'],
+                    'registration_date': entry['registration'].registration_date
+                })
+            
+            contest_info = {
+                'event_title': event.title,
+                'contest_type': event.contest_type,
+                'contest_type_display': event.get_contest_type_display(),
+                'registration_deadline': event.registration_deadline,
+                'total_participants': event.registrations.filter(status='approved').count(),
+                'leaderboard': result
+            }
+            
+            return Response(contest_info, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f'Error fetching contest leaderboard: {e}')
+            return Response({
+                'error': 'Error interno del servidor'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class EventCancelRegistrationView(APIView):
     """Cancelar registro de cliente a un evento"""
     authentication_classes = [ClientJWTAuthentication]

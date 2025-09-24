@@ -44,7 +44,8 @@ class EventListSerializer(serializers.ModelSerializer):
             'id', 'slug', 'title', 'description', 'category', 'property', 'image', 'thumbnail',
             'event_date', 'registration_deadline', 'location',
             'max_participants', 'registered_count', 'available_spots',
-            'min_points_required', 'requires_facebook_verification', 'requires_evidence', 'can_register_status', 'event_status'
+            'min_points_required', 'requires_facebook_verification', 'requires_evidence', 
+            'is_contest', 'contest_type', 'can_register_status', 'event_status'
         ]
         read_only_fields = ['slug']
     
@@ -84,7 +85,7 @@ class EventDetailSerializer(serializers.ModelSerializer):
             'event_date', 'registration_deadline', 'location',
             'max_participants', 'registered_count', 'available_spots',
             'min_points_required', 'requires_facebook_verification', 'requires_evidence', 'required_achievements',
-            'can_register_status', 'client_can_register'
+            'is_contest', 'contest_type', 'can_register_status', 'client_can_register'
         ]
         read_only_fields = ['slug']
     
@@ -182,12 +183,14 @@ class EventWinnersSerializer(serializers.ModelSerializer):
     category = EventCategorySerializer(read_only=True)
     winners = serializers.SerializerMethodField()
     total_winners = serializers.SerializerMethodField()
+    contest_leaderboard = serializers.SerializerMethodField()
     
     class Meta:
         model = Event
         fields = [
             'id', 'slug', 'title', 'description', 'category', 'image',
-            'event_date', 'location', 'winners', 'total_winners'
+            'event_date', 'location', 'is_contest', 'contest_type',
+            'winners', 'total_winners', 'contest_leaderboard'
         ]
         read_only_fields = ['slug']
     
@@ -204,6 +207,27 @@ class EventWinnersSerializer(serializers.ModelSerializer):
         return obj.registrations.filter(
             winner_status=EventRegistration.WinnerStatus.WINNER
         ).count()
+    
+    def get_contest_leaderboard(self, obj):
+        """Obtener ranking del concurso si aplica"""
+        if not obj.is_contest:
+            return None
+        
+        leaderboard = obj.get_contest_leaderboard()
+        
+        # Formatear para API
+        result = []
+        for i, entry in enumerate(leaderboard[:10], 1):  # Top 10
+            client = entry['client']
+            result.append({
+                'position': i,
+                'client_name': f"{client.first_name} {client.last_name[0]}." if client.last_name else client.first_name,
+                'client_avatar': client.avatar.url if client.avatar else None,
+                'stats': entry['stats'],
+                'stats_label': 'Referidos' if obj.contest_type == obj.ContestType.REFERRAL_COUNT else 'Reservas de Referidos'
+            })
+        
+        return result
 
 
 # 👥 SERIALIZER PARA PARTICIPANTES
