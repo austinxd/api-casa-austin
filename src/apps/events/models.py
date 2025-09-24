@@ -348,12 +348,12 @@ class Event(BaseModel):
         leaderboard = []
         for registration in participants:
             stats = self.calculate_contest_stats_for_participant(registration.client)
-            if stats > 0:  # Solo incluir participantes con actividad
-                leaderboard.append({
-                    'client': registration.client,
-                    'registration': registration,
-                    'stats': stats
-                })
+            # En concursos, mostrar TODOS los participantes, incluso con 0 estadísticas
+            leaderboard.append({
+                'client': registration.client,
+                'registration': registration,
+                'stats': stats
+            })
         
         # Ordenar por estadísticas descendente
         return sorted(leaderboard, key=lambda x: x['stats'], reverse=True)
