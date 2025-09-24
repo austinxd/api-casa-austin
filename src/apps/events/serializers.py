@@ -148,7 +148,7 @@ class EventRegistrationCreateSerializer(serializers.ModelSerializer):
 class WinnerSerializer(serializers.ModelSerializer):
     """Serializer para mostrar ganadores de eventos"""
     
-    client_name = serializers.CharField(source='client.first_name', read_only=True)
+    client_name = serializers.SerializerMethodField()
     client_avatar = serializers.CharField(source='client.avatar', read_only=True)
     position_name = serializers.CharField(source='get_winner_status_display', read_only=True)
     
@@ -158,6 +158,22 @@ class WinnerSerializer(serializers.ModelSerializer):
             'id', 'client_name', 'client_avatar', 'winner_status', 'position_name',
             'winner_announcement_date', 'prize_description'
         ]
+    
+    def get_client_name(self, obj):
+        """Formato: Solo Primer Nombre + Inicial del Apellido (ej: Juan C.)"""
+        if not obj.client:
+            return None
+        
+        # Obtener solo el primer nombre (antes del primer espacio)
+        full_first_name = obj.client.first_name or "Usuario"
+        first_name_only = full_first_name.strip().split()[0] if full_first_name.strip() else "Usuario"
+        
+        # Agregar inicial del apellido si existe
+        if obj.client.last_name and obj.client.last_name.strip():
+            last_initial = obj.client.last_name.strip()[0].upper()
+            return f"{first_name_only} {last_initial}."
+        
+        return first_name_only
 
 
 class EventWinnersSerializer(serializers.ModelSerializer):
