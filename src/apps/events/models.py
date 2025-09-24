@@ -70,6 +70,10 @@ class Event(BaseModel):
         default=False,
         help_text="Solo cuentas verificadas con Facebook pueden participar"
     )
+    requires_evidence = models.BooleanField(
+        default=False,
+        help_text="Los participantes deben subir una foto/evidencia para participar"
+    )
     
     # 🏠 Propiedad asociada (para sorteos de estadías)
     property_location = models.ForeignKey(
@@ -272,6 +276,7 @@ class EventRegistration(BaseModel):
     """Registro de clientes a eventos"""
     
     class RegistrationStatus(models.TextChoices):
+        INCOMPLETE = "incomplete", "Incompleto"  # Falta subir evidencia
         PENDING = "pending", "Pendiente"
         APPROVED = "approved", "Aprobado"
         REJECTED = "rejected", "Rechazado"
@@ -283,12 +288,20 @@ class EventRegistration(BaseModel):
     
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='registrations')
     client = models.ForeignKey(Clients, on_delete=models.CASCADE, related_name='event_registrations')
-    status = models.CharField(max_length=10, choices=RegistrationStatus.choices, default=RegistrationStatus.PENDING)
+    status = models.CharField(max_length=15, choices=RegistrationStatus.choices, default=RegistrationStatus.PENDING)
     registration_date = models.DateTimeField(auto_now_add=True)
     
     # Información adicional
     notes = models.TextField(blank=True, help_text="Notas del registro")
     admin_notes = models.TextField(blank=True, help_text="Notas del administrador")
+    
+    # 📷 EVIDENCIA PARA PARTICIPACIÓN
+    evidence_image = models.ImageField(
+        upload_to='events/evidence/', 
+        blank=True, 
+        null=True, 
+        help_text="Foto/evidencia requerida para participar (solo si el evento lo requiere)"
+    )
     
     # 🏆 SISTEMA DE GANADORES
     winner_status = models.CharField(
