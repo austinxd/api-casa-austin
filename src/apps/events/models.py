@@ -331,7 +331,7 @@ class Event(BaseModel):
                 created__gte=start_date,
                 created__lte=end_date,
                 deleted=False,
-                status__in=['confirmed', 'pending']  # Solo reservas válidas
+                status='approved'  # Solo reservas aprobadas
             ).count()
             return bookings_count
         
