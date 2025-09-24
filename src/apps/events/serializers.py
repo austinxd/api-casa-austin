@@ -41,11 +41,12 @@ class EventListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = [
-            'id', 'title', 'description', 'category', 'property', 'image', 'thumbnail',
+            'id', 'slug', 'title', 'description', 'category', 'property', 'image', 'thumbnail',
             'event_date', 'registration_deadline', 'location',
             'max_participants', 'registered_count', 'available_spots',
             'min_points_required', 'requires_facebook_verification', 'can_register_status', 'event_status'
         ]
+        read_only_fields = ['slug']
     
     def get_can_register_status(self, obj):
         """Estado general de si el evento permite registros"""
@@ -79,12 +80,13 @@ class EventDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = [
-            'id', 'title', 'description', 'category', 'image',
+            'id', 'slug', 'title', 'description', 'category', 'image',
             'event_date', 'registration_deadline', 'location',
             'max_participants', 'registered_count', 'available_spots',
             'min_points_required', 'requires_facebook_verification', 'required_achievements',
             'can_register_status', 'client_can_register'
         ]
+        read_only_fields = ['slug']
     
     def get_can_register_status(self, obj):
         """Estado general de si el evento permite registros"""
@@ -168,9 +170,10 @@ class EventWinnersSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = [
-            'id', 'title', 'description', 'category', 'image',
+            'id', 'slug', 'title', 'description', 'category', 'image',
             'event_date', 'location', 'winners', 'total_winners'
         ]
+        read_only_fields = ['slug']
     
     def get_winners(self, obj):
         """Obtener lista de ganadores ordenada por fecha de anuncio"""
