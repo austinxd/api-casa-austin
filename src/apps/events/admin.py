@@ -25,9 +25,9 @@ class EventRegistrationInline(admin.TabularInline):
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ['title', 'category', 'property_location', 'status', 'event_date', 'participants_count', 'winners_count', 'manage_participants_link']
+    list_display = ['title', 'slug', 'category', 'property_location', 'status', 'event_date', 'participants_count', 'winners_count', 'manage_participants_link']
     list_filter = ['category', 'status', 'is_public', 'is_active', 'event_date']
-    search_fields = ['title', 'description']
+    search_fields = ['title', 'slug', 'description']
     filter_horizontal = ['required_achievements']
     readonly_fields = ['created', 'updated']
     list_per_page = 20
@@ -35,7 +35,8 @@ class EventAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Información Básica', {
-            'fields': ('title', 'description', 'category', 'image')
+            'fields': ('title', 'slug', 'description', 'category', 'image'),
+            'description': 'El slug se genera automáticamente del título, pero puede editarse manualmente'
         }),
         ('Fechas y Ubicación', {
             'fields': ('event_date', 'registration_deadline', 'location')
