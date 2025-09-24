@@ -10,6 +10,13 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### September 24, 2025 - Event Slug Implementation
+- **New Feature**: Added slug field to Event model for SEO-friendly URLs
+- **Auto-generation**: Slugs automatically generated from event titles using Django's slugify
+- **Uniqueness**: Automatic handling of duplicate slugs with numbered suffixes
+- **Migration**: Successfully migrated existing events with auto-generated slugs
+- **Dual Access**: Events now accessible via both UUID and slug for flexibility
+
 ### September 23, 2025 - Referral Ranking System Implementation
 - **New Feature**: Complete monthly referral ranking system to track clients with highest referral activity
 - **Database Schema**: New `ReferralRanking` model tracks monthly statistics for each client

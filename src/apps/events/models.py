@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.text import slugify
 from apps.core.models import BaseModel
 from apps.clients.models import Clients, Achievement
 from apps.property.models import Property
@@ -36,6 +37,7 @@ class Event(BaseModel):
     
     # Información básica
     title = models.CharField(max_length=200, help_text="Título del evento")
+    slug = models.SlugField(max_length=250, unique=True, blank=True, null=True, help_text="URL amigable (se genera automáticamente)")
     description = models.TextField(help_text="Descripción detallada del evento")
     category = models.ForeignKey(EventCategory, on_delete=models.CASCADE, related_name='events')
     image = models.ImageField(upload_to='events/', blank=True, null=True, help_text="Imagen del evento (se convertirá automáticamente a WebP)")
@@ -157,7 +159,11 @@ class Event(BaseModel):
         return self.registrations.filter(status='approved').count()
     
     def save(self, *args, **kwargs):
-        """Convertir imagen a WebP y generar thumbnail automáticamente al guardar"""
+        """Convertir imagen a WebP, generar thumbnail y crear slug automáticamente al guardar"""
+        # Generar slug automáticamente si no existe
+        if not self.slug:
+            self.slug = self._generate_unique_slug()
+        
         if self.image:
             # Verificar si la imagen cambió
             imagen_cambio = False
@@ -175,6 +181,22 @@ class Event(BaseModel):
                 # Regenerar thumbnail cuando la imagen cambia
                 self.thumbnail = self._create_thumbnail(self.image)
         super().save(*args, **kwargs)
+    
+    def _generate_unique_slug(self):
+        """Genera un slug único basado en el título"""
+        base_slug = slugify(self.title)
+        if not base_slug:
+            base_slug = "evento"
+        
+        slug = base_slug
+        counter = 1
+        
+        # Verificar que el slug sea único
+        while Event.objects.filter(slug=slug, deleted=False).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        
+        return slug
     
     def _convert_to_webp(self, image_field):
         """Convierte la imagen a formato WebP"""
