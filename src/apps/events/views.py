@@ -271,6 +271,12 @@ class EventWinnersView(APIView):
         
         # Información de ganadores
         winners_data = []
+        contest_leaderboard = []
+        
+        # Si es concurso, obtener leaderboard completo
+        if event.is_contest:
+            contest_leaderboard = event.get_contest_leaderboard()
+        
         for registration in winners:
             if registration.client:
                 client = registration.client
@@ -291,7 +297,7 @@ class EventWinnersView(APIView):
                 # Estado de Facebook
                 facebook_status = client.facebook_linked
                 
-                winners_data.append({
+                winner_info = {
                     'participant_name': name,
                     'winner_status': registration.winner_status,
                     'position_name': registration.get_winner_status_display(),
@@ -302,14 +308,61 @@ class EventWinnersView(APIView):
                     'facebook_image': facebook_image,
                     'facebook_status': facebook_status,
                     'registration_date': registration.created.date(),
-                })
+                }
+                
+                # Si es concurso, agregar estadísticas del concurso
+                if event.is_contest:
+                    contest_position = None
+                    contest_stats = 0
+                    
+                    for i, entry in enumerate(contest_leaderboard, 1):
+                        if entry['client'].id == client.id:
+                            contest_position = i
+                            contest_stats = entry['stats']
+                            break
+                    
+                    winner_info.update({
+                        'contest_position': contest_position,
+                        'contest_stats': contest_stats,
+                        'contest_stats_label': 'Referidos' if event.contest_type == event.ContestType.REFERRAL_COUNT else 'Reservas de Referidos'
+                    })
+                
+                winners_data.append(winner_info)
         
-        return Response({
+        # Respuesta base
+        response_data = {
             'event_name': event.title,
             'event_date': event.event_date,
             'total_winners': len(winners_data),
             'winners': winners_data
-        })
+        }
+        
+        # Si es concurso, agregar ranking completo y información del concurso
+        if event.is_contest:
+            # Formatear ranking completo
+            full_ranking = []
+            for i, entry in enumerate(contest_leaderboard, 1):
+                client = entry['client']
+                full_ranking.append({
+                    'position': i,
+                    'participant_name': f"{client.first_name} {client.last_name[0]}." if client.last_name else client.first_name,
+                    'contest_stats': entry['stats'],
+                    'registration_date': entry['registration'].registration_date,
+                    'facebook_image': None,  # Se puede agregar si se necesita
+                    'is_winner': entry['client'].id in [w['participant_name'] for w in winners_data]  # Placeholder para determinar ganadores
+                })
+            
+            response_data.update({
+                'is_contest': True,
+                'contest_type': event.contest_type,
+                'contest_type_display': event.get_contest_type_display(),
+                'contest_deadline': event.registration_deadline,
+                'contest_description': f"Concurso de {event.get_contest_type_display().lower()}. Los participantes compitieron por la mayor cantidad de {'referidos' if event.contest_type == event.ContestType.REFERRAL_COUNT else 'reservas de referidos'}.",
+                'contest_ranking': full_ranking,
+                'total_participants': len(contest_leaderboard)
+            })
+        
+        return Response(response_data)
 
 
 # ==================== ENDPOINTS CON AUTENTICACIÓN ====================
