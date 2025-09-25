@@ -281,8 +281,9 @@ class EventWinnersView(APIView):
             if registration.client:
                 client = registration.client
                 
-                # Nombre y apellido inicial
-                name = f"{client.first_name} {client.last_name[0]}." if client.last_name else client.first_name
+                # Nombre y apellido inicial (solo primer nombre + inicial)
+                first_name_only = client.first_name.strip().split()[0] if client.first_name and client.first_name.strip() else "Usuario"
+                name = f"{first_name_only} {client.last_name[0]}." if client.last_name else first_name_only
                 
                 # Tiempo relativo desde el anuncio del ganador
                 announcement_time_ago = None
@@ -343,12 +344,22 @@ class EventWinnersView(APIView):
             full_ranking = []
             for i, entry in enumerate(contest_leaderboard, 1):
                 client = entry['client']
+                
+                # Formatear nombre (solo primer nombre + inicial)
+                first_name_only = client.first_name.strip().split()[0] if client.first_name and client.first_name.strip() else "Usuario"
+                participant_name = f"{first_name_only} {client.last_name[0]}." if client.last_name else first_name_only
+                
+                # Imagen de Facebook
+                facebook_image = None
+                if client.facebook_profile_data and isinstance(client.facebook_profile_data, dict):
+                    facebook_image = client.facebook_profile_data.get('picture', {}).get('data', {}).get('url')
+                
                 full_ranking.append({
                     'position': i,
-                    'participant_name': f"{client.first_name} {client.last_name[0]}." if client.last_name else client.first_name,
+                    'participant_name': participant_name,
                     'contest_stats': entry['stats'],
                     'registration_date': entry['registration'].registration_date,
-                    'facebook_image': None,  # Se puede agregar si se necesita
+                    'facebook_image': facebook_image,
                     'is_winner': entry['client'].id in [w['participant_name'] for w in winners_data]  # Placeholder para determinar ganadores
                 })
             
