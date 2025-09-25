@@ -181,8 +181,9 @@ class EventParticipantsView(APIView):
             if registration.client:
                 client = registration.client
                 
-                # Nombre y apellido inicial
-                name = f"{client.first_name} {client.last_name[0]}." if client.last_name else client.first_name
+                # Nombre y apellido inicial (solo primer nombre + inicial)
+                first_name_only = client.first_name.strip().split()[0] if client.first_name and client.first_name.strip() else "Usuario"
+                name = f"{first_name_only} {client.last_name[0]}." if client.last_name else first_name_only
                 
                 # Tiempo relativo desde el registro (usar fecha más reciente si fue reactivado)
                 # Si updated es diferente de created, significa que fue reactivado
