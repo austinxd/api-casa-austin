@@ -577,7 +577,7 @@ class ActivityFeed(BaseModel):
             points = self.activity_data.get('points', 0)
             reason = self.activity_data.get('reason', 'una actividad')
             property_name = self.activity_data.get('property_name', 'Casa Austin')
-            return f"{client_name} acaba de ganar {points} puntos por {reason} en {property_name}"
+            return f"{client_name} ganó {points:.2f} puntos por su {reason} en {property_name}"
         
         elif self.activity_type == self.ActivityType.RESERVATION_MADE:
             property_name = self.activity_data.get('property_name', 'Casa Austin')
