@@ -215,7 +215,7 @@ class Event(BaseModel):
                 first_required_achievement = required_achievements.first()
                 required_icon = first_required_achievement.icon if first_required_achievement else "🏆"
                 
-                return False, f"Tu nivel es {current_icon} {current_level}, requisito mínimo: {required_icon} {first_required}"
+                return False, f"Tu nivel es {current_icon} {current_level}\nrequisito mínimo: {required_icon} {first_required}"
         
         return True, "Puedes registrarte"
     
