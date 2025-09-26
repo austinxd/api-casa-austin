@@ -157,6 +157,17 @@ class Event(BaseModel):
             if not client.facebook_linked:
                 return False, "Este evento requiere verificación con Facebook. Ve a tu perfil y vincula tu cuenta de Facebook."
         
+        # NUEVA VALIDACIÓN: Verificar que tenga al menos 1 reserva aprobada
+        from apps.reservation.models import Reservation
+        client_approved_reservations = Reservation.objects.filter(
+            client=client,
+            deleted=False,  # deleted debe ser 0, no 1
+            status='approved'
+        ).count()
+        
+        if client_approved_reservations == 0:
+            return False, "Necesitas tener al menos 1 reserva aprobada para participar en eventos"
+        
         # Verificar logros requeridos
         if self.required_achievements.exists():
             # AUTO-ASIGNACIÓN: Verificar y asignar achievements automáticamente antes de validar
