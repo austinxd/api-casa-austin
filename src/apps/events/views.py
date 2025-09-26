@@ -397,7 +397,9 @@ class EventRegistrationView(APIView):
         
         if active_registration:
             return Response({
-                'error': 'Ya estás registrado en este evento',
+                'success': False,
+                'message': 'Ya estás registrado en este evento',
+                'error_code': 'ALREADY_REGISTERED',
                 'registration_id': active_registration.id
             }, status=status.HTTP_400_BAD_REQUEST)
         
@@ -405,7 +407,9 @@ class EventRegistrationView(APIView):
         can_register, validation_message = event.client_can_register(client)
         if not can_register:
             return Response({
-                'error': validation_message
+                'success': False,
+                'message': validation_message,
+                'error_code': 'REQUIREMENTS_NOT_MET'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Verificar si tiene un registro cancelado que podemos reactivar
@@ -423,7 +427,9 @@ class EventRegistrationView(APIView):
         
         if current_registrations >= event.max_participants:
             return Response({
-                'error': 'El evento está lleno'
+                'success': False,
+                'message': 'El evento está lleno',
+                'error_code': 'EVENT_FULL'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Si existe registro cancelado, reactivarlo
@@ -442,6 +448,7 @@ class EventRegistrationView(APIView):
             
             serializer = EventRegistrationSerializer(cancelled_registration)
             return Response({
+                'success': True,
                 'message': 'Registro reactivado exitosamente',
                 'registration': serializer.data,
                 'requires_evidence': event.requires_evidence
@@ -471,13 +478,18 @@ class EventRegistrationView(APIView):
             self._log_registration_activity(registration)
             
             return Response({
+                'success': True,
                 'message': 'Registro exitoso',
                 'registration': serializer.data,
                 'requires_evidence': event.requires_evidence,
                 'next_step': 'upload_evidence' if event.requires_evidence else 'wait_approval'
             }, status=status.HTTP_201_CREATED)
         
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            'success': False,
+            'message': 'Error en los datos proporcionados',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
 
     def _log_registration_activity(self, registration):
         """Registrar actividad de inscripción"""
