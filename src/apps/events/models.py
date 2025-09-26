@@ -207,9 +207,15 @@ class Event(BaseModel):
                 required_achievements = self.required_achievements.all()
                 achievement_names = [achievement.name for achievement in required_achievements]
                 
-                # Solo mostrar el primer logro requerido para mensaje corto
+                # Obtener icono del nivel actual
+                current_icon = current_achievement.achievement.icon if current_achievement else "👤"
+                
+                # Solo mostrar el primer logro requerido para mensaje balanceado
                 first_required = achievement_names[0] if achievement_names else "nivel superior"
-                return False, f"Requiere nivel: {first_required}"
+                first_required_achievement = required_achievements.first()
+                required_icon = first_required_achievement.icon if first_required_achievement else "🏆"
+                
+                return False, f"Tu nivel es {current_icon} {current_level}, requisito mínimo: {required_icon} {first_required}"
         
         return True, "Puedes registrarte"
     
