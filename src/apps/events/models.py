@@ -207,7 +207,9 @@ class Event(BaseModel):
                 required_achievements = self.required_achievements.all()
                 achievement_names = [achievement.name for achievement in required_achievements]
                 
-                return False, f"Nivel actual: {current_level}. Necesitas: {' o '.join(achievement_names)}. Tienes: {client_reservations} reservas, {client_referrals} referidos"
+                # Solo mostrar el primer logro requerido para mensaje corto
+                first_required = achievement_names[0] if achievement_names else "nivel superior"
+                return False, f"Requiere nivel: {first_required}"
         
         return True, "Puedes registrarte"
     
