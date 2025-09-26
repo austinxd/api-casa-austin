@@ -401,6 +401,13 @@ class EventRegistrationView(APIView):
                 'registration_id': active_registration.id
             }, status=status.HTTP_400_BAD_REQUEST)
         
+        # 🔒 VALIDAR RESTRICCIONES DE NIVEL/LOGROS/PUNTOS
+        can_register, validation_message = event.client_can_register(client)
+        if not can_register:
+            return Response({
+                'error': validation_message
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         # Verificar si tiene un registro cancelado que podemos reactivar
         cancelled_registration = EventRegistration.objects.filter(
             event=event,
