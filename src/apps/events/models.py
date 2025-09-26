@@ -149,7 +149,8 @@ class Event(BaseModel):
         # Verificar puntos mínimos
         if self.min_points_required > 0:
             if client.points_balance < self.min_points_required:
-                return False, f"Necesitas al menos {self.min_points_required} puntos"
+                puntos_faltantes = self.min_points_required - client.points_balance
+                return False, f"Tienes {client.points_balance} puntos, necesitas {self.min_points_required} puntos para participar (te faltan {puntos_faltantes} puntos)"
         
         # Verificar verificación de Facebook
         if self.requires_facebook_verification:
@@ -170,8 +171,56 @@ class Event(BaseModel):
             required_achievement_ids = self.required_achievements.values_list('id', flat=True)
             
             if not any(req_id in client_achievements for req_id in required_achievement_ids):
-                achievement_names = [str(achievement) for achievement in self.required_achievements.all()]
-                return False, f"Necesitas uno de estos logros: {', '.join(achievement_names)}"
+                # Obtener información del nivel actual del cliente
+                from apps.reservation.models import Reservation
+                
+                # Calcular estadísticas actuales del cliente
+                client_reservations = Reservation.objects.filter(
+                    client=client,
+                    deleted=False,
+                    status='approved'
+                ).count()
+                
+                client_referrals = Clients.objects.filter(
+                    referred_by=client,
+                    deleted=False
+                ).count()
+                
+                referral_reservations = Reservation.objects.filter(
+                    client__referred_by=client,
+                    deleted=False,
+                    status='approved'
+                ).count()
+                
+                # Obtener el nivel actual más alto
+                current_achievement = client.achievements.filter(
+                    deleted=False
+                ).select_related('achievement').order_by(
+                    '-achievement__required_reservations',
+                    '-achievement__required_referrals',
+                    '-achievement__required_referral_reservations'
+                ).first()
+                
+                current_level = current_achievement.achievement.name if current_achievement else "Cliente Nuevo"
+                
+                # Construir mensaje detallado
+                required_achievements = self.required_achievements.all()
+                achievement_details = []
+                
+                for achievement in required_achievements:
+                    req_details = []
+                    if achievement.required_reservations > 0:
+                        req_details.append(f"{achievement.required_reservations} reservas")
+                    if achievement.required_referrals > 0:
+                        req_details.append(f"{achievement.required_referrals} referidos")
+                    if achievement.required_referral_reservations > 0:
+                        req_details.append(f"{achievement.required_referral_reservations} reservas de referidos")
+                    
+                    achievement_details.append(f"{achievement.name} (requiere: {', '.join(req_details)})")
+                
+                stats_info = f"Tienes: {client_reservations} reservas, {client_referrals} referidos, {referral_reservations} reservas de referidos"
+                
+                return False, f"Tu nivel actual es '{current_level}'. Para participar necesitas uno de estos logros: {' | '.join(achievement_details)}. {stats_info}"
         
         return True, "Puedes registrarte"
     
