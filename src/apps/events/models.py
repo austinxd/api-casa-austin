@@ -150,7 +150,7 @@ class Event(BaseModel):
         if self.min_points_required > 0:
             if client.points_balance < self.min_points_required:
                 puntos_faltantes = self.min_points_required - client.points_balance
-                return False, f"Tienes {client.points_balance} puntos, necesitas {self.min_points_required} puntos para participar (te faltan {puntos_faltantes} puntos)"
+                return False, f"Tienes {client.points_balance} puntos, necesitas {self.min_points_required} (faltan {puntos_faltantes})"
         
         # Verificar verificación de Facebook
         if self.requires_facebook_verification:
@@ -203,24 +203,11 @@ class Event(BaseModel):
                 
                 current_level = current_achievement.achievement.name if current_achievement else "Cliente Nuevo"
                 
-                # Construir mensaje detallado
+                # Construir mensaje conciso
                 required_achievements = self.required_achievements.all()
-                achievement_details = []
+                achievement_names = [achievement.name for achievement in required_achievements]
                 
-                for achievement in required_achievements:
-                    req_details = []
-                    if achievement.required_reservations > 0:
-                        req_details.append(f"{achievement.required_reservations} reservas")
-                    if achievement.required_referrals > 0:
-                        req_details.append(f"{achievement.required_referrals} referidos")
-                    if achievement.required_referral_reservations > 0:
-                        req_details.append(f"{achievement.required_referral_reservations} reservas de referidos")
-                    
-                    achievement_details.append(f"{achievement.name} (requiere: {', '.join(req_details)})")
-                
-                stats_info = f"Tienes: {client_reservations} reservas, {client_referrals} referidos, {referral_reservations} reservas de referidos"
-                
-                return False, f"Tu nivel actual es '{current_level}'. Para participar necesitas uno de estos logros: {' | '.join(achievement_details)}. {stats_info}"
+                return False, f"Nivel actual: {current_level}. Necesitas: {' o '.join(achievement_names)}. Tienes: {client_reservations} reservas, {client_referrals} referidos"
         
         return True, "Puedes registrarte"
     
