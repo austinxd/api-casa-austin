@@ -166,7 +166,7 @@ class Event(BaseModel):
         ).count()
         
         if client_approved_reservations == 0:
-            return False, "Necesitas tener al menos 1 reserva aprobada para participar en eventos"
+            return False, "Necesitas tener al menos 1 reserva aprobada para participar en este evento"
         
         # Verificar logros requeridos
         if self.required_achievements.exists():
