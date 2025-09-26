@@ -70,6 +70,11 @@ class Event(BaseModel):
         default=False,
         help_text="Solo cuentas verificadas con Facebook pueden participar"
     )
+    
+    requires_approved_reservation = models.BooleanField(
+        default=True,
+        help_text="Si se requiere tener al menos 1 reserva aprobada para participar"
+    )
     requires_evidence = models.BooleanField(
         default=False,
         help_text="Los participantes deben subir una foto/evidencia para participar"
@@ -157,16 +162,17 @@ class Event(BaseModel):
             if not client.facebook_linked:
                 return False, "Este evento requiere verificación con Facebook. Ve a tu perfil y vincula tu cuenta de Facebook."
         
-        # NUEVA VALIDACIÓN: Verificar que tenga al menos 1 reserva aprobada
-        from apps.reservation.models import Reservation
-        client_approved_reservations = Reservation.objects.filter(
-            client=client,
-            deleted=False,  # deleted debe ser 0, no 1
-            status='approved'
-        ).count()
-        
-        if client_approved_reservations == 0:
-            return False, "Necesitas tener al menos 1 reserva aprobada para participar en este evento"
+        # NUEVA VALIDACIÓN: Verificar que tenga al menos 1 reserva aprobada (si está habilitado)
+        if self.requires_approved_reservation:
+            from apps.reservation.models import Reservation
+            client_approved_reservations = Reservation.objects.filter(
+                client=client,
+                deleted=False,  # deleted debe ser 0, no 1
+                status='approved'
+            ).count()
+            
+            if client_approved_reservations == 0:
+                return False, "Necesitas tener al menos 1 reserva aprobada para participar en este evento"
         
         # Verificar logros requeridos
         if self.required_achievements.exists():

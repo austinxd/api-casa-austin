@@ -52,7 +52,7 @@ class EventAdmin(admin.ModelAdmin):
             'fields': ('status', 'max_participants', 'is_public', 'is_active')
         }),
         ('Restricciones', {
-            'fields': ('min_points_required', 'required_achievements', 'requires_facebook_verification', 'requires_evidence')
+            'fields': ('min_points_required', 'required_achievements', 'requires_facebook_verification', 'requires_approved_reservation', 'requires_evidence')
         }),
         ('🏆 Configuración de Concurso', {
             'fields': ('is_contest', 'contest_type'),
