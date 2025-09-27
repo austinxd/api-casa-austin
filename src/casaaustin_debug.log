@@ -6023,3 +6023,9 @@ ERROR 2025-09-23 22:27:32,142 whatsapp_service 812 140667287854272 No se pudo en
 ERROR 2025-09-23 22:27:32,143 signals 812 140667287854272 Error al enviar WhatsApp de bienvenida para cliente 0226a433-aacb-435b-a7a4-b9f52223c52f
 DEBUG 2025-09-24 10:03:22,104 signals 2122 139719425260736 Cliente actualizado: Clients object (463403e8-d000-4255-8962-aa5a6397e915)
 WARNING 2025-09-24 10:03:22,285 signals 2122 139719425260736 Error al actualizar audiencia de cliente 463403e8-d000-4255-8962-aa5a6397e915. Código: 400 Respuesta: {"error":{"message":"Invalid OAuth access token - Cannot parse access token","type":"OAuthException","code":190,"fbtrace_id":"A3WQhiJh5NlujOOaazx2DR2"}}
+INFO 2025-09-27 13:19:48,644 pricing_models 1712 139706255019200 🌍 Evaluando descuento GLOBAL '🎄 Descuento Global Navidad' con trigger 'global_promotion'
+INFO 2025-09-27 13:20:31,777 pricing_models 1819 140326680460480 🌍 Evaluando descuento GLOBAL '🎄 Descuento Global Navidad' con trigger 'global_promotion'
+INFO 2025-09-27 13:20:31,778 pricing_models 1819 140326680460480 📅 Día de la semana: 5 (Sábado) - Fin de semana
+INFO 2025-09-27 13:20:31,778 pricing_models 1819 140326680460480 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-09-27 13:20:31,780 pricing_models 1819 140326680460480 🎯 Evaluando trigger global: global_promotion
+INFO 2025-09-27 13:20:31,780 pricing_models 1819 140326680460480 🌍 Promoción global - Aplicable sin cliente
