@@ -1,0 +1,68 @@
+Modificar 🤖 Descuento Automático
+🏖️ 50% OFF en Octubre (Promoción Global)
+Histórico
+
+Información General
+Name:
+🏖️ 50% OFF en Octubre
+Nombre del descuento automático
+Description:
+✨ Reserva hoy y disfruta -50% en el Precio base 🏝️ Válido solo de Domingo a Jueves durante Octubre.
+Descripción detallada del descuento automático y sus condiciones
+
+Is active
+
+Configuración del Descuento
+Trigger:
+
+Promoción Global
+Discount percentage:
+50.00
+Porcentaje de descuento
+Max discount usd:
+100.00
+Descuento máximo en USD
+
+Apply only to base price
+Si está activo, el descuento solo se aplica al precio base (sin incluir huéspedes adicionales)
+
+Vigencia del Descuento
+Fechas de inicio y fin de validez del descuento (opcional). Si no se especifican, el descuento estará siempre activo.
+Start date:
+05/09/2025
+ Hoy | 
+Nota: Usted va 7 horas por delante de la hora del servidor.
+Fecha de inicio de validez del descuento (opcional)
+End date:
+30/10/2025
+ Hoy | 
+Nota: Usted va 7 horas por delante de la hora del servidor.
+Fecha de fin de validez del descuento (opcional)
+
+Logros Requeridos
+Selecciona los logros que debe tener el cliente para aplicar este descuento
+Required achievements:
+Añadir
+required achievements Disponibles 
+Filtro
+
+Curioso (0 reservas, 0 referidos, 0 reservas de referidos)Cliente Casa Austin (1 reservas, 0 referidos, 0 reservas de referidos)Cliente Recurrente (3 reservas, 0 referidos, 0 reservas de referidos)Cliente Premium (3 reservas, 1 referidos, 1 reservas de referidos)Austin Legend (10 reservas, 3 referidos, 5 reservas de referidos)
+Selecciona todos
+Elegir
+Eliminar
+required achievements elegidos 
+Filtro
+
+
+Eliminar todos
+Logros requeridos para aplicar este descuento automático Mantenga presionado "Control" o "Comando" en una Mac, para seleccionar más de uno.
+
+Restricciones de Días
+Configurar si el descuento aplica solo para días específicos de la semana
+
+Restrict weekdays
+Si está activo, el descuento solo aplica para días de semana (Lunes a Viernes)
+
+Restrict weekends
+Si está activo, el descuento solo aplica para fines de semana (Sábado y Domingo)
+Eliminar
