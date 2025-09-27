@@ -509,7 +509,7 @@ class PricingCalculationService:
                             applies, message = auto_discount.applies_to_client_global(check_in_date, property.id)
                             # Cambiar el mensaje para descuentos globales
                             if applies:
-                                if auto_discount.trigger == auto_discount.DiscountTrigger.BASE_PRICE_DISCOUNT:
+                                if auto_discount.apply_only_to_base_price:
                                     message = "Descuento en precio base por tiempo limitado"
                                 else:
                                     message = "Descuento por tiempo limitado"
