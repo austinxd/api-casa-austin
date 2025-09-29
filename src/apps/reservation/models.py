@@ -46,6 +46,7 @@ class Reservation(BaseModel):
     class ReservationStatusChoice(models.TextChoices):
         INCOMPLETE = "incomplete", ("Incompleta")
         PENDING = "pending", ("Pendiente")
+        UNDER_REVIEW = "under_review", ("En Revisión - Segundo Voucher")
         APPROVED = "approved", ("Aprobada")
         REJECTED = "rejected", ("Rechazada")
         CANCELLED = "cancelled", ("Cancelada")
@@ -67,7 +68,7 @@ class Reservation(BaseModel):
         max_length=6, choices=OriginReservationTypeChoice.choices, default=OriginReservationTypeChoice.AUS
     )
     status = models.CharField(
-        max_length=10, choices=ReservationStatusChoice.choices, default=ReservationStatusChoice.INCOMPLETE,
+        max_length=15, choices=ReservationStatusChoice.choices, default=ReservationStatusChoice.INCOMPLETE,
         help_text="Estado de la reserva"
     )
     tel_contact_number = models.CharField(max_length=255, null=True, blank=True)

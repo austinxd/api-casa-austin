@@ -864,10 +864,10 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
             )
             send_chatbot_flow_payment_complete(instance)
     else:
-        # Verificar si cambió a estado pending (voucher subido)
-        if instance.status == 'pending' and instance.origin == 'client':
+        # Verificar si cambió a estado pending (primer voucher) o under_review (segundo voucher)
+        if instance.status in ['pending', 'under_review'] and instance.origin == 'client':
             logger.debug(
-                f"Reserva {instance.id} cambió a estado pending - Voucher subido"
+                f"Reserva {instance.id} cambió a estado {instance.status} - Voucher subido"
             )
             notify_voucher_uploaded(instance)
 

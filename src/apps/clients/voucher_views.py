@@ -84,10 +84,14 @@ class ClientVoucherUploadView(APIView):
                 # Marcar voucher como subido
                 reservation.payment_voucher_uploaded = True
                 
-                # Si es el primer voucher o segundo voucher, mantener en pending
-                # Solo cambiar a approved cuando admin lo apruebe manualmente
+                # Lógica de estado basada en número de vouchers
                 if reservation.status != 'approved':
-                    reservation.status = 'pending'
+                    if new_vouchers_count == 1:
+                        reservation.status = 'pending'  # Primer voucher
+                    elif new_vouchers_count == 2:
+                        reservation.status = 'under_review'  # Segundo voucher
+                    else:
+                        reservation.status = 'under_review'  # Vouchers adicionales
                     
                 # Eliminar el deadline después del primer voucher para evitar eliminación automática
                 reservation.payment_voucher_deadline = None
