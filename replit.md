@@ -10,6 +10,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### October 01, 2025 - Specific Weekday Discount Functionality
+
+#### Enhanced Discount System with Specific Day Selection
+- **New Feature**: Added ability to configure discounts for specific days of the week (e.g., "Fridays only", "Fridays and Saturdays")
+- **Database Schema**: New `specific_weekdays` field in `AutomaticDiscount` model stores comma-separated weekday numbers (0=Mon, 4=Fri, 6=Sun)
+- **Priority Logic**: Specific weekdays take precedence over `restrict_weekdays` and `restrict_weekends` settings
+- **Validation**: Comprehensive day validation in both `applies_to_client()` and `applies_to_client_global()` methods
+- **Admin Interface**: Updated with user-friendly weekday display showing configured days (e.g., "📌 Vie, Sáb")
+- **Migration**: Created migration 0042 for `specific_weekdays` field
+- **Examples**: 
+  - "4" = Fridays only
+  - "4,5" = Fridays and Saturdays
+  - "0,1,2,3,4" = Weekdays (Monday-Friday)
+- **Use Cases**: Flash sales on specific days, weekend promotions, mid-week discounts
+
 ### September 24, 2025 - Event Contest System and Evidence Upload Implementation
 
 #### Contest System for Referral Competitions

@@ -6164,3 +6164,51 @@ INFO 2025-09-27 13:27:53,124 pricing_models 2268 140315566532288 🌍 Promoción
 INFO 2025-09-27 13:27:53,124 pricing_service 2268 140315566532288 ✅ Resultado para '🎄 Descuento Global Navidad': True - 'Descuento por tiempo limitado'
 INFO 2025-09-27 13:27:53,124 pricing_service 2268 140315566532288 💰 Descuento TOTAL calculado para '🎄 Descuento Global Navidad': $50.0000 USD (25.00%)
 INFO 2025-09-27 13:27:53,125 pricing_service 2268 140315566532288 🏆 MEJOR DESCUENTO SELECCIONADO: 🎄 Descuento Global Navidad - $50.0000 USD
+INFO 2025-10-01 16:36:38,138 pricing_models 724 139638043114688 🌍 Evaluando descuento GLOBAL 'Descuento Viernes Flash' con trigger 'global_discount'
+INFO 2025-10-01 16:36:38,140 pricing_models 724 139638043114688 📅 Día de la semana: 3 (Jueves) - Día de semana
+INFO 2025-10-01 16:36:38,140 pricing_models 724 139638043114688 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-10-01 16:36:38,141 pricing_models 724 139638043114688 ❌ Restringido a días específicos: Viernes, pero hoy es Jueves
+INFO 2025-10-01 16:36:38,141 pricing_models 724 139638043114688 🌍 Evaluando descuento GLOBAL 'Descuento Viernes Flash' con trigger 'global_discount'
+INFO 2025-10-01 16:36:38,141 pricing_models 724 139638043114688 📅 Día de la semana: 4 (Viernes) - Fin de semana
+INFO 2025-10-01 16:36:38,141 pricing_models 724 139638043114688 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-10-01 16:36:38,142 pricing_models 724 139638043114688 ✅ Día Viernes está en días específicos permitidos
+INFO 2025-10-01 16:36:38,144 pricing_models 724 139638043114688 🎯 Evaluando trigger global: global_discount
+INFO 2025-10-01 16:36:38,144 pricing_models 724 139638043114688 ❌ Trigger 'global_discount' no reconocido para descuento global
+INFO 2025-10-01 16:36:38,145 pricing_models 724 139638043114688 🌍 Evaluando descuento GLOBAL 'Descuento Viernes Flash' con trigger 'global_discount'
+INFO 2025-10-01 16:36:38,146 pricing_models 724 139638043114688 📅 Día de la semana: 5 (Sábado) - Fin de semana
+INFO 2025-10-01 16:36:38,146 pricing_models 724 139638043114688 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-10-01 16:36:38,146 pricing_models 724 139638043114688 ❌ Restringido a días específicos: Viernes, pero hoy es Sábado
+INFO 2025-10-01 16:37:07,303 pricing_models 827 140081301318848 🌍 Evaluando descuento GLOBAL 'Descuento Viernes Flash' con trigger 'global_promotion'
+INFO 2025-10-01 16:37:07,304 pricing_models 827 140081301318848 📅 Día de la semana: 3 (Jueves) - Día de semana
+INFO 2025-10-01 16:37:07,304 pricing_models 827 140081301318848 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-10-01 16:37:07,304 pricing_models 827 140081301318848 ❌ Restringido a días específicos: Viernes, pero hoy es Jueves
+INFO 2025-10-01 16:37:07,304 pricing_models 827 140081301318848 🌍 Evaluando descuento GLOBAL 'Descuento Viernes Flash' con trigger 'global_promotion'
+INFO 2025-10-01 16:37:07,304 pricing_models 827 140081301318848 📅 Día de la semana: 4 (Viernes) - Fin de semana
+INFO 2025-10-01 16:37:07,305 pricing_models 827 140081301318848 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-10-01 16:37:07,305 pricing_models 827 140081301318848 ✅ Día Viernes está en días específicos permitidos
+INFO 2025-10-01 16:37:07,306 pricing_models 827 140081301318848 🎯 Evaluando trigger global: global_promotion
+INFO 2025-10-01 16:37:07,306 pricing_models 827 140081301318848 🌍 Promoción global - Aplicable sin cliente
+INFO 2025-10-01 16:37:07,306 pricing_models 827 140081301318848 🌍 Evaluando descuento GLOBAL 'Descuento Viernes Flash' con trigger 'global_promotion'
+INFO 2025-10-01 16:37:07,307 pricing_models 827 140081301318848 📅 Día de la semana: 5 (Sábado) - Fin de semana
+INFO 2025-10-01 16:37:07,307 pricing_models 827 140081301318848 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-10-01 16:37:07,307 pricing_models 827 140081301318848 ❌ Restringido a días específicos: Viernes, pero hoy es Sábado
+INFO 2025-10-01 16:37:22,818 pricing_models 843 140262029413568 🌍 Evaluando descuento GLOBAL 'Weekend Flash Sale' con trigger 'global_promotion'
+INFO 2025-10-01 16:37:22,818 pricing_models 843 140262029413568 📅 Día de la semana: 3 (Jueves) - Día de semana
+INFO 2025-10-01 16:37:22,819 pricing_models 843 140262029413568 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-10-01 16:37:22,819 pricing_models 843 140262029413568 ❌ Restringido a días específicos: Viernes, Sábado, pero hoy es Jueves
+INFO 2025-10-01 16:37:22,820 pricing_models 843 140262029413568 🌍 Evaluando descuento GLOBAL 'Weekend Flash Sale' con trigger 'global_promotion'
+INFO 2025-10-01 16:37:22,821 pricing_models 843 140262029413568 📅 Día de la semana: 4 (Viernes) - Fin de semana
+INFO 2025-10-01 16:37:22,821 pricing_models 843 140262029413568 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-10-01 16:37:22,821 pricing_models 843 140262029413568 ✅ Día Viernes está en días específicos permitidos
+INFO 2025-10-01 16:37:22,824 pricing_models 843 140262029413568 🎯 Evaluando trigger global: global_promotion
+INFO 2025-10-01 16:37:22,824 pricing_models 843 140262029413568 🌍 Promoción global - Aplicable sin cliente
+INFO 2025-10-01 16:37:22,824 pricing_models 843 140262029413568 🌍 Evaluando descuento GLOBAL 'Weekend Flash Sale' con trigger 'global_promotion'
+INFO 2025-10-01 16:37:22,824 pricing_models 843 140262029413568 📅 Día de la semana: 5 (Sábado) - Fin de semana
+INFO 2025-10-01 16:37:22,825 pricing_models 843 140262029413568 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-10-01 16:37:22,825 pricing_models 843 140262029413568 ✅ Día Sábado está en días específicos permitidos
+INFO 2025-10-01 16:37:22,827 pricing_models 843 140262029413568 🎯 Evaluando trigger global: global_promotion
+INFO 2025-10-01 16:37:22,827 pricing_models 843 140262029413568 🌍 Promoción global - Aplicable sin cliente
+INFO 2025-10-01 16:37:22,828 pricing_models 843 140262029413568 🌍 Evaluando descuento GLOBAL 'Weekend Flash Sale' con trigger 'global_promotion'
+INFO 2025-10-01 16:37:22,828 pricing_models 843 140262029413568 📅 Día de la semana: 6 (Domingo) - Día de semana
+INFO 2025-10-01 16:37:22,828 pricing_models 843 140262029413568 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-10-01 16:37:22,828 pricing_models 843 140262029413568 ❌ Restringido a días específicos: Viernes, Sábado, pero hoy es Domingo
