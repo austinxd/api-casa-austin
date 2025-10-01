@@ -360,7 +360,7 @@ class CancellationPolicyAdmin(admin.ModelAdmin):
 
 @admin.register(AutomaticDiscount)
 class AutomaticDiscountAdmin(admin.ModelAdmin):
-    list_display = ('name', 'trigger', 'discount_percentage', 'max_discount_usd', 'get_date_validity', 'get_required_achievements', 'restrict_weekdays', 'restrict_weekends', 'apply_only_to_base_price', 'is_active')
+    list_display = ('name', 'trigger', 'discount_percentage', 'max_discount_usd', 'get_date_validity', 'get_required_achievements', 'get_days_restriction', 'apply_only_to_base_price', 'is_active')
     list_filter = ('trigger', 'restrict_weekdays', 'restrict_weekends', 'is_active')
     search_fields = ('name', 'description')
     filter_horizontal = ('required_achievements',)
@@ -381,8 +381,8 @@ class AutomaticDiscountAdmin(admin.ModelAdmin):
             'description': 'Selecciona los logros que debe tener el cliente para aplicar este descuento'
         }),
         ('Restricciones de Días', {
-            'fields': ('restrict_weekdays', 'restrict_weekends'),
-            'description': 'Configurar si el descuento aplica solo para días específicos de la semana'
+            'fields': ('specific_weekdays', 'restrict_weekdays', 'restrict_weekends'),
+            'description': '🆕 DÍAS ESPECÍFICOS: Ingresa números separados por comas (0=Lun, 1=Mar, 2=Mié, 3=Jue, 4=Vie, 5=Sáb, 6=Dom). Ejemplos: "4" = solo Viernes, "4,5" = Viernes y Sábado. Si usas días específicos, las otras opciones se ignoran.'
         }),
     )
 
@@ -405,6 +405,20 @@ class AutomaticDiscountAdmin(admin.ModelAdmin):
             return "Sin restricciones de logros"
         return ", ".join([achievement.name for achievement in achievements])
     get_required_achievements.short_description = "Logros Requeridos"
+    
+    def get_days_restriction(self, obj):
+        """Muestra la restricción de días de forma legible"""
+        day_names = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+        if obj.specific_weekdays:
+            specific_days = [int(d.strip()) for d in obj.specific_weekdays.split(',') if d.strip().isdigit()]
+            days_text = ', '.join([day_names[d] for d in specific_days if 0 <= d <= 6])
+            return f"📌 {days_text}"
+        elif obj.restrict_weekdays:
+            return "📅 Días de semana"
+        elif obj.restrict_weekends:
+            return "🎉 Fines de semana"
+        return "✨ Todos los días"
+    get_days_restriction.short_description = "Días"
 
 
 
