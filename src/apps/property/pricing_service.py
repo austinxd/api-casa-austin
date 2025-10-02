@@ -509,10 +509,11 @@ class PricingCalculationService:
                             applies, message = auto_discount.applies_to_client_global(check_in_date, property.id)
                             # Cambiar el mensaje para descuentos globales
                             if applies:
+                                percentage = int(auto_discount.discount_percentage) if auto_discount.discount_percentage % 1 == 0 else auto_discount.discount_percentage
                                 if auto_discount.apply_only_to_base_price:
-                                    message = "Descuento en precio base por tiempo limitado"
+                                    message = f"{percentage}% de descuento en precio base por tiempo limitado"
                                 else:
-                                    message = "Descuento por tiempo limitado"
+                                    message = f"{percentage}% de descuento por tiempo limitado"
                     elif client:
                         # Para descuentos específicos, requiere cliente
                         applies, message = auto_discount.applies_to_client(client, check_in_date, property.id)
