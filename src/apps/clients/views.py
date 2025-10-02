@@ -1499,6 +1499,10 @@ class PublicReferralStatsView(APIView):
             # Ordenar por número total de referidos
             referral_stats.sort(key=lambda x: x['total_referrals'], reverse=True)
             
+            # Agregar posiciones al ranking
+            for idx, stat in enumerate(referral_stats, start=1):
+                stat['position'] = idx
+            
             # Respuesta con estadísticas globales
             response = {
                 'type': 'all_referrals',
