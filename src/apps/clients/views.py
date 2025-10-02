@@ -1453,22 +1453,12 @@ class PublicReferralStatsView(APIView):
             # No requiere autenticación - vista pública
             from django.utils import timezone
             from .models import ReferralRanking
+            from django.db.models import Sum
+            from collections import defaultdict
             
             # Obtener parámetros
             year = request.GET.get('year')
             month = request.GET.get('month')
-            
-            # Si no se especifica año/mes, usar mes actual
-            now = timezone.now()
-            target_year = int(year) if year else now.year
-            target_month = int(month) if month else now.month
-            
-            # Obtener resumen general de ranking para el mes
-            rankings = ReferralRanking.objects.filter(
-                year=target_year,
-                month=target_month,
-                deleted=False
-            ).order_by('position')
             
             months = {
                 1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
@@ -1476,23 +1466,94 @@ class PublicReferralStatsView(APIView):
                 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
             }
             
-            # Estadísticas generales del período
-            stats = {
-                'year': target_year,
-                'month': target_month,
-                'period_display': f"{months.get(target_month, target_month)} {target_year}",
-                'total_participants': rankings.count(),
-                'total_referral_reservations': sum(r.referral_reservations for r in rankings),
-                'total_referral_revenue': sum(r.referral_revenue for r in rankings),
-                'total_new_referrals': sum(r.new_referrals for r in rankings),
-                'total_points_awarded': sum(r.points_earned for r in rankings),
-                'top_10_rankings': []
-            }
+            # Si se especifican year y month, devolver estadísticas de ese mes
+            if year and month:
+                target_year = int(year)
+                target_month = int(month)
+                
+                # Obtener resumen general de ranking para el mes
+                rankings = ReferralRanking.objects.filter(
+                    year=target_year,
+                    month=target_month,
+                    deleted=False
+                ).order_by('position')
+                
+                # Estadísticas generales del período
+                stats = {
+                    'type': 'monthly',
+                    'year': target_year,
+                    'month': target_month,
+                    'period_display': f"{months.get(target_month, target_month)} {target_year}",
+                    'total_participants': rankings.count(),
+                    'total_referral_reservations': sum(r.referral_reservations for r in rankings),
+                    'total_referral_revenue': float(sum(r.referral_revenue for r in rankings)),
+                    'total_new_referrals': sum(r.new_referrals for r in rankings),
+                    'total_points_awarded': sum(r.points_earned for r in rankings),
+                    'top_10_rankings': []
+                }
+                
+                # Top 10 del ranking (información pública básica)
+                from .serializers import ClientReferralRankingSerializer
+                top_rankings = rankings[:10]
+                stats['top_10_rankings'] = ClientReferralRankingSerializer(top_rankings, many=True).data
             
-            # Top 10 del ranking (información pública básica)
-            from .serializers import ClientReferralRankingSerializer
-            top_rankings = rankings[:10]
-            stats['top_10_rankings'] = ClientReferralRankingSerializer(top_rankings, many=True).data
+            else:
+                # Sin parámetros: devolver estadísticas globales de todos los tiempos
+                all_rankings = ReferralRanking.objects.filter(deleted=False).select_related('client')
+                
+                # Agrupar stats por cliente (totales históricos)
+                client_totals = defaultdict(lambda: {
+                    'client': None,
+                    'total_referral_reservations': 0,
+                    'total_referral_revenue': 0,
+                    'total_new_referrals': 0,
+                    'total_points_earned': 0,
+                })
+                
+                for ranking in all_rankings:
+                    client_id = ranking.client.id
+                    client_totals[client_id]['client'] = ranking.client
+                    client_totals[client_id]['total_referral_reservations'] += ranking.referral_reservations
+                    client_totals[client_id]['total_referral_revenue'] += float(ranking.referral_revenue)
+                    client_totals[client_id]['total_new_referrals'] += ranking.new_referrals
+                    client_totals[client_id]['total_points_earned'] += ranking.points_earned
+                
+                # Convertir a lista y ordenar por reservas de referidos
+                global_rankings = sorted(
+                    client_totals.values(),
+                    key=lambda x: (x['total_referral_reservations'], x['total_referral_revenue']),
+                    reverse=True
+                )[:10]
+                
+                # Calcular totales globales
+                total_reservations = sum(c['total_referral_reservations'] for c in client_totals.values())
+                total_revenue = sum(c['total_referral_revenue'] for c in client_totals.values())
+                total_referrals = sum(c['total_new_referrals'] for c in client_totals.values())
+                total_points = sum(c['total_points_earned'] for c in client_totals.values())
+                
+                # Formatear top 10 global
+                top_10_data = []
+                for idx, client_data in enumerate(global_rankings, start=1):
+                    client = client_data['client']
+                    top_10_data.append({
+                        'position': idx,
+                        'client_name': f"{client.first_name} {client.last_name[0]}." if client.last_name else client.first_name,
+                        'referral_reservations': client_data['total_referral_reservations'],
+                        'referral_revenue': client_data['total_referral_revenue'],
+                        'new_referrals': client_data['total_new_referrals'],
+                        'points_earned': client_data['total_points_earned'],
+                    })
+                
+                stats = {
+                    'type': 'global',
+                    'period_display': 'Histórico - Todos los tiempos',
+                    'total_participants': len(client_totals),
+                    'total_referral_reservations': total_reservations,
+                    'total_referral_revenue': total_revenue,
+                    'total_new_referrals': total_referrals,
+                    'total_points_awarded': total_points,
+                    'top_10_rankings': top_10_data
+                }
             
             return Response(stats)
             
