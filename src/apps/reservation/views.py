@@ -254,13 +254,15 @@ class ReservationsApiView(viewsets.ModelViewSet):
             original_check_out_date = instance.check_out_date
             instance = serializer.save()
 
+            # Solo guardar si realmente hay cambios en late checkout
             if instance.late_checkout and not original_late_checkout:
                 instance.late_check_out_date = original_check_out_date
                 instance.check_out_date = original_check_out_date + timedelta(days=1)
+                instance.save(update_fields=['late_check_out_date', 'check_out_date'])
             elif not instance.late_checkout and original_late_checkout:
                 instance.check_out_date = instance.late_check_out_date
                 instance.late_check_out_date = None
-            instance.save()
+                instance.save(update_fields=['check_out_date', 'late_check_out_date'])
 
             confeccion_ics()
 
@@ -283,13 +285,15 @@ class ReservationsApiView(viewsets.ModelViewSet):
             original_check_out_date = instance.check_out_date
             instance = serializer.save()
 
+            # Solo guardar si realmente hay cambios en late checkout
             if instance.late_checkout and not original_late_checkout:
                 instance.late_check_out_date = original_check_out_date
                 instance.check_out_date = original_check_out_date + timedelta(days=1)
+                instance.save(update_fields=['late_check_out_date', 'check_out_date'])
             elif not instance.late_checkout and original_late_checkout:
                 instance.check_out_date = instance.late_check_out_date
                 instance.late_check_out_date = None
-            instance.save()
+                instance.save(update_fields=['check_out_date', 'late_check_out_date'])
 
             for file in request.FILES.getlist('file'):
                 RentalReceipt.objects.create(
