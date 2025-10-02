@@ -1452,6 +1452,7 @@ class PublicReferralStatsView(APIView):
         try:
             from django.db.models import Count, Q
             from apps.reservation.models import Reservation
+            from .models import Client
             
             # Obtener TODOS los clientes que tienen referidos
             clients_with_referrals = Client.objects.filter(
