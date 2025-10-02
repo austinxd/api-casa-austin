@@ -1458,7 +1458,7 @@ class PublicReferralStatsView(APIView):
             clients_with_referrals = Clients.objects.filter(
                 deleted=False
             ).annotate(
-                total_referrals=Count('referrals', filter=Q(referrals__deleted=False))
+                total_referrals=Count('clients_set', filter=Q(clients_set__deleted=False))
             ).filter(total_referrals__gt=0)
             
             # Preparar estadísticas por cada cliente
@@ -1468,10 +1468,10 @@ class PublicReferralStatsView(APIView):
             
             for client in clients_with_referrals:
                 # Contar referidos que SÍ tienen reservas aprobadas
-                referrals_with_reservations = client.referrals.filter(
+                referrals_with_reservations = client.clients_set.filter(
                     deleted=False,
-                    reservations__status='approved',
-                    reservations__deleted=False
+                    reservation__status='approved',
+                    reservation__deleted=False
                 ).distinct().count()
                 
                 total_referrals_count += client.total_referrals
