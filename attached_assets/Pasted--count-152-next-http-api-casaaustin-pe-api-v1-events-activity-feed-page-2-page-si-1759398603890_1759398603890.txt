@@ -1,0 +1,88 @@
+
+    "count": 152,
+    "next": "http://api.casaaustin.pe/api/v1/events/activity-feed/?page=2&page_size=10",
+    "previous": null,
+    "results": [
+        {
+            "id": "f31a2fa2-9e4c-489b-a696-09286e6d94ad",
+            "activity_type": "reservation_made",
+            "activity_type_display": "Reserva Realizada",
+            "title": "Nueva Reserva",
+            "description": "",
+            "icon": "📅",
+            "time_ago": "hace un momento",
+            "client_name": "Augusto T.",
+            "client_info": {
+                "id": "405a0119-caba-467c-8f4c-835f45402367",
+                "name": "Augusto T.",
+                "facebook_linked": true,
+                "facebook_profile_picture": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=10230405741550716&height=200&width=200&ext=1760802868&hash=AT92z8Q35RFvjWv6W963hqZe"
+            },
+            "importance_level": 4,
+            "created": "2025-10-02T04:49:06.441202-05:00",
+            "activity_data": {
+                "dates": "del 16 al 17 de diciembre",
+                "guests": 10,
+                "check_in": "2025-12-16",
+                "check_out": "2025-12-17",
+                "price_sol": 300.0,
+                "property_name": "Casa Austin 3",
+                "reservation_id": "830ea364-0c71-4848-bf5f-2fb158a4fb7f",
+                "formatted_message": "Augusto T. reservó Casa Austin 3 (del 16 al 17 de diciembre)",
+                "reason": "Nueva reserva"
+            }
+        },
+        {
+            "id": "4a9553fe-3ca8-4107-b751-477bcebb0131",
+            "activity_type": "reservation_confirmed",
+            "activity_type_display": "Reserva Confirmada",
+            "title": "Actividad Registrada",
+            "description": "",
+            "icon": "📅 ✅",
+            "time_ago": "hace un momento",
+            "client_name": "Augusto T.",
+            "client_info": {
+                "id": "405a0119-caba-467c-8f4c-835f45402367",
+                "name": "Augusto T.",
+                "facebook_linked": true,
+                "facebook_profile_picture": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=10230405741550716&height=200&width=200&ext=1760802868&hash=AT92z8Q35RFvjWv6W963hqZe"
+            },
+            "importance_level": 2,
+            "created": "2025-10-02T04:49:06.439279-05:00",
+            "activity_data": {
+                "dates": "del 16 al 17 de diciembre",
+                "check_in": "2025-12-16",
+                "check_out": "2025-12-17",
+                "property_name": "Casa Austin 3",
+                "status_change": "approved_from_admin",
+                "formatted_message": "Se confirmó la reserva de Augusto T. en Casa Austin 3 (del 16 al 17 de diciembre)",
+                "reason": "Reserva Confirmada"
+            }
+        },
+        {
+            "id": "a05a24bb-44d3-4705-83f0-e27736147d84",
+            "activity_type": "reservation_made",
+            "activity_type_display": "Reserva Realizada",
+            "title": "Nueva Reserva",
+            "description": "",
+            "icon": "📅",
+            "time_ago": "hace un momento",
+            "client_name": "Augusto T.",
+            "client_info": {
+                "id": "405a0119-caba-467c-8f4c-835f45402367",
+                "name": "Augusto T.",
+                "facebook_linked": true,
+                "facebook_profile_picture": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=10230405741550716&height=200&width=200&ext=1760802868&hash=AT92z8Q35RFvjWv6W963hqZe"
+            },
+            "importance_level": 4,
+            "created": "2025-10-02T04:49:06.407493-05:00",
+            "activity_data": {
+                "dates": "del 16 al 17 de diciembre",
+                "origin": "aus",
+                "check_in": "2025-12-16",
+                "check_out": "2025-12-17",
+                "property_name": "Casa Austin 3",
+                "formatted_message": "Augusto T. reservó Casa Austin 3 (del 16 al 17 de diciembre)",
+                "reason": "Nueva reserva"
+            }
+        },

@@ -193,38 +193,8 @@ class ReservationSerializer(serializers.ModelSerializer):
 
         # Crear la reserva
         reservation = super().create(validated_data)
-
-        # 📊 ACTIVITY FEED: Crear actividad para nueva reserva
-        try:
-            from apps.events.models import ActivityFeed, ActivityFeedConfig
-            
-            # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
-            if ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.RESERVATION_MADE):
-                from apps.reservation.signals import format_date_range_es
-                dates_str = format_date_range_es(reservation.check_in_date, reservation.check_out_date)
-                # Usar configuración por defecto para visibilidad e importancia
-                is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.RESERVATION_MADE)
-                importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.RESERVATION_MADE)
-                
-                ActivityFeed.create_activity(
-                    activity_type=ActivityFeed.ActivityType.RESERVATION_MADE,
-                    client=reservation.client,
-                    property_location=reservation.property,
-                    is_public=is_public,
-                    importance_level=importance,
-                    activity_data={
-                        'property_name': reservation.property.name,
-                        'dates': dates_str,
-                        'check_in': reservation.check_in_date.isoformat(),
-                        'check_out': reservation.check_out_date.isoformat(),
-                        'guests': reservation.guests,
-                        'reservation_id': str(reservation.id),
-                        'price_sol': float(reservation.price_sol) if reservation.price_sol else 0
-                    }
-            )
-            print(f"Actividad de reserva creada para cliente {reservation.client.id if reservation.client else 'anónimo'}")
-        except Exception as e:
-            print(f"Error creando actividad de reserva: {str(e)}")
+        
+        # 📊 ACTIVITY FEED: Ya no se crea aquí - el signal reservation_post_save_handler lo maneja automáticamente
 
         # Si hay código de descuento, validarlo y procesarlo
         if discount_code and discount_code.strip():
