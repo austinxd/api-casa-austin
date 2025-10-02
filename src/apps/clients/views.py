@@ -1454,12 +1454,17 @@ class PublicReferralStatsView(APIView):
             from apps.reservation.models import Reservation
             from .models import Clients
             
-            # Obtener TODOS los clientes que tienen referidos
-            clients_with_referrals = Clients.objects.filter(
+            # Obtener TODOS los clientes únicos que aparecen como "referred_by"
+            clients_with_referrals_ids = Clients.objects.filter(
                 deleted=False
-            ).annotate(
-                total_referrals=Count('clients_set', filter=Q(clients_set__deleted=False))
-            ).filter(total_referrals__gt=0)
+            ).exclude(
+                referred_by__isnull=True
+            ).values_list('referred_by_id', flat=True).distinct()
+            
+            clients_with_referrals = Clients.objects.filter(
+                id__in=clients_with_referrals_ids,
+                deleted=False
+            )
             
             # Preparar estadísticas por cada cliente
             referral_stats = []
@@ -1467,21 +1472,28 @@ class PublicReferralStatsView(APIView):
             total_with_reservations = 0
             
             for client in clients_with_referrals:
+                # Contar TODOS los referidos de este cliente
+                all_referrals = Clients.objects.filter(
+                    referred_by=client,
+                    deleted=False
+                ).count()
+                
                 # Contar referidos que SÍ tienen reservas aprobadas
-                referrals_with_reservations = client.clients_set.filter(
+                referrals_with_reservations = Clients.objects.filter(
+                    referred_by=client,
                     deleted=False,
                     reservation__status='approved',
                     reservation__deleted=False
                 ).distinct().count()
                 
-                total_referrals_count += client.total_referrals
+                total_referrals_count += all_referrals
                 total_with_reservations += referrals_with_reservations
                 
                 referral_stats.append({
                     'client_name': f"{client.first_name} {client.last_name[0]}." if client.last_name else client.first_name,
-                    'total_referrals': client.total_referrals,
+                    'total_referrals': all_referrals,
                     'referrals_with_reservations': referrals_with_reservations,
-                    'referrals_without_reservations': client.total_referrals - referrals_with_reservations
+                    'referrals_without_reservations': all_referrals - referrals_with_reservations
                 })
             
             # Ordenar por número total de referidos
