@@ -726,13 +726,22 @@ class PricingCalculationService:
         available_properties = [p for p in properties_results if p['available']]
         estado_disponibilidad = len(available_properties)  # Cantidad de propiedades disponibles
 
-        # Formatear fechas en español
-        fecha_inicio_str = check_in_date.strftime("%d de %B de %Y").replace(
-            check_in_date.strftime("%B"), self._get_month_name_spanish(check_in_date.month)
-        )
-        fecha_fin_str = check_out_date.strftime("%d de %B de %Y").replace(
-            check_out_date.strftime("%B"), self._get_month_name_spanish(check_out_date.month)
-        )
+        # Formatear fechas en español de forma concisa
+        mes_inicio = self._get_month_name_spanish(check_in_date.month)
+        mes_fin = self._get_month_name_spanish(check_out_date.month)
+        
+        # Si es el mismo mes y año, usar formato corto
+        if check_in_date.month == check_out_date.month and check_in_date.year == check_out_date.year:
+            fecha_inicio_str = str(check_in_date.day)
+            fecha_fin_str = f"{check_out_date.day} de {mes_fin} de {check_out_date.year}"
+        # Si es el mismo año pero diferente mes
+        elif check_in_date.year == check_out_date.year:
+            fecha_inicio_str = f"{check_in_date.day} de {mes_inicio}"
+            fecha_fin_str = f"{check_out_date.day} de {mes_fin} de {check_out_date.year}"
+        # Diferentes años
+        else:
+            fecha_inicio_str = f"{check_in_date.day} de {mes_inicio} de {check_in_date.year}"
+            fecha_fin_str = f"{check_out_date.day} de {mes_fin} de {check_out_date.year}"
 
         # Obtener información de descuento de la primera propiedad disponible
         discount_info = None
@@ -879,10 +888,7 @@ class PricingCalculationService:
 
         if estado_disponibilidad > 0:
             # Hay propiedades disponibles
-            if estado_disponibilidad == 1:
-                message1 = f"📅 Disponibilidad del {fecha_inicio_str} al {fecha_fin_str}"
-            else:
-                message1 = f"📅 Del {fecha_inicio_str} al {fecha_fin_str}\n✨ Encontramos {estado_disponibilidad} casa(s) disponibles"
+            message1 = f"📅 Del {fecha_inicio_str} al {fecha_fin_str}"
 
             # Agregar información de descuento si aplica
             if discount_info and discount_info.get('type') not in ['none', 'error']:
