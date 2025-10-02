@@ -856,6 +856,37 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
             
             # REORGANIZACIÓN INTELIGENTE: Evaluar si afecta prioridades de tareas existentes
             trigger_smart_reorganization(instance)
+            
+            # 📊 ACTIVITY FEED: Crear actividad de "Reserva Confirmada" cuando se crea directamente con status approved (desde admin)
+            if instance.client and instance.origin in ['aus', 'client']:
+                try:
+                    from apps.events.models import ActivityFeed, ActivityFeedConfig
+                    
+                    # ✅ VERIFICAR CONFIGURACIÓN: ¿Está habilitado este tipo de actividad?
+                    if ActivityFeedConfig.is_type_enabled(ActivityFeed.ActivityType.RESERVATION_CONFIRMED):
+                        # Usar configuración por defecto para visibilidad e importancia
+                        is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.RESERVATION_CONFIRMED)
+                        importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.RESERVATION_CONFIRMED)
+                        
+                        dates_str = format_date_range_es(instance.check_in_date, instance.check_out_date)
+                        
+                        ActivityFeed.create_activity(
+                            activity_type=ActivityFeed.ActivityType.RESERVATION_CONFIRMED,
+                            client=instance.client,
+                            property_location=instance.property,
+                            is_public=is_public,
+                            importance_level=importance,
+                            activity_data={
+                                'property_name': instance.property.name,
+                                'dates': dates_str,
+                                'check_in': instance.check_in_date.isoformat(),
+                                'check_out': instance.check_out_date.isoformat(),
+                                'status_change': 'approved_from_admin'
+                            }
+                        )
+                        logger.info(f"✅ Actividad de reserva confirmada creada para nueva reserva aprobada {instance.id}")
+                except Exception as e:
+                    logger.error(f"❌ Error creando actividad de confirmación para nueva reserva aprobada {instance.id}: {str(e)}")
 
         # Verificar si la nueva reserva tiene pago completo
         if instance.full_payment:
