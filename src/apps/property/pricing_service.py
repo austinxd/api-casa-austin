@@ -937,7 +937,9 @@ class PricingCalculationService:
         if property_id and available_properties:
             # Casa específica disponible
             property_info = available_properties[0]
-            return f"🏠 {property_info['property_name']}: ${property_info['final_price_usd']} Dólares ó S/.{property_info['final_price_sol']} Soles"
+            price_usd = float(property_info['final_price_usd'])
+            price_sol = float(property_info['final_price_sol'])
+            return f"🏠 {property_info['property_name']}: *${price_usd:.2f}* ó *S/.{price_sol:.2f}*"
 
         if not property_id and available_properties:
             # Mostrar lista de casas disponibles ordenadas por nombre
@@ -959,8 +961,10 @@ class PricingCalculationService:
             sorted_properties = sorted(available_properties, key=sort_key)
             casas_disponibles = []
             for prop in sorted_properties:
+                price_usd = float(prop['final_price_usd'])
+                price_sol = float(prop['final_price_sol'])
                 casas_disponibles.append(
-                    f"🏠 {prop['property_name']}: ${prop['final_price_usd']} USD ó S/.{prop['final_price_sol']} SOL"
+                    f"🏠 {prop['property_name']}: *${price_usd:.2f}* ó *S/.{price_sol:.2f}*"
                 )
             return "\n".join(casas_disponibles)
 
