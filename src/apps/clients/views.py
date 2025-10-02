@@ -1443,14 +1443,77 @@ class ClientReferralStatsView(APIView):
 
 
 class PublicReferralStatsView(APIView):
-    """Vista pública para obtener estadísticas generales de referidos"""
+    """Vista pública para estadísticas de TODOS los referidos (tengan o no reservas)"""
     authentication_classes = []
     permission_classes = [AllowAny]
 
     def get(self, request):
-        """Obtiene estadísticas generales de referidos - acceso público"""
+        """Obtiene estadísticas de TODOS los referidos - incluye referidos sin reservas"""
         try:
-            # No requiere autenticación - vista pública
+            from django.db.models import Count, Q
+            from apps.reservation.models import Reservation
+            
+            # Obtener TODOS los clientes que tienen referidos
+            clients_with_referrals = Client.objects.filter(
+                deleted=False
+            ).annotate(
+                total_referrals=Count('referrals', filter=Q(referrals__deleted=False))
+            ).filter(total_referrals__gt=0)
+            
+            # Preparar estadísticas por cada cliente
+            referral_stats = []
+            total_referrals_count = 0
+            total_with_reservations = 0
+            
+            for client in clients_with_referrals:
+                # Contar referidos que SÍ tienen reservas aprobadas
+                referrals_with_reservations = client.referrals.filter(
+                    deleted=False,
+                    reservations__status='approved',
+                    reservations__deleted=False
+                ).distinct().count()
+                
+                total_referrals_count += client.total_referrals
+                total_with_reservations += referrals_with_reservations
+                
+                referral_stats.append({
+                    'client_name': f"{client.first_name} {client.last_name[0]}." if client.last_name else client.first_name,
+                    'total_referrals': client.total_referrals,
+                    'referrals_with_reservations': referrals_with_reservations,
+                    'referrals_without_reservations': client.total_referrals - referrals_with_reservations
+                })
+            
+            # Ordenar por número total de referidos
+            referral_stats.sort(key=lambda x: x['total_referrals'], reverse=True)
+            
+            # Respuesta con estadísticas globales
+            response = {
+                'type': 'all_referrals',
+                'period_display': 'Todos los tiempos - Incluye referidos sin reservas',
+                'total_clients_with_referrals': len(referral_stats),
+                'total_referrals': total_referrals_count,
+                'total_referrals_with_reservations': total_with_reservations,
+                'total_referrals_without_reservations': total_referrals_count - total_with_reservations,
+                'top_10_rankings': referral_stats[:10]
+            }
+            
+            return Response(response)
+            
+        except Exception as e:
+            logger.error(f"PublicReferralStatsView: Error getting all referrals stats: {str(e)}")
+            return Response({
+                'error': 'Error obteniendo estadísticas de referidos'
+            }, status=500)
+
+
+class ReferralStatsWithReservationsView(APIView):
+    """Vista pública para estadísticas de referidos QUE TIENEN RESERVAS (basado en ReferralRanking)"""
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        """Obtiene estadísticas de referidos con reservas - basado en ReferralRanking"""
+        try:
             from django.utils import timezone
             from .models import ReferralRanking
             from django.db.models import Sum
@@ -1480,7 +1543,7 @@ class PublicReferralStatsView(APIView):
                 
                 # Estadísticas generales del período
                 stats = {
-                    'type': 'monthly',
+                    'type': 'monthly_with_reservations',
                     'year': target_year,
                     'month': target_month,
                     'period_display': f"{months.get(target_month, target_month)} {target_year}",
@@ -1545,8 +1608,8 @@ class PublicReferralStatsView(APIView):
                     })
                 
                 stats = {
-                    'type': 'global',
-                    'period_display': 'Histórico - Todos los tiempos',
+                    'type': 'global_with_reservations',
+                    'period_display': 'Histórico - Solo referidos con reservas',
                     'total_participants': len(client_totals),
                     'total_referral_reservations': total_reservations,
                     'total_referral_revenue': total_revenue,
@@ -1558,9 +1621,9 @@ class PublicReferralStatsView(APIView):
             return Response(stats)
             
         except Exception as e:
-            logger.error(f"PublicReferralStatsView: Error getting public stats: {str(e)}")
+            logger.error(f"ReferralStatsWithReservationsView: Error getting stats with reservations: {str(e)}")
             return Response({
-                'error': 'Error obteniendo estadísticas públicas de referidos'
+                'error': 'Error obteniendo estadísticas de referidos con reservas'
             }, status=500)
 
 
