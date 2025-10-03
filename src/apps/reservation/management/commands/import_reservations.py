@@ -363,6 +363,7 @@ class Command(BaseCommand):
                         advance_payment=item['price_sol'],
                         advance_payment_currency='sol',
                         full_payment=True,
+                        tel_contact_number=item['client'].tel_number,
                         status='approved',
                         origin='aus',
                         late_checkout=False,
