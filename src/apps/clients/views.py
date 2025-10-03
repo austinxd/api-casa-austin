@@ -1450,6 +1450,7 @@ class PublicReferralStatsView(APIView):
     - scope: 'all' (default) o 'with_reservations'
     - order_by: 'total_referrals' (default) o 'referrals_with_reservations'
     - limit: número de resultados en top_rankings (default: 10)
+    - client_id: UUID del cliente para ver detalles de sus referidos
     """
     authentication_classes = []
     permission_classes = [AllowAny]
@@ -1457,11 +1458,12 @@ class PublicReferralStatsView(APIView):
     def get(self, request):
         """Obtiene estadísticas de referidos con filtros configurables"""
         try:
-            from django.db.models import Count, Q
+            from django.db.models import Count, Q, Sum
             from apps.reservation.models import Reservation
             from .models import Clients
             
             # Leer parámetros de filtrado
+            client_id = request.GET.get('client_id')
             scope = request.GET.get('scope', 'all')  # 'all' o 'with_reservations'
             order_by = request.GET.get('order_by', 'total_referrals')  # 'total_referrals' o 'referrals_with_reservations'
             try:
@@ -1469,7 +1471,74 @@ class PublicReferralStatsView(APIView):
             except ValueError:
                 limit = 10
             
-            # Validar parámetros
+            # Si se solicita detalle de un cliente específico
+            if client_id:
+                try:
+                    client = Clients.objects.get(id=client_id, deleted=False)
+                except Clients.DoesNotExist:
+                    return Response({
+                        'error': 'Cliente no encontrado'
+                    }, status=404)
+                
+                # Obtener todos los referidos del cliente
+                referrals = Clients.objects.filter(
+                    referred_by=client,
+                    deleted=False
+                ).order_by('-created_at')
+                
+                # Preparar detalles de cada referido
+                referrals_details = []
+                for referral in referrals:
+                    # Obtener reservas del referido
+                    reservations = Reservation.objects.filter(
+                        client=referral,
+                        deleted=False
+                    ).order_by('-check_in')
+                    
+                    reservations_data = []
+                    for reservation in reservations:
+                        reservations_data.append({
+                            'id': str(reservation.id),
+                            'property_name': reservation.property.name if reservation.property else 'N/A',
+                            'check_in': reservation.check_in.strftime('%Y-%m-%d') if reservation.check_in else None,
+                            'check_out': reservation.check_out.strftime('%Y-%m-%d') if reservation.check_out else None,
+                            'status': reservation.status,
+                            'total_price': float(reservation.price_sol) if reservation.price_sol else 0.0,
+                            'created_at': reservation.created_at.strftime('%Y-%m-%d %H:%M') if reservation.created_at else None
+                        })
+                    
+                    referrals_details.append({
+                        'id': str(referral.id),
+                        'name': f"{referral.first_name} {referral.last_name}" if referral.last_name else referral.first_name,
+                        'email': referral.email,
+                        'phone': referral.tel_number,
+                        'created_at': referral.created_at.strftime('%Y-%m-%d %H:%M') if referral.created_at else None,
+                        'total_reservations': reservations.count(),
+                        'approved_reservations': reservations.filter(status='approved').count(),
+                        'total_spent': float(reservations.filter(status='approved').aggregate(total=Sum('price_sol'))['total'] or 0),
+                        'reservations': reservations_data
+                    })
+                
+                # Respuesta con detalles del cliente
+                response = {
+                    'type': 'client_detail',
+                    'client': {
+                        'id': str(client.id),
+                        'name': f"{client.first_name} {client.last_name}" if client.last_name else client.first_name,
+                        'email': client.email,
+                        'phone': client.tel_number
+                    },
+                    'total_referrals': referrals.count(),
+                    'referrals_with_reservations': sum(1 for r in referrals_details if r['total_reservations'] > 0),
+                    'referrals_without_reservations': sum(1 for r in referrals_details if r['total_reservations'] == 0),
+                    'total_reservations_from_referrals': sum(r['total_reservations'] for r in referrals_details),
+                    'total_revenue_from_referrals': sum(r['total_spent'] for r in referrals_details),
+                    'referrals': referrals_details
+                }
+                
+                return Response(response)
+            
+            # Validar parámetros para listado general
             if scope not in ['all', 'with_reservations']:
                 return Response({
                     'error': 'Parámetro scope inválido. Use: all, with_reservations'
