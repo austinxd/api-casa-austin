@@ -1,0 +1,50 @@
+➜  api-casa-austin git:(main) ✗ python src/manage.py import_reservations --file attached_assets/Casas\ de\ austin\ -\ RESERVAS\ -\ Reservas_1759483837159.xlsx
+
+================================================================================
+IMPORTACIÓN DE RESERVAS HISTÓRICAS
+================================================================================
+
+Archivo: attached_assets/Casas de austin - RESERVAS - Reservas_1759483837159.xlsx
+Hoja: 0
+Modo: PREVIEW (solo lectura)
+
+✓ Archivo cargado: 422 filas encontradas
+
+
+================================================================================
+RESUMEN DE VALIDACIÓN
+================================================================================
+
+Total de filas procesadas: 422
+✓ Válidas: 0
+✗ Con errores: 422
+
+Detalle de errores:
+  • Cliente no encontrado: 65
+  • Propiedad no encontrada: 0
+  • Fechas inválidas: 0
+  • Datos faltantes: 0
+  • Duplicados: 0
+  • Otros errores: 357
+
+================================================================================
+ERRORES ENCONTRADOS (primeros 10)
+================================================================================
+
+Row 2: Error en datos numéricos: could not convert string to float: 'S/.833.70'
+Row 3: Error en datos numéricos: could not convert string to float: 'S/.1,457.80'
+Row 4: Error en datos numéricos: could not convert string to float: 'S/.2,340.00'
+Row 5: Error en datos numéricos: could not convert string to float: 'S/.3,120.00'
+Row 6: Error en datos numéricos: could not convert string to float: 'S/.1,700.00'
+Row 7: Error en datos numéricos: could not convert string to float: 'S/.2,115.80'
+Row 8: Error en datos numéricos: could not convert string to float: 'S/.2,713.00'
+Row 9: Error en datos numéricos: could not convert string to float: 'S/.2,900.00'
+Row 10: Error en datos numéricos: could not convert string to float: 'S/.720.00'
+Row 11: Error en datos numéricos: could not convert string to float: 'S/.3,660.00'
+
+... y 412 errores más
+
+
+⚠ MODO PREVIEW: No se insertaron registros
+   Usa --commit para confirmar la inserción
+

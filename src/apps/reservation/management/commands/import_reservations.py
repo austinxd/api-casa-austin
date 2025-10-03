@@ -236,10 +236,25 @@ class Command(BaseCommand):
         adelanto_pct = row.get('ADELANTO %', 0)
 
         try:
-            precio_sol = float(precio_sol) if not pd.isna(precio_sol) else 0.0
-            precio_usd = float(precio_usd) if not pd.isna(precio_usd) else 0.0
+            if not pd.isna(precio_sol):
+                precio_sol_str = str(precio_sol).replace('S/.', '').replace('S/', '').replace(',', '').strip()
+                precio_sol = float(precio_sol_str) if precio_sol_str else 0.0
+            else:
+                precio_sol = 0.0
+                
+            if not pd.isna(precio_usd):
+                precio_usd_str = str(precio_usd).replace('$', '').replace(',', '').strip()
+                precio_usd = float(precio_usd_str) if precio_usd_str else 0.0
+            else:
+                precio_usd = 0.0
+                
             num_pax = int(num_pax) if not pd.isna(num_pax) else 1
-            adelanto_pct = float(adelanto_pct) if not pd.isna(adelanto_pct) else 0.0
+            
+            if not pd.isna(adelanto_pct):
+                adelanto_pct_str = str(adelanto_pct).replace('%', '').strip()
+                adelanto_pct = float(adelanto_pct_str) if adelanto_pct_str else 0.0
+            else:
+                adelanto_pct = 0.0
         except Exception as e:
             return {
                 'valid': False,
