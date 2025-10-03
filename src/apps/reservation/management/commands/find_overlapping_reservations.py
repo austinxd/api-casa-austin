@@ -72,11 +72,11 @@ class Command(BaseCommand):
                         
                         property_overlaps.append({
                             'property': property_obj.name,
-                            'res_a_id': str(res_a.uuid),
+                            'res_a_id': str(res_a.id),
                             'res_a_client': f"{res_a.client.first_name} {res_a.client.last_name}" if res_a.client else "Sin cliente",
                             'res_a_dates': f"{res_a.check_in_date} → {res_a.check_out_date}",
                             'res_a_status': res_a.status,
-                            'res_b_id': str(res_b.uuid),
+                            'res_b_id': str(res_b.id),
                             'res_b_client': f"{res_b.client.first_name} {res_b.client.last_name}" if res_b.client else "Sin cliente",
                             'res_b_dates': f"{res_b.check_in_date} → {res_b.check_out_date}",
                             'res_b_status': res_b.status,

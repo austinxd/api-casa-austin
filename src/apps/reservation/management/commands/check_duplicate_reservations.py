@@ -114,7 +114,7 @@ class Command(BaseCommand):
                     'property': property_obj.name,
                     'check_in': check_in,
                     'check_out': check_out,
-                    'reservation_id': existing.uuid
+                    'reservation_id': existing.id
                 })
             else:
                 no_duplicates += 1
