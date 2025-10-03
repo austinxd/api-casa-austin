@@ -3,7 +3,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from django.db.models import Q, Sum, Count, Max, F
+from django.db.models import Q, Sum, Count, Max, F, Value
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from datetime import datetime, timedelta
 from apps.reservation.models import Reservation
@@ -314,7 +315,8 @@ from rest_framework.generics import CreateAPIView, ListAPIView
 from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
 from datetime import datetime, timedelta
-from django.db.models import Q, Sum, Count, Max, F
+from django.db.models import Q, Sum, Count, Max, F, Value
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 
 from .models import Clients, MensajeFidelidad, TokenApiClients, ClientPoints, ReferralPointsConfig, SearchTracking, Achievement, ClientAchievement
@@ -495,7 +497,7 @@ class ClientsApiView(viewsets.ModelViewSet):
         from apps.clients.models import ClientAchievement
         
         queryset = Clients.objects.exclude(deleted=True).annotate(
-            level=Max('clientachievement__achievement__required_reservations')
+            level=Coalesce(Max('achievements__achievement__required_reservations'), Value(-1))
         ).order_by("last_name", "first_name")
 
         if not "admin" in self.request.user.groups.all().values_list(
