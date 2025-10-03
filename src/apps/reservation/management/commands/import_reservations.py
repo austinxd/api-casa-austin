@@ -237,7 +237,7 @@ class Command(BaseCommand):
 
         precio_sol = row.get('PRECIO S/', 0)
         precio_usd = row.get('PRECIO $', 0)
-        num_pax = row.get('N° Pax', 1)
+        num_pax = row.get('huespedes', 1)
         adelanto_pct = row.get('ADELANTO %', 0)
 
         try:
