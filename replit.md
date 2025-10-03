@@ -24,10 +24,11 @@ Preferred communication style: Simple, everyday language.
 - **Direct Database Queries**: Uses live ORM queries instead of relying on ReferralRanking model for real-time statistics
 - **Enhanced Response**: Includes position/ranking numbers, scope identification, and configurable result limits
 - **Client Detail Mode**: When `client_id` is provided, returns comprehensive information including:
-  - Client information (name, email, phone)
-  - Complete list of referrals with personal details
-  - Full reservation history for each referral (property, dates, status, price)
-  - Aggregated statistics (total revenue, total reservations from referrals)
+  - Client information (nombre, correo, telefono)
+  - Complete list of referrals with personal details (nombre, correo, telefono, fecha_registro)
+  - Full reservation history for each referral (propiedad, entrada, salida, estado, precio_total, fecha_creacion)
+  - Aggregated statistics (total_referidos, referidos_con_reservas, referidos_sin_reservas, total_reservas_de_referidos, ingresos_totales_de_referidos)
+- **Response in Spanish**: All API response keys are now in Spanish for better clarity
 - **Examples**: 
   - `GET /api/v1/clients/referral-stats/` - All referrals ranked by total count
   - `GET /api/v1/clients/referral-stats/?scope=with_reservations` - Only referrals with reservations
