@@ -362,9 +362,7 @@ class Command(BaseCommand):
                         guests=item['num_pax'],
                         status='approved',
                         origin='aus',
-                        payment_method='efectivo',
                         late_checkout=False,
-                        breakfast=False,
                         deleted=False
                     )
                     inserted += 1
