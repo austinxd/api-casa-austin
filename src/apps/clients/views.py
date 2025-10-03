@@ -2,7 +2,7 @@ from rest_framework import status, permissions
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.db.models import Q, Sum, Count
 from django.shortcuts import get_object_or_404
 from datetime import datetime, timedelta
@@ -389,10 +389,13 @@ class TokenApiClientApiView(APIView):
 
 class ClientsApiView(viewsets.ModelViewSet):
     serializer_class = ClientsSerializer
-    filter_backends = [filters.SearchFilter]
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = [
         "email", "number_doc", "first_name", "last_name", "tel_number"
     ]
+    ordering_fields = ['points_balance', 'first_name', 'last_name', 'created']
+    ordering = ['-points_balance']
     pagination_class = CustomPagination
 
     def get_pagination_class(self):
@@ -426,6 +429,13 @@ class ClientsApiView(viewsets.ModelViewSet):
                 OpenApiTypes.STR,
                 description=
                 "bd=today para recuperar todos los clientes que tengan cumpleaños hoy",
+                required=False,
+            ),
+            OpenApiParameter(
+                "ordering",
+                OpenApiTypes.STR,
+                description=
+                "Ordenar por: points_balance, first_name, last_name, created. Usar '-' para orden descendente. Ejemplo: -points_balance",
                 required=False,
             ),
         ],

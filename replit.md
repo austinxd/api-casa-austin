@@ -10,6 +10,32 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### October 03, 2025 - Client Endpoint Security and Points Ordering
+
+#### Clients API Authentication and Sorting
+- **Security Enhancement**: `/api/v1/clients/` endpoint now requires authentication (IsAuthenticated)
+- **Points Ordering**: Added ability to order clients by points balance
+- **Query Parameters**:
+  - `ordering`: Sort by `points_balance`, `first_name`, `last_name`, or `created`
+  - Use `-` prefix for descending order (e.g., `-points_balance` for highest points first)
+- **Default Behavior**: Clients now ordered by points (highest to lowest) by default
+- **Examples**:
+  - `GET /api/v1/clients/?ordering=-points_balance` - Highest points first
+  - `GET /api/v1/clients/?ordering=points_balance` - Lowest points first
+  - `GET /api/v1/clients/?ordering=last_name` - Alphabetical by last name
+
+#### Bulk Import Commands and Tools
+- **Import Command**: `import_reservations` for bulk importing historical reservations from Excel
+  - Uses `bulk_create()` to avoid triggering signals (no automatic notifications/points)
+  - DNI normalization (pads with zeros to 8 digits)
+  - Duplicate detection to prevent re-importing
+  - Full payment marking for historical reservations
+- **Analysis Commands**:
+  - `find_overlapping_reservations` - Detects reservation conflicts in same property
+  - `check_duplicate_reservations` - Compares Excel data with database
+  - `assign_retroactive_points` - Assigns points to imported historical reservations
+  - `recalculate_points_and_achievements` - Recalculates points and assigns achievements
+
 ### October 03, 2025 - Unified Referral Statistics API Endpoint
 
 #### Consolidated Referral Statistics with Flexible Filtering
