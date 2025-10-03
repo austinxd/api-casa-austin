@@ -9,8 +9,6 @@ from apps.clients.models import Clients
 from apps.property.models import Property
 from apps.reservation.models import Reservation
 from apps.accounts.models import CustomUser
-from django.db.models.signals import post_save, pre_save
-from django.dispatch import receiver
 
 
 class Command(BaseCommand):
@@ -352,43 +350,47 @@ class Command(BaseCommand):
         inserted = 0
         errors = 0
 
-        post_save.disconnect(sender=Reservation)
+        default_seller = CustomUser.objects.filter(id=1).first()
         
-        try:
-            for item in results['valid']:
-                try:
-                    default_seller = CustomUser.objects.filter(id=1).first()
-                    
-                    reservation = Reservation.objects.create(
-                        client=item['client'],
-                        property=item['property'],
-                        seller=default_seller,
-                        check_in_date=item['check_in'],
-                        check_out_date=item['check_out'],
-                        price_sol=item['price_sol'],
-                        price_usd=item['price_usd'],
-                        guests=item['num_pax'],
-                        advance_payment=item['price_sol'],
-                        advance_payment_currency='sol',
-                        full_payment=True,
-                        tel_contact_number=item['client'].tel_number,
-                        status='approved',
-                        origin='aus',
-                        late_checkout=False,
-                        deleted=False
-                    )
-                    inserted += 1
-                    
-                    if inserted % 10 == 0:
-                        self.stdout.write(f'  Insertadas: {inserted}/{len(results["valid"])}...')
-
-                except Exception as e:
-                    errors += 1
-                    self.stdout.write(self.style.ERROR(
-                        f'  ✗ Error insertando Row {item["row"]}: {str(e)}'
-                    ))
-        finally:
-            post_save.connect(sender=Reservation)
+        reservations_to_create = []
+        
+        for item in results['valid']:
+            try:
+                reservation = Reservation(
+                    client=item['client'],
+                    property=item['property'],
+                    seller=default_seller,
+                    check_in_date=item['check_in'],
+                    check_out_date=item['check_out'],
+                    price_sol=item['price_sol'],
+                    price_usd=item['price_usd'],
+                    guests=item['num_pax'],
+                    advance_payment=item['price_sol'],
+                    advance_payment_currency='sol',
+                    full_payment=True,
+                    tel_contact_number=item['client'].tel_number,
+                    status='approved',
+                    origin='aus',
+                    late_checkout=False,
+                    deleted=False
+                )
+                reservations_to_create.append(reservation)
+                
+            except Exception as e:
+                errors += 1
+                self.stdout.write(self.style.ERROR(
+                    f'  ✗ Error preparando Row {item["row"]}: {str(e)}'
+                ))
+        
+        if reservations_to_create:
+            try:
+                with transaction.atomic():
+                    Reservation.objects.bulk_create(reservations_to_create)
+                    inserted = len(reservations_to_create)
+                    self.stdout.write(f'  ✓ Insertadas: {inserted} reservas')
+            except Exception as e:
+                errors += len(reservations_to_create)
+                self.stdout.write(self.style.ERROR(f'  ✗ Error en bulk insert: {str(e)}'))
 
         self.stdout.write(self.style.SUCCESS(f'\n✓ Inserción completada:'))
         self.stdout.write(self.style.SUCCESS(f'  • Reservas insertadas: {inserted}'))

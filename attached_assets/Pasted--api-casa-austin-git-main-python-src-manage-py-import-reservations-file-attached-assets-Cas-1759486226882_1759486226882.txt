@@ -1,0 +1,108 @@
+➜  api-casa-austin git:(main) ✗ python src/manage.py import_reservations --file "attached_assets/Casas de austin - RESERVAS - Reservas_1759483837159.xlsx" --limit 1 --commit
+
+================================================================================
+IMPORTACIÓN DE RESERVAS HISTÓRICAS
+================================================================================
+
+Archivo: attached_assets/Casas de austin - RESERVAS - Reservas_1759483837159.xlsx
+Hoja: 0
+Modo: INSERCIÓN REAL
+Límite: 1 filas
+
+✓ Archivo cargado: 1 filas encontradas
+
+
+================================================================================
+RESUMEN DE VALIDACIÓN
+================================================================================
+
+Total de filas procesadas: 1
+✓ Válidas: 1
+✗ Con errores: 0
+
+
+================================================================================
+RESERVAS VÁLIDAS PARA IMPORTAR
+================================================================================
+
+
+Casa Austin 2: 1 reservas
+  Row 2: CARLA FIORELLA ARCE PETIT | 2022-10-05 → 2022-10-07 | S/. 833.7 / $ 210.0
+
+================================================================================
+INSERTANDO RESERVAS EN LA BASE DE DATOS
+================================================================================
+
+DEBUG 2025-10-03 05:10:03,845 signals 1178735 140072935176000 Cliente actualizado: Clients object (4c430fdc-c3ac-4f6c-bf4e-6117581abd4e)
+DEBUG 2025-10-03 05:10:04,480 signals 1178735 140072935176000 Audiencia actualizada para cliente 4c430fdc-c3ac-4f6c-bf4e-6117581abd4e. Respuesta: {"audience_id":"120225356885930355","session_id":"189481546330789599","num_received":1,"num_invalid_entries":0,"invalid_entry_samples":{}}
+ERROR 2025-10-03 05:10:04,662 signals 1178735 140072935176000 Error verificando logros para cliente 4c430fdc-c3ac-4f6c-bf4e-6117581abd4e: (1062, "Duplicate entry '4c430fdcc3ac4f6cbf4e6117581abd4e-6d35cc334685421794279b3dbb7d310' for key 'clients_clientachievement.clients_clientachievement_client_id_achievement_id_3afb6388_uniq'")
+Puntos asignados: 41.685 puntos para cliente CARLA FIORELLA ARCE PETIT
+DEBUG 2025-10-03 05:10:04,795 points_signals 1178735 140072935176000 Actividad de puntos creada para cliente 4c430fdc-c3ac-4f6c-bf4e-6117581abd4e
+DEBUG 2025-10-03 05:10:04,796 points_signals 1178735 140072935176000 🔄 Verificando logros para cliente 4c430fdc-c3ac-4f6c-bf4e-6117581abd4e
+DEBUG 2025-10-03 05:10:04,800 points_signals 1178735 140072935176000 🔄 Cliente 4c430fdc-c3ac-4f6c-bf4e-6117581abd4e ya tiene el logro 'Curioso'
+INFO 2025-10-03 05:10:04,804 points_signals 1178735 140072935176000 🔄 Logro 'Cliente Casa Austin' reactivado para cliente 4c430fdc-c3ac-4f6c-bf4e-6117581abd4e
+DEBUG 2025-10-03 05:10:04,807 points_signals 1178735 140072935176000 ❌ Cliente 4c430fdc-c3ac-4f6c-bf4e-6117581abd4e no cumple requisitos para 'Cliente Recurrente'
+DEBUG 2025-10-03 05:10:04,810 points_signals 1178735 140072935176000 ❌ Cliente 4c430fdc-c3ac-4f6c-bf4e-6117581abd4e no cumple requisitos para 'Cliente Premium'
+DEBUG 2025-10-03 05:10:04,812 points_signals 1178735 140072935176000 ❌ Cliente 4c430fdc-c3ac-4f6c-bf4e-6117581abd4e no cumple requisitos para 'Austin Legend'
+INFO 2025-10-03 05:10:04,812 points_signals 1178735 140072935176000 📊 Verificación de logros completada para cliente 4c430fdc-c3ac-4f6c-bf4e-6117581abd4e. Logros asignados: 1
+INFO 2025-10-03 05:10:04,895 signals 1178735 140072935176000 🔥 SIGNAL EJECUTADO: Nueva reserva creada ID 33200e90-aeb1-4a26-81f6-b2fd4f762f7e - Origen: aus - Cliente: Clients object (4c430fdc-c3ac-4f6c-bf4e-6117581abd4e)
+DEBUG 2025-10-03 05:10:04,897 signals 1178735 140072935176000 Enviando mensaje de Telegram: 📞 **AUSTIN** - Reserva en Casa Austin 2
+Cliente: CARLA FIORELLA ARCE PETIT
+Check-in : Miércoles 5 de octubre
+Check-out : Viernes 7 de octubre
+Invitados : 1
+Temperado : No
+Precio (USD) : 210.00 dólares
+Precio (Soles) : 833.70 soles
+Adelanto : 833.70 SOL
+Teléfono : +51973825082 con imagen: None
+DEBUG 2025-10-03 05:10:04,897 telegram_notifier 1178735 140072935176000 Preparando para enviar mensaje: 📞 **AUSTIN** - Reserva en Casa Austin 2
+Cliente: CARLA FIORELLA ARCE PETIT
+Check-in : Miércoles 5 de octubre
+Check-out : Viernes 7 de octubre
+Invitados : 1
+Temperado : No
+Precio (USD) : 210.00 dólares
+Precio (Soles) : 833.70 soles
+Adelanto : 833.70 SOL
+Teléfono : +51973825082
+DEBUG 2025-10-03 05:10:04,897 telegram_notifier 1178735 140072935176000 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-10-03 05:10:05,324 telegram_notifier 1178735 140072935176000 Mensaje enviado.
+DEBUG 2025-10-03 05:10:05,324 telegram_notifier 1178735 140072935176000 Mensaje enviado a través del executor.
+DEBUG 2025-10-03 05:10:05,324 telegram_notifier 1178735 140072935176000 Preparando para enviar mensaje: ******Reserva en Casa Austin 2******
+Cliente: CARLA FIORELLA ARCE PETIT
+Cumpleaños: Viernes 6 de octubre (Cumple 36 años)
+Check-in : Miércoles 5 de octubre
+Check-out : Viernes 7 de octubre
+Invitados : 1
+Temperado : No
+Teléfono : https://wa.me/51973825082
+DEBUG 2025-10-03 05:10:05,324 telegram_notifier 1178735 140072935176000 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-10-03 05:10:05,601 telegram_notifier 1178735 140072935176000 Mensaje enviado.
+DEBUG 2025-10-03 05:10:05,601 telegram_notifier 1178735 140072935176000 Mensaje enviado a través del executor.
+INFO 2025-10-03 05:10:05,601 signals 1178735 140072935176000 🎯 Intentando crear actividad de feed para reserva 33200e90-aeb1-4a26-81f6-b2fd4f762f7e
+INFO 2025-10-03 05:10:05,745 signals 1178735 140072935176000 ✅ Actividad de nueva reserva creada exitosamente: 02a08d24-36c4-4388-8e3b-c7b6dfe70712
+INFO 2025-10-03 05:10:05,746 signals 1178735 140072935176000 New reservation created with approved status 33200e90-aeb1-4a26-81f6-b2fd4f762f7e - Creating automatic cleaning task
+DEBUG 2025-10-03 05:10:05,816 signals 1178735 140072935176000 📋 TAREA BAJA PRIORIDAD: Limpieza checkout - Casa Austin 2 - Check-in en 566 día(s)
+INFO 2025-10-03 05:10:05,916 signals 1178735 140072935176000 🎯 Tarea 36d0368f-46eb-4f1c-ab10-b4ffa7e835c5 establecida con prioridad low
+DEBUG 2025-10-03 05:10:05,921 signals 1178735 140072935176000 Personal Luis puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+DEBUG 2025-10-03 05:10:05,925 signals 1178735 140072935176000 Personal Patricia puede tomar hasta 2 propiedades (todas ≤2 huéspedes)
+INFO 2025-10-03 05:10:05,925 signals 1178735 140072935176000 👷 PERSONAL SELECCIONADO para 2022-10-07:
+INFO 2025-10-03 05:10:05,926 signals 1178735 140072935176000    ✅ Patricia Ricaldi (carga actual: 0 tareas)
+INFO 2025-10-03 05:10:06,012 signals 1178735 140072935176000 ✅ Created and assigned cleaning task 36d0368f-46eb-4f1c-ab10-b4ffa7e835c5 to Patricia Ricaldi for reservation 33200e90-aeb1-4a26-81f6-b2fd4f762f7e on 2022-10-07
+INFO 2025-10-03 05:10:06,012 signals 1178735 140072935176000 🧠 EVALUANDO reorganización por nueva reserva 33200e90-aeb1-4a26-81f6-b2fd4f762f7e
+INFO 2025-10-03 05:10:06,013 signals 1178735 140072935176000 🔍 Nueva reserva 33200e90-aeb1-4a26-81f6-b2fd4f762f7e (check-in 2022-10-05)
+INFO 2025-10-03 05:10:06,014 signals 1178735 140072935176000    Encontradas 0 tareas potencialmente afectadas en Casa Austin 2
+INFO 2025-10-03 05:10:06,015 signals 1178735 140072935176000 ✅ No hay tareas que requieran reorganización
+INFO 2025-10-03 05:10:06,104 signals 1178735 140072935176000 ✅ Actividad de reserva confirmada creada para nueva reserva aprobada 33200e90-aeb1-4a26-81f6-b2fd4f762f7e
+DEBUG 2025-10-03 05:10:06,104 signals 1178735 140072935176000 Nueva reserva 33200e90-aeb1-4a26-81f6-b2fd4f762f7e creada con pago completo - Enviando flujo ChatBot
+INFO 2025-10-03 05:10:07,708 signals 1178735 140072935176000 ✅ Flujo de pago completo enviado a usuario 51973825082 para reserva 33200e90-aeb1-4a26-81f6-b2fd4f762f7e
+
+✗ Error: connect() missing 1 required positional argument: 'receiver'
+
+Traceback (most recent call last):
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/management/commands/import_reservations.py", line 80, in handle
+    self.insert_reservations(results)
+  File "/srv/casaaustin/api-casa-austin/src/apps/reservation/management/commands/import_reservations.py", line 391, in insert_reservations
+    post_save.connect(sender=Reservation)
+TypeError: connect() missing 1 required positional argument: 'receiver'
