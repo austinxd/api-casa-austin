@@ -3,7 +3,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from django.db.models import Q, Sum, Count
+from django.db.models import Q, Sum, Count, Max, F
 from django.shortcuts import get_object_or_404
 from datetime import datetime, timedelta
 from apps.reservation.models import Reservation
@@ -314,7 +314,7 @@ from rest_framework.generics import CreateAPIView, ListAPIView
 from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
 from datetime import datetime, timedelta
-from django.db.models import Q, Sum, Count
+from django.db.models import Q, Sum, Count, Max, F
 from django.shortcuts import get_object_or_404
 
 from .models import Clients, MensajeFidelidad, TokenApiClients, ClientPoints, ReferralPointsConfig, SearchTracking, Achievement, ClientAchievement
@@ -394,7 +394,7 @@ class ClientsApiView(viewsets.ModelViewSet):
     search_fields = [
         "email", "number_doc", "first_name", "last_name", "tel_number"
     ]
-    ordering_fields = ['points_balance', 'first_name', 'last_name', 'created']
+    ordering_fields = ['points_balance', 'first_name', 'last_name', 'created', 'level']
     ordering = ['-points_balance']
     pagination_class = CustomPagination
 
@@ -435,7 +435,7 @@ class ClientsApiView(viewsets.ModelViewSet):
                 "ordering",
                 OpenApiTypes.STR,
                 description=
-                "Ordenar por: points_balance, first_name, last_name, created. Usar '-' para orden descendente. Ejemplo: -points_balance",
+                "Ordenar por: points_balance, level, first_name, last_name, created. Usar '-' para orden descendente. Ejemplo: -points_balance o -level",
                 required=False,
             ),
         ],
@@ -492,8 +492,11 @@ class ClientsApiView(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     def get_queryset(self):
-        queryset = Clients.objects.exclude(deleted=True).order_by(
-            "last_name", "first_name")
+        from apps.clients.models import ClientAchievement
+        
+        queryset = Clients.objects.exclude(deleted=True).annotate(
+            level=Max('clientachievement__achievement__required_reservations')
+        ).order_by("last_name", "first_name")
 
         if not "admin" in self.request.user.groups.all().values_list(
                 'name', flat=True):

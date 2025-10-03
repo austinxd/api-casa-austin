@@ -14,13 +14,15 @@ Preferred communication style: Simple, everyday language.
 
 #### Clients API Authentication and Sorting
 - **Security Enhancement**: `/api/v1/clients/` endpoint now requires authentication (IsAuthenticated)
-- **Points Ordering**: Added ability to order clients by points balance
+- **Points and Level Ordering**: Added ability to order clients by points balance and achievement level
 - **Query Parameters**:
-  - `ordering`: Sort by `points_balance`, `first_name`, `last_name`, or `created`
+  - `ordering`: Sort by `points_balance`, `level`, `first_name`, `last_name`, or `created`
   - Use `-` prefix for descending order (e.g., `-points_balance` for highest points first)
 - **Default Behavior**: Clients now ordered by points (highest to lowest) by default
+- **Level Calculation**: Level is calculated based on the highest achievement earned (required_reservations)
 - **Examples**:
   - `GET /api/v1/clients/?ordering=-points_balance` - Highest points first
+  - `GET /api/v1/clients/?ordering=-level` - Highest level first
   - `GET /api/v1/clients/?ordering=points_balance` - Lowest points first
   - `GET /api/v1/clients/?ordering=last_name` - Alphabetical by last name
 
