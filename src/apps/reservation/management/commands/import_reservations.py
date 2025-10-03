@@ -352,6 +352,9 @@ class Command(BaseCommand):
         with transaction.atomic():
             for item in results['valid']:
                 try:
+                    adelanto = item['price_sol'] * (item['adelanto_pct'] / 100) if item['adelanto_pct'] > 0 else 0
+                    es_pago_completo = item['adelanto_pct'] >= 100
+                    
                     reservation = Reservation.objects.create(
                         client=item['client'],
                         property=item['property'],
@@ -360,6 +363,9 @@ class Command(BaseCommand):
                         price_sol=item['price_sol'],
                         price_usd=item['price_usd'],
                         guests=item['num_pax'],
+                        advance_payment=adelanto,
+                        advance_payment_currency='sol',
+                        full_payment=es_pago_completo,
                         status='approved',
                         origin='aus',
                         late_checkout=False,
