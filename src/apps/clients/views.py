@@ -1499,41 +1499,41 @@ class PublicReferralStatsView(APIView):
                     for reservation in reservations:
                         reservations_data.append({
                             'id': str(reservation.id),
-                            'propiedad': reservation.property.name if reservation.property else 'N/A',
-                            'entrada': reservation.check_in.strftime('%Y-%m-%d') if reservation.check_in else None,
-                            'salida': reservation.check_out.strftime('%Y-%m-%d') if reservation.check_out else None,
-                            'estado': reservation.status,
-                            'precio_total': float(reservation.price_sol) if reservation.price_sol else 0.0,
-                            'fecha_creacion': reservation.created_at.strftime('%Y-%m-%d %H:%M') if reservation.created_at else None
+                            'property_name': reservation.property.name if reservation.property else 'N/A',
+                            'check_in': reservation.check_in.strftime('%Y-%m-%d') if reservation.check_in else None,
+                            'check_out': reservation.check_out.strftime('%Y-%m-%d') if reservation.check_out else None,
+                            'status': reservation.status,
+                            'total_price': float(reservation.price_sol) if reservation.price_sol else 0.0,
+                            'created_at': reservation.created_at.strftime('%Y-%m-%d %H:%M') if reservation.created_at else None
                         })
                     
                     referrals_details.append({
                         'id': str(referral.id),
-                        'nombre': f"{referral.first_name} {referral.last_name}" if referral.last_name else referral.first_name,
-                        'correo': referral.email,
-                        'telefono': referral.tel_number,
-                        'fecha_registro': referral.created_at.strftime('%Y-%m-%d %H:%M') if referral.created_at else None,
-                        'total_reservas': reservations.count(),
-                        'reservas_aprobadas': reservations.filter(status='approved').count(),
-                        'gasto_total': float(reservations.filter(status='approved').aggregate(total=Sum('price_sol'))['total'] or 0),
-                        'reservas': reservations_data
+                        'name': f"{referral.first_name} {referral.last_name}" if referral.last_name else referral.first_name,
+                        'email': referral.email,
+                        'phone': referral.tel_number,
+                        'created_at': referral.created_at.strftime('%Y-%m-%d %H:%M') if referral.created_at else None,
+                        'total_reservations': reservations.count(),
+                        'approved_reservations': reservations.filter(status='approved').count(),
+                        'total_spent': float(reservations.filter(status='approved').aggregate(total=Sum('price_sol'))['total'] or 0),
+                        'reservations': reservations_data
                     })
                 
                 # Respuesta con detalles del cliente
                 response = {
-                    'tipo': 'detalle_cliente',
-                    'cliente': {
+                    'type': 'client_detail',
+                    'client': {
                         'id': str(client.id),
-                        'nombre': f"{client.first_name} {client.last_name}" if client.last_name else client.first_name,
-                        'correo': client.email,
-                        'telefono': client.tel_number
+                        'name': f"{client.first_name} {client.last_name}" if client.last_name else client.first_name,
+                        'email': client.email,
+                        'phone': client.tel_number
                     },
-                    'total_referidos': referrals.count(),
-                    'referidos_con_reservas': sum(1 for r in referrals_details if r['total_reservas'] > 0),
-                    'referidos_sin_reservas': sum(1 for r in referrals_details if r['total_reservas'] == 0),
-                    'total_reservas_de_referidos': sum(r['total_reservas'] for r in referrals_details),
-                    'ingresos_totales_de_referidos': sum(r['gasto_total'] for r in referrals_details),
-                    'referidos': referrals_details
+                    'total_referrals': referrals.count(),
+                    'referrals_with_reservations': sum(1 for r in referrals_details if r['total_reservations'] > 0),
+                    'referrals_without_reservations': sum(1 for r in referrals_details if r['total_reservations'] == 0),
+                    'total_reservations_from_referrals': sum(r['total_reservations'] for r in referrals_details),
+                    'total_revenue_from_referrals': sum(r['total_spent'] for r in referrals_details),
+                    'referrals': referrals_details
                 }
                 
                 return Response(response)
