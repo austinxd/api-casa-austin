@@ -129,7 +129,7 @@ def read_contacts_from_db():
 # =========================
 def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: str, top_icon: str, points: float, has_active_reservation: int) -> str:
     """
-    N: icono + primer nombre → '🐣 Isabel'
+    N: apellido + puntos + indicador; icono + primer nombre → 'Robalino (250 P) 🟢;🐣 Isabel'
     FN: icono + nombre completo + puntos + indicador activo → '🐣 Isabel Robalino (250 P) 🟢'
     UID: estable por client_id (string/UUID)
     """
@@ -149,11 +149,17 @@ def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: st
     # Indicador de reserva activa
     active_indicator = " 🟢" if has_active_reservation else ""
 
+    # Sufijo con puntos e indicador
+    suffix = f"({points_str} P){active_indicator}"
+
     # Nombre con icono al inicio para campo N (solo primer nombre)
     given_with_icon = f"{icon} {given_clean}".strip()
     
+    # Apellido con puntos e indicador para campo N
+    family_with_suffix = f"{family_clean} {suffix}".strip()
+    
     # Nombre completo para display con puntos y indicador
-    display_name = f"{icon} {given_clean} {family_clean} ({points_str} P){active_indicator}".strip()
+    display_name = f"{icon} {given_clean} {family_clean} {suffix}".strip()
 
     uid = f"casaustin:{client_id}"
 
@@ -162,7 +168,7 @@ def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: st
         "VERSION:3.0\n"
         f"UID:{uid}\n"
         # N: Family;Given;Additional;Prefix;Suffix
-        f"N:{family_clean};{given_with_icon};;;\n"
+        f"N:{family_with_suffix};{given_with_icon};;;\n"
         f"FN:{display_name}\n"
         f"NICKNAME:{display_name}\n"
         f"TEL;TYPE=CELL:{phone}\n"
