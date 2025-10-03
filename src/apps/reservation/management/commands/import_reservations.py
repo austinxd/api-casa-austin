@@ -9,6 +9,8 @@ from apps.clients.models import Clients
 from apps.property.models import Property
 from apps.reservation.models import Reservation
 from apps.accounts.models import CustomUser
+from django.db.models.signals import post_save, pre_save
+from django.dispatch import receiver
 
 
 class Command(BaseCommand):
@@ -350,7 +352,9 @@ class Command(BaseCommand):
         inserted = 0
         errors = 0
 
-        with transaction.atomic():
+        post_save.disconnect(sender=Reservation)
+        
+        try:
             for item in results['valid']:
                 try:
                     default_seller = CustomUser.objects.filter(id=1).first()
@@ -383,6 +387,8 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.ERROR(
                         f'  ✗ Error insertando Row {item["row"]}: {str(e)}'
                     ))
+        finally:
+            post_save.connect(sender=Reservation)
 
         self.stdout.write(self.style.SUCCESS(f'\n✓ Inserción completada:'))
         self.stdout.write(self.style.SUCCESS(f'  • Reservas insertadas: {inserted}'))

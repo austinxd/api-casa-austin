@@ -1,0 +1,49 @@
+ src/apps/reservation/management/commands/import_reservations.py | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+➜  api-casa-austin git:(main) ✗ python src/manage.py import_reservations --file "attached_assets/Casas de austin - RESERVAS - Reservas_1759483837159.xlsx" --limit 1 --commit
+
+================================================================================
+IMPORTACIÓN DE RESERVAS HISTÓRICAS
+================================================================================
+
+Archivo: attached_assets/Casas de austin - RESERVAS - Reservas_1759483837159.xlsx
+Hoja: 0
+Modo: INSERCIÓN REAL
+Límite: 1 filas
+
+✓ Archivo cargado: 1 filas encontradas
+
+
+================================================================================
+RESUMEN DE VALIDACIÓN
+================================================================================
+
+Total de filas procesadas: 1
+✓ Válidas: 1
+✗ Con errores: 0
+
+
+================================================================================
+RESERVAS VÁLIDAS PARA IMPORTAR
+================================================================================
+
+
+Casa Austin 2: 1 reservas
+  Row 2: CARLA FIORELLA ARCE PETIT | 2022-10-05 → 2022-10-07 | S/. 833.7 / $ 210.0
+
+================================================================================
+INSERTANDO RESERVAS EN LA BASE DE DATOS
+================================================================================
+
+DEBUG 2025-10-03 05:08:22,907 signals 1178268 139706251835200 Cliente actualizado: Clients object (4c430fdc-c3ac-4f6c-bf4e-6117581abd4e)
+DEBUG 2025-10-03 05:08:23,684 signals 1178268 139706251835200 Audiencia actualizada para cliente 4c430fdc-c3ac-4f6c-bf4e-6117581abd4e. Respuesta: {"audience_id":"120225356885930355","session_id":"189481546330789599","num_received":1,"num_invalid_entries":0,"invalid_entry_samples":{}}
+ERROR 2025-10-03 05:08:23,690 signals 1178268 139706251835200 Error verificando logros para cliente 4c430fdc-c3ac-4f6c-bf4e-6117581abd4e: (1062, "Duplicate entry '4c430fdcc3ac4f6cbf4e6117581abd4e-6d35cc334685421794279b3dbb7d310' for key 'clients_clientachievement.clients_clientachievement_client_id_achievement_id_3afb6388_uniq'")
+Puntos asignados: 41.685 puntos para cliente CARLA FIORELLA ARCE PETIT
+ERROR 2025-10-03 05:08:23,691 points_signals 1178268 139706251835200 Error creando actividad de puntos: An error occurred in the current transaction. You can't execute queries until the end of the 'atomic' block.
+ERROR 2025-10-03 05:08:23,691 points_signals 1178268 139706251835200 ❌ Error verificando logros para cliente 4c430fdc-c3ac-4f6c-bf4e-6117581abd4e: An error occurred in the current transaction. You can't execute queries until the end of the 'atomic' block.
+INFO 2025-10-03 05:08:23,691 signals 1178268 139706251835200 🔥 SIGNAL EJECUTADO: Nueva reserva creada ID 70b70d46-b311-4a8a-9794-ed2bb121b45d - Origen: aus - Cliente: Clients object (4c430fdc-c3ac-4f6c-bf4e-6117581abd4e)
+  ✗ Error insertando Row 2: An error occurred in the current transaction. You can't execute queries until the end of the 'atomic' block.
+
+✓ Inserción completada:
+  • Reservas insertadas: 0
+  • Errores: 1
