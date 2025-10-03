@@ -1447,10 +1447,10 @@ class PublicReferralStatsView(APIView):
     Vista pública unificada para estadísticas de referidos con filtros
     
     Parámetros de URL:
-    - alcance: 'todos' (default) o 'con_reservas'
-    - ordenar_por: 'total_referidos' (default) o 'referidos_con_reservas'
-    - limite: número de resultados en top_rankings (default: 10)
-    - id_cliente: UUID del cliente para ver detalles de sus referidos
+    - scope: 'all' (default) o 'with_reservations'
+    - order_by: 'total_referrals' (default) o 'referrals_with_reservations'
+    - limit: número de resultados en top_rankings (default: 10)
+    - client_id: UUID del cliente para ver detalles de sus referidos
     """
     authentication_classes = []
     permission_classes = [AllowAny]
@@ -1463,11 +1463,11 @@ class PublicReferralStatsView(APIView):
             from .models import Clients
             
             # Leer parámetros de filtrado
-            client_id = request.GET.get('id_cliente')
-            scope = request.GET.get('alcance', 'todos')  # 'todos' o 'con_reservas'
-            order_by = request.GET.get('ordenar_por', 'total_referidos')  # 'total_referidos' o 'referidos_con_reservas'
+            client_id = request.GET.get('client_id')
+            scope = request.GET.get('scope', 'all')  # 'all' o 'with_reservations'
+            order_by = request.GET.get('order_by', 'total_referrals')  # 'total_referrals' o 'referrals_with_reservations'
             try:
-                limit = int(request.GET.get('limite', 10))
+                limit = int(request.GET.get('limit', 10))
             except ValueError:
                 limit = 10
             
@@ -1539,14 +1539,14 @@ class PublicReferralStatsView(APIView):
                 return Response(response)
             
             # Validar parámetros para listado general
-            if scope not in ['todos', 'con_reservas']:
+            if scope not in ['all', 'with_reservations']:
                 return Response({
-                    'error': 'Parámetro alcance inválido. Use: todos, con_reservas'
+                    'error': 'Parámetro scope inválido. Use: all, with_reservations'
                 }, status=400)
             
-            if order_by not in ['total_referidos', 'referidos_con_reservas']:
+            if order_by not in ['total_referrals', 'referrals_with_reservations']:
                 return Response({
-                    'error': 'Parámetro ordenar_por inválido. Use: total_referidos, referidos_con_reservas'
+                    'error': 'Parámetro order_by inválido. Use: total_referrals, referrals_with_reservations'
                 }, status=400)
             
             # Obtener TODOS los clientes únicos que aparecen como "referred_by"
@@ -1585,14 +1585,14 @@ class PublicReferralStatsView(APIView):
                 total_with_reservations += referrals_with_reservations
                 
                 # Filtrar según scope
-                if scope == 'con_reservas' and referrals_with_reservations == 0:
+                if scope == 'with_reservations' and referrals_with_reservations == 0:
                     continue
                 
                 referral_stats.append({
                     'client_name': f"{client.first_name} {client.last_name[0]}." if client.last_name else client.first_name,
-                    'total_referidos': all_referrals,
-                    'referidos_con_reservas': referrals_with_reservations,
-                    'referidos_sin_reservas': all_referrals - referrals_with_reservations
+                    'total_referrals': all_referrals,
+                    'referrals_with_reservations': referrals_with_reservations,
+                    'referrals_without_reservations': all_referrals - referrals_with_reservations
                 })
             
             # Ordenar según parámetro order_by
@@ -1603,24 +1603,24 @@ class PublicReferralStatsView(APIView):
                 stat['position'] = idx
             
             # Preparar respuesta según scope
-            if scope == 'todos':
+            if scope == 'all':
                 response = {
-                    'type': 'todos_los_referidos',
-                    'alcance': 'todos',
+                    'type': 'all_referrals',
+                    'scope': 'all',
                     'period_display': 'Todos los tiempos - Incluye referidos sin reservas',
-                    'total_clientes_con_referidos': len(referral_stats),
-                    'total_referidos': total_referrals_count,
-                    'total_referidos_con_reservas': total_with_reservations,
-                    'total_referidos_sin_reservas': total_referrals_count - total_with_reservations,
+                    'total_clients_with_referrals': len(referral_stats),
+                    'total_referrals': total_referrals_count,
+                    'total_referrals_with_reservations': total_with_reservations,
+                    'total_referrals_without_reservations': total_referrals_count - total_with_reservations,
                     'top_rankings': referral_stats[:limit]
                 }
-            else:  # con_reservas
+            else:  # with_reservations
                 response = {
-                    'type': 'con_reservas',
-                    'alcance': 'con_reservas',
+                    'type': 'with_reservations',
+                    'scope': 'with_reservations',
                     'period_display': 'Todos los tiempos - Solo referidos con reservas',
-                    'total_clientes_con_referidos': len(referral_stats),
-                    'total_referidos_con_reservas': sum(x['referidos_con_reservas'] for x in referral_stats),
+                    'total_clients_with_referrals': len(referral_stats),
+                    'total_referrals_with_reservations': sum(x['referrals_with_reservations'] for x in referral_stats),
                     'top_rankings': referral_stats[:limit]
                 }
             
