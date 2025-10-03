@@ -238,25 +238,46 @@ def sync_contacts(contacts):
     Omite contactos sin teléfono (log de aviso).
     """
     existing = list_existing_contacts()
+    
+    # Contadores
+    total = len(contacts)
+    created = 0
+    updated = 0
+    omitted = 0
+    unchanged = 0
+    errors = 0
 
-    for client_id, first_name, last_name, tel_number, top_icon, points, has_active_reservation in contacts:
+    print(f"\n{'='*60}")
+    print(f"Iniciando sincronización de {total} contactos...")
+    print(f"{'='*60}\n")
+
+    for index, (client_id, first_name, last_name, tel_number, top_icon, points, has_active_reservation) in enumerate(contacts, 1):
         cid = (client_id or "").strip()
+        name_display = f"{first_name} {last_name}".strip()
+        
         if not cid:
-            print(f"[OMITIDO] contacto sin client_id. Nombre: {first_name} {last_name}")
+            omitted += 1
+            print(f"[{index}/{total}] ❌ OMITIDO - Sin client_id: {name_display}")
             continue
 
         contact_file = f"{cid}.vcf"
         desired_vcard = create_vcard(cid, first_name, last_name, tel_number, top_icon, points, has_active_reservation)
 
         if not desired_vcard:
-            print(f"[OMITIDO] client_id={cid} sin teléfono válido. Nombre: {first_name} {last_name}")
+            omitted += 1
+            print(f"[{index}/{total}] ❌ OMITIDO - Sin teléfono: {name_display}")
             continue
 
         desired_norm = normalize_vcard(desired_vcard)
 
         if contact_file not in existing:
             ok = put_vcard(contact_file, desired_vcard)
-            print(f"[CREADO] {contact_file}" if ok else f"[ERROR] No se pudo crear {contact_file}")
+            if ok:
+                created += 1
+                print(f"[{index}/{total}] ✅ CREADO: {name_display}")
+            else:
+                errors += 1
+                print(f"[{index}/{total}] ⚠️  ERROR al crear: {name_display}")
             continue
 
         current_vcard = fetch_vcard(contact_file)
@@ -264,8 +285,28 @@ def sync_contacts(contacts):
 
         if current_norm != desired_norm:
             ok = put_vcard(contact_file, desired_vcard)
-            print(f"[ACTUALIZADO] {contact_file}" if ok else f"[ERROR] Falló actualización {contact_file}")
-        # Si son iguales, no hacemos nada.
+            if ok:
+                updated += 1
+                print(f"[{index}/{total}] 🔄 ACTUALIZADO: {name_display}")
+            else:
+                errors += 1
+                print(f"[{index}/{total}] ⚠️  ERROR al actualizar: {name_display}")
+        else:
+            unchanged += 1
+            # Opcional: comentar esta línea si no quieres ver los sin cambios
+            # print(f"[{index}/{total}] ⚪ Sin cambios: {name_display}")
+    
+    # Resumen final
+    print(f"\n{'='*60}")
+    print(f"RESUMEN DE SINCRONIZACIÓN")
+    print(f"{'='*60}")
+    print(f"Total de contactos procesados: {total}")
+    print(f"  ✅ Creados:         {created}")
+    print(f"  🔄 Actualizados:    {updated}")
+    print(f"  ⚪ Sin cambios:     {unchanged}")
+    print(f"  ❌ Omitidos:        {omitted}")
+    print(f"  ⚠️  Errores:         {errors}")
+    print(f"{'='*60}\n")
 
 # =========================
 # Main
