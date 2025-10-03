@@ -293,6 +293,23 @@ class Command(BaseCommand):
         self.stdout.write(f'Total de filas procesadas: {stats["total"]}')
         self.stdout.write(self.style.SUCCESS(f'✓ Válidas: {stats["valid"]}'))
         self.stdout.write(self.style.ERROR(f'✗ Con errores: {stats["total"] - stats["valid"]}\n'))
+        
+        if results['valid']:
+            from datetime import datetime
+            abril_2024 = datetime(2024, 4, 1).date()
+            reservas_recientes = [r for r in results['valid'] if r['check_in'] >= abril_2024]
+            
+            if reservas_recientes:
+                self.stdout.write(self.style.ERROR(f'\n⚠️  ATENCIÓN: {len(reservas_recientes)} reservas posteriores a abril 2024'))
+                self.stdout.write(self.style.ERROR('    Estas podrían estar ya registradas manualmente:\n'))
+                for r in reservas_recientes[:10]:
+                    client_name = f"{r['client'].first_name} {r['client'].last_name}"
+                    self.stdout.write(self.style.ERROR(
+                        f"    • {r['check_in']} - {r['property'].name} - {client_name}"
+                    ))
+                if len(reservas_recientes) > 10:
+                    self.stdout.write(self.style.ERROR(f"    ... y {len(reservas_recientes) - 10} más"))
+                self.stdout.write('')
 
         if stats['total'] - stats['valid'] > 0:
             self.stdout.write(self.style.ERROR('Detalle de errores:'))
