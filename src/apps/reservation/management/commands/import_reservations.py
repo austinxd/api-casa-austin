@@ -174,7 +174,7 @@ class Command(BaseCommand):
             }
 
         try:
-            client = Clients.objects.get(dni=dni, deleted=False)
+            client = Clients.objects.get(number_doc=dni, deleted=False)
         except Clients.DoesNotExist:
             return {
                 'valid': False,
