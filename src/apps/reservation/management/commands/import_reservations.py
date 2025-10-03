@@ -173,6 +173,10 @@ class Command(BaseCommand):
                 'data': row.to_dict()
             }
 
+        dni = dni.strip()
+        if dni.isdigit() and len(dni) < 8:
+            dni = dni.zfill(8)
+
         try:
             client = Clients.objects.get(number_doc=dni, deleted=False)
         except Clients.DoesNotExist:
