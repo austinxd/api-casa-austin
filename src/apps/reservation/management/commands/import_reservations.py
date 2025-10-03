@@ -8,6 +8,7 @@ import sys
 from apps.clients.models import Clients
 from apps.property.models import Property
 from apps.reservation.models import Reservation
+from apps.accounts.models import CustomUser
 
 
 class Command(BaseCommand):
@@ -352,9 +353,12 @@ class Command(BaseCommand):
         with transaction.atomic():
             for item in results['valid']:
                 try:
+                    default_seller = CustomUser.objects.filter(id=1).first()
+                    
                     reservation = Reservation.objects.create(
                         client=item['client'],
                         property=item['property'],
+                        seller=default_seller,
                         check_in_date=item['check_in'],
                         check_out_date=item['check_out'],
                         price_sol=item['price_sol'],
