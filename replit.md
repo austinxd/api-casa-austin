@@ -16,24 +16,25 @@ Preferred communication style: Simple, everyday language.
 - **API Simplification**: Merged two separate referral endpoints into a single, filterable endpoint
 - **Unified Endpoint**: `/api/v1/clients/referral-stats/` now handles all referral statistics with query parameters
 - **Query Parameters**:
-  - `scope`: `all` (default) - includes all referrals, or `with_reservations` - only referrals who made reservations
-  - `order_by`: `total_referrals` (default) or `referrals_with_reservations`
-  - `limit`: number of results in top_rankings (default: 10)
-  - `client_id`: UUID to get detailed information about a specific client's referrals and their reservations
-- **Removed Endpoint**: Deprecated `/api/v1/clients/referral-stats/with-reservations/` (functionality now available via `?scope=with_reservations`)
+  - `alcance`: `todos` (default) - includes all referrals, or `con_reservas` - only referrals who made reservations
+  - `ordenar_por`: `total_referidos` (default) or `referidos_con_reservas`
+  - `limite`: number of results in top_rankings (default: 10)
+  - `id_cliente`: UUID to get detailed information about a specific client's referrals and their reservations
+- **Removed Endpoint**: Deprecated `/api/v1/clients/referral-stats/with-reservations/` (functionality now available via `?alcance=con_reservas`)
 - **Direct Database Queries**: Uses live ORM queries instead of relying on ReferralRanking model for real-time statistics
 - **Enhanced Response**: Includes position/ranking numbers, scope identification, and configurable result limits
-- **Client Detail Mode**: When `client_id` is provided, returns comprehensive information including:
+- **Client Detail Mode**: When `id_cliente` is provided, returns comprehensive information including:
   - Client information (name, email, phone)
   - Complete list of referrals with personal details
   - Full reservation history for each referral (property, dates, status, price)
   - Aggregated statistics (total revenue, total reservations from referrals)
 - **Examples**: 
   - `GET /api/v1/clients/referral-stats/` - All referrals ranked by total count
-  - `GET /api/v1/clients/referral-stats/?scope=with_reservations` - Only referrals with reservations
-  - `GET /api/v1/clients/referral-stats/?order_by=referrals_with_reservations&limit=20` - Top 20 by reservation count
-  - `GET /api/v1/clients/referral-stats/?client_id=<uuid>` - Detailed view of specific client's referrals and reservations
+  - `GET /api/v1/clients/referral-stats/?alcance=con_reservas` - Only referrals with reservations
+  - `GET /api/v1/clients/referral-stats/?ordenar_por=referidos_con_reservas&limite=20` - Top 20 by reservation count
+  - `GET /api/v1/clients/referral-stats/?id_cliente=<uuid>` - Detailed view of specific client's referrals and reservations
 - **Bug Fix**: Corrected total_referrals calculation to use actual count instead of annotated field
+- **Spanish Parameters**: All URL parameters are now in Spanish for better usability
 
 ### October 01, 2025 - Specific Weekday Discount Functionality
 
