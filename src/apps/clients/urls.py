@@ -10,8 +10,7 @@ from .views import (
     ReferralConfigView, ReferralStatsView, SearchTrackingView, SearchTrackingTestView,
     SearchTrackingExportView, ClientCreateReservationView, ClientReservationsListView, 
     ClientReservationDetailView, GoogleSheetsDebugView, ReferralRankingView,
-    CurrentReferralRankingView, ClientReferralStatsView, PublicReferralStatsView,
-    ReferralStatsWithReservationsView
+    CurrentReferralRankingView, ClientReferralStatsView, PublicReferralStatsView
 )
 
 router = DefaultRouter()
@@ -42,7 +41,6 @@ urlpatterns = [
     path('clients/referral-ranking/', ReferralRankingView.as_view(), name='referral-ranking'),
     path('clients/referral-ranking/current/', CurrentReferralRankingView.as_view(), name='current-referral-ranking'),
     path('clients/referral-stats/', PublicReferralStatsView.as_view(), name='public-referral-stats'),
-    path('clients/referral-stats/with-reservations/', ReferralStatsWithReservationsView.as_view(), name='referral-stats-with-reservations'),
 
     path('', include(router.urls)),
 

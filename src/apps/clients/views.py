@@ -1443,16 +1443,42 @@ class ClientReferralStatsView(APIView):
 
 
 class PublicReferralStatsView(APIView):
-    """Vista pública para estadísticas de TODOS los referidos (tengan o no reservas)"""
+    """
+    Vista pública unificada para estadísticas de referidos con filtros
+    
+    Parámetros de URL:
+    - scope: 'all' (default) o 'with_reservations'
+    - order_by: 'total_referrals' (default) o 'referrals_with_reservations'
+    - limit: número de resultados en top_rankings (default: 10)
+    """
     authentication_classes = []
     permission_classes = [AllowAny]
 
     def get(self, request):
-        """Obtiene estadísticas de TODOS los referidos - incluye referidos sin reservas"""
+        """Obtiene estadísticas de referidos con filtros configurables"""
         try:
             from django.db.models import Count, Q
             from apps.reservation.models import Reservation
             from .models import Clients
+            
+            # Leer parámetros de filtrado
+            scope = request.GET.get('scope', 'all')  # 'all' o 'with_reservations'
+            order_by = request.GET.get('order_by', 'total_referrals')  # 'total_referrals' o 'referrals_with_reservations'
+            try:
+                limit = int(request.GET.get('limit', 10))
+            except ValueError:
+                limit = 10
+            
+            # Validar parámetros
+            if scope not in ['all', 'with_reservations']:
+                return Response({
+                    'error': 'Parámetro scope inválido. Use: all, with_reservations'
+                }, status=400)
+            
+            if order_by not in ['total_referrals', 'referrals_with_reservations']:
+                return Response({
+                    'error': 'Parámetro order_by inválido. Use: total_referrals, referrals_with_reservations'
+                }, status=400)
             
             # Obtener TODOS los clientes únicos que aparecen como "referred_by"
             clients_with_referrals_ids = Clients.objects.filter(
@@ -1489,6 +1515,10 @@ class PublicReferralStatsView(APIView):
                 total_referrals_count += all_referrals
                 total_with_reservations += referrals_with_reservations
                 
+                # Filtrar según scope
+                if scope == 'with_reservations' and referrals_with_reservations == 0:
+                    continue
+                
                 referral_stats.append({
                     'client_name': f"{client.first_name} {client.last_name[0]}." if client.last_name else client.first_name,
                     'total_referrals': all_referrals,
@@ -1496,163 +1526,42 @@ class PublicReferralStatsView(APIView):
                     'referrals_without_reservations': all_referrals - referrals_with_reservations
                 })
             
-            # Ordenar por número total de referidos
-            referral_stats.sort(key=lambda x: x['total_referrals'], reverse=True)
+            # Ordenar según parámetro order_by
+            referral_stats.sort(key=lambda x: x[order_by], reverse=True)
             
             # Agregar posiciones al ranking
             for idx, stat in enumerate(referral_stats, start=1):
                 stat['position'] = idx
             
-            # Respuesta con estadísticas globales
-            response = {
-                'type': 'all_referrals',
-                'period_display': 'Todos los tiempos - Incluye referidos sin reservas',
-                'total_clients_with_referrals': len(referral_stats),
-                'total_referrals': total_referrals_count,
-                'total_referrals_with_reservations': total_with_reservations,
-                'total_referrals_without_reservations': total_referrals_count - total_with_reservations,
-                'top_10_rankings': referral_stats[:10]
-            }
+            # Preparar respuesta según scope
+            if scope == 'all':
+                response = {
+                    'type': 'all_referrals',
+                    'scope': 'all',
+                    'period_display': 'Todos los tiempos - Incluye referidos sin reservas',
+                    'total_clients_with_referrals': len(referral_stats),
+                    'total_referrals': total_referrals_count,
+                    'total_referrals_with_reservations': total_with_reservations,
+                    'total_referrals_without_reservations': total_referrals_count - total_with_reservations,
+                    'top_rankings': referral_stats[:limit]
+                }
+            else:  # with_reservations
+                response = {
+                    'type': 'with_reservations',
+                    'scope': 'with_reservations',
+                    'period_display': 'Todos los tiempos - Solo referidos con reservas',
+                    'total_clients_with_referrals': len(referral_stats),
+                    'total_referrals_with_reservations': sum(x['referrals_with_reservations'] for x in referral_stats),
+                    'top_rankings': referral_stats[:limit]
+                }
             
             return Response(response)
             
         except Exception as e:
-            logger.error(f"PublicReferralStatsView: Error getting all referrals stats: {str(e)}")
+            logger.error(f"PublicReferralStatsView: Error getting referral stats: {str(e)}")
             return Response({
                 'error': 'Error obteniendo estadísticas de referidos'
             }, status=500)
-
-
-class ReferralStatsWithReservationsView(APIView):
-    """Vista pública para estadísticas de referidos QUE TIENEN RESERVAS (basado en ReferralRanking)"""
-    authentication_classes = []
-    permission_classes = [AllowAny]
-
-    def get(self, request):
-        """Obtiene estadísticas de referidos con reservas - basado en ReferralRanking"""
-        try:
-            from django.utils import timezone
-            from .models import ReferralRanking
-            from django.db.models import Sum
-            from collections import defaultdict
-            
-            # Obtener parámetros
-            year = request.GET.get('year')
-            month = request.GET.get('month')
-            
-            months = {
-                1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
-                5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
-                9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
-            }
-            
-            # Si se especifican year y month, devolver estadísticas de ese mes
-            if year and month:
-                target_year = int(year)
-                target_month = int(month)
-                
-                # Obtener resumen general de ranking para el mes
-                rankings = ReferralRanking.objects.filter(
-                    year=target_year,
-                    month=target_month,
-                    deleted=False
-                ).order_by('position')
-                
-                # Estadísticas generales del período
-                stats = {
-                    'type': 'monthly_with_reservations',
-                    'year': target_year,
-                    'month': target_month,
-                    'period_display': f"{months.get(target_month, target_month)} {target_year}",
-                    'total_participants': rankings.count(),
-                    'total_referral_reservations': sum(r.referral_reservations for r in rankings),
-                    'total_referral_revenue': float(sum(r.referral_revenue for r in rankings)),
-                    'total_new_referrals': sum(r.new_referrals for r in rankings),
-                    'total_points_awarded': sum(r.points_earned for r in rankings),
-                    'top_10_rankings': []
-                }
-                
-                # Top 10 del ranking (información pública básica)
-                from .serializers import ClientReferralRankingSerializer
-                top_rankings = rankings[:10]
-                stats['top_10_rankings'] = ClientReferralRankingSerializer(top_rankings, many=True).data
-            
-            else:
-                # Sin parámetros: devolver estadísticas globales de todos los tiempos
-                all_rankings = ReferralRanking.objects.filter(deleted=False).select_related('client')
-                
-                # Agrupar stats por cliente (totales históricos)
-                client_totals = defaultdict(lambda: {
-                    'client': None,
-                    'total_referral_reservations': 0,
-                    'total_referral_revenue': 0,
-                    'total_new_referrals': 0,
-                    'total_points_earned': 0,
-                })
-                
-                for ranking in all_rankings:
-                    client_id = ranking.client.id
-                    client_totals[client_id]['client'] = ranking.client
-                    client_totals[client_id]['total_referral_reservations'] += ranking.referral_reservations
-                    client_totals[client_id]['total_referral_revenue'] += float(ranking.referral_revenue)
-                    client_totals[client_id]['total_new_referrals'] += ranking.new_referrals
-                    client_totals[client_id]['total_points_earned'] += ranking.points_earned
-                
-                # Convertir a lista y ordenar por reservas de referidos
-                global_rankings = sorted(
-                    client_totals.values(),
-                    key=lambda x: (x['total_referral_reservations'], x['total_referral_revenue']),
-                    reverse=True
-                )[:10]
-                
-                # Calcular totales globales
-                total_reservations = sum(c['total_referral_reservations'] for c in client_totals.values())
-                total_revenue = sum(c['total_referral_revenue'] for c in client_totals.values())
-                total_referrals = sum(c['total_new_referrals'] for c in client_totals.values())
-                total_points = sum(c['total_points_earned'] for c in client_totals.values())
-                
-                # Formatear top 10 global
-                top_10_data = []
-                for idx, client_data in enumerate(global_rankings, start=1):
-                    client = client_data['client']
-                    top_10_data.append({
-                        'position': idx,
-                        'client_name': f"{client.first_name} {client.last_name[0]}." if client.last_name else client.first_name,
-                        'referral_reservations': client_data['total_referral_reservations'],
-                        'referral_revenue': client_data['total_referral_revenue'],
-                        'new_referrals': client_data['total_new_referrals'],
-                        'points_earned': client_data['total_points_earned'],
-                    })
-                
-                stats = {
-                    'type': 'global_with_reservations',
-                    'period_display': 'Histórico - Solo referidos con reservas',
-                    'total_participants': len(client_totals),
-                    'total_referral_reservations': total_reservations,
-                    'total_referral_revenue': total_revenue,
-                    'total_new_referrals': total_referrals,
-                    'total_points_awarded': total_points,
-                    'top_10_rankings': top_10_data
-                }
-            
-            return Response(stats)
-            
-        except Exception as e:
-            logger.error(f"ReferralStatsWithReservationsView: Error getting stats with reservations: {str(e)}")
-            return Response({
-                'error': 'Error obteniendo estadísticas de referidos con reservas'
-            }, status=500)
-
-
-# Added helper method to get client IP address
-    def get_client_ip(self, request):
-        """Obtener IP real del cliente"""
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
-        return ip
 
 
 class ClientProfileView(APIView):

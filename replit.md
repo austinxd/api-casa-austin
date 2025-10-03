@@ -10,6 +10,24 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### October 03, 2025 - Unified Referral Statistics API Endpoint
+
+#### Consolidated Referral Statistics with Flexible Filtering
+- **API Simplification**: Merged two separate referral endpoints into a single, filterable endpoint
+- **Unified Endpoint**: `/api/v1/clients/referral-stats/` now handles all referral statistics with query parameters
+- **Query Parameters**:
+  - `scope`: `all` (default) - includes all referrals, or `with_reservations` - only referrals who made reservations
+  - `order_by`: `total_referrals` (default) or `referrals_with_reservations`
+  - `limit`: number of results in top_rankings (default: 10)
+- **Removed Endpoint**: Deprecated `/api/v1/clients/referral-stats/with-reservations/` (functionality now available via `?scope=with_reservations`)
+- **Direct Database Queries**: Uses live ORM queries instead of relying on ReferralRanking model for real-time statistics
+- **Enhanced Response**: Includes position/ranking numbers, scope identification, and configurable result limits
+- **Examples**: 
+  - `GET /api/v1/clients/referral-stats/` - All referrals ranked by total count
+  - `GET /api/v1/clients/referral-stats/?scope=with_reservations` - Only referrals with reservations
+  - `GET /api/v1/clients/referral-stats/?order_by=referrals_with_reservations&limit=20` - Top 20 by reservation count
+- **Bug Fix**: Corrected total_referrals calculation to use actual count instead of annotated field
+
 ### October 01, 2025 - Specific Weekday Discount Functionality
 
 #### Enhanced Discount System with Specific Day Selection
