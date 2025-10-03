@@ -216,8 +216,8 @@ class Command(BaseCommand):
         existing = Reservation.objects.filter(
             client=client,
             property=property_obj,
-            check_in=check_in,
-            check_out=check_out,
+            check_in_date=check_in,
+            check_out_date=check_out,
             deleted=False
         ).exists()
 
@@ -336,11 +336,11 @@ class Command(BaseCommand):
                     reservation = Reservation.objects.create(
                         client=item['client'],
                         property=item['property'],
-                        check_in=item['check_in'],
-                        check_out=item['check_out'],
+                        check_in_date=item['check_in'],
+                        check_out_date=item['check_out'],
                         price_sol=item['price_sol'],
                         price_usd=item['price_usd'],
-                        num_pax=item['num_pax'],
+                        guests=item['num_pax'],
                         status='approved',
                         origin='aus',
                         payment_method='efectivo',

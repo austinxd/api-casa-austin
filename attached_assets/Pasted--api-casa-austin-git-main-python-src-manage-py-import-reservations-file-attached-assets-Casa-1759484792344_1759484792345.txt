@@ -1,0 +1,50 @@
+➜  api-casa-austin git:(main) ✗ python src/manage.py import_reservations --file attached_assets/Casas\ de\ austin\ -\ RESERVAS\ -\ Reservas_1759483837159.xlsx
+
+================================================================================
+IMPORTACIÓN DE RESERVAS HISTÓRICAS
+================================================================================
+
+Archivo: attached_assets/Casas de austin - RESERVAS - Reservas_1759483837159.xlsx
+Hoja: 0
+Modo: PREVIEW (solo lectura)
+
+✓ Archivo cargado: 422 filas encontradas
+
+
+================================================================================
+RESUMEN DE VALIDACIÓN
+================================================================================
+
+Total de filas procesadas: 422
+✓ Válidas: 0
+✗ Con errores: 422
+
+Detalle de errores:
+  • Cliente no encontrado: 65
+  • Propiedad no encontrada: 0
+  • Fechas inválidas: 0
+  • Datos faltantes: 0
+  • Duplicados: 0
+  • Otros errores: 357
+
+================================================================================
+ERRORES ENCONTRADOS (primeros 10)
+================================================================================
+
+Row 2: Error inesperado: Cannot resolve keyword 'check_in' into field. Choices are: ManychatFecha, advance_payment, advance_payment_currency, check_in_date, check_out_date, client, client_id, clientpoints, comentarios_reservas, created, deleted, discount_code_used, fbc, fbclid, fbp, full_payment, guests, id, ip_cliente, late_check_out_date, late_checkout, origin, payment_approved_notification_sent, payment_confirmed, payment_voucher_deadline, payment_voucher_uploaded, paymenttoken, points_redeemed, price_latecheckout, price_sol, price_temperature_pool, price_usd, property, property_id, propertycleaninggap, referer, rentalreceipt, seller, seller_id, status, tel_contact_number, temperature_pool, updated, user_agent, utm_campaign, utm_medium, utm_source, uuid_external, worktask
+Row 3: Error inesperado: Cannot resolve keyword 'check_in' into field. Choices are: ManychatFecha, advance_payment, advance_payment_currency, check_in_date, check_out_date, client, client_id, clientpoints, comentarios_reservas, created, deleted, discount_code_used, fbc, fbclid, fbp, full_payment, guests, id, ip_cliente, late_check_out_date, late_checkout, origin, payment_approved_notification_sent, payment_confirmed, payment_voucher_deadline, payment_voucher_uploaded, paymenttoken, points_redeemed, price_latecheckout, price_sol, price_temperature_pool, price_usd, property, property_id, propertycleaninggap, referer, rentalreceipt, seller, seller_id, status, tel_contact_number, temperature_pool, updated, user_agent, utm_campaign, utm_medium, utm_source, uuid_external, worktask
+Row 4: Error inesperado: Cannot resolve keyword 'check_in' into field. Choices are: ManychatFecha, advance_payment, advance_payment_currency, check_in_date, check_out_date, client, client_id, clientpoints, comentarios_reservas, created, deleted, discount_code_used, fbc, fbclid, fbp, full_payment, guests, id, ip_cliente, late_check_out_date, late_checkout, origin, payment_approved_notification_sent, payment_confirmed, payment_voucher_deadline, payment_voucher_uploaded, paymenttoken, points_redeemed, price_latecheckout, price_sol, price_temperature_pool, price_usd, property, property_id, propertycleaninggap, referer, rentalreceipt, seller, seller_id, status, tel_contact_number, temperature_pool, updated, user_agent, utm_campaign, utm_medium, utm_source, uuid_external, worktask
+Row 5: Error inesperado: Cannot resolve keyword 'check_in' into field. Choices are: ManychatFecha, advance_payment, advance_payment_currency, check_in_date, check_out_date, client, client_id, clientpoints, comentarios_reservas, created, deleted, discount_code_used, fbc, fbclid, fbp, full_payment, guests, id, ip_cliente, late_check_out_date, late_checkout, origin, payment_approved_notification_sent, payment_confirmed, payment_voucher_deadline, payment_voucher_uploaded, paymenttoken, points_redeemed, price_latecheckout, price_sol, price_temperature_pool, price_usd, property, property_id, propertycleaninggap, referer, rentalreceipt, seller, seller_id, status, tel_contact_number, temperature_pool, updated, user_agent, utm_campaign, utm_medium, utm_source, uuid_external, worktask
+Row 6: Error inesperado: Cannot resolve keyword 'check_in' into field. Choices are: ManychatFecha, advance_payment, advance_payment_currency, check_in_date, check_out_date, client, client_id, clientpoints, comentarios_reservas, created, deleted, discount_code_used, fbc, fbclid, fbp, full_payment, guests, id, ip_cliente, late_check_out_date, late_checkout, origin, payment_approved_notification_sent, payment_confirmed, payment_voucher_deadline, payment_voucher_uploaded, paymenttoken, points_redeemed, price_latecheckout, price_sol, price_temperature_pool, price_usd, property, property_id, propertycleaninggap, referer, rentalreceipt, seller, seller_id, status, tel_contact_number, temperature_pool, updated, user_agent, utm_campaign, utm_medium, utm_source, uuid_external, worktask
+Row 7: Error inesperado: Cannot resolve keyword 'check_in' into field. Choices are: ManychatFecha, advance_payment, advance_payment_currency, check_in_date, check_out_date, client, client_id, clientpoints, comentarios_reservas, created, deleted, discount_code_used, fbc, fbclid, fbp, full_payment, guests, id, ip_cliente, late_check_out_date, late_checkout, origin, payment_approved_notification_sent, payment_confirmed, payment_voucher_deadline, payment_voucher_uploaded, paymenttoken, points_redeemed, price_latecheckout, price_sol, price_temperature_pool, price_usd, property, property_id, propertycleaninggap, referer, rentalreceipt, seller, seller_id, status, tel_contact_number, temperature_pool, updated, user_agent, utm_campaign, utm_medium, utm_source, uuid_external, worktask
+Row 8: Error inesperado: Cannot resolve keyword 'check_in' into field. Choices are: ManychatFecha, advance_payment, advance_payment_currency, check_in_date, check_out_date, client, client_id, clientpoints, comentarios_reservas, created, deleted, discount_code_used, fbc, fbclid, fbp, full_payment, guests, id, ip_cliente, late_check_out_date, late_checkout, origin, payment_approved_notification_sent, payment_confirmed, payment_voucher_deadline, payment_voucher_uploaded, paymenttoken, points_redeemed, price_latecheckout, price_sol, price_temperature_pool, price_usd, property, property_id, propertycleaninggap, referer, rentalreceipt, seller, seller_id, status, tel_contact_number, temperature_pool, updated, user_agent, utm_campaign, utm_medium, utm_source, uuid_external, worktask
+Row 9: Error inesperado: Cannot resolve keyword 'check_in' into field. Choices are: ManychatFecha, advance_payment, advance_payment_currency, check_in_date, check_out_date, client, client_id, clientpoints, comentarios_reservas, created, deleted, discount_code_used, fbc, fbclid, fbp, full_payment, guests, id, ip_cliente, late_check_out_date, late_checkout, origin, payment_approved_notification_sent, payment_confirmed, payment_voucher_deadline, payment_voucher_uploaded, paymenttoken, points_redeemed, price_latecheckout, price_sol, price_temperature_pool, price_usd, property, property_id, propertycleaninggap, referer, rentalreceipt, seller, seller_id, status, tel_contact_number, temperature_pool, updated, user_agent, utm_campaign, utm_medium, utm_source, uuid_external, worktask
+Row 10: Error inesperado: Cannot resolve keyword 'check_in' into field. Choices are: ManychatFecha, advance_payment, advance_payment_currency, check_in_date, check_out_date, client, client_id, clientpoints, comentarios_reservas, created, deleted, discount_code_used, fbc, fbclid, fbp, full_payment, guests, id, ip_cliente, late_check_out_date, late_checkout, origin, payment_approved_notification_sent, payment_confirmed, payment_voucher_deadline, payment_voucher_uploaded, paymenttoken, points_redeemed, price_latecheckout, price_sol, price_temperature_pool, price_usd, property, property_id, propertycleaninggap, referer, rentalreceipt, seller, seller_id, status, tel_contact_number, temperature_pool, updated, user_agent, utm_campaign, utm_medium, utm_source, uuid_external, worktask
+Row 11: Error inesperado: Cannot resolve keyword 'check_in' into field. Choices are: ManychatFecha, advance_payment, advance_payment_currency, check_in_date, check_out_date, client, client_id, clientpoints, comentarios_reservas, created, deleted, discount_code_used, fbc, fbclid, fbp, full_payment, guests, id, ip_cliente, late_check_out_date, late_checkout, origin, payment_approved_notification_sent, payment_confirmed, payment_voucher_deadline, payment_voucher_uploaded, paymenttoken, points_redeemed, price_latecheckout, price_sol, price_temperature_pool, price_usd, property, property_id, propertycleaninggap, referer, rentalreceipt, seller, seller_id, status, tel_contact_number, temperature_pool, updated, user_agent, utm_campaign, utm_medium, utm_source, uuid_external, worktask
+
+... y 412 errores más
+
+
+⚠ MODO PREVIEW: No se insertaron registros
+   Usa --commit para confirmar la inserción
+
