@@ -174,6 +174,46 @@ class Clients(BaseModel):
             return True
         return False
     
+    def adjust_points_manually(self, points, description, staff_user=None):
+        """Ajusta puntos manualmente (puede ser positivo o negativo) con motivo"""
+        from datetime import timedelta
+        from django.utils import timezone
+        from decimal import Decimal
+        
+        # Asegurar que points sea Decimal
+        if not isinstance(points, Decimal):
+            points = Decimal(str(points))
+        
+        # Si se están agregando puntos, establecer expiración
+        expires_at = None
+        if points > 0:
+            expires_at = timezone.now() + timedelta(days=365)
+        
+        # Construir descripción completa con usuario staff si está disponible
+        full_description = description
+        if staff_user:
+            full_description = f"{description} (Ajustado por: {staff_user})"
+        
+        # Crear transacción
+        ClientPoints.objects.create(
+            client=self,
+            reservation=None,
+            transaction_type=ClientPoints.TransactionType.MANUAL,
+            points=points,
+            description=full_description,
+            expires_at=expires_at
+        )
+        
+        # Actualizar balance
+        self.points_balance += points
+        
+        # Si se están agregando puntos, actualizar fecha de expiración
+        if points > 0:
+            self.points_expires_at = expires_at
+        
+        self.save()
+        return True
+    
     def add_referral_points(self, points, reservation, referred_client, description="Puntos por referido"):
         """Agrega puntos por referir a otro cliente"""
         from datetime import datetime, timedelta
@@ -405,6 +445,7 @@ class ClientPoints(BaseModel):
         EXPIRED = "expired", ("Puntos Expirados")
         REFUNDED = "refunded", ("Puntos Devueltos")
         REFERRAL = "referral", ("Puntos por Referido")
+        MANUAL = "manual", ("Ajuste Manual")
     
     client = models.ForeignKey(Clients, on_delete=models.CASCADE, related_name='points_transactions')
     reservation = models.ForeignKey('reservation.Reservation', on_delete=models.CASCADE, null=True, blank=True)

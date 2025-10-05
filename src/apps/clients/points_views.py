@@ -109,3 +109,110 @@ def redeem_points(request):
             )
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def adjust_points_manually(request):
+    """
+    Endpoint para staff: agregar o retirar puntos manualmente con motivo.
+    
+    Body:
+    {
+        "client_id": "uuid-del-cliente",
+        "points": 100,  // positivo para agregar, negativo para retirar
+        "reason": "Bonificación especial por aniversario"
+    }
+    """
+    from rest_framework.permissions import IsAdminUser
+    from decimal import Decimal, InvalidOperation
+    
+    # Validar que el usuario sea staff/admin
+    if not request.user.is_staff:
+        return Response(
+            {"error": "Solo el personal administrativo puede realizar ajustes manuales de puntos"}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    # Obtener datos
+    client_id = request.data.get('client_id')
+    points = request.data.get('points')
+    reason = request.data.get('reason')
+    
+    # Validaciones
+    if not client_id:
+        return Response(
+            {"error": "client_id es requerido"}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if points is None:
+        return Response(
+            {"error": "points es requerido"}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    if not reason or not reason.strip():
+        return Response(
+            {"error": "reason (motivo) es requerido"}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Validar formato de puntos
+    try:
+        points_decimal = Decimal(str(points))
+        if points_decimal == 0:
+            return Response(
+                {"error": "Los puntos no pueden ser cero"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    except (ValueError, InvalidOperation):
+        return Response(
+            {"error": "Formato de puntos inválido"}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Buscar cliente
+    client = get_object_or_404(Clients, id=client_id, deleted=False)
+    
+    # Validar que no se intente retirar más puntos de los disponibles
+    if points_decimal < 0 and abs(points_decimal) > client.points_balance:
+        return Response(
+            {
+                "error": f"No se pueden retirar {abs(points_decimal)} puntos. El cliente solo tiene {client.points_balance} puntos disponibles"
+            }, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Realizar ajuste
+    try:
+        staff_name = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        client.adjust_points_manually(
+            points=points_decimal,
+            description=reason.strip(),
+            staff_user=staff_name
+        )
+        
+        action = "agregados" if points_decimal > 0 else "retirados"
+        
+        return Response({
+            "success": True,
+            "message": f"Se han {action} {abs(points_decimal)} puntos exitosamente",
+            "client": {
+                "id": str(client.id),
+                "name": f"{client.first_name} {client.last_name}",
+                "previous_balance": float(client.points_balance - points_decimal),
+                "current_balance": float(client.points_balance),
+                "adjustment": float(points_decimal)
+            },
+            "transaction": {
+                "reason": reason.strip(),
+                "adjusted_by": staff_name
+            }
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {"error": f"Error al realizar el ajuste: {str(e)}"}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

@@ -121,6 +121,9 @@ urlpatterns = [
     path('clients/points/redeem/',
          points_views.redeem_points,
          name='redeem-points'),
+    path('clients/points/adjust/',
+         points_views.adjust_points_manually,
+         name='adjust-points-manually'),
 
     # Endpoints para reservas de clientes
     path('clients/reservations/create/',
