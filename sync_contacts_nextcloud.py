@@ -104,6 +104,7 @@ def read_contacts_from_db():
             INNER JOIN clients_achievement a
                 ON a.id = ca.achievement_id
             WHERE COALESCE(a.deleted, 0) = 0
+              AND COALESCE(ca.deleted, 0) = 0
         ) AS t
             ON t.client_id = c.id AND t.rn = 1
         WHERE COALESCE(c.deleted, 0) = 0
