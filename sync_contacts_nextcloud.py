@@ -55,14 +55,24 @@ def normalize_vcard(text: str) -> str:
     return norm
 
 # =========================
+# Mapeo de property_id a emoji de casa
+# =========================
+PROPERTY_ICONS = {
+    '573c665065a74e81883a2b910159731b': '1️⃣',
+    '9a04892a4ba54b1092b52a72f6d89d57': '2️⃣',
+    '0ff9b525ff7c4be3b8723937d958c1a6': '3️⃣',
+    'd9d4e844c38f4adeaa5c5def19652ad0': '4️⃣'
+}
+
+# =========================
 # DB: contactos + icono del NIVEL MÁS ALTO + PUNTOS + RESERVA ACTIVA
 # =========================
 def read_contacts_from_db():
     """
-    Retorna lista de tuplas: (client_id:str, first_name, last_name, tel_number, top_icon, points, has_active_reservation)
+    Retorna lista de tuplas: (client_id:str, first_name, last_name, tel_number, top_icon, points, active_property_id)
     top_icon puede ser '' si no tiene logros.
     points: balance de puntos del cliente.
-    has_active_reservation: 1 si tiene al menos una reserva desde hoy en adelante, 0 si no.
+    active_property_id: property_id de la reserva activa más cercana, o '' si no tiene.
     Solo considera contactos con deleted = 0.
     """
     conn = mysql.connector.connect(**db_config)
@@ -76,17 +86,16 @@ def read_contacts_from_db():
             c.tel_number,
             t.icon AS top_icon,
             COALESCE(c.points_balance, 0) AS points,
-            CASE 
-                WHEN EXISTS (
-                    SELECT 1 
-                    FROM reservation_reservation r
-                    WHERE r.client_id = c.id
-                      AND COALESCE(r.deleted, 0) = 0
-                      AND r.status = 'approved'
-                      AND r.check_in_date >= CURDATE()
-                ) THEN 1
-                ELSE 0
-            END AS has_active_reservation
+            (
+                SELECT r.property_id
+                FROM reservation_reservation r
+                WHERE r.client_id = c.id
+                  AND COALESCE(r.deleted, 0) = 0
+                  AND r.status = 'approved'
+                  AND r.check_in_date >= CURDATE()
+                ORDER BY r.check_in_date ASC
+                LIMIT 1
+            ) AS active_property_id
         FROM clients_clients c
         LEFT JOIN (
             SELECT
@@ -114,7 +123,7 @@ def read_contacts_from_db():
     conn.close()
 
     contacts = []
-    for client_id, first_name, last_name, tel_number, top_icon, points, has_active_reservation in rows:
+    for client_id, first_name, last_name, tel_number, top_icon, points, active_property_id in rows:
         contacts.append((
             str(client_id or "").strip(),    # UUID/string
             first_name or "",
@@ -122,17 +131,17 @@ def read_contacts_from_db():
             (tel_number or "").strip(),
             top_icon or "",
             float(points or 0),
-            int(has_active_reservation or 0)
+            str(active_property_id or "").strip()
         ))
     return contacts
 
 # =========================
 # vCard
 # =========================
-def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: str, top_icon: str, points: float, has_active_reservation: int) -> str:
+def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: str, top_icon: str, points: float, active_property_id: str) -> str:
     """
-    N: apellido + puntos + indicador; icono + primer nombre → 'Robalino (250 P) 🟢;🐣 Isabel'
-    FN: icono + nombre completo + puntos + indicador activo → '🐣 Isabel Robalino (250 P) 🟢'
+    N: apellido + puntos + indicador; icono + primer nombre → 'Robalino (250 P) 🟢1️⃣;🐣 Isabel'
+    FN: icono + nombre completo + puntos + indicador activo → '🐣 Isabel Robalino (250 P) 🟢1️⃣'
     UID: estable por client_id (string/UUID)
     """
     given_clean = format_first_word(first_name)
@@ -148,8 +157,11 @@ def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: st
     points_int = int(points)
     points_str = str(points_int) if points == points_int else f"{points:.2f}"
 
-    # Indicador de reserva activa
-    active_indicator = " 🟢" if has_active_reservation else ""
+    # Indicador de reserva activa con número de casa
+    active_indicator = ""
+    if active_property_id:
+        property_emoji = PROPERTY_ICONS.get(active_property_id, "")
+        active_indicator = f" 🟢{property_emoji}"
 
     # Sufijo con puntos e indicador
     suffix = f"({points_str} P){active_indicator}"
@@ -253,7 +265,7 @@ def sync_contacts(contacts):
     print(f"Iniciando sincronización de {total} contactos...")
     print(f"{'='*60}\n")
 
-    for index, (client_id, first_name, last_name, tel_number, top_icon, points, has_active_reservation) in enumerate(contacts, 1):
+    for index, (client_id, first_name, last_name, tel_number, top_icon, points, active_property_id) in enumerate(contacts, 1):
         cid = (client_id or "").strip()
         name_display = f"{first_name} {last_name}".strip()
         
@@ -263,7 +275,7 @@ def sync_contacts(contacts):
             continue
 
         contact_file = f"{cid}.vcf"
-        desired_vcard = create_vcard(cid, first_name, last_name, tel_number, top_icon, points, has_active_reservation)
+        desired_vcard = create_vcard(cid, first_name, last_name, tel_number, top_icon, points, active_property_id)
 
         if not desired_vcard:
             omitted += 1
