@@ -7,8 +7,9 @@ from .views import (
     GenerateDynamicDiscountAPIView,
     GenerateSimpleDiscountAPIView,
     AutomaticDiscountDetailAPIView,
-    CalculateLateCheckoutPricingAPIView # Importar la nueva vista
+    CalculateLateCheckoutPricingAPIView
 )
+from .erp_pricing_view import CalculatePricingERPAPIView
 
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
@@ -26,7 +27,8 @@ urlpatterns = [
     path('properties/<int:property_id>/photos/', PropertyPhotoViewSet.as_view({'get': 'list', 'post': 'create'}), name='property-photos'),
     # Endpoint para calcular precios
     path('properties/calculate-pricing/', CalculatePricingAPIView.as_view(), name='calculate-pricing'),
-    path('properties/calculate-late-checkout/', CalculateLateCheckoutPricingAPIView.as_view(), name='calculate-late-checkout'), # Nuevo endpoint para late checkout
+    path('properties/calculate-pricing-erp/', CalculatePricingERPAPIView.as_view(), name='calculate-pricing-erp'),
+    path('properties/calculate-late-checkout/', CalculateLateCheckoutPricingAPIView.as_view(), name='calculate-late-checkout'),
     path('properties/generate-simple-discount/', GenerateSimpleDiscountAPIView.as_view(), name='generate-simple-discount'),
     # Endpoint para generar códigos dinámicos
     path('properties/generate-discount/', GenerateDynamicDiscountAPIView.as_view(), name='generate-discount'),
