@@ -61,6 +61,7 @@ Preferred communication style: Simple, everyday language.
 - Unified referral statistics API with flexible filtering and detailed client views.
 - Event evidence upload system with configurable requirements and admin approval workflow.
 - Event slug implementation for SEO-friendly URLs.
+- Referral discount system: Automatic discounts for first-time reservations of referred clients based on referrer's achievement level.
 
 ## External Dependencies
 
