@@ -175,7 +175,12 @@ class CalculatePricingERPAPIView(APIView):
             
             movement_options = []
             
+            valid_swap_properties = ['Casa Austin 2', 'Casa Austin 4']
+            
             for unavailable_prop in unavailable_properties:
+                if unavailable_prop['property_name'] not in valid_swap_properties:
+                    continue
+                
                 for conflicting_res in unavailable_prop['conflicting_reservations']:
                     res_check_in = datetime.strptime(conflicting_res['check_in'], '%Y-%m-%d').date()
                     res_check_out = datetime.strptime(conflicting_res['check_out'], '%Y-%m-%d').date()
@@ -183,6 +188,9 @@ class CalculatePricingERPAPIView(APIView):
                     
                     for target_property in all_properties:
                         if str(target_property.id) == unavailable_prop['property_id']:
+                            continue
+                        
+                        if target_property.name not in valid_swap_properties:
                             continue
                         
                         target_available = not Reservation.objects.filter(
