@@ -1,0 +1,296 @@
+HTTP 200 OK
+Allow: GET, HEAD, OPTIONS
+Content-Type: application/json
+Vary: Accept
+
+{
+    "success": true,
+    "error": 0,
+    "data": {
+        "requested_dates": {
+            "check_in": "2025-10-10",
+            "check_out": "2025-10-12",
+            "nights": 2,
+            "guests": 2
+        },
+        "direct_available": [],
+        "options_with_movements": [
+            {
+                "property_id": "573c6650-65a7-4e81-883a-2b910159731b",
+                "property_name": "Casa Austin 1",
+                "property_slug": "casa-austin-1",
+                "base_price_usd": 460.0,
+                "base_price_sol": 1656.0,
+                "extra_person_price_per_night_usd": 10.0,
+                "extra_person_price_per_night_sol": 36.0,
+                "extra_person_total_usd": 20.0,
+                "extra_person_total_sol": 72.0,
+                "total_nights": 2,
+                "total_guests": 2,
+                "extra_guests": 1,
+                "subtotal_usd": 480.0,
+                "subtotal_sol": 1728.0,
+                "final_price_usd": 280.0,
+                "final_price_sol": 1008.0,
+                "available": false,
+                "availability_message": "Propiedad no disponible para las fechas seleccionadas",
+                "additional_services": [],
+                "selected_additional_services": [],
+                "selected_services_total_usd": 0.0,
+                "selected_services_total_sol": 0.0,
+                "final_price_with_services_usd": 280.0,
+                "final_price_with_services_sol": 1008.0,
+                "services_applied_count": 0,
+                "cancellation_policy": null,
+                "recommendations": [
+                    "Esta propiedad no está disponible para las fechas seleccionadas",
+                    "Esta propiedad cuenta con piscina temperada disponible"
+                ],
+                "discount_applied": {
+                    "type": "automatic",
+                    "description": "Precio incluye 50% de descuento en precio base",
+                    "discount_percentage": 50.0,
+                    "discount_amount_usd": 200.0,
+                    "discount_amount_sol": 720.0,
+                    "code_used": null,
+                    "apply_only_to_base_price": true
+                },
+                "option_type": "move_required",
+                "movement_required": {
+                    "reservation_id": "9f1b854f-59f5-480c-983e-90bf69287732",
+                    "client_name": "Valeria Celeste Vera Rosas",
+                    "from_property": "Casa Austin 1",
+                    "to_property": "Casa Austin 2",
+                    "reservation_dates": {
+                        "check_in": "2025-10-11",
+                        "check_out": "2025-10-12",
+                        "nights": 1
+                    },
+                    "status": "approved"
+                }
+            },
+            {
+                "property_id": "9a04892a-4ba5-4b10-92b5-2a72f6d89d57",
+                "property_name": "Casa Austin 2",
+                "property_slug": "casa-austin-2",
+                "base_price_usd": 460.0,
+                "base_price_sol": 1656.0,
+                "extra_person_price_per_night_usd": 15.0,
+                "extra_person_price_per_night_sol": 54.0,
+                "extra_person_total_usd": 30.0,
+                "extra_person_total_sol": 108.0,
+                "total_nights": 2,
+                "total_guests": 2,
+                "extra_guests": 1,
+                "subtotal_usd": 490.0,
+                "subtotal_sol": 1764.0,
+                "final_price_usd": 290.0,
+                "final_price_sol": 1044.0,
+                "available": false,
+                "availability_message": "Propiedad no disponible para las fechas seleccionadas",
+                "additional_services": [],
+                "selected_additional_services": [],
+                "selected_services_total_usd": 0.0,
+                "selected_services_total_sol": 0.0,
+                "final_price_with_services_usd": 290.0,
+                "final_price_with_services_sol": 1044.0,
+                "services_applied_count": 0,
+                "cancellation_policy": null,
+                "recommendations": [
+                    "Esta propiedad no está disponible para las fechas seleccionadas",
+                    "Esta propiedad cuenta con piscina temperada disponible"
+                ],
+                "discount_applied": {
+                    "type": "automatic",
+                    "description": "Precio incluye 50% de descuento en precio base",
+                    "discount_percentage": 50.0,
+                    "discount_amount_usd": 200.0,
+                    "discount_amount_sol": 720.0,
+                    "code_used": null,
+                    "apply_only_to_base_price": true
+                },
+                "option_type": "move_required",
+                "movement_required": {
+                    "reservation_id": "1e073c95-cf6d-44a2-bff5-2c77da7c6e30",
+                    "client_name": "Dennis Hinostroza Miranda",
+                    "from_property": "Casa Austin 2",
+                    "to_property": "Casa Austin 3",
+                    "reservation_dates": {
+                        "check_in": "2025-10-08",
+                        "check_out": "2025-10-11",
+                        "nights": 3
+                    },
+                    "status": "approved"
+                }
+            },
+            {
+                "property_id": "0ff9b525-ff7c-4be3-b872-3937d958c1a6",
+                "property_name": "Casa Austin 3",
+                "property_slug": "casa-austin-3",
+                "base_price_usd": 600.0,
+                "base_price_sol": 2160.0,
+                "extra_person_price_per_night_usd": 20.0,
+                "extra_person_price_per_night_sol": 72.0,
+                "extra_person_total_usd": 40.0,
+                "extra_person_total_sol": 144.0,
+                "total_nights": 2,
+                "total_guests": 2,
+                "extra_guests": 1,
+                "subtotal_usd": 640.0,
+                "subtotal_sol": 2304.0,
+                "final_price_usd": 440.0,
+                "final_price_sol": 1584.0,
+                "available": false,
+                "availability_message": "Propiedad no disponible para las fechas seleccionadas",
+                "additional_services": [],
+                "selected_additional_services": [],
+                "selected_services_total_usd": 0.0,
+                "selected_services_total_sol": 0.0,
+                "final_price_with_services_usd": 440.0,
+                "final_price_with_services_sol": 1584.0,
+                "services_applied_count": 0,
+                "cancellation_policy": null,
+                "recommendations": [
+                    "Esta propiedad no está disponible para las fechas seleccionadas",
+                    "Reserva de alto valor - Considere servicios adicionales premium",
+                    "Esta propiedad cuenta con piscina temperada disponible"
+                ],
+                "discount_applied": {
+                    "type": "automatic",
+                    "description": "Precio incluye 50% de descuento en precio base",
+                    "discount_percentage": 50.0,
+                    "discount_amount_usd": 200.0,
+                    "discount_amount_sol": 720.0,
+                    "code_used": null,
+                    "apply_only_to_base_price": true
+                },
+                "option_type": "move_required",
+                "movement_required": {
+                    "reservation_id": "ebe58a5a-bcab-416f-a971-5888b15ab5d9",
+                    "client_name": "Diego Alonso Medina Pino",
+                    "from_property": "Casa Austin 3",
+                    "to_property": "Casa Austin 2",
+                    "reservation_dates": {
+                        "check_in": "2025-10-11",
+                        "check_out": "2025-10-12",
+                        "nights": 1
+                    },
+                    "status": "approved"
+                }
+            },
+            {
+                "property_id": "d9d4e844-c38f-4ade-aa5c-5def19652ad0",
+                "property_name": "Casa Austin 4",
+                "property_slug": "casa-austin-4",
+                "base_price_usd": 460.0,
+                "base_price_sol": 1656.0,
+                "extra_person_price_per_night_usd": 15.0,
+                "extra_person_price_per_night_sol": 54.0,
+                "extra_person_total_usd": 30.0,
+                "extra_person_total_sol": 108.0,
+                "total_nights": 2,
+                "total_guests": 2,
+                "extra_guests": 1,
+                "subtotal_usd": 490.0,
+                "subtotal_sol": 1764.0,
+                "final_price_usd": 290.0,
+                "final_price_sol": 1044.0,
+                "available": false,
+                "availability_message": "Propiedad no disponible para las fechas seleccionadas",
+                "additional_services": [],
+                "selected_additional_services": [],
+                "selected_services_total_usd": 0.0,
+                "selected_services_total_sol": 0.0,
+                "final_price_with_services_usd": 290.0,
+                "final_price_with_services_sol": 1044.0,
+                "services_applied_count": 0,
+                "cancellation_policy": null,
+                "recommendations": [
+                    "Esta propiedad no está disponible para las fechas seleccionadas",
+                    "Esta propiedad cuenta con piscina temperada disponible"
+                ],
+                "discount_applied": {
+                    "type": "automatic",
+                    "description": "Precio incluye 50% de descuento en precio base",
+                    "discount_percentage": 50.0,
+                    "discount_amount_usd": 200.0,
+                    "discount_amount_sol": 720.0,
+                    "code_used": null,
+                    "apply_only_to_base_price": true
+                },
+                "option_type": "move_required",
+                "movement_required": {
+                    "reservation_id": "79e0a01c-a0ef-48c5-9616-17c2406e57e2",
+                    "client_name": "NIKITA ISABEL MELGAREJO OBREGON",
+                    "from_property": "Casa Austin 4",
+                    "to_property": "Casa Austin 1",
+                    "reservation_dates": {
+                        "check_in": "2025-10-09",
+                        "check_out": "2025-10-11",
+                        "nights": 2
+                    },
+                    "status": "approved"
+                }
+            },
+            {
+                "property_id": "d9d4e844-c38f-4ade-aa5c-5def19652ad0",
+                "property_name": "Casa Austin 4",
+                "property_slug": "casa-austin-4",
+                "base_price_usd": 460.0,
+                "base_price_sol": 1656.0,
+                "extra_person_price_per_night_usd": 15.0,
+                "extra_person_price_per_night_sol": 54.0,
+                "extra_person_total_usd": 30.0,
+                "extra_person_total_sol": 108.0,
+                "total_nights": 2,
+                "total_guests": 2,
+                "extra_guests": 1,
+                "subtotal_usd": 490.0,
+                "subtotal_sol": 1764.0,
+                "final_price_usd": 290.0,
+                "final_price_sol": 1044.0,
+                "available": false,
+                "availability_message": "Propiedad no disponible para las fechas seleccionadas",
+                "additional_services": [],
+                "selected_additional_services": [],
+                "selected_services_total_usd": 0.0,
+                "selected_services_total_sol": 0.0,
+                "final_price_with_services_usd": 290.0,
+                "final_price_with_services_sol": 1044.0,
+                "services_applied_count": 0,
+                "cancellation_policy": null,
+                "recommendations": [
+                    "Esta propiedad no está disponible para las fechas seleccionadas",
+                    "Esta propiedad cuenta con piscina temperada disponible"
+                ],
+                "discount_applied": {
+                    "type": "automatic",
+                    "description": "Precio incluye 50% de descuento en precio base",
+                    "discount_percentage": 50.0,
+                    "discount_amount_usd": 200.0,
+                    "discount_amount_sol": 720.0,
+                    "code_used": null,
+                    "apply_only_to_base_price": true
+                },
+                "option_type": "move_required",
+                "movement_required": {
+                    "reservation_id": "84bf8ad6-b283-4233-82a7-9fd09847f213",
+                    "client_name": "Luis Enrique Gutierrez Aliaga",
+                    "from_property": "Casa Austin 4",
+                    "to_property": "Casa Austin 2",
+                    "reservation_dates": {
+                        "check_in": "2025-10-11",
+                        "check_out": "2025-10-12",
+                        "nights": 1
+                    },
+                    "status": "approved"
+                }
+            }
+        ],
+        "summary": {
+            "total_direct_available": 0,
+            "total_options_with_movements": 5,
+            "total_properties_checked": 4
+        }
+    },
+    "message": "Búsqueda de disponibilidad completada"
