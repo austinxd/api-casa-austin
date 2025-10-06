@@ -182,19 +182,24 @@ class CalculatePricingERPAPIView(APIView):
                 if unavailable_prop['property_name'] not in valid_swap_properties:
                     continue
                 
-                for conflicting_res in unavailable_prop['conflicting_reservations']:
-                    res_check_in = datetime.strptime(conflicting_res['check_in'], '%Y-%m-%d').date()
-                    res_check_out = datetime.strptime(conflicting_res['check_out'], '%Y-%m-%d').date()
-                    res_nights = conflicting_res['nights']
+                all_conflicting = unavailable_prop['conflicting_reservations']
+                original_property = Property.objects.get(id=unavailable_prop['property_id'])
+                
+                for target_property in all_properties:
+                    if str(target_property.id) == unavailable_prop['property_id']:
+                        continue
                     
-                    for target_property in all_properties:
-                        if str(target_property.id) == unavailable_prop['property_id']:
-                            continue
+                    if target_property.name not in valid_swap_properties:
+                        continue
+                    
+                    can_move_all = True
+                    movements = []
+                    
+                    for conflicting_res in all_conflicting:
+                        res_check_in = datetime.strptime(conflicting_res['check_in'], '%Y-%m-%d').date()
+                        res_check_out = datetime.strptime(conflicting_res['check_out'], '%Y-%m-%d').date()
                         
-                        if target_property.name not in valid_swap_properties:
-                            continue
-                        
-                        target_available = not Reservation.objects.filter(
+                        target_has_conflict = Reservation.objects.filter(
                             property=target_property,
                             deleted=False,
                             status__in=['approved', 'pending', 'incomplete', 'under_review']
@@ -202,48 +207,70 @@ class CalculatePricingERPAPIView(APIView):
                             Q(check_in_date__lt=res_check_out) & Q(check_out_date__gt=res_check_in)
                         ).exists()
                         
-                        if target_available:
-                            original_property = Property.objects.get(id=unavailable_prop['property_id'])
-                            
-                            remaining_reservations = Reservation.objects.filter(
-                                property=original_property,
-                                deleted=False,
-                                status__in=['approved', 'pending', 'incomplete', 'under_review']
-                            ).filter(
-                                Q(check_in_date__lt=check_out_date) & Q(check_out_date__gt=check_in_date)
-                            ).exclude(id=conflicting_res['reservation_id'])
-                            
-                            if remaining_reservations.exists():
-                                continue
-                            
-                            new_pricing = pricing_service._calculate_property_pricing(
-                                property=original_property,
-                                check_in_date=check_in_date,
-                                check_out_date=check_out_date,
-                                guests=guests,
-                                nights=(check_out_date - check_in_date).days,
-                                client=Client.objects.filter(id=client_id, deleted=False).first() if client_id else None,
-                                discount_code=None,
-                                additional_services_ids=None
-                            )
-                            
+                        if target_has_conflict:
+                            can_move_all = False
+                            break
+                        
+                        movements.append({
+                            'reservation_id': conflicting_res['reservation_id'],
+                            'client_name': conflicting_res['client_name'],
+                            'check_in': conflicting_res['check_in'],
+                            'check_out': conflicting_res['check_out'],
+                            'nights': conflicting_res['nights'],
+                            'status': conflicting_res['status']
+                        })
+                    
+                    if can_move_all and movements:
+                        new_pricing = pricing_service._calculate_property_pricing(
+                            property=original_property,
+                            check_in_date=check_in_date,
+                            check_out_date=check_out_date,
+                            guests=guests,
+                            nights=(check_out_date - check_in_date).days,
+                            client=Client.objects.filter(id=client_id, deleted=False).first() if client_id else None,
+                            discount_code=None,
+                            additional_services_ids=None
+                        )
+                        
+                        if len(movements) == 1:
                             movement_options.append({
                                 **new_pricing,
                                 'option_type': 'move_required',
                                 'movement_required': {
-                                    'reservation_id': conflicting_res['reservation_id'],
-                                    'client_name': conflicting_res['client_name'],
+                                    'reservation_id': movements[0]['reservation_id'],
+                                    'client_name': movements[0]['client_name'],
                                     'from_property': unavailable_prop['property_name'],
                                     'to_property': target_property.name,
                                     'reservation_dates': {
-                                        'check_in': conflicting_res['check_in'],
-                                        'check_out': conflicting_res['check_out'],
-                                        'nights': res_nights
+                                        'check_in': movements[0]['check_in'],
+                                        'check_out': movements[0]['check_out'],
+                                        'nights': movements[0]['nights']
                                     },
-                                    'status': conflicting_res['status']
+                                    'status': movements[0]['status']
                                 }
                             })
-                            break
+                        else:
+                            movement_options.append({
+                                **new_pricing,
+                                'option_type': 'move_required',
+                                'movements_required': [
+                                    {
+                                        'reservation_id': mov['reservation_id'],
+                                        'client_name': mov['client_name'],
+                                        'from_property': unavailable_prop['property_name'],
+                                        'to_property': target_property.name,
+                                        'reservation_dates': {
+                                            'check_in': mov['check_in'],
+                                            'check_out': mov['check_out'],
+                                            'nights': mov['nights']
+                                        },
+                                        'status': mov['status']
+                                    }
+                                    for mov in movements
+                                ],
+                                'total_movements': len(movements)
+                            })
+                        break
             
             combined_results = direct_available + movement_options
             
