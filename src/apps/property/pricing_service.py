@@ -464,6 +464,61 @@ class PricingCalculationService:
 
             # Evaluar todos los descuentos automáticos aplicables y elegir el mejor
             applicable_discounts = []
+            
+            # DESCUENTO ESPECIAL: Primera reserva de cliente referido
+            if client and client.referred_by:
+                from apps.property.models import ReferralDiscountByLevel
+                from apps.clients.models import ClientAchievement
+                
+                # Verificar si es la primera reserva del cliente
+                previous_reservations = Reservation.objects.filter(
+                    client=client,
+                    deleted=False,
+                    status='approved'
+                ).count()
+                
+                if previous_reservations == 0:
+                    logger.info(f"🎁 Cliente fue referido por {client.referred_by.first_name} - evaluando descuento de primera reserva")
+                    
+                    # Obtener el nivel más alto del referidor
+                    referrer_highest_achievement = ClientAchievement.objects.filter(
+                        client=client.referred_by,
+                        deleted=False
+                    ).select_related('achievement').order_by(
+                        '-achievement__required_reservations',
+                        '-achievement__required_referrals',
+                        '-achievement__required_referral_reservations'
+                    ).first()
+                    
+                    if referrer_highest_achievement:
+                        # Buscar el descuento configurado para ese nivel
+                        referral_discount_config = ReferralDiscountByLevel.objects.filter(
+                            achievement=referrer_highest_achievement.achievement,
+                            is_active=True,
+                            deleted=False
+                        ).first()
+                        
+                        if referral_discount_config:
+                            discount_percentage = referral_discount_config.discount_percentage
+                            discount_amount_usd = (subtotal_usd * discount_percentage) / Decimal('100.00')
+                            
+                            logger.info(f"✨ Descuento de referido aplicable: {discount_percentage}% por nivel '{referrer_highest_achievement.achievement.name}'")
+                            
+                            applicable_discounts.append({
+                                'discount': type('obj', (object,), {
+                                    'name': f"Primera Reserva - Referido por {referrer_highest_achievement.achievement.name}",
+                                    'discount_percentage': discount_percentage,
+                                    'apply_only_to_base_price': False
+                                })(),
+                                'message': f"Descuento {discount_percentage}% por primera reserva (referido por nivel {referrer_highest_achievement.achievement.name})",
+                                'amount_usd': discount_amount_usd
+                            })
+                        else:
+                            logger.info(f"⚠️ No hay descuento configurado para el nivel '{referrer_highest_achievement.achievement.name}'")
+                    else:
+                        logger.info(f"⚠️ El referidor no tiene niveles/logros asignados")
+                else:
+                    logger.info(f"ℹ️ Cliente tiene {previous_reservations} reserva(s) aprobada(s) - descuento de primera reserva no aplica")
 
             for auto_discount in automatic_discounts:
                 logger.info(f"🔍 Evaluando: '{auto_discount.name}' - Trigger: '{auto_discount.trigger}'")
