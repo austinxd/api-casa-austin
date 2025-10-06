@@ -192,9 +192,7 @@ class Clients(BaseModel):
         # Construir descripción completa con usuario staff si está disponible
         full_description = description
         if staff_user:
-            # Extraer solo el primer nombre
-            first_name = str(staff_user).split()[0]
-            full_description = f"{description} (Otorgado por: {first_name})"
+            full_description = f"{description} (Otorgado por: {staff_user})"
         
         # Determinar tipo de transacción según si se agregan o restan puntos
         transaction_type = ClientPoints.TransactionType.EARNED if points > 0 else ClientPoints.TransactionType.REDEEMED

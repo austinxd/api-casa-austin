@@ -186,7 +186,8 @@ def adjust_points_manually(request):
     
     # Realizar ajuste
     try:
-        staff_name = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        # Solo usar el primer nombre del admin
+        staff_name = request.user.first_name or request.user.username
         client.adjust_points_manually(
             points=points_decimal,
             description=reason.strip(),
