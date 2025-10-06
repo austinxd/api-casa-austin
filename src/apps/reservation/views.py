@@ -1215,3 +1215,137 @@ class PropertyCalendarOccupancyAPIView(APIView):
                 "success": False,
                 "error": f"Error interno del servidor: {str(e)}"
             }, status=500)
+
+
+class QRReservationView(APIView):
+    """
+    Endpoint público para mostrar la reserva activa del día según ID de casa.
+    Útil para códigos QR en recepción.
+    """
+    permission_classes = [AllowAny]
+    
+    def get(self, request, property_id):
+        """
+        Obtiene la reserva activa del día para una propiedad específica.
+        Check-in: a partir de las 3 PM
+        Check-out: hasta las 3 PM
+        """
+        try:
+            # Buscar la propiedad por ID o slug
+            try:
+                property_obj = Property.objects.get(id=property_id, deleted=False)
+            except:
+                property_obj = Property.objects.get(slug=property_id, deleted=False)
+            
+            # Obtener fecha y hora actual
+            now_datetime = datetime.now()
+            today = now_datetime.date()
+            current_time = now_datetime.time()
+            check_in_time = time(15, 0)  # 3 PM
+            
+            # Buscar reserva activa considerando las reglas de check-in/check-out
+            active_reservation = None
+            
+            # Buscar reservas que puedan estar activas hoy
+            potential_reservations = Reservation.objects.filter(
+                property=property_obj,
+                deleted=False,
+                status__in=['approved', 'pending', 'incomplete', 'under_review']
+            ).filter(
+                Q(check_in_date__lte=today) & Q(check_out_date__gte=today)
+            ).select_related('client').order_by('-check_in_date')
+            
+            for reservation in potential_reservations:
+                # Caso 1: Hoy es día de check-in
+                if reservation.check_in_date == today:
+                    # Solo mostrar si ya son las 3 PM o después
+                    if current_time >= check_in_time:
+                        active_reservation = reservation
+                        break
+                
+                # Caso 2: Hoy está entre check-in y check-out
+                elif reservation.check_in_date < today < reservation.check_out_date:
+                    active_reservation = reservation
+                    break
+                
+                # Caso 3: Hoy es día de check-out
+                elif reservation.check_out_date == today:
+                    # Solo mostrar si aún no son las 3 PM
+                    if current_time < check_in_time:
+                        active_reservation = reservation
+                        break
+            
+            # Si no hay reserva activa
+            if not active_reservation:
+                return Response({
+                    "success": True,
+                    "data": None,
+                    "message": "No hay reserva activa para esta propiedad en este momento"
+                })
+            
+            # Preparar datos del cliente
+            client = active_reservation.client
+            client_data = {
+                "name": None,
+                "facebook_photo": None,
+                "facebook_link": False,
+                "referral_code": None,
+                "level": None,
+                "referral_discount_percentage": None,
+                "property_name": property_obj.name
+            }
+            
+            if client:
+                # Nombre del cliente
+                client_data["name"] = f"{client.first_name or ''} {client.last_name or ''}".strip() or "Cliente sin nombre"
+                
+                # Datos de Facebook
+                if client.facebook_linked and client.facebook_profile_data:
+                    client_data["facebook_photo"] = client.get_facebook_profile_picture()
+                    client_data["facebook_link"] = True
+                else:
+                    client_data["facebook_link"] = False
+                
+                # Código de referido
+                client_data["referral_code"] = client.get_referral_code() if hasattr(client, 'get_referral_code') else client.referral_code
+                
+                # Obtener nivel del cliente (achievement más alto)
+                from apps.clients.models import ClientAchievement
+                highest_achievement = ClientAchievement.objects.filter(
+                    client=client,
+                    deleted=False
+                ).select_related('achievement').order_by(
+                    '-achievement__required_reservations',
+                    '-achievement__required_referrals',
+                    '-achievement__required_referral_reservations'
+                ).first()
+                
+                if highest_achievement:
+                    client_data["level"] = highest_achievement.achievement.name
+                    
+                    # Obtener descuento por referido de este nivel
+                    from apps.property.models import ReferralDiscountByLevel
+                    referral_discount = ReferralDiscountByLevel.objects.filter(
+                        achievement=highest_achievement.achievement,
+                        is_active=True,
+                        deleted=False
+                    ).first()
+                    
+                    if referral_discount:
+                        client_data["referral_discount_percentage"] = float(referral_discount.discount_percentage)
+            
+            return Response({
+                "success": True,
+                "data": client_data
+            })
+            
+        except Property.DoesNotExist:
+            return Response({
+                "success": False,
+                "error": "Propiedad no encontrada"
+            }, status=404)
+        except Exception as e:
+            return Response({
+                "success": False,
+                "error": f"Error interno: {str(e)}"
+            }, status=500)
