@@ -1219,80 +1219,33 @@ class PropertyCalendarOccupancyAPIView(APIView):
 
 class QRReservationView(APIView):
     """
-    Endpoint público para mostrar la reserva activa del día según ID de casa.
+    Endpoint público para mostrar los datos de una reserva por su ID.
     Útil para códigos QR en recepción.
     """
     permission_classes = [AllowAny]
     
-    def get(self, request, property_id):
+    def get(self, request, reservation_id):
         """
-        Obtiene la reserva activa del día para una propiedad específica.
-        Check-in: a partir de las 3 PM
-        Check-out: hasta las 3 PM
+        Obtiene los datos de una reserva específica por su ID.
         """
         try:
-            # Buscar la propiedad por ID o slug
-            try:
-                property_obj = Property.objects.get(id=property_id, deleted=False)
-            except:
-                property_obj = Property.objects.get(slug=property_id, deleted=False)
-            
-            # Obtener fecha y hora actual
-            now_datetime = datetime.now()
-            today = now_datetime.date()
-            current_time = now_datetime.time()
-            check_in_time = time(15, 0)  # 3 PM
-            
-            # Buscar reserva activa considerando las reglas de check-in/check-out
-            active_reservation = None
-            
-            # Buscar reservas que puedan estar activas hoy
-            potential_reservations = Reservation.objects.filter(
-                property=property_obj,
-                deleted=False,
-                status__in=['approved', 'pending', 'incomplete', 'under_review']
-            ).filter(
-                Q(check_in_date__lte=today) & Q(check_out_date__gte=today)
-            ).select_related('client').order_by('-check_in_date')
-            
-            for reservation in potential_reservations:
-                # Caso 1: Hoy es día de check-in
-                if reservation.check_in_date == today:
-                    # Solo mostrar si ya son las 3 PM o después
-                    if current_time >= check_in_time:
-                        active_reservation = reservation
-                        break
-                
-                # Caso 2: Hoy está entre check-in y check-out
-                elif reservation.check_in_date < today < reservation.check_out_date:
-                    active_reservation = reservation
-                    break
-                
-                # Caso 3: Hoy es día de check-out
-                elif reservation.check_out_date == today:
-                    # Solo mostrar si aún no son las 3 PM
-                    if current_time < check_in_time:
-                        active_reservation = reservation
-                        break
-            
-            # Si no hay reserva activa
-            if not active_reservation:
-                return Response({
-                    "success": True,
-                    "data": None,
-                    "message": "No hay reserva activa para esta propiedad en este momento"
-                })
+            # Buscar la reserva por ID
+            reservation = Reservation.objects.select_related('client', 'property').get(
+                id=reservation_id,
+                deleted=False
+            )
             
             # Preparar datos del cliente
-            client = active_reservation.client
+            client = reservation.client
             client_data = {
                 "name": None,
                 "facebook_photo": None,
                 "facebook_link": False,
                 "referral_code": None,
                 "level": None,
+                "level_icon": None,
                 "referral_discount_percentage": None,
-                "property_name": property_obj.name
+                "property_name": reservation.property.name
             }
             
             if client:
@@ -1322,6 +1275,7 @@ class QRReservationView(APIView):
                 
                 if highest_achievement:
                     client_data["level"] = highest_achievement.achievement.name
+                    client_data["level_icon"] = highest_achievement.achievement.icon
                     
                     # Obtener descuento por referido de este nivel
                     from apps.property.models import ReferralDiscountByLevel
@@ -1339,10 +1293,10 @@ class QRReservationView(APIView):
                 "data": client_data
             })
             
-        except Property.DoesNotExist:
+        except Reservation.DoesNotExist:
             return Response({
                 "success": False,
-                "error": "Propiedad no encontrada"
+                "error": "Reserva no encontrada"
             }, status=404)
         except Exception as e:
             return Response({
