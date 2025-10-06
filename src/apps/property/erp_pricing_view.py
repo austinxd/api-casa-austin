@@ -204,6 +204,17 @@ class CalculatePricingERPAPIView(APIView):
                         if target_available:
                             original_property = Property.objects.get(id=unavailable_prop['property_id'])
                             
+                            remaining_reservations = Reservation.objects.filter(
+                                property=original_property,
+                                deleted=False,
+                                status__in=['approved', 'pending', 'incomplete', 'under_review']
+                            ).filter(
+                                Q(check_in_date__lt=check_out_date) & Q(check_out_date__gt=check_in_date)
+                            ).exclude(id=conflicting_res['reservation_id'])
+                            
+                            if remaining_reservations.exists():
+                                continue
+                            
                             new_pricing = pricing_service._calculate_property_pricing(
                                 property=original_property,
                                 check_in_date=check_in_date,
