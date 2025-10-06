@@ -62,6 +62,7 @@ Preferred communication style: Simple, everyday language.
 - Event evidence upload system with configurable requirements and admin approval workflow.
 - Event slug implementation for SEO-friendly URLs.
 - Referral discount system: Automatic discounts for first-time reservations of referred clients based on referrer's achievement level.
+- QR Code reservation endpoint: Public endpoint (`/api/v1/qr/{property_id}`) that shows active reservation details considering check-in/check-out times (3 PM), including client info, Facebook profile, referral code, level, and discount percentage.
 
 ## External Dependencies
 
