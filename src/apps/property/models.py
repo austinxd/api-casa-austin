@@ -233,3 +233,32 @@ class ProfitPropertyAirBnb(BaseModel):
 
     def __str__(self):
         return f"Ganancia AirBnB {self.property.name} - Mes: {self.month} Año: {self.year}"
+
+
+class ReferralDiscountByLevel(BaseModel):
+    """Descuentos para primera reserva de clientes referidos según nivel del referidor"""
+    
+    achievement = models.ForeignKey(
+        'clients.Achievement',
+        on_delete=models.CASCADE,
+        help_text="Nivel/Logro del cliente que refiere"
+    )
+    discount_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Porcentaje de descuento para primera reserva del referido (0-100)"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Activar/desactivar este descuento"
+    )
+    
+    class Meta:
+        ordering = ['achievement__order', 'achievement__required_reservations']
+        verbose_name = "Descuento de Referido por Nivel"
+        verbose_name_plural = "Descuentos de Referidos por Nivel"
+        unique_together = ('achievement',)
+    
+    def __str__(self):
+        return f"{self.achievement.name}: {self.discount_percentage}% en primera reserva"

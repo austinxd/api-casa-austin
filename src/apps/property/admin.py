@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Property, ProfitPropertyAirBnb, PropertyPhoto
+from .models import Property, ProfitPropertyAirBnb, PropertyPhoto, ReferralDiscountByLevel
 from .pricing_models import (
     ExchangeRate,
     PropertyPricing,
@@ -475,6 +475,23 @@ class DynamicDiscountConfigAdmin(admin.ModelAdmin):
         if obj:  # Si está editando un objeto existente
             return ['prefix']
         return []
+
+
+@admin.register(ReferralDiscountByLevel)
+class ReferralDiscountByLevelAdmin(admin.ModelAdmin):
+    list_display = ('achievement', 'discount_percentage', 'is_active')
+    list_filter = ('is_active', 'achievement')
+    search_fields = ('achievement__name',)
+    
+    fieldsets = (
+        ('Configuración de Descuento por Nivel', {
+            'fields': ('achievement', 'discount_percentage', 'is_active'),
+            'description': 'Configura el descuento que recibirán los clientes referidos en su primera reserva, según el nivel del cliente que los refirió.'
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('achievement')
 
 
 # Configurar títulos del admin para organizar mejor
