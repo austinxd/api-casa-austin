@@ -6454,3 +6454,68 @@ INFO 2025-10-06 20:49:08,248 pricing_models 1649 140091945117376 🌍 Promoción
 INFO 2025-10-06 20:49:08,248 pricing_service 1649 140091945117376 ✅ Resultado para '🎄 Descuento Global Navidad': True - 'Precio incluye 25% de descuento'
 INFO 2025-10-06 20:49:08,249 pricing_service 1649 140091945117376 💰 Descuento TOTAL calculado para '🎄 Descuento Global Navidad': $50.0000 USD (25.00%)
 INFO 2025-10-06 20:49:08,249 pricing_service 1649 140091945117376 🏆 MEJOR DESCUENTO SELECCIONADO: 🎄 Descuento Global Navidad - $50.0000 USD
+INFO 2025-10-06 20:55:01,659 pricing_service 2002 140352879060672 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-10-06 20:55:01,660 pricing_service 2002 140352879060672 👤 Sin cliente - evaluando descuentos globales
+INFO 2025-10-06 20:55:01,661 pricing_service 2002 140352879060672 📋 Descuentos automáticos disponibles: 1
+INFO 2025-10-06 20:55:01,662 pricing_service 2002 140352879060672 🔍 Evaluando: '🎄 Descuento Global Navidad' - Trigger: 'global_promotion'
+INFO 2025-10-06 20:55:01,663 pricing_service 2002 140352879060672 🌍 '🎄 Descuento Global Navidad' es un descuento GLOBAL (todos los niveles)
+INFO 2025-10-06 20:55:01,663 pricing_models 2002 140352879060672 🌍 Evaluando descuento GLOBAL '🎄 Descuento Global Navidad' con trigger 'global_promotion'
+INFO 2025-10-06 20:55:01,664 pricing_models 2002 140352879060672 📅 Día de la semana: 2 (Miércoles) - Día de semana
+INFO 2025-10-06 20:55:01,664 pricing_models 2002 140352879060672 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-10-06 20:55:01,665 pricing_models 2002 140352879060672 🎯 Evaluando trigger global: global_promotion
+INFO 2025-10-06 20:55:01,665 pricing_models 2002 140352879060672 🌍 Promoción global - Aplicable sin cliente
+INFO 2025-10-06 20:55:01,666 pricing_service 2002 140352879060672 ✅ Resultado para '🎄 Descuento Global Navidad': True - 'Precio incluye 25% de descuento'
+INFO 2025-10-06 20:55:01,666 pricing_service 2002 140352879060672 💰 Descuento TOTAL calculado para '🎄 Descuento Global Navidad': $50.0000 USD (25.00%)
+INFO 2025-10-06 20:55:01,666 pricing_service 2002 140352879060672 🏆 MEJOR DESCUENTO SELECCIONADO: 🎄 Descuento Global Navidad - $50.0000 USD
+INFO 2025-10-06 20:55:01,696 pricing_service 2002 140352879060672 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-10-06 20:55:01,696 pricing_service 2002 140352879060672 👤 Sin cliente - evaluando descuentos globales
+INFO 2025-10-06 20:55:01,697 pricing_service 2002 140352879060672 📋 Descuentos automáticos disponibles: 1
+INFO 2025-10-06 20:55:01,698 pricing_service 2002 140352879060672 🔍 Evaluando: '🎄 Descuento Global Navidad' - Trigger: 'global_promotion'
+INFO 2025-10-06 20:55:01,699 pricing_service 2002 140352879060672 🌍 '🎄 Descuento Global Navidad' es un descuento GLOBAL (todos los niveles)
+INFO 2025-10-06 20:55:01,699 pricing_models 2002 140352879060672 🌍 Evaluando descuento GLOBAL '🎄 Descuento Global Navidad' con trigger 'global_promotion'
+INFO 2025-10-06 20:55:01,699 pricing_models 2002 140352879060672 📅 Día de la semana: 2 (Miércoles) - Día de semana
+INFO 2025-10-06 20:55:01,699 pricing_models 2002 140352879060672 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-10-06 20:55:01,701 pricing_models 2002 140352879060672 🎯 Evaluando trigger global: global_promotion
+INFO 2025-10-06 20:55:01,701 pricing_models 2002 140352879060672 🌍 Promoción global - Aplicable sin cliente
+INFO 2025-10-06 20:55:01,704 pricing_service 2002 140352879060672 ✅ Resultado para '🎄 Descuento Global Navidad': True - 'Precio incluye 25% de descuento'
+INFO 2025-10-06 20:55:01,704 pricing_service 2002 140352879060672 💰 Descuento TOTAL calculado para '🎄 Descuento Global Navidad': $50.0000 USD (25.00%)
+INFO 2025-10-06 20:55:01,704 pricing_service 2002 140352879060672 🏆 MEJOR DESCUENTO SELECCIONADO: 🎄 Descuento Global Navidad - $50.0000 USD
+INFO 2025-10-06 20:55:01,746 pricing_service 2002 140352879060672 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-10-06 20:55:01,747 pricing_service 2002 140352879060672 👤 Sin cliente - evaluando descuentos globales
+INFO 2025-10-06 20:55:01,749 pricing_service 2002 140352879060672 📋 Descuentos automáticos disponibles: 1
+INFO 2025-10-06 20:55:01,749 pricing_service 2002 140352879060672 🔍 Evaluando: '🎄 Descuento Global Navidad' - Trigger: 'global_promotion'
+INFO 2025-10-06 20:55:01,750 pricing_service 2002 140352879060672 🌍 '🎄 Descuento Global Navidad' es un descuento GLOBAL (todos los niveles)
+INFO 2025-10-06 20:55:01,750 pricing_models 2002 140352879060672 🌍 Evaluando descuento GLOBAL '🎄 Descuento Global Navidad' con trigger 'global_promotion'
+INFO 2025-10-06 20:55:01,750 pricing_models 2002 140352879060672 📅 Día de la semana: 2 (Miércoles) - Día de semana
+INFO 2025-10-06 20:55:01,750 pricing_models 2002 140352879060672 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-10-06 20:55:01,752 pricing_models 2002 140352879060672 🎯 Evaluando trigger global: global_promotion
+INFO 2025-10-06 20:55:01,752 pricing_models 2002 140352879060672 🌍 Promoción global - Aplicable sin cliente
+INFO 2025-10-06 20:55:01,753 pricing_service 2002 140352879060672 ✅ Resultado para '🎄 Descuento Global Navidad': True - 'Precio incluye 25% de descuento'
+INFO 2025-10-06 20:55:01,753 pricing_service 2002 140352879060672 💰 Descuento TOTAL calculado para '🎄 Descuento Global Navidad': $50.0000 USD (25.00%)
+INFO 2025-10-06 20:55:01,753 pricing_service 2002 140352879060672 🏆 MEJOR DESCUENTO SELECCIONADO: 🎄 Descuento Global Navidad - $50.0000 USD
+INFO 2025-10-06 20:55:01,775 pricing_service 2002 140352879060672 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-10-06 20:55:01,775 pricing_service 2002 140352879060672 👤 Sin cliente - evaluando descuentos globales
+INFO 2025-10-06 20:55:01,776 pricing_service 2002 140352879060672 📋 Descuentos automáticos disponibles: 1
+INFO 2025-10-06 20:55:01,777 pricing_service 2002 140352879060672 🔍 Evaluando: '🎄 Descuento Global Navidad' - Trigger: 'global_promotion'
+INFO 2025-10-06 20:55:01,778 pricing_service 2002 140352879060672 🌍 '🎄 Descuento Global Navidad' es un descuento GLOBAL (todos los niveles)
+INFO 2025-10-06 20:55:01,778 pricing_models 2002 140352879060672 🌍 Evaluando descuento GLOBAL '🎄 Descuento Global Navidad' con trigger 'global_promotion'
+INFO 2025-10-06 20:55:01,778 pricing_models 2002 140352879060672 📅 Día de la semana: 2 (Miércoles) - Día de semana
+INFO 2025-10-06 20:55:01,779 pricing_models 2002 140352879060672 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-10-06 20:55:01,780 pricing_models 2002 140352879060672 🎯 Evaluando trigger global: global_promotion
+INFO 2025-10-06 20:55:01,780 pricing_models 2002 140352879060672 🌍 Promoción global - Aplicable sin cliente
+INFO 2025-10-06 20:55:01,780 pricing_service 2002 140352879060672 ✅ Resultado para '🎄 Descuento Global Navidad': True - 'Precio incluye 25% de descuento'
+INFO 2025-10-06 20:55:01,780 pricing_service 2002 140352879060672 💰 Descuento TOTAL calculado para '🎄 Descuento Global Navidad': $50.0000 USD (25.00%)
+INFO 2025-10-06 20:55:01,780 pricing_service 2002 140352879060672 🏆 MEJOR DESCUENTO SELECCIONADO: 🎄 Descuento Global Navidad - $50.0000 USD
+INFO 2025-10-06 20:55:01,805 pricing_service 2002 140352879060672 🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS
+INFO 2025-10-06 20:55:01,805 pricing_service 2002 140352879060672 👤 Sin cliente - evaluando descuentos globales
+INFO 2025-10-06 20:55:01,806 pricing_service 2002 140352879060672 📋 Descuentos automáticos disponibles: 1
+INFO 2025-10-06 20:55:01,807 pricing_service 2002 140352879060672 🔍 Evaluando: '🎄 Descuento Global Navidad' - Trigger: 'global_promotion'
+INFO 2025-10-06 20:55:01,808 pricing_service 2002 140352879060672 🌍 '🎄 Descuento Global Navidad' es un descuento GLOBAL (todos los niveles)
+INFO 2025-10-06 20:55:01,808 pricing_models 2002 140352879060672 🌍 Evaluando descuento GLOBAL '🎄 Descuento Global Navidad' con trigger 'global_promotion'
+INFO 2025-10-06 20:55:01,808 pricing_models 2002 140352879060672 📅 Día de la semana: 2 (Miércoles) - Día de semana
+INFO 2025-10-06 20:55:01,808 pricing_models 2002 140352879060672 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-10-06 20:55:01,810 pricing_models 2002 140352879060672 🎯 Evaluando trigger global: global_promotion
+INFO 2025-10-06 20:55:01,810 pricing_models 2002 140352879060672 🌍 Promoción global - Aplicable sin cliente
+INFO 2025-10-06 20:55:01,810 pricing_service 2002 140352879060672 ✅ Resultado para '🎄 Descuento Global Navidad': True - 'Precio incluye 25% de descuento'
+INFO 2025-10-06 20:55:01,810 pricing_service 2002 140352879060672 💰 Descuento TOTAL calculado para '🎄 Descuento Global Navidad': $50.0000 USD (25.00%)
+INFO 2025-10-06 20:55:01,811 pricing_service 2002 140352879060672 🏆 MEJOR DESCUENTO SELECCIONADO: 🎄 Descuento Global Navidad - $50.0000 USD

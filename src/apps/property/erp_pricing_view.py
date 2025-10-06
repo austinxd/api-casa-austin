@@ -173,6 +173,7 @@ class CalculatePricingERPAPIView(APIView):
                         ]
                     })
             
+            all_options = direct_available.copy()
             movement_options = []
             
             valid_swap_properties = ['Casa Austin 2', 'Casa Austin 4']
@@ -244,6 +245,18 @@ class CalculatePricingERPAPIView(APIView):
                             })
                             break
             
+            combined_results = direct_available + movement_options
+            
+            chatbot_messages = pricing_service._generate_chatbot_messages(
+                combined_results,
+                check_in_date,
+                check_out_date,
+                guests,
+                (check_out_date - check_in_date).days,
+                Client.objects.filter(id=client_id, deleted=False).first() if client_id else None,
+                None
+            )
+            
             return Response({
                 'success': True,
                 'error': 0,
@@ -260,7 +273,9 @@ class CalculatePricingERPAPIView(APIView):
                         'total_direct_available': len(direct_available),
                         'total_options_with_movements': len(movement_options),
                         'total_properties_checked': len(all_properties)
-                    }
+                    },
+                    'message1': chatbot_messages['message1'],
+                    'message2': chatbot_messages['message2']
                 },
                 'message': 'Búsqueda de disponibilidad completada'
             }, status=status.HTTP_200_OK)
