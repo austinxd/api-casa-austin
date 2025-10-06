@@ -583,7 +583,7 @@ class AutomaticDiscount(BaseModel):
 
     class DiscountTrigger(models.TextChoices):
         BIRTHDAY = "birthday", ("Mes de Cumpleaños")
-        RETURNING = "returning", ("Cliente Recurrente")
+        RETURNING = "returning", ("Cliente Frecuente")
         FIRST_TIME = "first_time", ("Primera Reserva")
         LOYALTY = "loyalty", ("Programa de Lealtad")
         LAST_MINUTE = "last_minute", ("Último Minuto")
@@ -778,7 +778,7 @@ class AutomaticDiscount(BaseModel):
                 deleted=False,
                 status__in=['approved', 'completed']  # Solo contar reservas exitosas
             ).count()
-            logger.info(f"🔄 Cliente recurrente - Reservas previas: {reservations_count}")
+            logger.info(f"🔄 Cliente frecuente - Reservas previas: {reservations_count}")
             if reservations_count >= 1:  # Al menos una reserva previa
                 return True, f"Cliente frecuente: {self.discount_percentage}% de descuento"
             else:
