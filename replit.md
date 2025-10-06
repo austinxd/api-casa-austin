@@ -35,6 +35,7 @@ Preferred communication style: Simple, everyday language.
 - Automatic discount system with achievement-based triggers and specific weekday selection.
 - Discount codes with weekend/weekday restrictions.
 - Late checkout pricing configuration.
+- **Referral discount system**: First-time reservation discounts for referred clients, with percentage based on referrer's achievement level (configurable in Django Admin).
 
 ### Authentication and Security
 - JWT-based authentication (SimpleJWT).
