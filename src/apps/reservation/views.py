@@ -120,7 +120,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     )
 
                 elif from_param == 'pending':
-                    queryset = queryset.filter(status='pending')
+                    queryset = queryset.filter(status__in=['pending', 'under_review'])
 
                 if self.request.query_params.get('type'):
                     queryset = queryset.filter(origin=self.request.query_params.get('type'))
