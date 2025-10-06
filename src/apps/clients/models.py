@@ -194,11 +194,14 @@ class Clients(BaseModel):
         if staff_user:
             full_description = f"{description} (Ajustado por: {staff_user})"
         
+        # Determinar tipo de transacción según si se agregan o restan puntos
+        transaction_type = ClientPoints.TransactionType.EARNED if points > 0 else ClientPoints.TransactionType.REDEEMED
+        
         # Crear transacción
         ClientPoints.objects.create(
             client=self,
             reservation=None,
-            transaction_type=ClientPoints.TransactionType.MANUAL,
+            transaction_type=transaction_type,
             points=points,
             description=full_description,
             expires_at=expires_at
@@ -440,12 +443,11 @@ class ClientPoints(BaseModel):
     """Modelo para el historial de transacciones de puntos"""
     
     class TransactionType(models.TextChoices):
-        EARNED = "earned", ("Puntos Ganados")
-        REDEEMED = "redeemed", ("Puntos Canjeados")
+        EARNED = "earned", ("Bonificación de puntos")
+        REDEEMED = "redeemed", ("Redención de puntos")
         EXPIRED = "expired", ("Puntos Expirados")
         REFUNDED = "refunded", ("Puntos Devueltos")
         REFERRAL = "referral", ("Puntos por Referido")
-        MANUAL = "manual", ("Ajuste Manual")
     
     client = models.ForeignKey(Clients, on_delete=models.CASCADE, related_name='points_transactions')
     reservation = models.ForeignKey('reservation.Reservation', on_delete=models.CASCADE, null=True, blank=True)
