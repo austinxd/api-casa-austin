@@ -233,10 +233,21 @@ class PlayerControlView(APIView):
         if not active_reservation:
             return False
         
+        # DEBUG: Log para verificar IDs
+        import logging
+        logger = logging.getLogger('apps')
+        logger.info(f"[MUSIC AUTH] Usuario solicitante ID: {user.id} (type: {type(user.id)})")
+        logger.info(f"[MUSIC AUTH] Reserva activa ID: {active_reservation.id}")
+        logger.info(f"[MUSIC AUTH] Anfitrión (client_id) de reserva: {active_reservation.client_id} (type: {type(active_reservation.client_id)})")
+        logger.info(f"[MUSIC AUTH] ¿Coinciden? {active_reservation.client_id == user.id}")
+        
         # Verificar si el usuario es el anfitrión (owner) de LA reserva activa
         # Usar client_id directamente (sin query) en vez de .client.id
         if active_reservation.client_id == user.id:
+            logger.info(f"[MUSIC AUTH] ✅ Usuario ES el anfitrión")
             return True
+        
+        logger.info(f"[MUSIC AUTH] ❌ Usuario NO es el anfitrión, verificando participantes...")
         
         # Verificar si es participante aceptado de LA reserva activa
         @sync_to_async
