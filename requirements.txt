@@ -39,3 +39,6 @@ babel==2.14.0
 docxtpl==0.16.7
 openpyxl
 pandas
+music-assistant-client
+music-assistant-models
+mysql-connector-python

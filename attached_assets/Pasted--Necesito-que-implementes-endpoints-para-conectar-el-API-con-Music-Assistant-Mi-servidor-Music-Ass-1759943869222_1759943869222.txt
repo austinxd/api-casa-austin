@@ -1,0 +1,75 @@
+
+
+Necesito que implementes endpoints para conectar el API con Music Assistant.
+Mi servidor Music Assistant está en: wss://music.casaaustin.pe/ws
+
+Instala estas dependencias:
+- music-assistant-client
+- music-assistant-models
+
+INFORMACIÓN CRÍTICA:
+1. Usa el cliente: MusicAssistantClient("wss://music.casaaustin.pe/ws", None)
+2. Importa los enums: from music_assistant_models.enums import MediaType, QueueOption
+3. La conexión debe mantenerse abierta (WebSocket persistente)
+4. Los objetos Player tienen: playback_state (NO state) y name (NO display_name)
+
+ENDPOINTS A IMPLEMENTAR:
+
+1. GET /music/players
+- Retorna: list(music_client.players)
+- Cada player debe incluir: player_id, name, playback_state.value, type.value, volume_level, powered, available, current_media.title
+
+2. POST /music/players/{player_id}/play
+- Ejecuta: await music_client.players.player_command_play(player_id)
+
+3. POST /music/players/{player_id}/pause
+- Ejecuta: await music_client.players.player_command_pause(player_id)
+
+4. POST /music/players/{player_id}/stop
+- Ejecuta: await music_client.players.player_command_stop(player_id)
+
+5. POST /music/players/{player_id}/next
+- Ejecuta: await music_client.players.player_command_next_track(player_id)
+
+6. POST /music/players/{player_id}/previous
+- Ejecuta: await music_client.players.player_command_previous_track(player_id)
+
+7. POST /music/players/{player_id}/volume
+- Body: {"volume": int} (0-100)
+- Ejecuta: await music_client.players.player_command_volume_set(player_id, volume)
+
+8. GET /music/players/{player_id}/queue
+- queue = await music_client.player_queues.get_active_queue(player_id)
+- items = await music_client.player_queues.get_player_queue_items(queue.queue_id)
+- Retorna: queue_id, state, current_index, items (con queue_item_id, name, uri, duration)
+
+9. POST /music/players/{player_id}/play-media
+- Body: {"media_id": str, "media_type": str, "queue_option": str}
+- queue_options válidos: "play", "replace", "next", "replace_next", "add"
+- IMPORTANTE: Mapea el string queue_option al enum QueueOption (QueueOption.PLAY, etc)
+- queue = await music_client.player_queues.get_active_queue(player_id)
+- Ejecuta: await music_client.player_queues.play_media(queue_id=queue.queue_id, media=media_id, option=queue_option_enum)
+- ⚠️ El parámetro es "option" NO "enqueue_mode"
+
+10. POST /music/search
+- Body: {"query": str, "media_types": list[str], "limit": int}
+- media_types puede ser: ["tracks", "artists", "albums", "playlists"]
+- IMPORTANTE: Mapea strings PLURALES a enums SINGULARES:
+* "tracks" → MediaType.TRACK
+* "artists" → MediaType.ARTIST
+* "albums" → MediaType.ALBUM
+* "playlists" → MediaType.PLAYLIST
+- Ejecuta: results = await music_client.music.search(search_query=query, media_types=converted_enums, limit=limit)
+- Retorna: {"query": str, "results": {"tracks": [...], "artists": [...], "albums": [...], "playlists": [...]}}
+
+11. GET /music/library/tracks
+- Params: limit (default 50), offset (default 0)
+- Ejecuta: tracks = await music_client.music.get_library_tracks(limit=limit, offset=offset)
+- Retorna cada track: item_id, name, uri, duration
+
+ERRORES COMUNES A EVITAR:
+- ❌ NO uses "enqueue_mode" → ✅ Usa "option" con QueueOption enum
+- ❌ NO uses player.state → ✅ Usa player.playback_state
+- ❌ NO envíes strings directos a media_types → ✅ Convierte a MediaType enum
+- ❌ NO uses "tracks" directo → ✅ Mapea "tracks" a MediaType.TRACK
+   La intención es que los usuarios (Anfitriones) puedan controlar la sesion de quienes pueden ingresar a controlar la lista de reproducción de una casa. Entonces (el id del reproductor {player_id} debemos agregarlo a las propiedades). El cliente (de la reserva) tendra acceso a su sesion que sera el id de la reserva para que pueda aceptar personas a conectarse a controlar las listas de las canciones.   ¿se entiende masomenos? Entonces cuando exista una reserva, sera posible controlar el reproductor de esa propiedad para esa reserva en el tiempo que dura su reserva. 

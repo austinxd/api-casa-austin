@@ -63,6 +63,13 @@ Preferred communication style: Simple, everyday language.
 - Event slug implementation for SEO-friendly URLs.
 - Referral discount system: Automatic discounts for first-time reservations of referred clients based on referrer's achievement level.
 - QR Code reservation endpoint: Public endpoint (`/api/v1/qr/{reservation_id}`) that shows reservation details including client info, Facebook profile, referral code, level (with icon), and referral discount percentage.
+- Music Assistant Integration: Complete integration with Music Assistant server for music control in properties. Features include:
+  * Player control endpoints (play, pause, stop, next, previous, volume)
+  * Queue management (view queue, play media with queue options)
+  * Music search and library browsing
+  * Session-based access control: hosts can create sessions and accept participants
+  * Permission system: only guests with active reservations or accepted participants can control music
+  * WebSocket persistent connection to Music Assistant server (wss://music.casaaustin.pe/ws)
 
 ## External Dependencies
 
