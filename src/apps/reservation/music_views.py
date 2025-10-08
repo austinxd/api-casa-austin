@@ -554,9 +554,11 @@ class MusicSearchView(APIView):
     @async_to_sync
     async def post(self, request):
         # Verificar disponibilidad de Music Assistant
-        error_response = self._check_music_available()
-        if error_response:
-            return error_response
+        if not MUSIC_ASSISTANT_AVAILABLE:
+            return Response({
+                "success": False,
+                "error": "Music Assistant no está disponible. Requiere Python 3.11+ y las dependencias music-assistant-client y music-assistant-models."
+            }, status=status.HTTP_501_NOT_IMPLEMENTED)
         
         query = request.data.get('query')
         media_types_str = request.data.get('media_types', [])
@@ -641,9 +643,11 @@ class MusicLibraryTracksView(APIView):
     @async_to_sync
     async def get(self, request):
         # Verificar disponibilidad de Music Assistant
-        error_response = self._check_music_available()
-        if error_response:
-            return error_response
+        if not MUSIC_ASSISTANT_AVAILABLE:
+            return Response({
+                "success": False,
+                "error": "Music Assistant no está disponible. Requiere Python 3.11+ y las dependencias music-assistant-client y music-assistant-models."
+            }, status=status.HTTP_501_NOT_IMPLEMENTED)
         
         limit = int(request.GET.get('limit', 50))
         offset = int(request.GET.get('offset', 0))

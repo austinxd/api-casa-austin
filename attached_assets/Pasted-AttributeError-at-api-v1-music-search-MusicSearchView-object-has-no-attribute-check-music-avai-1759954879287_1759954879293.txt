@@ -1,0 +1,86 @@
+AttributeError at /api/v1/music/search/
+'MusicSearchView' object has no attribute '_check_music_available'
+Request Method:	POST
+Request URL:	http://api.casaaustin.pe/api/v1/music/search/
+Django Version:	4.2.11
+Exception Type:	AttributeError
+Exception Value:	
+'MusicSearchView' object has no attribute '_check_music_available'
+Exception Location:	/srv/casaaustin/api-casa-austin/src/apps/reservation/music_views.py, line 557, in post
+Raised during:	apps.reservation.music_views.MusicSearchView
+Python Executable:	/srv/casaaustin/api-casa-austin/venv-py311/bin/python3.11
+Python Version:	3.11.11
+Python Path:	
+['/srv/casaaustin/api-casa-austin/src',
+ '/srv/casaaustin/api-casa-austin/venv-py311/bin',
+ '/usr/lib64/python311.zip',
+ '/usr/lib64/python3.11',
+ '/usr/lib64/python3.11/lib-dynload',
+ '/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages',
+ '/srv/casaaustin/api-casa-austin/venv-py311/lib/python3.11/site-packages']
+Server time:	Wed, 08 Oct 2025 15:21:12 -0500
+Traceback Switch to copy-and-paste view
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/core/handlers/exception.py, line 55, in inner
+        return inner
+    else:
+        @wraps(get_response)
+        def inner(request):
+            try:
+                response = get_response(request)
+                               ^^^^^^^^^^^^^^^^^^^^^ …
+            except Exception as exc:
+                response = response_for_exception(request, exc)
+            return response
+        return inner
+Local vars
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/core/handlers/base.py, line 197, in _get_response
+        if response is None:
+            wrapped_callback = self.make_view_atomic(callback)
+            # If it is an asynchronous view, run it in a subthread.
+            if iscoroutinefunction(wrapped_callback):
+                wrapped_callback = async_to_sync(wrapped_callback)
+            try:
+                response = wrapped_callback(request, *callback_args, **callback_kwargs)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+            except Exception as e:
+                response = self.process_exception_by_middleware(e, request)
+                if response is None:
+                    raise
+        # Complain if the view returned None (a common error).
+Local vars
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/views/decorators/csrf.py, line 56, in wrapper_view
+def csrf_exempt(view_func):
+    """Mark a view function as being exempt from the CSRF view protection."""
+    # view_func.csrf_exempt = True would also work, but decorators are nicer
+    # if they don't have side effects, so return a new function.
+    @wraps(view_func)
+    def wrapper_view(*args, **kwargs):
+        return view_func(*args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+    wrapper_view.csrf_exempt = True
+    return wrapper_view
+Local vars
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/views/generic/base.py, line 104, in view
+            self = cls(**initkwargs)
+            self.setup(request, *args, **kwargs)
+            if not hasattr(self, "request"):
+                raise AttributeError(
+                    "%s instance has no 'request' attribute. Did you override "
+                    "setup() and forget to call super()?" % cls.__name__
+                )
+            return self.dispatch(request, *args, **kwargs)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+        view.view_class = cls
+        view.view_initkwargs = initkwargs
+        # __name__ and __qualname__ are intentionally left unchanged as
+        # view_class should be used to robustly determine the name of the view
+Local vars
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/rest_framework/views.py, line 509, in dispatch
+                                  self.http_method_not_allowed)
+            else:
+                handler = self.http_method_not_allowed
+            response = handler(request, *args, **kwargs)
+        except Exception as exc:
+            response = self.handle_exception(exc)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+        self.response = self.finalize_response(request, response, *args, **kwargs)
