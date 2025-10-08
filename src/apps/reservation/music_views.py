@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from asgiref.sync import async_to_sync
+from asgiref.sync import async_to_sync, sync_to_async
 import asyncio
 from django.shortcuts import get_object_or_404
 
@@ -34,12 +34,15 @@ class PlayersListView(APIView):
     @async_to_sync
     async def get(self, request):
         try:
-            # Obtener propiedades con player_id configurado
-            properties = Property.objects.filter(
-                player_id__isnull=False,
-                deleted=False
-            ).exclude(player_id='')
+            # Obtener propiedades con player_id configurado (usando sync_to_async)
+            @sync_to_async
+            def get_properties():
+                return list(Property.objects.filter(
+                    player_id__isnull=False,
+                    deleted=False
+                ).exclude(player_id='').values('id', 'name', 'player_id'))
             
+            properties = await get_properties()
             players_data = []
             
             # Si Music Assistant está disponible, obtener estado en tiempo real
@@ -49,13 +52,13 @@ class PlayersListView(APIView):
                     
                     for prop in properties:
                         # Buscar el player en Music Assistant
-                        player = next((p for p in music_client.players if p.player_id == prop.player_id), None)
+                        player = next((p for p in music_client.players if p.player_id == prop['player_id']), None)
                         
                         if player:
                             players_data.append({
                                 "player_id": player.player_id,
                                 "name": player.name,
-                                "property_name": prop.name,
+                                "property_name": prop['name'],
                                 "playback_state": player.playback_state.value if player.playback_state else None,
                                 "type": player.type.value if player.type else None,
                                 "volume_level": player.volume_level,
@@ -68,9 +71,9 @@ class PlayersListView(APIView):
                         else:
                             # Player configurado pero no encontrado en Music Assistant
                             players_data.append({
-                                "player_id": prop.player_id,
-                                "name": f"{prop.name} (sin conexión)",
-                                "property_name": prop.name,
+                                "player_id": prop['player_id'],
+                                "name": f"{prop['name']} (sin conexión)",
+                                "property_name": prop['name'],
                                 "playback_state": None,
                                 "available": False
                             })
@@ -78,9 +81,9 @@ class PlayersListView(APIView):
                     # Si falla Music Assistant, continuar con datos básicos
                     for prop in properties:
                         players_data.append({
-                            "player_id": prop.player_id,
-                            "name": prop.name,
-                            "property_name": prop.name,
+                            "player_id": prop['player_id'],
+                            "name": prop['name'],
+                            "property_name": prop['name'],
                             "available": False,
                             "error": "No se pudo conectar a Music Assistant"
                         })
@@ -88,9 +91,9 @@ class PlayersListView(APIView):
                 # Sin Music Assistant, solo listar los configurados
                 for prop in properties:
                     players_data.append({
-                        "player_id": prop.player_id,
-                        "name": prop.name,
-                        "property_name": prop.name,
+                        "player_id": prop['player_id'],
+                        "name": prop['name'],
+                        "property_name": prop['name'],
                         "available": None,
                         "note": "Music Assistant no disponible (requiere Python 3.11+)"
                     })
@@ -156,35 +159,49 @@ class PlayerControlView(APIView):
         
         return True
     
-    def has_player_permission(self, user, player_id):
+    async def has_player_permission(self, user, player_id):
         """
         Verifica si el usuario tiene permiso para controlar el reproductor.
         """
         # Obtener la propiedad asociada al player_id
-        try:
-            property_obj = Property.objects.get(player_id=player_id, deleted=False)
-        except Property.DoesNotExist:
+        @sync_to_async
+        def get_property():
+            try:
+                return Property.objects.get(player_id=player_id, deleted=False)
+            except Property.DoesNotExist:
+                return None
+        
+        property_obj = await get_property()
+        if not property_obj:
             return False
         
         # Verificar si hay una reserva activa del usuario para esta propiedad
-        reservations = Reservation.objects.filter(
-            client=user,
-            property=property_obj,
-            deleted=False,
-            status__in=['approved', 'pending', 'incomplete', 'under_review']
-        )
+        @sync_to_async
+        def get_user_reservations():
+            return list(Reservation.objects.filter(
+                client=user,
+                property=property_obj,
+                deleted=False,
+                status__in=['approved', 'pending', 'incomplete', 'under_review']
+            ))
+        
+        reservations = await get_user_reservations()
         
         for reservation in reservations:
             if self._is_reservation_active_now(reservation):
                 return True
         
         # Verificar si es participante aceptado en alguna reserva activa
-        participant = MusicSessionParticipant.objects.filter(
-            client=user,
-            reservation__property=property_obj,
-            status='accepted',
-            deleted=False
-        ).select_related('reservation').first()
+        @sync_to_async
+        def get_participant():
+            return MusicSessionParticipant.objects.filter(
+                client=user,
+                reservation__property=property_obj,
+                status='accepted',
+                deleted=False
+            ).select_related('reservation').first()
+        
+        participant = await get_participant()
         
         if participant and self._is_reservation_active_now(participant.reservation):
             return True
@@ -204,7 +221,7 @@ class PlayerPlayView(PlayerControlView):
         if error_response:
             return error_response
         
-        if not self.has_player_permission(request.user, player_id):
+        if not await self.has_player_permission(request.user, player_id):
             return Response({
                 "success": False,
                 "error": "No tienes permiso para controlar este reproductor"
@@ -237,7 +254,7 @@ class PlayerPauseView(PlayerControlView):
         if error_response:
             return error_response
         
-        if not self.has_player_permission(request.user, player_id):
+        if not await self.has_player_permission(request.user, player_id):
             return Response({
                 "success": False,
                 "error": "No tienes permiso para controlar este reproductor"
@@ -270,7 +287,7 @@ class PlayerStopView(PlayerControlView):
         if error_response:
             return error_response
         
-        if not self.has_player_permission(request.user, player_id):
+        if not await self.has_player_permission(request.user, player_id):
             return Response({
                 "success": False,
                 "error": "No tienes permiso para controlar este reproductor"
@@ -303,7 +320,7 @@ class PlayerNextView(PlayerControlView):
         if error_response:
             return error_response
         
-        if not self.has_player_permission(request.user, player_id):
+        if not await self.has_player_permission(request.user, player_id):
             return Response({
                 "success": False,
                 "error": "No tienes permiso para controlar este reproductor"
@@ -336,7 +353,7 @@ class PlayerPreviousView(PlayerControlView):
         if error_response:
             return error_response
         
-        if not self.has_player_permission(request.user, player_id):
+        if not await self.has_player_permission(request.user, player_id):
             return Response({
                 "success": False,
                 "error": "No tienes permiso para controlar este reproductor"
@@ -370,7 +387,7 @@ class PlayerVolumeView(PlayerControlView):
         if error_response:
             return error_response
         
-        if not self.has_player_permission(request.user, player_id):
+        if not await self.has_player_permission(request.user, player_id):
             return Response({
                 "success": False,
                 "error": "No tienes permiso para controlar este reproductor"
@@ -473,7 +490,7 @@ class PlayerPlayMediaView(PlayerControlView):
         if error_response:
             return error_response
         
-        if not self.has_player_permission(request.user, player_id):
+        if not await self.has_player_permission(request.user, player_id):
             return Response({
                 "success": False,
                 "error": "No tienes permiso para controlar este reproductor"
