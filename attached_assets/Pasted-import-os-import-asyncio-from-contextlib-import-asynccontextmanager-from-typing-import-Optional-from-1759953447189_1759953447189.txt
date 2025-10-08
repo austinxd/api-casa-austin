@@ -1,0 +1,404 @@
+import os
+import asyncio
+from contextlib import asynccontextmanager
+from typing import Optional
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+from dotenv import load_dotenv
+from music_assistant_client.client import MusicAssistantClient
+from music_assistant_models.enums import MediaType, QueueOption
+
+load_dotenv()
+
+MA_SERVER_URL = os.getenv("MA_SERVER_URL", "ws://localhost:8095/ws")
+
+music_client: Optional[MusicAssistantClient] = None
+
+
+class PlayMediaRequest(BaseModel):
+    media_id: str
+    media_type: str = "track"
+    queue_option: str = "play"
+
+
+class VolumeRequest(BaseModel):
+    volume: int
+
+
+class SearchRequest(BaseModel):
+    query: str
+    media_types: list[str] = ["tracks", "artists", "albums"]
+    limit: int = 20
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global music_client
+    
+    music_client = MusicAssistantClient(MA_SERVER_URL, None)
+    try:
+        await music_client.connect()
+        asyncio.create_task(music_client.start_listening())
+        print(f"✅ Conectado a Music Assistant en {MA_SERVER_URL}")
+    except Exception as e:
+        print(f"❌ Error al conectar con Music Assistant: {e}")
+        print(f"Asegúrate de que Music Assistant esté corriendo en {MA_SERVER_URL}")
+    
+    yield
+    
+    if music_client:
+        await music_client.disconnect()
+        print("🔌 Desconectado de Music Assistant")
+
+
+app = FastAPI(
+    title="Music Assistant API",
+    description="API REST para controlar Music Assistant",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/")
+async def root():
+    return FileResponse("static/index.html")
+
+
+@app.get("/api")
+async def api_info():
+    return {
+        "message": "Music Assistant API",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "status": "connected" if music_client and music_client.connection else "disconnected"
+    }
+
+
+@app.get("/health")
+async def health():
+    if not music_client or not music_client.connection:
+        raise HTTPException(status_code=503, detail="No conectado a Music Assistant")
+    
+    try:
+        server_info = music_client.server_info
+        if not server_info:
+            raise HTTPException(status_code=503, detail="Servidor no disponible")
+        
+        return {
+            "status": "healthy",
+            "server_version": server_info.version if hasattr(server_info, 'version') else "unknown",
+            "server_url": MA_SERVER_URL
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.get("/players")
+async def get_players():
+    if not music_client:
+        raise HTTPException(status_code=503, detail="Cliente no inicializado")
+    
+    try:
+        players_list = list(music_client.players)
+        return {
+            "players": [
+                {
+                    "player_id": p.player_id,
+                    "name": p.name,
+                    "state": p.playback_state.value if hasattr(p.playback_state, 'value') else str(p.playback_state),
+                    "type": p.type.value if hasattr(p.type, 'value') else str(p.type),
+                    "volume": p.volume_level,
+                    "powered": p.powered,
+                    "available": p.available,
+                    "current_media": p.current_media.title if p.current_media else None,
+                }
+                for p in players_list
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener reproductores: {str(e)}")
+
+
+@app.get("/players/{player_id}/queue")
+async def get_queue(player_id: str):
+    if not music_client:
+        raise HTTPException(status_code=503, detail="Cliente no inicializado")
+    
+    try:
+        queue = await music_client.player_queues.get_active_queue(player_id)
+        
+        if not queue:
+            return {
+                "player_id": player_id,
+                "queue": None,
+                "message": "No hay cola activa para este reproductor"
+            }
+        
+        items_result = await music_client.player_queues.get_player_queue_items(queue.queue_id)
+        
+        return {
+            "player_id": player_id,
+            "queue_id": queue.queue_id,
+            "state": queue.state.value if hasattr(queue, 'state') and hasattr(queue.state, 'value') else (str(queue.state) if hasattr(queue, 'state') else None),
+            "current_index": queue.current_index if hasattr(queue, 'current_index') else None,
+            "items": [
+                {
+                    "queue_item_id": item.queue_item_id if hasattr(item, 'queue_item_id') else None,
+                    "name": item.name if hasattr(item, 'name') else None,
+                    "uri": item.uri if hasattr(item, 'uri') else None,
+                    "duration": item.duration if hasattr(item, 'duration') else None,
+                }
+                for item in (items_result.items if hasattr(items_result, 'items') else [])
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener cola: {str(e)}")
+
+
+@app.post("/players/{player_id}/play")
+async def play(player_id: str):
+    if not music_client:
+        raise HTTPException(status_code=503, detail="Cliente no inicializado")
+    
+    try:
+        await music_client.players.player_command_play(player_id)
+        return {"status": "playing", "player_id": player_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al reproducir: {str(e)}")
+
+
+@app.post("/players/{player_id}/pause")
+async def pause(player_id: str):
+    if not music_client:
+        raise HTTPException(status_code=503, detail="Cliente no inicializado")
+    
+    try:
+        await music_client.players.player_command_pause(player_id)
+        return {"status": "paused", "player_id": player_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al pausar: {str(e)}")
+
+
+@app.post("/players/{player_id}/stop")
+async def stop(player_id: str):
+    if not music_client:
+        raise HTTPException(status_code=503, detail="Cliente no inicializado")
+    
+    try:
+        await music_client.players.player_command_stop(player_id)
+        return {"status": "stopped", "player_id": player_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al detener: {str(e)}")
+
+
+@app.post("/players/{player_id}/next")
+async def next_track(player_id: str):
+    if not music_client:
+        raise HTTPException(status_code=503, detail="Cliente no inicializado")
+    
+    try:
+        await music_client.players.player_command_next_track(player_id)
+        return {"status": "next", "player_id": player_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al siguiente pista: {str(e)}")
+
+
+@app.post("/players/{player_id}/previous")
+async def previous_track(player_id: str):
+    if not music_client:
+        raise HTTPException(status_code=503, detail="Cliente no inicializado")
+    
+    try:
+        await music_client.players.player_command_previous_track(player_id)
+        return {"status": "previous", "player_id": player_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al pista anterior: {str(e)}")
+
+
+@app.post("/players/{player_id}/volume")
+async def set_volume(player_id: str, request: VolumeRequest):
+    if not music_client:
+        raise HTTPException(status_code=503, detail="Cliente no inicializado")
+    
+    if request.volume < 0 or request.volume > 100:
+        raise HTTPException(status_code=400, detail="El volumen debe estar entre 0 y 100")
+    
+    try:
+        await music_client.players.player_command_volume_set(player_id, request.volume)
+        return {"status": "volume_set", "player_id": player_id, "volume": request.volume}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al configurar volumen: {str(e)}")
+
+
+@app.post("/players/{player_id}/play-media")
+async def play_media(player_id: str, request: PlayMediaRequest):
+    if not music_client:
+        raise HTTPException(status_code=503, detail="Cliente no inicializado")
+    
+    try:
+        media_type_map = {
+            "track": MediaType.TRACK,
+            "album": MediaType.ALBUM,
+            "artist": MediaType.ARTIST,
+            "playlist": MediaType.PLAYLIST,
+            "radio": MediaType.RADIO
+        }
+        
+        media_type_enum = media_type_map.get(request.media_type.lower())
+        if not media_type_enum:
+            raise HTTPException(status_code=400, detail=f"Tipo de media inválido: {request.media_type}")
+        
+        queue_option_map = {
+            "play": QueueOption.PLAY,
+            "replace": QueueOption.REPLACE,
+            "next": QueueOption.NEXT,
+            "replace_next": QueueOption.REPLACE_NEXT,
+            "add": QueueOption.ADD
+        }
+        
+        queue_option = queue_option_map.get(request.queue_option.lower(), QueueOption.PLAY)
+        
+        queue = await music_client.player_queues.get_active_queue(player_id)
+        if not queue:
+            raise HTTPException(status_code=404, detail="No se encontró cola activa para este reproductor")
+        
+        await music_client.player_queues.play_media(
+            queue_id=queue.queue_id,
+            media=request.media_id,
+            option=queue_option
+        )
+        
+        return {
+            "status": "media_queued",
+            "player_id": player_id,
+            "media_id": request.media_id,
+            "queue_option": request.queue_option
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al reproducir media: {str(e)}")
+
+
+@app.post("/search")
+async def search_music(request: SearchRequest):
+    if not music_client:
+        raise HTTPException(status_code=503, detail="Cliente no inicializado")
+    
+    try:
+        media_type_mapping = {
+            "tracks": MediaType.TRACK,
+            "track": MediaType.TRACK,
+            "artists": MediaType.ARTIST,
+            "artist": MediaType.ARTIST,
+            "albums": MediaType.ALBUM,
+            "album": MediaType.ALBUM,
+            "playlists": MediaType.PLAYLIST,
+            "playlist": MediaType.PLAYLIST,
+            "radios": MediaType.RADIO,
+            "radio": MediaType.RADIO
+        }
+        
+        converted_types = [
+            media_type_mapping.get(mt.lower(), MediaType.TRACK)
+            for mt in request.media_types
+        ]
+        
+        results = await music_client.music.search(
+            search_query=request.query,
+            media_types=converted_types,
+            limit=request.limit
+        )
+        
+        response = {}
+        
+        if hasattr(results, 'tracks') and results.tracks:
+            response["tracks"] = [
+                {
+                    "item_id": track.item_id if hasattr(track, 'item_id') else None,
+                    "name": track.name if hasattr(track, 'name') else None,
+                    "uri": track.uri if hasattr(track, 'uri') else None,
+                    "duration": track.duration if hasattr(track, 'duration') else None,
+                }
+                for track in results.tracks[:request.limit]
+            ]
+        
+        if hasattr(results, 'artists') and results.artists:
+            response["artists"] = [
+                {
+                    "item_id": artist.item_id if hasattr(artist, 'item_id') else None,
+                    "name": artist.name if hasattr(artist, 'name') else None,
+                    "uri": artist.uri if hasattr(artist, 'uri') else None
+                }
+                for artist in results.artists[:request.limit]
+            ]
+        
+        if hasattr(results, 'albums') and results.albums:
+            response["albums"] = [
+                {
+                    "item_id": album.item_id if hasattr(album, 'item_id') else None,
+                    "name": album.name if hasattr(album, 'name') else None,
+                    "uri": album.uri if hasattr(album, 'uri') else None,
+                }
+                for album in results.albums[:request.limit]
+            ]
+        
+        if hasattr(results, 'playlists') and results.playlists:
+            response["playlists"] = [
+                {
+                    "item_id": playlist.item_id if hasattr(playlist, 'item_id') else None,
+                    "name": playlist.name if hasattr(playlist, 'name') else None,
+                    "uri": playlist.uri if hasattr(playlist, 'uri') else None
+                }
+                for playlist in results.playlists[:request.limit]
+            ]
+        
+        return {
+            "query": request.query,
+            "results": response
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en búsqueda: {str(e)}")
+
+
+@app.get("/library/tracks")
+async def get_library_tracks(limit: int = 50, offset: int = 0):
+    if not music_client:
+        raise HTTPException(status_code=503, detail="Cliente no inicializado")
+    
+    try:
+        tracks = await music_client.music.get_library_tracks(limit=limit, offset=offset)
+        
+        return {
+            "tracks": [
+                {
+                    "item_id": track.item_id if hasattr(track, 'item_id') else None,
+                    "name": track.name if hasattr(track, 'name') else None,
+                    "uri": track.uri if hasattr(track, 'uri') else None,
+                    "duration": track.duration if hasattr(track, 'duration') else None,
+                }
+                for track in tracks
+            ],
+            "limit": limit,
+            "offset": offset
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener biblioteca: {str(e)}")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=5000)
