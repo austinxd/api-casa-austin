@@ -50,8 +50,14 @@ class PlayersListView(APIView):
                 try:
                     music_client = await get_music_client()
                     
-                    # Esperar un momento adicional para que los datos de reproductores estén completamente cargados
-                    await asyncio.sleep(0.5)
+                    # Esperar a que los reproductores estén sincronizados
+                    max_wait = 20  # Máximo 10 segundos
+                    for i in range(max_wait):
+                        # Convertir players a lista para verificar
+                        players_list = list(music_client.players)
+                        if len(players_list) > 0:
+                            break
+                        await asyncio.sleep(0.5)
                     
                     for prop in properties:
                         # Buscar el player en Music Assistant
