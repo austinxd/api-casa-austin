@@ -233,21 +233,10 @@ class PlayerControlView(APIView):
         if not active_reservation:
             return False
         
-        # DEBUG: Log para verificar IDs
-        import logging
-        logger = logging.getLogger('apps')
-        logger.info(f"[MUSIC AUTH] Usuario solicitante ID: {user.id} (type: {type(user.id)})")
-        logger.info(f"[MUSIC AUTH] Reserva activa ID: {active_reservation.id}")
-        logger.info(f"[MUSIC AUTH] Anfitrión (client_id) de reserva: {active_reservation.client_id} (type: {type(active_reservation.client_id)})")
-        logger.info(f"[MUSIC AUTH] ¿Coinciden? {active_reservation.client_id == user.id}")
-        
         # Verificar si el usuario es el anfitrión (owner) de LA reserva activa
         # Usar client_id directamente (sin query) en vez de .client.id
         if active_reservation.client_id == user.id:
-            logger.info(f"[MUSIC AUTH] ✅ Usuario ES el anfitrión")
             return True
-        
-        logger.info(f"[MUSIC AUTH] ❌ Usuario NO es el anfitrión, verificando participantes...")
         
         # Verificar si es participante aceptado de LA reserva activa
         @sync_to_async
@@ -777,7 +766,7 @@ class RequestAccessView(APIView):
                     "error": "No puedes solicitar acceso a tu propia reserva"
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Verificar si ya existe una solicitud
+            # Verificar si ya existe una solicitud activa (no eliminada)
             existing = MusicSessionParticipant.objects.filter(
                 reservation=reservation,
                 client=request.user,
@@ -791,12 +780,29 @@ class RequestAccessView(APIView):
                     "status": existing.status
                 }, status=status.HTTP_400_BAD_REQUEST)
             
-            # Crear solicitud
-            participant = MusicSessionParticipant.objects.create(
+            # Verificar si existe una solicitud eliminada (para reutilizarla)
+            deleted_participant = MusicSessionParticipant.objects.filter(
                 reservation=reservation,
                 client=request.user,
-                status='pending'
-            )
+                deleted=True
+            ).first()
+            
+            if deleted_participant:
+                # Reutilizar el registro eliminado
+                deleted_participant.deleted = False
+                deleted_participant.status = 'pending'
+                deleted_participant.requested_at = timezone.now()
+                deleted_participant.accepted_at = None
+                deleted_participant.rejected_at = None
+                deleted_participant.save()
+                participant = deleted_participant
+            else:
+                # Crear nueva solicitud
+                participant = MusicSessionParticipant.objects.create(
+                    reservation=reservation,
+                    client=request.user,
+                    status='pending'
+                )
             
             return Response({
                 "success": True,
