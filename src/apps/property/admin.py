@@ -111,6 +111,11 @@ class PropertyAdmin(admin.ModelAdmin):
         }),
         ("URLs", {
             "fields": ("airbnb_url", "on_temperature_pool_url", "off_temperature_pool_url")
+        }),
+        ("🎵 Music Assistant", {
+            "fields": ("player_id",),
+            "classes": ("collapse",),
+            "description": "ID del reproductor de Music Assistant vinculado a esta propiedad. Obtén el player_id desde el endpoint /api/v1/music/players/"
         })
     )
 
