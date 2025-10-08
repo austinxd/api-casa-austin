@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from asgiref.sync import async_to_sync, sync_to_async
 import asyncio
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 
 # Importaciones opcionales de Music Assistant (requiere Python 3.11+)
 try:
