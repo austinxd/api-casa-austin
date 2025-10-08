@@ -51,8 +51,12 @@ class MusicAssistantSingleton:
             # Iniciar escucha de eventos para sincronizar reproductores
             asyncio.create_task(self._client.start_listening())
             
-            # Esperar más tiempo para asegurar sincronización completa
-            await asyncio.sleep(2)
+            # Esperar a que el módulo de música esté disponible
+            max_wait = 10  # 10 intentos
+            for i in range(max_wait):
+                if hasattr(self._client, 'music') and self._client.music is not None:
+                    break
+                await asyncio.sleep(0.5)
             
             print("✅ Conectado a Music Assistant")
             
