@@ -16,7 +16,7 @@ except ImportError:
     MediaType = None
     QueueOption = None
 
-from apps.reservation.music_models import MusicSession, MusicSessionParticipant
+from apps.reservation.music_models import MusicSessionParticipant
 from apps.reservation.models import Reservation
 from apps.property.models import Property
 from apps.clients.auth_views import ClientJWTAuthentication
@@ -86,6 +86,37 @@ class PlayerControlView(APIView):
             }, status=status.HTTP_501_NOT_IMPLEMENTED)
         return None
     
+    def _is_reservation_active_now(self, reservation):
+        """
+        Verifica si la reserva está activa AHORA según los horarios:
+        - Check-in: 3 PM del día de llegada
+        - Check-out: 11 AM del día de salida
+        """
+        from datetime import datetime, time
+        from django.utils import timezone
+        
+        now = timezone.now()
+        now_date = now.date()
+        now_time = now.time()
+        
+        # Horarios configurados
+        checkin_time = time(15, 0)  # 3 PM
+        checkout_time = time(11, 0)  # 11 AM
+        
+        # Verificar rango de fechas
+        if now_date < reservation.check_in_date or now_date > reservation.check_out_date:
+            return False
+        
+        # Si es el día de check-in, debe ser después de las 3 PM
+        if now_date == reservation.check_in_date and now_time < checkin_time:
+            return False
+        
+        # Si es el día de check-out, debe ser antes de las 11 AM
+        if now_date == reservation.check_out_date and now_time >= checkout_time:
+            return False
+        
+        return True
+    
     def has_player_permission(self, user, player_id):
         """
         Verifica si el usuario tiene permiso para controlar el reproductor.
@@ -97,31 +128,29 @@ class PlayerControlView(APIView):
             return False
         
         # Verificar si hay una reserva activa del usuario para esta propiedad
-        from datetime import date
-        today = date.today()
-        
-        active_reservation = Reservation.objects.filter(
+        reservations = Reservation.objects.filter(
             client=user,
             property=property_obj,
-            check_in_date__lte=today,
-            check_out_date__gte=today,
             deleted=False,
             status__in=['approved', 'pending', 'incomplete', 'under_review']
-        ).first()
+        )
         
-        if active_reservation:
-            # Si es el host de la reserva, tiene permiso
-            return True
+        for reservation in reservations:
+            if self._is_reservation_active_now(reservation):
+                return True
         
-        # Verificar si es participante de alguna sesión activa
+        # Verificar si es participante aceptado en alguna reserva activa
         participant = MusicSessionParticipant.objects.filter(
             client=user,
-            session__reservation__property=property_obj,
-            session__is_active=True,
+            reservation__property=property_obj,
+            status='accepted',
             deleted=False
-        ).first()
+        ).select_related('reservation').first()
         
-        return participant is not None
+        if participant and self._is_reservation_active_now(participant.reservation):
+            return True
+        
+        return False
 
 
 class PlayerPlayView(PlayerControlView):
@@ -589,24 +618,74 @@ class MusicLibraryTracksView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class MusicSessionCreateView(APIView):
+class RequestAccessView(APIView):
     """
-    POST /music/sessions/create
-    Body: {"reservation_id": str}
-    Crea una sesión de música para la reserva activa.
+    POST /music/sessions/{reservation_id}/request-access/
+    Solicita acceso para controlar la música de una reserva.
     """
     authentication_classes = [ClientJWTAuthentication]
     permission_classes = [IsAuthenticated]
     
-    def post(self, request):
-        reservation_id = request.data.get('reservation_id')
-        
-        if not reservation_id:
+    def post(self, request, reservation_id):
+        try:
+            # Verificar que la reserva existe
+            reservation = get_object_or_404(
+                Reservation,
+                id=reservation_id,
+                deleted=False,
+                status__in=['approved', 'pending', 'incomplete', 'under_review']
+            )
+            
+            # No puede solicitar acceso a su propia reserva
+            if reservation.client.id == request.user.id:
+                return Response({
+                    "success": False,
+                    "error": "No puedes solicitar acceso a tu propia reserva"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Verificar si ya existe una solicitud
+            existing = MusicSessionParticipant.objects.filter(
+                reservation=reservation,
+                client=request.user,
+                deleted=False
+            ).first()
+            
+            if existing:
+                return Response({
+                    "success": False,
+                    "error": f"Ya tienes una solicitud {existing.get_status_display().lower()}",
+                    "status": existing.status
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Crear solicitud
+            participant = MusicSessionParticipant.objects.create(
+                reservation=reservation,
+                client=request.user,
+                status='pending'
+            )
+            
+            return Response({
+                "success": True,
+                "request_id": str(participant.id),
+                "message": "Solicitud enviada. El anfitrión debe aceptarla."
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
             return Response({
                 "success": False,
-                "error": "El campo 'reservation_id' es requerido"
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class PendingRequestsView(APIView):
+    """
+    GET /music/sessions/{reservation_id}/requests/
+    Lista las solicitudes pendientes (solo anfitrión).
+    """
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, reservation_id):
         try:
             # Verificar que la reserva existe y pertenece al usuario
             reservation = get_object_or_404(
@@ -616,32 +695,28 @@ class MusicSessionCreateView(APIView):
                 deleted=False
             )
             
-            # Verificar que no exista ya una sesión activa
-            existing_session = MusicSession.objects.filter(
+            # Obtener solicitudes pendientes
+            requests = MusicSessionParticipant.objects.filter(
                 reservation=reservation,
-                is_active=True,
+                status='pending',
                 deleted=False
-            ).first()
+            ).select_related('client')
             
-            if existing_session:
-                return Response({
-                    "success": False,
-                    "error": "Ya existe una sesión activa para esta reserva",
-                    "session_id": str(existing_session.id)
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Crear nueva sesión
-            session = MusicSession.objects.create(
-                reservation=reservation,
-                host_client=request.user,
-                is_active=True
-            )
+            requests_data = []
+            for req in requests:
+                requests_data.append({
+                    "id": str(req.id),
+                    "client_id": str(req.client.id),
+                    "name": f"{req.client.first_name} {req.client.last_name}",
+                    "requested_at": req.requested_at.isoformat()
+                })
             
             return Response({
                 "success": True,
-                "session_id": str(session.id),
-                "message": "Sesión de música creada correctamente"
-            }, status=status.HTTP_201_CREATED)
+                "reservation_id": str(reservation.id),
+                "property_name": reservation.property.name,
+                "pending_requests": requests_data
+            })
             
         except Exception as e:
             return Response({
@@ -650,111 +725,144 @@ class MusicSessionCreateView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class MusicSessionAddParticipantView(APIView):
+class AcceptRequestView(APIView):
     """
-    POST /music/sessions/{session_id}/add-participant
-    Body: {"client_id": str}
-    Acepta a un participante en la sesión de música.
-    """
-    authentication_classes = [ClientJWTAuthentication]
-    permission_classes = [IsAuthenticated]
-    
-    def post(self, request, session_id):
-        client_id = request.data.get('client_id')
-        
-        if not client_id:
-            return Response({
-                "success": False,
-                "error": "El campo 'client_id' es requerido"
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            # Verificar que la sesión existe y pertenece al usuario
-            session = get_object_or_404(
-                MusicSession,
-                id=session_id,
-                host_client=request.user,
-                is_active=True,
-                deleted=False
-            )
-            
-            # Verificar que el cliente a agregar existe
-            from apps.clients.models import Clients
-            participant_client = get_object_or_404(Clients, id=client_id, deleted=False)
-            
-            # Verificar que no sea el mismo host
-            if participant_client.id == request.user.id:
-                return Response({
-                    "success": False,
-                    "error": "No puedes agregarte a ti mismo como participante"
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Verificar que no esté ya agregado
-            existing_participant = MusicSessionParticipant.objects.filter(
-                session=session,
-                client=participant_client,
-                deleted=False
-            ).first()
-            
-            if existing_participant:
-                return Response({
-                    "success": False,
-                    "error": "Este cliente ya es participante de la sesión"
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Agregar participante
-            participant = MusicSessionParticipant.objects.create(
-                session=session,
-                client=participant_client
-            )
-            
-            return Response({
-                "success": True,
-                "participant_id": str(participant.id),
-                "message": f"{participant_client.first_name} {participant_client.last_name} agregado como participante"
-            }, status=status.HTTP_201_CREATED)
-            
-        except Exception as e:
-            return Response({
-                "success": False,
-                "error": str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-class MusicSessionParticipantsView(APIView):
-    """
-    GET /music/sessions/{session_id}/participants
-    Lista los participantes de una sesión.
+    POST /music/sessions/{reservation_id}/requests/{request_id}/accept/
+    Acepta una solicitud (solo anfitrión).
     """
     authentication_classes = [ClientJWTAuthentication]
     permission_classes = [IsAuthenticated]
     
-    def get(self, request, session_id):
+    def post(self, request, reservation_id, request_id):
         try:
-            # Verificar que la sesión existe
-            session = get_object_or_404(
-                MusicSession,
-                id=session_id,
-                deleted=False
-            )
+            from django.utils import timezone
             
-            # Verificar que el usuario es el host o un participante
-            is_host = session.host_client.id == request.user.id
-            is_participant = MusicSessionParticipant.objects.filter(
-                session=session,
+            # Verificar que la reserva existe y pertenece al usuario
+            reservation = get_object_or_404(
+                Reservation,
+                id=reservation_id,
                 client=request.user,
+                deleted=False
+            )
+            
+            # Buscar la solicitud
+            participant = get_object_or_404(
+                MusicSessionParticipant,
+                id=request_id,
+                reservation=reservation,
+                deleted=False
+            )
+            
+            if participant.status != 'pending':
+                return Response({
+                    "success": False,
+                    "error": f"La solicitud ya fue {participant.get_status_display().lower()}"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Aceptar solicitud
+            participant.status = 'accepted'
+            participant.accepted_at = timezone.now()
+            participant.save()
+            
+            return Response({
+                "success": True,
+                "message": f"{participant.client.first_name} puede controlar la música"
+            })
+            
+        except Exception as e:
+            return Response({
+                "success": False,
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class RejectRequestView(APIView):
+    """
+    POST /music/sessions/{reservation_id}/requests/{request_id}/reject/
+    Rechaza una solicitud (solo anfitrión).
+    """
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, reservation_id, request_id):
+        try:
+            from django.utils import timezone
+            
+            # Verificar que la reserva existe y pertenece al usuario
+            reservation = get_object_or_404(
+                Reservation,
+                id=reservation_id,
+                client=request.user,
+                deleted=False
+            )
+            
+            # Buscar la solicitud
+            participant = get_object_or_404(
+                MusicSessionParticipant,
+                id=request_id,
+                reservation=reservation,
+                deleted=False
+            )
+            
+            if participant.status != 'pending':
+                return Response({
+                    "success": False,
+                    "error": f"La solicitud ya fue {participant.get_status_display().lower()}"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Rechazar solicitud
+            participant.status = 'rejected'
+            participant.rejected_at = timezone.now()
+            participant.save()
+            
+            return Response({
+                "success": True,
+                "message": "Solicitud rechazada"
+            })
+            
+        except Exception as e:
+            return Response({
+                "success": False,
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class ParticipantsView(APIView):
+    """
+    GET /music/sessions/{reservation_id}/participants/
+    Lista los participantes aceptados.
+    """
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, reservation_id):
+        try:
+            # Verificar que la reserva existe
+            reservation = get_object_or_404(
+                Reservation,
+                id=reservation_id,
+                deleted=False
+            )
+            
+            # Verificar que el usuario es el anfitrión o un participante
+            is_host = reservation.client.id == request.user.id
+            is_participant = MusicSessionParticipant.objects.filter(
+                reservation=reservation,
+                client=request.user,
+                status='accepted',
                 deleted=False
             ).exists()
             
             if not is_host and not is_participant:
                 return Response({
                     "success": False,
-                    "error": "No tienes permiso para ver esta sesión"
+                    "error": "No tienes permiso para ver esta información"
                 }, status=status.HTTP_403_FORBIDDEN)
             
-            # Obtener participantes
+            # Obtener participantes aceptados
             participants = MusicSessionParticipant.objects.filter(
-                session=session,
+                reservation=reservation,
+                status='accepted',
                 deleted=False
             ).select_related('client')
             
@@ -764,18 +872,18 @@ class MusicSessionParticipantsView(APIView):
                     "id": str(participant.id),
                     "client_id": str(participant.client.id),
                     "name": f"{participant.client.first_name} {participant.client.last_name}",
-                    "accepted_at": participant.accepted_at.isoformat()
+                    "accepted_at": participant.accepted_at.isoformat() if participant.accepted_at else None
                 })
             
             return Response({
                 "success": True,
-                "session_id": str(session.id),
+                "reservation_id": str(reservation.id),
+                "property_name": reservation.property.name,
                 "host": {
-                    "id": str(session.host_client.id),
-                    "name": f"{session.host_client.first_name} {session.host_client.last_name}"
+                    "id": str(reservation.client.id),
+                    "name": f"{reservation.client.first_name} {reservation.client.last_name}"
                 },
-                "participants": participants_data,
-                "is_active": session.is_active
+                "participants": participants_data
             })
             
         except Exception as e:
@@ -785,22 +893,21 @@ class MusicSessionParticipantsView(APIView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class MusicSessionRemoveParticipantView(APIView):
+class RemoveParticipantView(APIView):
     """
-    DELETE /music/sessions/{session_id}/participants/{participant_id}
-    Elimina a un participante de la sesión.
+    DELETE /music/sessions/{reservation_id}/participants/{participant_id}/
+    Expulsa a un participante (solo anfitrión).
     """
     authentication_classes = [ClientJWTAuthentication]
     permission_classes = [IsAuthenticated]
     
-    def delete(self, request, session_id, participant_id):
+    def delete(self, request, reservation_id, participant_id):
         try:
-            # Verificar que la sesión existe y pertenece al usuario
-            session = get_object_or_404(
-                MusicSession,
-                id=session_id,
-                host_client=request.user,
-                is_active=True,
+            # Verificar que la reserva existe y pertenece al usuario
+            reservation = get_object_or_404(
+                Reservation,
+                id=reservation_id,
+                client=request.user,
                 deleted=False
             )
             
@@ -808,7 +915,7 @@ class MusicSessionRemoveParticipantView(APIView):
             participant = get_object_or_404(
                 MusicSessionParticipant,
                 id=participant_id,
-                session=session,
+                reservation=reservation,
                 deleted=False
             )
             
@@ -818,41 +925,7 @@ class MusicSessionRemoveParticipantView(APIView):
             
             return Response({
                 "success": True,
-                "message": "Participante eliminado de la sesión"
-            })
-            
-        except Exception as e:
-            return Response({
-                "success": False,
-                "error": str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-class MusicSessionCloseView(APIView):
-    """
-    POST /music/sessions/{session_id}/close
-    Cierra una sesión de música.
-    """
-    authentication_classes = [ClientJWTAuthentication]
-    permission_classes = [IsAuthenticated]
-    
-    def post(self, request, session_id):
-        try:
-            # Verificar que la sesión existe y pertenece al usuario
-            session = get_object_or_404(
-                MusicSession,
-                id=session_id,
-                host_client=request.user,
-                deleted=False
-            )
-            
-            # Desactivar sesión
-            session.is_active = False
-            session.save()
-            
-            return Response({
-                "success": True,
-                "message": "Sesión de música cerrada"
+                "message": "Participante expulsado"
             })
             
         except Exception as e:

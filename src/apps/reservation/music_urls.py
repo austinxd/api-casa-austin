@@ -11,11 +11,12 @@ from apps.reservation.music_views import (
     PlayerPlayMediaView,
     MusicSearchView,
     MusicLibraryTracksView,
-    MusicSessionCreateView,
-    MusicSessionAddParticipantView,
-    MusicSessionParticipantsView,
-    MusicSessionRemoveParticipantView,
-    MusicSessionCloseView,
+    RequestAccessView,
+    PendingRequestsView,
+    AcceptRequestView,
+    RejectRequestView,
+    ParticipantsView,
+    RemoveParticipantView,
 )
 
 urlpatterns = [
@@ -34,10 +35,11 @@ urlpatterns = [
     path('search/', MusicSearchView.as_view(), name='music-search'),
     path('library/tracks/', MusicLibraryTracksView.as_view(), name='music-library-tracks'),
     
-    # Sesiones de música
-    path('sessions/create/', MusicSessionCreateView.as_view(), name='music-session-create'),
-    path('sessions/<str:session_id>/add-participant/', MusicSessionAddParticipantView.as_view(), name='music-session-add-participant'),
-    path('sessions/<str:session_id>/participants/', MusicSessionParticipantsView.as_view(), name='music-session-participants'),
-    path('sessions/<str:session_id>/participants/<str:participant_id>/', MusicSessionRemoveParticipantView.as_view(), name='music-session-remove-participant'),
-    path('sessions/<str:session_id>/close/', MusicSessionCloseView.as_view(), name='music-session-close'),
+    # Gestión de acceso a sesiones (basadas en reservation_id)
+    path('sessions/<str:reservation_id>/request-access/', RequestAccessView.as_view(), name='music-request-access'),
+    path('sessions/<str:reservation_id>/requests/', PendingRequestsView.as_view(), name='music-pending-requests'),
+    path('sessions/<str:reservation_id>/requests/<str:request_id>/accept/', AcceptRequestView.as_view(), name='music-accept-request'),
+    path('sessions/<str:reservation_id>/requests/<str:request_id>/reject/', RejectRequestView.as_view(), name='music-reject-request'),
+    path('sessions/<str:reservation_id>/participants/', ParticipantsView.as_view(), name='music-participants'),
+    path('sessions/<str:reservation_id>/participants/<str:participant_id>/', RemoveParticipantView.as_view(), name='music-remove-participant'),
 ]
