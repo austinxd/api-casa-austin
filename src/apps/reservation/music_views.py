@@ -32,18 +32,78 @@ class PlayersListView(APIView):
     authentication_classes = [ClientJWTAuthentication]
     permission_classes = [IsAuthenticated]
     
+    def _get_active_reservation_for_property(self, property_obj):
+        """Obtiene la reserva activa actual para una propiedad."""
+        from datetime import time
+        
+        now = timezone.now()
+        now_date = now.date()
+        now_time = now.time()
+        
+        checkin_time = time(15, 0)  # 3 PM
+        checkout_time = time(11, 0)  # 11 AM
+        
+        reservations = Reservation.objects.filter(
+            property=property_obj,
+            deleted=False,
+            status__in=['approved', 'pending', 'incomplete', 'under_review']
+        ).select_related('client')
+        
+        for res in reservations:
+            # Verificar rango de fechas
+            if now_date < res.check_in_date or now_date > res.check_out_date:
+                continue
+            
+            # Si es el día de check-in, debe ser después de las 3 PM
+            if now_date == res.check_in_date and now_time < checkin_time:
+                continue
+            
+            # Si es el día de check-out, debe ser antes de las 11 AM
+            if now_date == res.check_out_date and now_time >= checkout_time:
+                continue
+            
+            # Esta es la reserva activa actual
+            return res
+        
+        return None
+    
     @async_to_sync
     async def get(self, request):
         try:
             # Obtener propiedades con player_id configurado (usando sync_to_async)
             @sync_to_async
-            def get_properties():
-                return list(Property.objects.filter(
+            def get_properties_with_details():
+                properties = Property.objects.filter(
                     player_id__isnull=False,
                     deleted=False
-                ).exclude(player_id='').values('id', 'name', 'player_id'))
+                ).exclude(player_id='')
+                
+                result = []
+                for prop in properties:
+                    prop_data = {
+                        'id': prop.id,
+                        'name': prop.name,
+                        'player_id': prop.player_id,
+                        'reservation': None
+                    }
+                    
+                    # Buscar reserva activa
+                    active_res = self._get_active_reservation_for_property(prop)
+                    if active_res:
+                        client = active_res.client
+                        prop_data['reservation'] = {
+                            'client_name': f"{client.first_name} {client.last_name}",
+                            'facebook_linked': client.facebook_linked,
+                            'profile_picture': client.get_facebook_profile_picture() if client.facebook_linked else None,
+                            'check_in_date': active_res.check_in_date.isoformat(),
+                            'check_out_date': active_res.check_out_date.isoformat(),
+                        }
+                    
+                    result.append(prop_data)
+                
+                return result
             
-            properties = await get_properties()
+            properties = await get_properties_with_details()
             players_data = []
             
             # Si Music Assistant está disponible, obtener estado en tiempo real
@@ -65,7 +125,7 @@ class PlayersListView(APIView):
                         player = next((p for p in music_client.players if p.player_id == prop['player_id']), None)
                         
                         if player:
-                            players_data.append({
+                            player_info = {
                                 "player_id": player.player_id,
                                 "name": player.name,
                                 "property_name": prop['name'],
@@ -77,36 +137,60 @@ class PlayersListView(APIView):
                                 "current_media": {
                                     "title": player.current_media.title if player.current_media else None
                                 } if player.current_media else None
-                            })
+                            }
+                            
+                            # Agregar información de reserva si existe
+                            if prop['reservation']:
+                                player_info['reservation'] = prop['reservation']
+                            
+                            players_data.append(player_info)
                         else:
                             # Player configurado pero no encontrado en Music Assistant
-                            players_data.append({
+                            player_info = {
                                 "player_id": prop['player_id'],
                                 "name": f"{prop['name']} (sin conexión)",
                                 "property_name": prop['name'],
                                 "playback_state": None,
                                 "available": False
-                            })
+                            }
+                            
+                            # Agregar información de reserva si existe
+                            if prop['reservation']:
+                                player_info['reservation'] = prop['reservation']
+                            
+                            players_data.append(player_info)
                 except Exception as e:
                     # Si falla Music Assistant, continuar con datos básicos
                     for prop in properties:
-                        players_data.append({
+                        player_info = {
                             "player_id": prop['player_id'],
                             "name": prop['name'],
                             "property_name": prop['name'],
                             "available": False,
                             "error": "No se pudo conectar a Music Assistant"
-                        })
+                        }
+                        
+                        # Agregar información de reserva si existe
+                        if prop['reservation']:
+                            player_info['reservation'] = prop['reservation']
+                        
+                        players_data.append(player_info)
             else:
                 # Sin Music Assistant, solo listar los configurados
                 for prop in properties:
-                    players_data.append({
+                    player_info = {
                         "player_id": prop['player_id'],
                         "name": prop['name'],
                         "property_name": prop['name'],
                         "available": None,
                         "note": "Music Assistant no disponible (requiere Python 3.11+)"
-                    })
+                    }
+                    
+                    # Agregar información de reserva si existe
+                    if prop['reservation']:
+                        player_info['reservation'] = prop['reservation']
+                    
+                    players_data.append(player_info)
             
             return Response({
                 "success": True,
