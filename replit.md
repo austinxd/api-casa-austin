@@ -73,8 +73,10 @@ Preferred communication style: Simple, everyday language.
   * **Time-based validation**: Music control only allowed during active reservation hours (check-in 3 PM, check-out 11 AM)
   * Permission system: only guests with active reservations or accepted participants can control music
   * WebSocket persistent connection to Music Assistant server (wss://music.casaaustin.pe/ws)
-  * **NOTA:** Requiere Python 3.11+ (dependencias opcionales: music-assistant-client y music-assistant-models)
-  * En Python 3.9/3.10, los endpoints retornan 501 Not Implemented con mensaje informativo
+  * **PRODUCCIÓN:** Requiere Python 3.11+ (dependencias: music-assistant-client 1.2.4, music-assistant-models 1.1.51)
+  * **Implementación:** Singleton pattern con conexión persistente y `start_listening()` para sincronización de reproductores
+  * **Servidor de producción:** AlmaLinux con Python 3.11 (venv-py311), Supervisor para gestión de procesos
+  * **Estado:** Completamente funcional, 9 reproductores detectados (incluyendo Casa Austin 3)
 
 ## External Dependencies
 

@@ -1,6 +1,6 @@
 import asyncio
 from typing import Optional
-from music_assistant_client import MusicAssistantClient
+from music_assistant_client.client import MusicAssistantClient
 
 
 class MusicAssistantSingleton:
