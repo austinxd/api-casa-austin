@@ -67,7 +67,10 @@ Preferred communication style: Simple, everyday language.
   * Player control endpoints (play, pause, stop, next, previous, volume)
   * Queue management (view queue, play media with queue options)
   * Music search and library browsing
-  * Session-based access control: hosts can create sessions and accept participants
+  * **Reservation-based sessions**: Each reservation acts as a session (reservation_id = session_id)
+  * **Access request system**: Users can request access to control music of an active reservation
+  * **Host approval workflow**: Reservation owner (host) accepts/rejects access requests
+  * **Time-based validation**: Music control only allowed during active reservation hours (check-in 3 PM, check-out 11 AM)
   * Permission system: only guests with active reservations or accepted participants can control music
   * WebSocket persistent connection to Music Assistant server (wss://music.casaaustin.pe/ws)
   * **NOTA:** Requiere Python 3.11+ (dependencias opcionales: music-assistant-client y music-assistant-models)
