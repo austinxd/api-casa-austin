@@ -91,8 +91,12 @@ class PlayersListView(APIView):
                     active_res = self._get_active_reservation_for_property(prop)
                     if active_res:
                         client = active_res.client
+                        # Primer nombre en MAYÚSCULAS + Primer apellido capitalizado
+                        first_name = client.first_name.upper() if client.first_name else ""
+                        last_name = client.last_name.capitalize() if client.last_name else ""
+                        
                         prop_data['reservation'] = {
-                            'client_name': f"{client.first_name} {client.last_name}",
+                            'client_name': f"{first_name} {last_name}".strip(),
                             'facebook_linked': client.facebook_linked,
                             'profile_picture': client.get_facebook_profile_picture() if client.facebook_linked else None,
                             'check_in_date': active_res.check_in_date.isoformat(),
