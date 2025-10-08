@@ -604,21 +604,39 @@ class MusicSearchView(APIView):
                 "playlists": []
             }
             
-            for item in results:
-                item_data = {
-                    "item_id": item.item_id,
-                    "name": item.name,
-                    "uri": item.uri if hasattr(item, 'uri') else None
-                }
-                
-                if item.media_type == MediaType.TRACK:
-                    organized_results["tracks"].append(item_data)
-                elif item.media_type == MediaType.ARTIST:
-                    organized_results["artists"].append(item_data)
-                elif item.media_type == MediaType.ALBUM:
-                    organized_results["albums"].append(item_data)
-                elif item.media_type == MediaType.PLAYLIST:
-                    organized_results["playlists"].append(item_data)
+            # SearchResults tiene atributos específicos, no es iterable
+            if hasattr(results, 'tracks') and results.tracks:
+                for track in results.tracks:
+                    organized_results["tracks"].append({
+                        "item_id": track.item_id if hasattr(track, 'item_id') else track.uri,
+                        "name": track.name,
+                        "uri": track.uri if hasattr(track, 'uri') else None,
+                        "duration": track.duration if hasattr(track, 'duration') else None
+                    })
+            
+            if hasattr(results, 'artists') and results.artists:
+                for artist in results.artists:
+                    organized_results["artists"].append({
+                        "item_id": artist.item_id if hasattr(artist, 'item_id') else artist.uri,
+                        "name": artist.name,
+                        "uri": artist.uri if hasattr(artist, 'uri') else None
+                    })
+            
+            if hasattr(results, 'albums') and results.albums:
+                for album in results.albums:
+                    organized_results["albums"].append({
+                        "item_id": album.item_id if hasattr(album, 'item_id') else album.uri,
+                        "name": album.name,
+                        "uri": album.uri if hasattr(album, 'uri') else None
+                    })
+            
+            if hasattr(results, 'playlists') and results.playlists:
+                for playlist in results.playlists:
+                    organized_results["playlists"].append({
+                        "item_id": playlist.item_id if hasattr(playlist, 'item_id') else playlist.uri,
+                        "name": playlist.name,
+                        "uri": playlist.uri if hasattr(playlist, 'uri') else None
+                    })
             
             return Response({
                 "success": True,
