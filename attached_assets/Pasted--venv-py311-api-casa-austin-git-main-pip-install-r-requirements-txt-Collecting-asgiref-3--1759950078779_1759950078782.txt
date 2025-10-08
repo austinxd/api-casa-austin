@@ -1,0 +1,275 @@
+(venv-py311) ➜  api-casa-austin git:(main) ✗ pip install -r requirements.txt
+
+Collecting asgiref==3.8.0 (from -r requirements.txt (line 1))
+  Using cached asgiref-3.8.0-py3-none-any.whl.metadata (9.3 kB)
+Collecting attrs==23.2.0 (from -r requirements.txt (line 2))
+  Using cached attrs-23.2.0-py3-none-any.whl.metadata (9.5 kB)
+Collecting backports.zoneinfo==0.2.1 (from -r requirements.txt (line 3))
+  Using cached backports.zoneinfo-0.2.1.tar.gz (74 kB)
+  Installing build dependencies ... done
+  Getting requirements to build wheel ... done
+  Preparing metadata (pyproject.toml) ... done
+Collecting certifi==2024.2.2 (from -r requirements.txt (line 4))
+  Using cached certifi-2024.2.2-py3-none-any.whl.metadata (2.2 kB)
+Collecting charset-normalizer==3.3.2 (from -r requirements.txt (line 5))
+  Downloading charset_normalizer-3.3.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (33 kB)
+Collecting Django==4.2.11 (from -r requirements.txt (line 6))
+  Using cached Django-4.2.11-py3-none-any.whl.metadata (4.2 kB)
+Collecting django-cors-headers==4.3.1 (from -r requirements.txt (line 7))
+  Using cached django_cors_headers-4.3.1-py3-none-any.whl.metadata (16 kB)
+Collecting django-environ==0.11.2 (from -r requirements.txt (line 8))
+  Using cached django_environ-0.11.2-py2.py3-none-any.whl.metadata (11 kB)
+Collecting djangorestframework==3.15.0 (from -r requirements.txt (line 9))
+  Using cached djangorestframework-3.15.0-py3-none-any.whl.metadata (11 kB)
+Collecting djangorestframework-simplejwt==5.3.1 (from -r requirements.txt (line 10))
+  Using cached djangorestframework_simplejwt-5.3.1-py3-none-any.whl.metadata (4.3 kB)
+Collecting drf-spectacular==0.27.1 (from -r requirements.txt (line 11))
+  Using cached drf_spectacular-0.27.1-py3-none-any.whl.metadata (14 kB)
+Collecting icalendar==5.0.12 (from -r requirements.txt (line 12))
+  Using cached icalendar-5.0.12-py3-none-any.whl.metadata (31 kB)
+Collecting idna==3.6 (from -r requirements.txt (line 13))
+  Using cached idna-3.6-py3-none-any.whl.metadata (9.9 kB)
+Collecting importlib-resources==6.4.0 (from -r requirements.txt (line 14))
+  Using cached importlib_resources-6.4.0-py3-none-any.whl.metadata (3.9 kB)
+Collecting inflection==0.5.1 (from -r requirements.txt (line 15))
+  Using cached inflection-0.5.1-py2.py3-none-any.whl.metadata (1.7 kB)
+Collecting jsonschema==4.21.1 (from -r requirements.txt (line 16))
+  Using cached jsonschema-4.21.1-py3-none-any.whl.metadata (7.8 kB)
+Collecting jsonschema-specifications==2023.12.1 (from -r requirements.txt (line 17))
+  Using cached jsonschema_specifications-2023.12.1-py3-none-any.whl.metadata (3.0 kB)
+Collecting pillow==10.3.0 (from -r requirements.txt (line 19))
+  Downloading pillow-10.3.0-cp311-cp311-manylinux_2_28_x86_64.whl.metadata (9.2 kB)
+Collecting pkgutil-resolve-name==1.3.10 (from -r requirements.txt (line 20))
+  Using cached pkgutil_resolve_name-1.3.10-py3-none-any.whl.metadata (624 bytes)
+Collecting PyJWT==2.8.0 (from -r requirements.txt (line 21))
+  Using cached PyJWT-2.8.0-py3-none-any.whl.metadata (4.2 kB)
+Collecting python-dateutil==2.9.0.post0 (from -r requirements.txt (line 22))
+  Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+Collecting python-slugify==8.0.4 (from -r requirements.txt (line 23))
+  Using cached python_slugify-8.0.4-py2.py3-none-any.whl.metadata (8.5 kB)
+Collecting pytz==2024.1 (from -r requirements.txt (line 24))
+  Using cached pytz-2024.1-py2.py3-none-any.whl.metadata (22 kB)
+Collecting PyYAML==6.0.1 (from -r requirements.txt (line 25))
+  Downloading PyYAML-6.0.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (2.1 kB)
+Collecting referencing==0.34.0 (from -r requirements.txt (line 26))
+  Using cached referencing-0.34.0-py3-none-any.whl.metadata (2.8 kB)
+Collecting requests==2.31.0 (from -r requirements.txt (line 27))
+  Using cached requests-2.31.0-py3-none-any.whl.metadata (4.6 kB)
+Collecting rpds-py==0.18.0 (from -r requirements.txt (line 28))
+  Downloading rpds_py-0.18.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+Collecting six==1.16.0 (from -r requirements.txt (line 29))
+  Using cached six-1.16.0-py2.py3-none-any.whl.metadata (1.8 kB)
+Collecting sqlparse==0.4.4 (from -r requirements.txt (line 30))
+  Using cached sqlparse-0.4.4-py3-none-any.whl.metadata (4.0 kB)
+Collecting text-unidecode==1.3 (from -r requirements.txt (line 31))
+  Using cached text_unidecode-1.3-py2.py3-none-any.whl.metadata (2.4 kB)
+Collecting typing-extensions==4.10.0 (from -r requirements.txt (line 32))
+  Using cached typing_extensions-4.10.0-py3-none-any.whl.metadata (3.0 kB)
+Collecting uritemplate==4.1.1 (from -r requirements.txt (line 33))
+  Using cached uritemplate-4.1.1-py2.py3-none-any.whl.metadata (2.9 kB)
+Collecting urllib3==2.2.1 (from -r requirements.txt (line 34))
+  Using cached urllib3-2.2.1-py3-none-any.whl.metadata (6.4 kB)
+Collecting zipp==3.18.1 (from -r requirements.txt (line 35))
+  Using cached zipp-3.18.1-py3-none-any.whl.metadata (3.5 kB)
+Collecting python-telegram-bot==20.0 (from -r requirements.txt (line 36))
+  Using cached python_telegram_bot-20.0-py3-none-any.whl.metadata (15 kB)
+Collecting twilio==8.10.0 (from -r requirements.txt (line 37))
+  Using cached twilio-8.10.0-py2.py3-none-any.whl.metadata (12 kB)
+Collecting babel==2.14.0 (from -r requirements.txt (line 38))
+  Using cached Babel-2.14.0-py3-none-any.whl.metadata (1.6 kB)
+Collecting docxtpl==0.16.7 (from -r requirements.txt (line 39))
+  Using cached docxtpl-0.16.7-py2.py3-none-any.whl.metadata (8.4 kB)
+Collecting openpyxl (from -r requirements.txt (line 40))
+  Using cached openpyxl-3.1.5-py2.py3-none-any.whl.metadata (2.5 kB)
+Collecting pandas (from -r requirements.txt (line 41))
+  Downloading pandas-2.3.3-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (91 kB)
+Collecting mysql-connector-python (from -r requirements.txt (line 45))
+  Downloading mysql_connector_python-9.4.0-cp311-cp311-manylinux_2_28_x86_64.whl.metadata (7.3 kB)
+Collecting httpx~=0.23.1 (from python-telegram-bot==20.0->-r requirements.txt (line 36))
+  Using cached httpx-0.23.3-py3-none-any.whl.metadata (7.1 kB)
+Collecting aiohttp>=3.8.4 (from twilio==8.10.0->-r requirements.txt (line 37))
+  Downloading aiohttp-3.13.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (8.1 kB)
+Collecting aiohttp-retry>=2.8.3 (from twilio==8.10.0->-r requirements.txt (line 37))
+  Downloading aiohttp_retry-2.9.1-py3-none-any.whl.metadata (8.8 kB)
+Collecting python-docx (from docxtpl==0.16.7->-r requirements.txt (line 39))
+  Downloading python_docx-1.2.0-py3-none-any.whl.metadata (2.0 kB)
+Collecting docxcompose (from docxtpl==0.16.7->-r requirements.txt (line 39))
+  Using cached docxcompose-1.4.0.tar.gz (20 kB)
+  Installing build dependencies ... done
+  Getting requirements to build wheel ... done
+  Preparing metadata (pyproject.toml) ... done
+Collecting jinja2 (from docxtpl==0.16.7->-r requirements.txt (line 39))
+  Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+Collecting lxml (from docxtpl==0.16.7->-r requirements.txt (line 39))
+  Downloading lxml-6.0.2-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (3.6 kB)
+Collecting httpcore<0.17.0,>=0.15.0 (from httpx~=0.23.1->python-telegram-bot==20.0->-r requirements.txt (line 36))
+  Using cached httpcore-0.16.3-py3-none-any.whl.metadata (16 kB)
+Collecting rfc3986<2,>=1.3 (from rfc3986[idna2008]<2,>=1.3->httpx~=0.23.1->python-telegram-bot==20.0->-r requirements.txt (line 36))
+  Using cached rfc3986-1.5.0-py2.py3-none-any.whl.metadata (6.5 kB)
+Collecting sniffio (from httpx~=0.23.1->python-telegram-bot==20.0->-r requirements.txt (line 36))
+  Using cached sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+Collecting h11<0.15,>=0.13 (from httpcore<0.17.0,>=0.15.0->httpx~=0.23.1->python-telegram-bot==20.0->-r requirements.txt (line 36))
+  Using cached h11-0.14.0-py3-none-any.whl.metadata (8.2 kB)
+Collecting anyio<5.0,>=3.0 (from httpcore<0.17.0,>=0.15.0->httpx~=0.23.1->python-telegram-bot==20.0->-r requirements.txt (line 36))
+  Downloading anyio-4.11.0-py3-none-any.whl.metadata (4.1 kB)
+Collecting et-xmlfile (from openpyxl->-r requirements.txt (line 40))
+  Using cached et_xmlfile-2.0.0-py3-none-any.whl.metadata (2.7 kB)
+Collecting numpy>=1.23.2 (from pandas->-r requirements.txt (line 41))
+  Downloading numpy-2.3.3-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (62 kB)
+Collecting tzdata>=2022.7 (from pandas->-r requirements.txt (line 41))
+  Downloading tzdata-2025.2-py2.py3-none-any.whl.metadata (1.4 kB)
+Collecting aiohappyeyeballs>=2.5.0 (from aiohttp>=3.8.4->twilio==8.10.0->-r requirements.txt (line 37))
+  Downloading aiohappyeyeballs-2.6.1-py3-none-any.whl.metadata (5.9 kB)
+Collecting aiosignal>=1.4.0 (from aiohttp>=3.8.4->twilio==8.10.0->-r requirements.txt (line 37))
+  Downloading aiosignal-1.4.0-py3-none-any.whl.metadata (3.7 kB)
+Collecting frozenlist>=1.1.1 (from aiohttp>=3.8.4->twilio==8.10.0->-r requirements.txt (line 37))
+  Downloading frozenlist-1.8.0-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (20 kB)
+Collecting multidict<7.0,>=4.5 (from aiohttp>=3.8.4->twilio==8.10.0->-r requirements.txt (line 37))
+  Downloading multidict-6.7.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.3 kB)
+Collecting propcache>=0.2.0 (from aiohttp>=3.8.4->twilio==8.10.0->-r requirements.txt (line 37))
+  Downloading propcache-0.3.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (12 kB)
+Collecting yarl<2.0,>=1.17.0 (from aiohttp>=3.8.4->twilio==8.10.0->-r requirements.txt (line 37))
+  Downloading yarl-1.22.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (75 kB)
+Requirement already satisfied: setuptools in ./venv-py311/lib64/python3.11/site-packages (from docxcompose->docxtpl==0.16.7->-r requirements.txt (line 39)) (65.5.1)
+Collecting MarkupSafe>=2.0 (from jinja2->docxtpl==0.16.7->-r requirements.txt (line 39))
+  Downloading markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+Using cached asgiref-3.8.0-py3-none-any.whl (23 kB)
+Using cached attrs-23.2.0-py3-none-any.whl (60 kB)
+Using cached certifi-2024.2.2-py3-none-any.whl (163 kB)
+Downloading charset_normalizer-3.3.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (140 kB)
+Using cached Django-4.2.11-py3-none-any.whl (8.0 MB)
+Using cached django_cors_headers-4.3.1-py3-none-any.whl (12 kB)
+Using cached django_environ-0.11.2-py2.py3-none-any.whl (19 kB)
+Using cached djangorestframework-3.15.0-py3-none-any.whl (1.1 MB)
+Using cached djangorestframework_simplejwt-5.3.1-py3-none-any.whl (101 kB)
+Using cached PyJWT-2.8.0-py3-none-any.whl (22 kB)
+Using cached drf_spectacular-0.27.1-py3-none-any.whl (102 kB)
+Using cached icalendar-5.0.12-py3-none-any.whl (116 kB)
+Using cached idna-3.6-py3-none-any.whl (61 kB)
+Using cached importlib_resources-6.4.0-py3-none-any.whl (38 kB)
+Using cached inflection-0.5.1-py2.py3-none-any.whl (9.5 kB)
+Using cached jsonschema-4.21.1-py3-none-any.whl (85 kB)
+Using cached jsonschema_specifications-2023.12.1-py3-none-any.whl (18 kB)
+Downloading pillow-10.3.0-cp311-cp311-manylinux_2_28_x86_64.whl (4.5 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.5/4.5 MB 33.1 MB/s  0:00:00
+Using cached pkgutil_resolve_name-1.3.10-py3-none-any.whl (4.7 kB)
+Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Using cached python_slugify-8.0.4-py2.py3-none-any.whl (10 kB)
+Using cached pytz-2024.1-py2.py3-none-any.whl (505 kB)
+Downloading PyYAML-6.0.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (757 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 757.7/757.7 kB 5.1 MB/s  0:00:00
+Using cached referencing-0.34.0-py3-none-any.whl (26 kB)
+Using cached requests-2.31.0-py3-none-any.whl (62 kB)
+Using cached urllib3-2.2.1-py3-none-any.whl (121 kB)
+Downloading rpds_py-0.18.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (1.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 7.3 MB/s  0:00:00
+Using cached six-1.16.0-py2.py3-none-any.whl (11 kB)
+Using cached sqlparse-0.4.4-py3-none-any.whl (41 kB)
+Using cached text_unidecode-1.3-py2.py3-none-any.whl (78 kB)
+Using cached typing_extensions-4.10.0-py3-none-any.whl (33 kB)
+Using cached uritemplate-4.1.1-py2.py3-none-any.whl (10 kB)
+Using cached zipp-3.18.1-py3-none-any.whl (8.2 kB)
+Using cached python_telegram_bot-20.0-py3-none-any.whl (484 kB)
+Using cached twilio-8.10.0-py2.py3-none-any.whl (1.8 MB)
+Using cached Babel-2.14.0-py3-none-any.whl (11.0 MB)
+Using cached docxtpl-0.16.7-py2.py3-none-any.whl (28 kB)
+Using cached httpx-0.23.3-py3-none-any.whl (71 kB)
+Using cached httpcore-0.16.3-py3-none-any.whl (69 kB)
+Downloading anyio-4.11.0-py3-none-any.whl (109 kB)
+Using cached h11-0.14.0-py3-none-any.whl (58 kB)
+Using cached rfc3986-1.5.0-py2.py3-none-any.whl (31 kB)
+Using cached sniffio-1.3.1-py3-none-any.whl (10 kB)
+Using cached openpyxl-3.1.5-py2.py3-none-any.whl (250 kB)
+Downloading pandas-2.3.3-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (12.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.8/12.8 MB 48.2 MB/s  0:00:00
+Downloading mysql_connector_python-9.4.0-cp311-cp311-manylinux_2_28_x86_64.whl (33.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 33.9/33.9 MB 50.2 MB/s  0:00:00
+Downloading aiohttp-3.13.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.7/1.7 MB 16.4 MB/s  0:00:00
+Downloading multidict-6.7.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (246 kB)
+Downloading yarl-1.22.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (365 kB)
+Downloading aiohappyeyeballs-2.6.1-py3-none-any.whl (15 kB)
+Downloading aiohttp_retry-2.9.1-py3-none-any.whl (10.0 kB)
+Downloading aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+Downloading frozenlist-1.8.0-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (231 kB)
+Downloading numpy-2.3.3-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.9 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.9/16.9 MB 56.3 MB/s  0:00:00
+Downloading propcache-0.3.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (213 kB)
+Downloading tzdata-2025.2-py2.py3-none-any.whl (347 kB)
+Downloading python_docx-1.2.0-py3-none-any.whl (252 kB)
+Downloading lxml-6.0.2-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (5.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.2/5.2 MB 32.5 MB/s  0:00:00
+Using cached et_xmlfile-2.0.0-py3-none-any.whl (18 kB)
+Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+Downloading markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)
+Building wheels for collected packages: backports.zoneinfo, docxcompose
+  Building wheel for backports.zoneinfo (pyproject.toml) ... error
+  error: subprocess-exited-with-error
+  
+  × Building wheel for backports.zoneinfo (pyproject.toml) did not run successfully.
+  │ exit code: 1
+  ╰─> [51 lines of output]
+      /tmp/pip-build-env-1_lpq99l/overlay/lib/python3.11/site-packages/setuptools/dist.py:759: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+      !!
+      
+              ********************************************************************************
+              Please consider removing the following classifiers in favor of a SPDX license expression:
+      
+              License :: OSI Approved :: Apache Software License
+      
+              See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+              ********************************************************************************
+      
+      !!
+        self._finalize_license_expression()
+      running bdist_wheel
+      running build
+      running build_py
+      creating build/lib.linux-x86_64-cpython-311/backports
+      copying src/backports/__init__.py -> build/lib.linux-x86_64-cpython-311/backports
+      creating build/lib.linux-x86_64-cpython-311/backports/zoneinfo
+      copying src/backports/zoneinfo/__init__.py -> build/lib.linux-x86_64-cpython-311/backports/zoneinfo
+      copying src/backports/zoneinfo/_common.py -> build/lib.linux-x86_64-cpython-311/backports/zoneinfo
+      copying src/backports/zoneinfo/_tzpath.py -> build/lib.linux-x86_64-cpython-311/backports/zoneinfo
+      copying src/backports/zoneinfo/_version.py -> build/lib.linux-x86_64-cpython-311/backports/zoneinfo
+      copying src/backports/zoneinfo/_zoneinfo.py -> build/lib.linux-x86_64-cpython-311/backports/zoneinfo
+      running egg_info
+      writing src/backports.zoneinfo.egg-info/PKG-INFO
+      writing dependency_links to src/backports.zoneinfo.egg-info/dependency_links.txt
+      writing requirements to src/backports.zoneinfo.egg-info/requires.txt
+      writing top-level names to src/backports.zoneinfo.egg-info/top_level.txt
+      reading manifest file 'src/backports.zoneinfo.egg-info/SOURCES.txt'
+      reading manifest template 'MANIFEST.in'
+      warning: no files found matching '*.png' under directory 'docs'
+      warning: no files found matching '*.svg' under directory 'docs'
+      no previously-included directories found matching 'docs/_build'
+      no previously-included directories found matching 'docs/_output'
+      adding license file 'LICENSE'
+      adding license file 'licenses/LICENSE_APACHE'
+      writing manifest file 'src/backports.zoneinfo.egg-info/SOURCES.txt'
+      copying src/backports/zoneinfo/__init__.pyi -> build/lib.linux-x86_64-cpython-311/backports/zoneinfo
+      copying src/backports/zoneinfo/py.typed -> build/lib.linux-x86_64-cpython-311/backports/zoneinfo
+      running build_ext
+      building 'backports.zoneinfo._czoneinfo' extension
+      creating build/temp.linux-x86_64-cpython-311/lib
+      gcc -Wsign-compare -DDYNAMIC_ANNOTATIONS_ENABLED=1 -DNDEBUG -O2 -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fstack-protector-strong -m64 -march=x86-64-v2 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -D_GNU_SOURCE -fPIC -fwrapv -O2 -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fstack-protector-strong -m64 -march=x86-64-v2 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -D_GNU_SOURCE -fPIC -fwrapv -O2 -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fstack-protector-strong -m64 -march=x86-64-v2 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -D_GNU_SOURCE -fPIC -fwrapv -fPIC -I/srv/casaaustin/api-casa-austin/venv-py311/include -I/usr/include/python3.11 -c lib/zoneinfo_module.c -o build/temp.linux-x86_64-cpython-311/lib/zoneinfo_module.o -std=c99
+      lib/zoneinfo_module.c: In function ‘zoneinfo_fromutc’:
+      lib/zoneinfo_module.c:600:19: error: ‘_PyLong_One’ undeclared (first use in this function); did you mean ‘_PyLong_New’?
+        600 |             one = _PyLong_One;
+            |                   ^~~~~~~~~~~
+            |                   _PyLong_New
+      lib/zoneinfo_module.c:600:19: note: each undeclared identifier is reported only once for each function it appears in
+      error: command '/usr/bin/gcc' failed with exit code 1
+      [end of output]
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+  ERROR: Failed building wheel for backports.zoneinfo
+  Building wheel for docxcompose (pyproject.toml) ... done
+  Created wheel for docxcompose: filename=docxcompose-1.4.0-py3-none-any.whl size=23319 sha256=1721f0eb1491b4ea862e95899168c21f312d2578bf866d8b6ea7f85145f99cac
+  Stored in directory: /home/almalinux/.cache/pip/wheels/2f/d8/64/140652690dd48cd115defaabf49762c29b52de2055507f744f
+Successfully built docxcompose
+Failed to build backports.zoneinfo
+error: failed-wheel-build-for-install
+
+× Failed to build installable wheels for some pyproject.toml based projects
+╰─> backports.zoneinfo
