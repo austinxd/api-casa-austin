@@ -23,7 +23,7 @@ class MusicAssistantSingleton:
         Obtiene el cliente de Music Assistant, creando la conexión si no existe.
         """
         async with self._lock:
-            if self._client is None or not self._client.connected:
+            if self._client is None or not self._client.connection:
                 await self._connect()
             return self._client
     
@@ -75,7 +75,7 @@ class MusicAssistantSingleton:
         """
         Verifica si hay una conexión activa.
         """
-        return self._client is not None and self._client.connected
+        return self._client is not None and self._client.connection is not None
 
 
 # Instancia global
