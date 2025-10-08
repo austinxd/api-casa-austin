@@ -11,12 +11,10 @@ try:
     from music_assistant_models.enums import MediaType, QueueOption
     from apps.reservation.music_client import get_music_client
     MUSIC_ASSISTANT_AVAILABLE = True
-    print("✅ Music Assistant CARGADO correctamente")
-except ImportError as e:
+except ImportError:
     MUSIC_ASSISTANT_AVAILABLE = False
     MediaType = None
     QueueOption = None
-    print(f"❌ Music Assistant NO disponible: {e}")
 
 from apps.reservation.music_models import MusicSessionParticipant
 from apps.reservation.models import Reservation
