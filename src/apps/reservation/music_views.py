@@ -171,6 +171,9 @@ class PlayerControlView(APIView):
     async def has_player_permission(self, user, player_id):
         """
         Verifica si el usuario tiene permiso para controlar el reproductor.
+        Solo permite acceso a:
+        1. El anfitrión (cliente) de LA reserva activa actual en esa propiedad
+        2. Participantes aceptados de LA reserva activa actual
         """
         # Obtener la propiedad asociada al player_id
         @sync_to_async
@@ -184,35 +187,67 @@ class PlayerControlView(APIView):
         if not property_obj:
             return False
         
-        # Verificar si hay una reserva activa del usuario para esta propiedad
+        # Buscar LA reserva que está activa AHORA MISMO en esta propiedad
         @sync_to_async
-        def get_user_reservations():
-            return list(Reservation.objects.filter(
-                client=user,
+        def get_current_active_reservation():
+            # Obtener todas las reservas aprobadas para esta propiedad
+            reservations = Reservation.objects.filter(
                 property=property_obj,
                 deleted=False,
                 status__in=['approved', 'pending', 'incomplete', 'under_review']
-            ))
+            )
+            
+            # Filtrar la que está activa AHORA
+            for res in reservations:
+                # Usar la función de validación de tiempo
+                from datetime import datetime, time
+                from django.utils import timezone
+                
+                now = timezone.now()
+                now_date = now.date()
+                now_time = now.time()
+                
+                checkin_time = time(15, 0)  # 3 PM
+                checkout_time = time(11, 0)  # 11 AM
+                
+                # Verificar rango de fechas
+                if now_date < res.check_in_date or now_date > res.check_out_date:
+                    continue
+                
+                # Si es el día de check-in, debe ser después de las 3 PM
+                if now_date == res.check_in_date and now_time < checkin_time:
+                    continue
+                
+                # Si es el día de check-out, debe ser antes de las 11 AM
+                if now_date == res.check_out_date and now_time >= checkout_time:
+                    continue
+                
+                # Esta es la reserva activa actual
+                return res
+            
+            return None
         
-        reservations = await get_user_reservations()
+        active_reservation = await get_current_active_reservation()
         
-        for reservation in reservations:
-            if self._is_reservation_active_now(reservation):
-                return True
+        # Si no hay ninguna reserva activa, nadie puede controlar
+        if not active_reservation:
+            return False
         
-        # Verificar si es participante aceptado en alguna reserva activa
+        # Verificar si el usuario es el anfitrión (owner) de LA reserva activa
+        if active_reservation.client.id == user.id:
+            return True
+        
+        # Verificar si es participante aceptado de LA reserva activa
         @sync_to_async
-        def get_participant():
+        def is_accepted_participant():
             return MusicSessionParticipant.objects.filter(
+                reservation=active_reservation,
                 client=user,
-                reservation__property=property_obj,
                 status='accepted',
                 deleted=False
-            ).select_related('reservation').first()
+            ).exists()
         
-        participant = await get_participant()
-        
-        if participant and self._is_reservation_active_now(participant.reservation):
+        if await is_accepted_participant():
             return True
         
         return False

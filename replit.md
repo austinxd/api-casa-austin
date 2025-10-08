@@ -71,7 +71,7 @@ Preferred communication style: Simple, everyday language.
   * **Access request system**: Users can request access to control music of an active reservation
   * **Host approval workflow**: Reservation owner (host) accepts/rejects access requests
   * **Time-based validation**: Music control only allowed during active reservation hours (check-in 3 PM, check-out 11 AM)
-  * Permission system: only guests with active reservations or accepted participants can control music
+  * **Security fix (Oct 2025)**: Permission system now correctly validates that only the host of THE current active reservation or their accepted participants can control music (previously allowed any user with any reservation on that property)
   * WebSocket persistent connection to Music Assistant server (wss://music.casaaustin.pe/ws)
   * **PRODUCCIÓN:** Requiere Python 3.11+ (dependencias: music-assistant-client 1.2.4, music-assistant-models 1.1.51)
   * **Implementación:** Singleton pattern con conexión persistente y `start_listening()` para sincronización de reproductores
