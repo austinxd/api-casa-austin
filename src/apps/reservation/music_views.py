@@ -25,41 +25,80 @@ from apps.clients.auth_views import ClientJWTAuthentication
 class PlayersListView(APIView):
     """
     GET /music/players
-    Lista todos los reproductores disponibles en Music Assistant.
+    Lista todos los reproductores configurados en las propiedades.
+    Si Music Assistant está disponible, obtiene estado en tiempo real.
     """
     authentication_classes = [ClientJWTAuthentication]
     permission_classes = [IsAuthenticated]
     
     @async_to_sync
     async def get(self, request):
-        if not MUSIC_ASSISTANT_AVAILABLE:
-            return Response({
-                "success": False,
-                "error": "Music Assistant no está disponible. Requiere Python 3.11+ y las dependencias music-assistant-client y music-assistant-models."
-            }, status=status.HTTP_501_NOT_IMPLEMENTED)
-        
         try:
-            music_client = await get_music_client()
+            # Obtener propiedades con player_id configurado
+            properties = Property.objects.filter(
+                player_id__isnull=False,
+                deleted=False
+            ).exclude(player_id='')
+            
             players_data = []
             
-            for player in music_client.players:
-                player_info = {
-                    "player_id": player.player_id,
-                    "name": player.name,
-                    "playback_state": player.playback_state.value if player.playback_state else None,
-                    "type": player.type.value if player.type else None,
-                    "volume_level": player.volume_level,
-                    "powered": player.powered,
-                    "available": player.available,
-                    "current_media": {
-                        "title": player.current_media.title if player.current_media else None
-                    } if player.current_media else None
-                }
-                players_data.append(player_info)
+            # Si Music Assistant está disponible, obtener estado en tiempo real
+            if MUSIC_ASSISTANT_AVAILABLE:
+                try:
+                    music_client = await get_music_client()
+                    
+                    for prop in properties:
+                        # Buscar el player en Music Assistant
+                        player = next((p for p in music_client.players if p.player_id == prop.player_id), None)
+                        
+                        if player:
+                            players_data.append({
+                                "player_id": player.player_id,
+                                "name": player.name,
+                                "property_name": prop.name,
+                                "playback_state": player.playback_state.value if player.playback_state else None,
+                                "type": player.type.value if player.type else None,
+                                "volume_level": player.volume_level,
+                                "powered": player.powered,
+                                "available": player.available,
+                                "current_media": {
+                                    "title": player.current_media.title if player.current_media else None
+                                } if player.current_media else None
+                            })
+                        else:
+                            # Player configurado pero no encontrado en Music Assistant
+                            players_data.append({
+                                "player_id": prop.player_id,
+                                "name": f"{prop.name} (sin conexión)",
+                                "property_name": prop.name,
+                                "playback_state": None,
+                                "available": False
+                            })
+                except Exception as e:
+                    # Si falla Music Assistant, continuar con datos básicos
+                    for prop in properties:
+                        players_data.append({
+                            "player_id": prop.player_id,
+                            "name": prop.name,
+                            "property_name": prop.name,
+                            "available": False,
+                            "error": "No se pudo conectar a Music Assistant"
+                        })
+            else:
+                # Sin Music Assistant, solo listar los configurados
+                for prop in properties:
+                    players_data.append({
+                        "player_id": prop.player_id,
+                        "name": prop.name,
+                        "property_name": prop.name,
+                        "available": None,
+                        "note": "Music Assistant no disponible (requiere Python 3.11+)"
+                    })
             
             return Response({
                 "success": True,
-                "players": players_data
+                "players": players_data,
+                "music_assistant_available": MUSIC_ASSISTANT_AVAILABLE
             })
             
         except Exception as e:
