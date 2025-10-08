@@ -1009,10 +1009,17 @@ class ParticipantsView(APIView):
             
             participants_data = []
             for participant in participants:
+                client = participant.client
+                # Primer nombre + inicial del apellido
+                last_name_initial = client.last_name[0].upper() + "." if client.last_name else ""
+                display_name = f"{client.first_name} {last_name_initial}".strip()
+                
                 participants_data.append({
                     "id": str(participant.id),
-                    "client_id": str(participant.client.id),
-                    "name": f"{participant.client.first_name} {participant.client.last_name}",
+                    "client_id": str(client.id),
+                    "name": display_name,
+                    "facebook_linked": client.facebook_linked,
+                    "profile_picture": client.get_facebook_profile_picture() if client.facebook_linked else None,
                     "accepted_at": participant.accepted_at.isoformat() if participant.accepted_at else None
                 })
             
