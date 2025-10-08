@@ -1,0 +1,90 @@
+✅ Conectado a Music Assistant
+
+📊 Total de reproductores: 9
+
+📻 Lista de reproductores:
+
+🎵 Reproductor:
+   ID: 4f3a96ed-0e83-3337-944e-b922ca732ab6
+   Nombre: casa 3 dormitorio king2p
+   Estado: idle
+   Tipo: player
+   Volumen: 74
+   Disponible: True
+   Encendido: False
+------------------------------------------------------------
+🎵 Reproductor:
+   ID: 1f47da9a-44b6-b304-8e7c-d9130ea24cd3
+   Nombre: casa 2 dormitorio 
+   Estado: idle
+   Tipo: player
+   Volumen: 15
+   Disponible: False
+   Encendido: False
+------------------------------------------------------------
+🎵 Reproductor:
+   ID: ap46a75be2062e
+   Nombre: Sala
+   Estado: idle
+   Tipo: player
+   Volumen: 64
+   Disponible: True
+   Encendido: True
+------------------------------------------------------------
+🎵 Reproductor:
+   ID: ma_bbltkg4cnm
+   Nombre: This Device
+   Estado: idle
+   Tipo: player
+   Volumen: 0
+   Disponible: False
+   Encendido: False
+------------------------------------------------------------
+🎵 Reproductor:
+   ID: ma_ryv9dwb3bc
+   Nombre: This Device
+   Estado: idle
+   Tipo: player
+   Volumen: 0
+   Disponible: True
+   Encendido: False
+------------------------------------------------------------
+🎵 Reproductor:
+   ID: apee7c40cf9a87
+   Nombre: MacBook Pro de Arash (AirPlay)
+   Estado: idle
+   Tipo: player
+   Volumen: 20
+   Disponible: False
+   Encendido: True
+------------------------------------------------------------
+🎵 Reproductor:
+   ID: apcedd9c84fac2
+   Nombre: MacBook Pro de Arash (AirPlay)
+   Estado: idle
+   Tipo: player
+   Volumen: 20
+   Disponible: False
+   Encendido: True
+------------------------------------------------------------
+🎵 Reproductor:
+   ID: ma_8m9usmxxie
+   Nombre: This Device
+   Estado: idle
+   Tipo: player
+   Volumen: None
+   Disponible: False
+   Encendido: False
+------------------------------------------------------------
+🎵 Reproductor:
+   ID: ap2633e729f08f
+   Nombre: Mac BlackCode (AirPlay)
+   Estado: idle
+   Tipo: player
+   Volumen: 20
+   Disponible: True
+   Encendido: True
+------------------------------------------------------------
+(venv-py311) ➜  api-casa-austin git:(main) ✗ curl -X GET https://api.casaaustin.pe/api/v1/music/players/ \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxODg2MDkxMTg3LCJpYXQiOjE3NTk5NDcxODcsImp0aSI6ImFiMjZmNGNhNzBiMTQwOGViYjgxZTNjNzFhMjRlNDMzIiwiY2xpZW50X2lkIjoiNDA1YTAxMTktY2FiYS00NjdjLThmNGMtODM1ZjQ1NDAyMzY3IiwidXNlcl9pZCI6IjQwNWEwMTE5LWNhYmEtNDY3Yy04ZjRjLTgzNWY0NTQwMjM2NyIsImRvY3VtZW50X3R5cGUiOiJkbmkiLCJudW1iZXJfZG9jIjoiNDU4MTY4NDYifQ.fxAktawTPWK6wW6lQV5Jmb_-lTLQbN-65JDQtnFFZm0"
+{"success":true,"players":[{"player_id":"4f3a96ed-0e83-3337-944e-b922ca732ab6","name":"Casa Austin 3 (sin conexión)","property_name":"Casa Austin 3","playback_state":null,"available":false}],"music_assistant_available":true}%       

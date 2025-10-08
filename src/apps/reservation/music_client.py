@@ -43,6 +43,12 @@ class MusicAssistantSingleton:
             self._client = MusicAssistantClient("wss://music.casaaustin.pe/ws", None)
             await self._client.connect()
             
+            # Iniciar escucha de eventos para sincronizar reproductores
+            asyncio.create_task(self._client.start_listening())
+            
+            # Esperar un momento para que se sincronicen los datos
+            await asyncio.sleep(1)
+            
             print("✅ Conectado a Music Assistant")
             
         except Exception as e:
