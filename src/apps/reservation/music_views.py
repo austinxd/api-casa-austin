@@ -4,14 +4,22 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from asgiref.sync import async_to_sync
 import asyncio
-from music_assistant_models.enums import MediaType, QueueOption
+from django.shortcuts import get_object_or_404
 
-from apps.reservation.music_client import get_music_client
+# Importaciones opcionales de Music Assistant (requiere Python 3.11+)
+try:
+    from music_assistant_models.enums import MediaType, QueueOption
+    from apps.reservation.music_client import get_music_client
+    MUSIC_ASSISTANT_AVAILABLE = True
+except ImportError:
+    MUSIC_ASSISTANT_AVAILABLE = False
+    MediaType = None
+    QueueOption = None
+
 from apps.reservation.music_models import MusicSession, MusicSessionParticipant
 from apps.reservation.models import Reservation
 from apps.property.models import Property
 from apps.clients.auth_views import ClientJWTAuthentication
-from django.shortcuts import get_object_or_404
 
 
 class PlayersListView(APIView):
@@ -24,6 +32,12 @@ class PlayersListView(APIView):
     
     @async_to_sync
     async def get(self, request):
+        if not MUSIC_ASSISTANT_AVAILABLE:
+            return Response({
+                "success": False,
+                "error": "Music Assistant no está disponible. Requiere Python 3.11+ y las dependencias music-assistant-client y music-assistant-models."
+            }, status=status.HTTP_501_NOT_IMPLEMENTED)
+        
         try:
             music_client = await get_music_client()
             players_data = []
@@ -62,6 +76,15 @@ class PlayerControlView(APIView):
     """
     authentication_classes = [ClientJWTAuthentication]
     permission_classes = [IsAuthenticated]
+    
+    def _check_music_available(self):
+        """Verifica si Music Assistant está disponible."""
+        if not MUSIC_ASSISTANT_AVAILABLE:
+            return Response({
+                "success": False,
+                "error": "Music Assistant no está disponible. Requiere Python 3.11+ y las dependencias music-assistant-client y music-assistant-models."
+            }, status=status.HTTP_501_NOT_IMPLEMENTED)
+        return None
     
     def has_player_permission(self, user, player_id):
         """
@@ -108,6 +131,11 @@ class PlayerPlayView(PlayerControlView):
     """
     @async_to_sync
     async def post(self, request, player_id):
+        # Verificar disponibilidad de Music Assistant
+        error_response = self._check_music_available()
+        if error_response:
+            return error_response
+        
         if not self.has_player_permission(request.user, player_id):
             return Response({
                 "success": False,
@@ -136,6 +164,11 @@ class PlayerPauseView(PlayerControlView):
     """
     @async_to_sync
     async def post(self, request, player_id):
+        # Verificar disponibilidad de Music Assistant
+        error_response = self._check_music_available()
+        if error_response:
+            return error_response
+        
         if not self.has_player_permission(request.user, player_id):
             return Response({
                 "success": False,
@@ -164,6 +197,11 @@ class PlayerStopView(PlayerControlView):
     """
     @async_to_sync
     async def post(self, request, player_id):
+        # Verificar disponibilidad de Music Assistant
+        error_response = self._check_music_available()
+        if error_response:
+            return error_response
+        
         if not self.has_player_permission(request.user, player_id):
             return Response({
                 "success": False,
@@ -192,6 +230,11 @@ class PlayerNextView(PlayerControlView):
     """
     @async_to_sync
     async def post(self, request, player_id):
+        # Verificar disponibilidad de Music Assistant
+        error_response = self._check_music_available()
+        if error_response:
+            return error_response
+        
         if not self.has_player_permission(request.user, player_id):
             return Response({
                 "success": False,
@@ -220,6 +263,11 @@ class PlayerPreviousView(PlayerControlView):
     """
     @async_to_sync
     async def post(self, request, player_id):
+        # Verificar disponibilidad de Music Assistant
+        error_response = self._check_music_available()
+        if error_response:
+            return error_response
+        
         if not self.has_player_permission(request.user, player_id):
             return Response({
                 "success": False,
@@ -249,6 +297,11 @@ class PlayerVolumeView(PlayerControlView):
     """
     @async_to_sync
     async def post(self, request, player_id):
+        # Verificar disponibilidad de Music Assistant
+        error_response = self._check_music_available()
+        if error_response:
+            return error_response
+        
         if not self.has_player_permission(request.user, player_id):
             return Response({
                 "success": False,
@@ -298,6 +351,11 @@ class PlayerQueueView(PlayerControlView):
     """
     @async_to_sync
     async def get(self, request, player_id):
+        # Verificar disponibilidad de Music Assistant
+        error_response = self._check_music_available()
+        if error_response:
+            return error_response
+        
         if not self.has_player_permission(request.user, player_id):
             return Response({
                 "success": False,
@@ -342,6 +400,11 @@ class PlayerPlayMediaView(PlayerControlView):
     """
     @async_to_sync
     async def post(self, request, player_id):
+        # Verificar disponibilidad de Music Assistant
+        error_response = self._check_music_available()
+        if error_response:
+            return error_response
+        
         if not self.has_player_permission(request.user, player_id):
             return Response({
                 "success": False,
@@ -405,6 +468,11 @@ class MusicSearchView(APIView):
     
     @async_to_sync
     async def post(self, request):
+        # Verificar disponibilidad de Music Assistant
+        error_response = self._check_music_available()
+        if error_response:
+            return error_response
+        
         query = request.data.get('query')
         media_types_str = request.data.get('media_types', [])
         limit = request.data.get('limit', 50)
@@ -487,6 +555,11 @@ class MusicLibraryTracksView(APIView):
     
     @async_to_sync
     async def get(self, request):
+        # Verificar disponibilidad de Music Assistant
+        error_response = self._check_music_available()
+        if error_response:
+            return error_response
+        
         limit = int(request.GET.get('limit', 50))
         offset = int(request.GET.get('offset', 0))
         

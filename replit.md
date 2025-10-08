@@ -70,6 +70,8 @@ Preferred communication style: Simple, everyday language.
   * Session-based access control: hosts can create sessions and accept participants
   * Permission system: only guests with active reservations or accepted participants can control music
   * WebSocket persistent connection to Music Assistant server (wss://music.casaaustin.pe/ws)
+  * **NOTA:** Requiere Python 3.11+ (dependencias opcionales: music-assistant-client y music-assistant-models)
+  * En Python 3.9/3.10, los endpoints retornan 501 Not Implemented con mensaje informativo
 
 ## External Dependencies
 
