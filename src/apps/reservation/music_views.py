@@ -50,6 +50,9 @@ class PlayersListView(APIView):
                 try:
                     music_client = await get_music_client()
                     
+                    # Esperar un momento adicional para que los datos de reproductores estén completamente cargados
+                    await asyncio.sleep(0.5)
+                    
                     for prop in properties:
                         # Buscar el player en Music Assistant
                         player = next((p for p in music_client.players if p.player_id == prop['player_id']), None)
