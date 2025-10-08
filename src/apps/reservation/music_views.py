@@ -234,7 +234,8 @@ class PlayerControlView(APIView):
             return False
         
         # Verificar si el usuario es el anfitrión (owner) de LA reserva activa
-        if active_reservation.client.id == user.id:
+        # Usar client_id directamente (sin query) en vez de .client.id
+        if active_reservation.client_id == user.id:
             return True
         
         # Verificar si es participante aceptado de LA reserva activa

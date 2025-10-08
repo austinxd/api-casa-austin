@@ -1,0 +1,122 @@
+SynchronousOnlyOperation at /api/v1/music/players/4f3a96ed-0e83-3337-944e-b922ca732ab6/play/
+You cannot call this from an async context - use a thread or sync_to_async.
+Request Method:	POST
+Request URL:	http://api.casaaustin.pe/api/v1/music/players/4f3a96ed-0e83-3337-944e-b922ca732ab6/play/?reservation_id=96cf711c-9a67-45d8-a74a-f951e4968f90
+Django Version:	4.2.11
+Exception Type:	SynchronousOnlyOperation
+Exception Value:	
+You cannot call this from an async context - use a thread or sync_to_async.
+Exception Location:	/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/utils/asyncio.py, line 24, in inner
+Raised during:	apps.reservation.music_views.PlayerPlayView
+Python Executable:	/srv/casaaustin/api-casa-austin/venv-py311/bin/python3.11
+Python Version:	3.11.11
+Python Path:	
+['/srv/casaaustin/api-casa-austin/src',
+ '/srv/casaaustin/api-casa-austin/venv-py311/bin',
+ '/usr/lib64/python311.zip',
+ '/usr/lib64/python3.11',
+ '/usr/lib64/python3.11/lib-dynload',
+ '/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages',
+ '/srv/casaaustin/api-casa-austin/venv-py311/lib/python3.11/site-packages']
+Server time:	Wed, 08 Oct 2025 16:47:43 -0500
+Traceback Switch to copy-and-paste view
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/db/models/fields/related_descriptors.py, line 218, in __get__
+        if instance is None:
+            return self
+        # The related instance is loaded from the database and then cached
+        # by the field on the model instance state. It can also be pre-cached
+        # by the reverse accessor (ReverseOneToOneDescriptor).
+        try:
+            rel_obj = self.field.get_cached_value(instance)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+        except KeyError:
+            has_value = None not in self.field.get_local_related_value(instance)
+            ancestor_link = (
+                instance._meta.get_ancestor_link(self.field.model)
+                if has_value
+                else None
+Local vars
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/db/models/fields/mixins.py, line 15, in get_cached_value
+    def get_cache_name(self):
+        raise NotImplementedError
+    def get_cached_value(self, instance, default=NOT_PROVIDED):
+        cache_name = self.get_cache_name()
+        try:
+            return instance._state.fields_cache[cache_name]
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+        except KeyError:
+            if default is NOT_PROVIDED:
+                raise
+            return default
+    def is_cached(self, instance):
+Local vars
+During handling of the above exception ('client'), another exception occurred:
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/core/handlers/exception.py, line 42, in inner
+    can rely on getting a response instead of an exception.
+    """
+    if iscoroutinefunction(get_response):
+        @wraps(get_response)
+        async def inner(request):
+            try:
+                response = await get_response(request)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+            except Exception as exc:
+                response = await sync_to_async(
+                    response_for_exception, thread_sensitive=False
+                )(request, exc)
+            return response
+Local vars
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/core/handlers/base.py, line 253, in _get_response_async
+            wrapped_callback = self.make_view_atomic(callback)
+            # If it is a synchronous view, run it in a subthread
+            if not iscoroutinefunction(wrapped_callback):
+                wrapped_callback = sync_to_async(
+                    wrapped_callback, thread_sensitive=True
+                )
+            try:
+                response = await wrapped_callback(
+                                 …
+                    request, *callback_args, **callback_kwargs
+                )
+            except Exception as e:
+                response = await sync_to_async(
+                    self.process_exception_by_middleware,
+                    thread_sensitive=True,
+Local vars
+/usr/lib64/python3.11/concurrent/futures/thread.py, line 58, in run
+        self.kwargs = kwargs
+    def run(self):
+        if not self.future.set_running_or_notify_cancel():
+            return
+        try:
+            result = self.fn(*self.args, **self.kwargs)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+        except BaseException as exc:
+            self.future.set_exception(exc)
+            # Break a reference cycle with the exception 'exc'
+            self = None
+        else:
+            self.future.set_result(result)
+Local vars
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/views/decorators/csrf.py, line 56, in wrapper_view
+def csrf_exempt(view_func):
+    """Mark a view function as being exempt from the CSRF view protection."""
+    # view_func.csrf_exempt = True would also work, but decorators are nicer
+    # if they don't have side effects, so return a new function.
+    @wraps(view_func)
+    def wrapper_view(*args, **kwargs):
+        return view_func(*args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+    wrapper_view.csrf_exempt = True
+    return wrapper_view
+Local vars
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/views/generic/base.py, line 104, in view
+            self = cls(**initkwargs)
+            self.setup(request, *args, **kwargs)
+            if not hasattr(self, "request"):
+                raise AttributeError(
+                    "%s instance has no 'request' attribute. Did you override "
+                    "setup() and forget to call super()?" % cls.__name__
+                )
+            return self.dispatch(request, *args, **kwargs)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
