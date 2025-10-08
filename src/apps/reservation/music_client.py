@@ -23,7 +23,12 @@ class MusicAssistantSingleton:
         Obtiene el cliente de Music Assistant, creando la conexión si no existe.
         """
         async with self._lock:
-            if self._client is None or not self._client.connection:
+            # Verificar si el cliente existe y tiene conexión activa
+            if self._client is None:
+                await self._connect()
+            elif not hasattr(self._client, 'connection') or self._client.connection is None:
+                # Reconectar si la conexión se perdió
+                print("⚠️ Conexión perdida, reconectando...")
                 await self._connect()
             return self._client
     
@@ -46,8 +51,8 @@ class MusicAssistantSingleton:
             # Iniciar escucha de eventos para sincronizar reproductores
             asyncio.create_task(self._client.start_listening())
             
-            # Esperar un momento para que se sincronicen los datos
-            await asyncio.sleep(1)
+            # Esperar más tiempo para asegurar sincronización completa
+            await asyncio.sleep(2)
             
             print("✅ Conectado a Music Assistant")
             
