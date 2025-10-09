@@ -610,7 +610,8 @@ class PlayerQueueView(PlayerControlView):
                     "queue_item_id": item.queue_item_id,
                     "name": item.name,
                     "uri": item.uri,
-                    "duration": item.duration
+                    "duration": item.duration,
+                    "image": item.image.path if hasattr(item, 'image') and item.image else None
                 })
             
             return Response({
