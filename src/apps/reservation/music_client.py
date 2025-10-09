@@ -26,11 +26,31 @@ class MusicAssistantSingleton:
             # Verificar si el cliente existe y tiene conexión activa
             if self._client is None:
                 await self._connect()
-            elif not hasattr(self._client, 'connection') or self._client.connection is None:
+            elif not await self._is_connection_alive():
                 # Reconectar si la conexión se perdió
                 print("⚠️ Conexión perdida, reconectando...")
                 await self._connect()
             return self._client
+    
+    async def _is_connection_alive(self) -> bool:
+        """
+        Verifica si la conexión está realmente activa.
+        """
+        if self._client is None:
+            return False
+        
+        # Verificar si el objeto de conexión existe
+        if not hasattr(self._client, 'connection') or self._client.connection is None:
+            return False
+        
+        # Verificar si el WebSocket está abierto
+        try:
+            if hasattr(self._client.connection, 'closed') and self._client.connection.closed:
+                return False
+        except:
+            return False
+        
+        return True
     
     async def _connect(self):
         """
@@ -96,3 +116,26 @@ async def get_music_client() -> MusicAssistantClient:
     Helper function para obtener el cliente de Music Assistant.
     """
     return await music_assistant.get_client()
+
+
+async def execute_with_retry(func, *args, max_retries=2, **kwargs):
+    """
+    Ejecuta una función con reintentos automáticos en caso de error de conexión.
+    Si falla, intenta reconectar y ejecutar de nuevo.
+    """
+    for attempt in range(max_retries):
+        try:
+            client = await get_music_client()
+            return await func(client, *args, **kwargs)
+        except Exception as e:
+            error_msg = str(e).lower()
+            # Detectar errores de conexión
+            if any(keyword in error_msg for keyword in ['connection', 'websocket', 'not connected', 'closed']):
+                if attempt < max_retries - 1:
+                    print(f"🔄 Intento {attempt + 1}/{max_retries}: Error de conexión, reconectando...")
+                    # Forzar reconexión
+                    music_assistant._client = None
+                    await asyncio.sleep(1)  # Esperar antes de reintentar
+                    continue
+            # Si no es error de conexión o último intento, lanzar error
+            raise
