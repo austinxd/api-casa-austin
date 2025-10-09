@@ -925,8 +925,8 @@ class PlayerClearQueueView(PlayerControlView):
         def check_is_host():
             try:
                 reservation = Reservation.objects.select_related('client').get(id=reservation_id, deleted=False)
-                # Verificar dentro del contexto sync
-                return reservation.client.user_id == request.user.id, True
+                # request.user ES el Clients directamente (ClientJWTAuthentication)
+                return reservation.client.id == request.user.id, True
             except Reservation.DoesNotExist:
                 return False, False
         

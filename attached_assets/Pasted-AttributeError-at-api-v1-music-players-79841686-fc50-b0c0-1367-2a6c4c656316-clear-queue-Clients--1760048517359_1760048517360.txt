@@ -1,0 +1,114 @@
+AttributeError at /api/v1/music/players/79841686-fc50-b0c0-1367-2a6c4c656316/clear-queue/
+'Clients' object has no attribute 'user_id'
+Request Method:	POST
+Request URL:	http://api.casaaustin.pe/api/v1/music/players/79841686-fc50-b0c0-1367-2a6c4c656316/clear-queue/?reservation_id=509fd522-46ad-4a98-804d-265263d44b0a
+Django Version:	4.2.11
+Exception Type:	AttributeError
+Exception Value:	
+'Clients' object has no attribute 'user_id'
+Exception Location:	/srv/casaaustin/api-casa-austin/src/apps/reservation/music_views.py, line 929, in check_is_host
+Raised during:	apps.reservation.music_views.PlayerClearQueueView
+Python Executable:	/srv/casaaustin/api-casa-austin/venv-py311/bin/python3.11
+Python Version:	3.11.11
+Python Path:	
+['/srv/casaaustin/api-casa-austin/src',
+ '/srv/casaaustin/api-casa-austin/venv-py311/bin',
+ '/usr/lib64/python311.zip',
+ '/usr/lib64/python3.11',
+ '/usr/lib64/python3.11/lib-dynload',
+ '/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages',
+ '/srv/casaaustin/api-casa-austin/venv-py311/lib/python3.11/site-packages']
+Server time:	Thu, 09 Oct 2025 17:21:51 -0500
+Traceback Switch to copy-and-paste view
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/core/handlers/exception.py, line 42, in inner
+    can rely on getting a response instead of an exception.
+    """
+    if iscoroutinefunction(get_response):
+        @wraps(get_response)
+        async def inner(request):
+            try:
+                response = await get_response(request)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+            except Exception as exc:
+                response = await sync_to_async(
+                    response_for_exception, thread_sensitive=False
+                )(request, exc)
+            return response
+Local vars
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/core/handlers/base.py, line 253, in _get_response_async
+            wrapped_callback = self.make_view_atomic(callback)
+            # If it is a synchronous view, run it in a subthread
+            if not iscoroutinefunction(wrapped_callback):
+                wrapped_callback = sync_to_async(
+                    wrapped_callback, thread_sensitive=True
+                )
+            try:
+                response = await wrapped_callback(
+                                 …
+                    request, *callback_args, **callback_kwargs
+                )
+            except Exception as e:
+                response = await sync_to_async(
+                    self.process_exception_by_middleware,
+                    thread_sensitive=True,
+Local vars
+/usr/lib64/python3.11/concurrent/futures/thread.py, line 58, in run
+        self.kwargs = kwargs
+    def run(self):
+        if not self.future.set_running_or_notify_cancel():
+            return
+        try:
+            result = self.fn(*self.args, **self.kwargs)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+        except BaseException as exc:
+            self.future.set_exception(exc)
+            # Break a reference cycle with the exception 'exc'
+            self = None
+        else:
+            self.future.set_result(result)
+Local vars
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/views/decorators/csrf.py, line 56, in wrapper_view
+def csrf_exempt(view_func):
+    """Mark a view function as being exempt from the CSRF view protection."""
+    # view_func.csrf_exempt = True would also work, but decorators are nicer
+    # if they don't have side effects, so return a new function.
+    @wraps(view_func)
+    def wrapper_view(*args, **kwargs):
+        return view_func(*args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+    wrapper_view.csrf_exempt = True
+    return wrapper_view
+Local vars
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/views/generic/base.py, line 104, in view
+            self = cls(**initkwargs)
+            self.setup(request, *args, **kwargs)
+            if not hasattr(self, "request"):
+                raise AttributeError(
+                    "%s instance has no 'request' attribute. Did you override "
+                    "setup() and forget to call super()?" % cls.__name__
+                )
+            return self.dispatch(request, *args, **kwargs)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+        view.view_class = cls
+        view.view_initkwargs = initkwargs
+        # __name__ and __qualname__ are intentionally left unchanged as
+        # view_class should be used to robustly determine the name of the view
+Local vars
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/rest_framework/views.py, line 509, in dispatch
+                                  self.http_method_not_allowed)
+            else:
+                handler = self.http_method_not_allowed
+            response = handler(request, *args, **kwargs)
+        except Exception as exc:
+            response = self.handle_exception(exc)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^ …
+        self.response = self.finalize_response(request, response, *args, **kwargs)
+        return self.response
+    def options(self, request, *args, **kwargs):
+        """
+Local vars
+/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/rest_framework/views.py, line 469, in handle_exception
+        exception_handler = self.get_exception_handler()
+        context = self.get_exception_handler_context()
+        response = exception_handler(exc, context)
+        if response is None:
