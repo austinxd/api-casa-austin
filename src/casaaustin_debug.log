@@ -6519,3 +6519,4 @@ INFO 2025-10-06 20:55:01,810 pricing_models 2002 140352879060672 🌍 Promoción
 INFO 2025-10-06 20:55:01,810 pricing_service 2002 140352879060672 ✅ Resultado para '🎄 Descuento Global Navidad': True - 'Precio incluye 25% de descuento'
 INFO 2025-10-06 20:55:01,810 pricing_service 2002 140352879060672 💰 Descuento TOTAL calculado para '🎄 Descuento Global Navidad': $50.0000 USD (25.00%)
 INFO 2025-10-06 20:55:01,811 pricing_service 2002 140352879060672 🏆 MEJOR DESCUENTO SELECCIONADO: 🎄 Descuento Global Navidad - $50.0000 USD
+ERROR 2025-10-09 12:15:07,796 views 872 140186751243968 ClientInfoByReferralCodeView: Error: No Clients matches the given query.

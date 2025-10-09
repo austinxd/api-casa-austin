@@ -2923,10 +2923,16 @@ class ClientInfoByReferralCodeView(APIView):
         
         try:
             # Buscar cliente por código de referido
-            client = get_object_or_404(
-                Clients.objects.filter(deleted=False),
+            client = Clients.objects.filter(
+                deleted=False,
                 referral_code=referral_code
-            )
+            ).first()
+            
+            if not client:
+                return Response({
+                    'success': False,
+                    'error': 'Cliente no encontrado con ese código de referido'
+                }, status=status.HTTP_404_NOT_FOUND)
             
             # Obtener reservas ACTIVAS (en curso ahora mismo)
             now = timezone.now()
@@ -2978,11 +2984,6 @@ class ClientInfoByReferralCodeView(APIView):
             
             return Response(response_data)
             
-        except Clients.DoesNotExist:
-            return Response({
-                'success': False,
-                'error': 'Cliente no encontrado con ese código de referido'
-            }, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             logger.error(f"ClientInfoByReferralCodeView: Error: {str(e)}")
             return Response({
