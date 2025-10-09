@@ -143,7 +143,8 @@ class PlayersListView(APIView):
                                 "powered": player.powered,
                                 "available": player.available,
                                 "current_media": {
-                                    "title": player.current_media.title if player.current_media else None
+                                    "title": player.current_media.title if player.current_media else None,
+                                    "image": player.current_media.image.path if (player.current_media and hasattr(player.current_media, 'image') and player.current_media.image) else None
                                 } if player.current_media else None
                             }
                             
