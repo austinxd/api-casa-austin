@@ -584,6 +584,19 @@ class PlayerQueueView(PlayerControlView):
         try:
             music_client = await get_music_client()
             queue = await music_client.player_queues.get_active_queue(player_id)
+            
+            # Si no hay cola activa, devolver cola vacía
+            if not queue:
+                return Response({
+                    "success": True,
+                    "queue": {
+                        "queue_id": None,
+                        "state": None,
+                        "current_index": None,
+                        "items": []
+                    }
+                })
+            
             items = await music_client.player_queues.get_player_queue_items(queue.queue_id)
             
             items_data = []
