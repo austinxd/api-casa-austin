@@ -133,6 +133,30 @@ class PlayersListView(APIView):
                         player = next((p for p in music_client.players if p.player_id == prop['player_id']), None)
                         
                         if player:
+                            # Obtener información del media actual
+                            current_media_info = None
+                            if player.current_media:
+                                media_image = None
+                                # Intentar obtener la imagen del media item completo
+                                if hasattr(player.current_media, 'uri') and player.current_media.uri:
+                                    try:
+                                        # Obtener el item completo para tener acceso a la imagen
+                                        media_item = await music_client.music.get_item_by_uri(player.current_media.uri)
+                                        if media_item and hasattr(media_item, 'image') and media_item.image:
+                                            media_image = media_item.image.path
+                                    except:
+                                        pass
+                                
+                                # Si no se pudo obtener desde el item completo, intentar desde current_media
+                                if not media_image and hasattr(player.current_media, 'image') and player.current_media.image:
+                                    media_image = player.current_media.image.path
+                                
+                                current_media_info = {
+                                    "title": player.current_media.title,
+                                    "artist": player.current_media.artist if hasattr(player.current_media, 'artist') else None,
+                                    "image": media_image
+                                }
+                            
                             player_info = {
                                 "player_id": player.player_id,
                                 "name": player.name,
@@ -142,11 +166,7 @@ class PlayersListView(APIView):
                                 "volume_level": player.volume_level,
                                 "powered": player.powered,
                                 "available": player.available,
-                                "current_media": {
-                                    "title": player.current_media.title if player.current_media else None,
-                                    "artist": player.current_media.artist if (player.current_media and hasattr(player.current_media, 'artist')) else None,
-                                    "image": player.current_media.image.path if (player.current_media and hasattr(player.current_media, 'image') and player.current_media.image) else None
-                                } if player.current_media else None
+                                "current_media": current_media_info
                             }
                             
                             # Agregar información de reserva si existe
