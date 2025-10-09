@@ -593,6 +593,49 @@ class PlayerVolumeView(PlayerControlView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class PlayerPowerView(PlayerControlView):
+    """
+    POST /music/players/{player_id}/power
+    Body: {"powered": bool}
+    Enciende (true) o apaga (false) el reproductor.
+    """
+    @async_to_sync
+    async def post(self, request, player_id):
+        # Verificar disponibilidad de Music Assistant
+        error_response = self._check_music_available()
+        if error_response:
+            return error_response
+        
+        if not await self.has_player_permission(request.user, player_id):
+            return Response({
+                "success": False,
+                "error": "No tienes permiso para controlar este reproductor"
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        powered = request.data.get('powered')
+        
+        if powered is None:
+            return Response({
+                "success": False,
+                "error": "El campo 'powered' es requerido (true o false)"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            music_client = await get_music_client()
+            await music_client.players.player_command_power(player_id, powered)
+            
+            action = "encendido" if powered else "apagado"
+            return Response({
+                "success": True,
+                "message": f"Reproductor {action} correctamente"
+            })
+        except Exception as e:
+            return Response({
+                "success": False,
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class PlayerQueueView(PlayerControlView):
     """
     GET /music/players/{player_id}/queue

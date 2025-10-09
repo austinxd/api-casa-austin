@@ -7,6 +7,7 @@ from apps.reservation.music_views import (
     PlayerNextView,
     PlayerPreviousView,
     PlayerVolumeView,
+    PlayerPowerView,
     PlayerQueueView,
     PlayerPlayMediaView,
     MusicSearchView,
@@ -28,6 +29,7 @@ urlpatterns = [
     path('players/<str:player_id>/next/', PlayerNextView.as_view(), name='music-player-next'),
     path('players/<str:player_id>/previous/', PlayerPreviousView.as_view(), name='music-player-previous'),
     path('players/<str:player_id>/volume/', PlayerVolumeView.as_view(), name='music-player-volume'),
+    path('players/<str:player_id>/power/', PlayerPowerView.as_view(), name='music-player-power'),
     path('players/<str:player_id>/queue/', PlayerQueueView.as_view(), name='music-player-queue'),
     path('players/<str:player_id>/play-media/', PlayerPlayMediaView.as_view(), name='music-player-play-media'),
     
