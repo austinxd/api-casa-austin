@@ -703,16 +703,26 @@ class PlayerPlayMediaView(PlayerControlView):
         try:
             music_client = await get_music_client()
             queue = await music_client.player_queues.get_active_queue(player_id)
-            await music_client.player_queues.play_media(
-                queue_id=queue.queue_id,
-                media=media_id,
-                option=queue_option
+            
+            # Ejecutar play_media con timeout de 15 segundos
+            await asyncio.wait_for(
+                music_client.player_queues.play_media(
+                    queue_id=queue.queue_id,
+                    media=media_id,
+                    option=queue_option
+                ),
+                timeout=15.0
             )
             
             return Response({
                 "success": True,
                 "message": "Media reproducido correctamente"
             })
+        except asyncio.TimeoutError:
+            return Response({
+                "success": False,
+                "error": "Timeout al reproducir el medio. Intenta de nuevo."
+            }, status=status.HTTP_504_GATEWAY_TIMEOUT)
         except Exception as e:
             return Response({
                 "success": False,
