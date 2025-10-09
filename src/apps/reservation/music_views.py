@@ -593,6 +593,126 @@ class PlayerVolumeView(PlayerControlView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class AutoPowerOnView(APIView):
+    """
+    POST /music/auto-power-on
+    Body: {"property_id": str}
+    Enciende automáticamente el reproductor si hay una reserva activa y está apagado.
+    """
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    @async_to_sync
+    async def post(self, request):
+        # Verificar disponibilidad de Music Assistant
+        if not MUSIC_ASSISTANT_AVAILABLE:
+            return Response({
+                "success": False,
+                "error": "Music Assistant no está disponible"
+            }, status=status.HTTP_501_NOT_IMPLEMENTED)
+        
+        property_id = request.data.get('property_id')
+        
+        if not property_id:
+            return Response({
+                "success": False,
+                "error": "El campo 'property_id' es requerido"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Obtener la propiedad
+            from apps.property.models import Property
+            from django.utils import timezone
+            from datetime import time
+            
+            property_obj = await sync_to_async(Property.objects.filter(
+                id=property_id,
+                deleted=False,
+                player_id__isnull=False
+            ).exclude(player_id='').first)()
+            
+            if not property_obj:
+                return Response({
+                    "success": False,
+                    "error": "Propiedad no encontrada o sin reproductor configurado"
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Verificar si hay reserva activa
+            @sync_to_async
+            def get_active_reservation():
+                local_now = timezone.localtime(timezone.now())
+                now_date = local_now.date()
+                now_time = local_now.time()
+                
+                reservations = Reservation.objects.filter(
+                    property=property_obj,
+                    deleted=False,
+                    status__in=['approved', 'pending', 'incomplete', 'under_review']
+                ).select_related('client')
+                
+                for res in reservations:
+                    # Verificar si está activa
+                    is_after_checkin = (
+                        res.check_in_date < now_date or
+                        (res.check_in_date == now_date and now_time >= time(15, 0))
+                    )
+                    
+                    is_before_checkout = (
+                        res.check_out_date > now_date or
+                        (res.check_out_date == now_date and now_time < time(11, 0))
+                    )
+                    
+                    if is_after_checkin and is_before_checkout:
+                        return res
+                
+                return None
+            
+            active_reservation = await get_active_reservation()
+            
+            # Si NO hay reserva activa, no hacer nada
+            if not active_reservation:
+                return Response({
+                    "success": True,
+                    "action": "none",
+                    "message": "No hay reserva activa, reproductor sin cambios"
+                })
+            
+            # Hay reserva activa, verificar estado del reproductor
+            music_client = await get_music_client()
+            player = next((p for p in music_client.players if p.player_id == property_obj.player_id), None)
+            
+            if not player:
+                return Response({
+                    "success": False,
+                    "error": "Reproductor no encontrado en Music Assistant"
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Si ya está encendido, no hacer nada
+            if player.powered:
+                return Response({
+                    "success": True,
+                    "action": "none",
+                    "message": "Reproductor ya estaba encendido",
+                    "player_powered": True
+                })
+            
+            # Está apagado y hay reserva activa → ENCENDER
+            await music_client.players.player_command_power(property_obj.player_id, True)
+            
+            return Response({
+                "success": True,
+                "action": "powered_on",
+                "message": "Reproductor encendido automáticamente",
+                "player_powered": True
+            })
+            
+        except Exception as e:
+            return Response({
+                "success": False,
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class PlayerPowerView(PlayerControlView):
     """
     POST /music/players/{player_id}/power
