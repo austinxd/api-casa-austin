@@ -609,7 +609,6 @@ class PlayerQueueView(PlayerControlView):
                 items_data.append({
                     "queue_item_id": item.queue_item_id,
                     "name": item.name,
-                    "artist": item.artists[0].name if hasattr(item, 'artists') and item.artists and len(item.artists) > 0 else None,
                     "uri": item.uri,
                     "duration": item.duration,
                     "image": item.image.path if hasattr(item, 'image') and item.image else None
