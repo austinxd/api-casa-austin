@@ -920,10 +920,17 @@ class PlayerClearQueueView(PlayerControlView):
                 "error": "El parámetro 'reservation_id' es requerido"
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Verificar que el usuario es el anfitrión de la reserva
-        try:
-            reservation = Reservation.objects.get(id=reservation_id, deleted=False)
-        except Reservation.DoesNotExist:
+        # Verificar que el usuario es el anfitrión de la reserva (async)
+        @sync_to_async
+        def get_reservation():
+            try:
+                return Reservation.objects.get(id=reservation_id, deleted=False)
+            except Reservation.DoesNotExist:
+                return None
+        
+        reservation = await get_reservation()
+        
+        if not reservation:
             return Response({
                 "success": False,
                 "error": "Reserva no encontrada"
