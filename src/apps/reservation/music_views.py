@@ -36,9 +36,10 @@ class PlayersListView(APIView):
         """Obtiene la reserva activa actual para una propiedad."""
         from datetime import time
         
-        now = timezone.now()
-        now_date = now.date()
-        now_time = now.time()
+        # Usar hora local del servidor (GMT-5) no UTC
+        local_now = timezone.localtime(timezone.now())
+        now_date = local_now.date()
+        now_time = local_now.time()
         
         checkin_time = time(15, 0)  # 3 PM
         checkout_time = time(11, 0)  # 11 AM
@@ -262,9 +263,10 @@ class PlayerControlView(APIView):
         from datetime import datetime, time
         from django.utils import timezone
         
-        now = timezone.now()
-        now_date = now.date()
-        now_time = now.time()
+        # Usar hora local del servidor (GMT-5) no UTC
+        local_now = timezone.localtime(timezone.now())
+        now_date = local_now.date()
+        now_time = local_now.time()
         
         # Horarios configurados
         checkin_time = time(15, 0)  # 3 PM
@@ -319,9 +321,10 @@ class PlayerControlView(APIView):
                 from datetime import datetime, time
                 from django.utils import timezone
                 
-                now = timezone.now()
-                now_date = now.date()
-                now_time = now.time()
+                # Usar hora local del servidor (GMT-5) no UTC
+                local_now = timezone.localtime(timezone.now())
+                now_date = local_now.date()
+                now_time = local_now.time()
                 
                 checkin_time = time(15, 0)  # 3 PM
                 checkout_time = time(11, 0)  # 11 AM
