@@ -3000,7 +3000,7 @@ class ClientInfoByReferralCodeView(APIView):
             response_data = {
                 'success': True,
                 'client': {
-                    'first_name': client.first_name,
+                    'first_name': client.first_name.split()[0] if client.first_name else '',  # Solo primer nombre
                     'last_name': client.last_name.split()[0] if client.last_name else '',  # Solo primer apellido
                     'facebook_linked': client.facebook_linked,
                     'profile_picture': client.get_facebook_profile_picture() if client.facebook_linked else None,
