@@ -2964,9 +2964,23 @@ class ClientInfoByReferralCodeView(APIView):
                 )
                 
                 if is_after_checkin and is_before_checkout:
+                    # Obtener thumbnail de la propiedad (foto principal)
+                    property_thumbnail = None
+                    if reservation.property:
+                        from apps.property.models import PropertyPhoto
+                        main_photo = PropertyPhoto.objects.filter(
+                            property=reservation.property,
+                            is_main=True,
+                            deleted=False
+                        ).first()
+                        
+                        if main_photo:
+                            property_thumbnail = main_photo.get_thumbnail_url()
+                    
                     active_reservations.append({
                         'id': str(reservation.id),
                         'property_name': reservation.property.name if reservation.property else None,
+                        'property_thumbnail': property_thumbnail,
                         'check_in_date': reservation.check_in_date.isoformat(),
                         'check_out_date': reservation.check_out_date.isoformat(),
                     })
