@@ -595,15 +595,16 @@ class PlayerVolumeView(PlayerControlView):
 
 class AutoPowerOnAllView(APIView):
     """
-    POST /music/auto-power-on-all
+    GET /music/auto-power-on-all
     Revisa TODAS las propiedades, verifica si tienen reserva activa,
     y enciende automáticamente sus reproductores si están apagados.
+    Endpoint público para uso en cron jobs.
     """
-    authentication_classes = [ClientJWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    authentication_classes = []
+    permission_classes = [AllowAny]
     
     @async_to_sync
-    async def post(self, request):
+    async def get(self, request):
         # Verificar disponibilidad de Music Assistant
         if not MUSIC_ASSISTANT_AVAILABLE:
             return Response({
