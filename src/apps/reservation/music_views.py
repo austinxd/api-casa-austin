@@ -922,22 +922,24 @@ class PlayerClearQueueView(PlayerControlView):
         
         # Verificar que el usuario es el anfitrión de la reserva (async)
         @sync_to_async
-        def get_reservation():
+        def check_is_host():
             try:
-                return Reservation.objects.get(id=reservation_id, deleted=False)
+                reservation = Reservation.objects.select_related('client').get(id=reservation_id, deleted=False)
+                # Verificar dentro del contexto sync
+                return reservation.client.user_id == request.user.id, True
             except Reservation.DoesNotExist:
-                return None
+                return False, False
         
-        reservation = await get_reservation()
+        is_host, reservation_exists = await check_is_host()
         
-        if not reservation:
+        if not reservation_exists:
             return Response({
                 "success": False,
                 "error": "Reserva no encontrada"
             }, status=status.HTTP_404_NOT_FOUND)
         
         # Solo el anfitrión puede limpiar la cola
-        if reservation.client.user_id != request.user.id:
+        if not is_host:
             return Response({
                 "success": False,
                 "error": "Solo el anfitrión puede limpiar la cola"
