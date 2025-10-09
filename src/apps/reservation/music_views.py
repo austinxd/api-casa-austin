@@ -898,6 +898,75 @@ class PlayerPowerView(PlayerControlView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class PlayerClearQueueView(PlayerControlView):
+    """
+    POST /music/players/{player_id}/clear-queue
+    Limpia toda la cola de reproducción.
+    Solo el anfitrión de la reserva activa puede ejecutar este comando.
+    """
+    @async_to_sync
+    async def post(self, request, player_id):
+        # Verificar disponibilidad de Music Assistant
+        error_response = self._check_music_available()
+        if error_response:
+            return error_response
+        
+        # Obtener reservation_id del query param
+        reservation_id = request.query_params.get('reservation_id')
+        
+        if not reservation_id:
+            return Response({
+                "success": False,
+                "error": "El parámetro 'reservation_id' es requerido"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Verificar que el usuario es el anfitrión de la reserva
+        try:
+            reservation = Reservation.objects.get(id=reservation_id, deleted=False)
+        except Reservation.DoesNotExist:
+            return Response({
+                "success": False,
+                "error": "Reserva no encontrada"
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Solo el anfitrión puede limpiar la cola
+        if reservation.client.user_id != request.user.id:
+            return Response({
+                "success": False,
+                "error": "Solo el anfitrión puede limpiar la cola"
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Verificar que tiene permiso para controlar el reproductor
+        if not await self.has_player_permission(request.user, player_id):
+            return Response({
+                "success": False,
+                "error": "No tienes permiso para controlar este reproductor"
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            music_client = await get_music_client()
+            queue = await music_client.player_queues.get_active_queue(player_id)
+            
+            if not queue:
+                return Response({
+                    "success": True,
+                    "message": "No hay cola activa para limpiar"
+                })
+            
+            # Limpiar la cola
+            await music_client.player_queues.queue_command_clear(queue.queue_id)
+            
+            return Response({
+                "success": True,
+                "message": "Cola limpiada correctamente"
+            })
+        except Exception as e:
+            return Response({
+                "success": False,
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class PlayerQueueView(PlayerControlView):
     """
     GET /music/players/{player_id}/queue

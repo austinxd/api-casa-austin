@@ -11,6 +11,7 @@ from apps.reservation.music_views import (
     AutoPowerOnView,
     AutoPowerOnAllView,
     PlayerQueueView,
+    PlayerClearQueueView,
     PlayerPlayMediaView,
     MusicSearchView,
     MusicLibraryTracksView,
@@ -37,6 +38,7 @@ urlpatterns = [
     path('players/<str:player_id>/volume/', PlayerVolumeView.as_view(), name='music-player-volume'),
     path('players/<str:player_id>/power/', PlayerPowerView.as_view(), name='music-player-power'),
     path('players/<str:player_id>/queue/', PlayerQueueView.as_view(), name='music-player-queue'),
+    path('players/<str:player_id>/clear-queue/', PlayerClearQueueView.as_view(), name='music-player-clear-queue'),
     path('players/<str:player_id>/play-media/', PlayerPlayMediaView.as_view(), name='music-player-play-media'),
     
     # Búsqueda y biblioteca
