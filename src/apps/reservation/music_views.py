@@ -95,8 +95,8 @@ class PlayersListView(APIView):
                         first_name_parts = client.first_name.split() if client.first_name else []
                         last_name_parts = client.last_name.split() if client.last_name else []
                         
-                        # Primer nombre en MAYÚSCULAS + Primer apellido capitalizado
-                        first_name = first_name_parts[0].upper() if first_name_parts else ""
+                        # Primer nombre y primer apellido - solo primera letra en mayúscula
+                        first_name = first_name_parts[0].capitalize() if first_name_parts else ""
                         last_name = last_name_parts[0].capitalize() if last_name_parts else ""
                         
                         prop_data['reservation'] = {
