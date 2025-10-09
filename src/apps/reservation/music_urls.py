@@ -9,6 +9,7 @@ from apps.reservation.music_views import (
     PlayerVolumeView,
     PlayerPowerView,
     AutoPowerOnView,
+    AutoPowerOnAllView,
     PlayerQueueView,
     PlayerPlayMediaView,
     MusicSearchView,
@@ -24,6 +25,7 @@ from apps.reservation.music_views import (
 urlpatterns = [
     # Utilidades
     path('auto-power-on/', AutoPowerOnView.as_view(), name='music-auto-power-on'),
+    path('auto-power-on-all/', AutoPowerOnAllView.as_view(), name='music-auto-power-on-all'),
     
     # Reproductores
     path('players/', PlayersListView.as_view(), name='music-players-list'),
