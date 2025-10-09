@@ -2907,3 +2907,85 @@ class BotClientProfileView(APIView):
                 'success': False,
                 'message': 'Error interno del servidor'
             }, status=500)
+
+
+class ClientInfoByReferralCodeView(APIView):
+    """
+    GET /api/v1/clients/by-referral-code/{referral_code}/
+    Obtiene información del cliente usando su código de referido.
+    Endpoint público - no requiere autenticación.
+    """
+    permission_classes = [AllowAny]
+    
+    def get(self, request, referral_code):
+        from django.utils import timezone
+        from apps.clients.models import Clients
+        
+        try:
+            # Buscar cliente por código de referido
+            client = get_object_or_404(
+                Clients.objects.filter(deleted=False),
+                referral_code=referral_code
+            )
+            
+            # Obtener reservas ACTIVAS (en curso ahora mismo)
+            now = timezone.now()
+            current_date = now.date()
+            current_time = now.time()
+            
+            # Una reserva está activa si:
+            # - Check-in ya pasó (fecha < hoy O fecha == hoy y hora >= 15:00)
+            # - Check-out no ha pasado (fecha > hoy O fecha == hoy y hora < 11:00)
+            from datetime import time
+            
+            active_reservations = []
+            reservations = Reservation.objects.filter(
+                client=client,
+                deleted=False
+            ).select_related('property')
+            
+            for reservation in reservations:
+                # Verificar si la reserva está activa
+                is_after_checkin = (
+                    reservation.check_in_date < current_date or
+                    (reservation.check_in_date == current_date and current_time >= time(15, 0))
+                )
+                
+                is_before_checkout = (
+                    reservation.check_out_date > current_date or
+                    (reservation.check_out_date == current_date and current_time < time(11, 0))
+                )
+                
+                if is_after_checkin and is_before_checkout:
+                    active_reservations.append({
+                        'id': str(reservation.id),
+                        'property_name': reservation.property.name if reservation.property else None,
+                        'check_in_date': reservation.check_in_date.isoformat(),
+                        'check_out_date': reservation.check_out_date.isoformat(),
+                    })
+            
+            # Preparar respuesta
+            response_data = {
+                'success': True,
+                'client': {
+                    'first_name': client.first_name,
+                    'last_name': client.last_name.split()[0] if client.last_name else '',  # Solo primer apellido
+                    'facebook_linked': client.facebook_linked,
+                    'profile_picture': client.get_facebook_profile_picture() if client.facebook_linked else None,
+                },
+                'active_reservations': active_reservations
+            }
+            
+            return Response(response_data)
+            
+        except Clients.DoesNotExist:
+            return Response({
+                'success': False,
+                'error': 'Cliente no encontrado con ese código de referido'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"ClientInfoByReferralCodeView: Error: {str(e)}")
+            return Response({
+                'success': False,
+                'error': 'Error interno del servidor'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
