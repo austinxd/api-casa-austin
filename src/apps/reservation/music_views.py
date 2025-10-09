@@ -91,9 +91,13 @@ class PlayersListView(APIView):
                     active_res = self._get_active_reservation_for_property(prop)
                     if active_res:
                         client = active_res.client
+                        # Extraer solo el PRIMER nombre y PRIMER apellido
+                        first_name_parts = client.first_name.split() if client.first_name else []
+                        last_name_parts = client.last_name.split() if client.last_name else []
+                        
                         # Primer nombre en MAYÚSCULAS + Primer apellido capitalizado
-                        first_name = client.first_name.upper() if client.first_name else ""
-                        last_name = client.last_name.capitalize() if client.last_name else ""
+                        first_name = first_name_parts[0].upper() if first_name_parts else ""
+                        last_name = last_name_parts[0].capitalize() if last_name_parts else ""
                         
                         prop_data['reservation'] = {
                             'client_name': f"{first_name} {last_name}".strip(),
