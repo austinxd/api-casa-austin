@@ -762,7 +762,8 @@ class MusicSearchView(APIView):
                         "item_id": track.item_id if hasattr(track, 'item_id') else track.uri,
                         "name": track.name,
                         "uri": track.uri if hasattr(track, 'uri') else None,
-                        "duration": track.duration if hasattr(track, 'duration') else None
+                        "duration": track.duration if hasattr(track, 'duration') else None,
+                        "image": track.image.path if hasattr(track, 'image') and track.image else None
                     })
             
             if hasattr(results, 'artists') and results.artists:
@@ -770,7 +771,8 @@ class MusicSearchView(APIView):
                     organized_results["artists"].append({
                         "item_id": artist.item_id if hasattr(artist, 'item_id') else artist.uri,
                         "name": artist.name,
-                        "uri": artist.uri if hasattr(artist, 'uri') else None
+                        "uri": artist.uri if hasattr(artist, 'uri') else None,
+                        "image": artist.image.path if hasattr(artist, 'image') and artist.image else None
                     })
             
             if hasattr(results, 'albums') and results.albums:
@@ -778,7 +780,8 @@ class MusicSearchView(APIView):
                     organized_results["albums"].append({
                         "item_id": album.item_id if hasattr(album, 'item_id') else album.uri,
                         "name": album.name,
-                        "uri": album.uri if hasattr(album, 'uri') else None
+                        "uri": album.uri if hasattr(album, 'uri') else None,
+                        "image": album.image.path if hasattr(album, 'image') and album.image else None
                     })
             
             if hasattr(results, 'playlists') and results.playlists:
@@ -786,7 +789,8 @@ class MusicSearchView(APIView):
                     organized_results["playlists"].append({
                         "item_id": playlist.item_id if hasattr(playlist, 'item_id') else playlist.uri,
                         "name": playlist.name,
-                        "uri": playlist.uri if hasattr(playlist, 'uri') else None
+                        "uri": playlist.uri if hasattr(playlist, 'uri') else None,
+                        "image": playlist.image.path if hasattr(playlist, 'image') and playlist.image else None
                     })
             
             return Response({
