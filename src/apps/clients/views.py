@@ -2971,6 +2971,31 @@ class ClientInfoByReferralCodeView(APIView):
                         'check_out_date': reservation.check_out_date.isoformat(),
                     })
             
+            # Obtener el porcentaje de descuento para referidos basado en el nivel del cliente
+            from apps.clients.models import Achievement, ClientAchievement
+            from apps.property.models import ReferralDiscountByLevel
+            
+            referral_discount_percentage = 0
+            
+            # Obtener el achievement más alto ganado del cliente
+            client_achievements = ClientAchievement.objects.filter(
+                client=client,
+                deleted=False
+            ).select_related('achievement').order_by('-achievement__order', '-earned_at')
+            
+            if client_achievements.exists():
+                highest_achievement = client_achievements.first().achievement
+                
+                # Buscar el descuento configurado para ese nivel
+                discount_config = ReferralDiscountByLevel.objects.filter(
+                    achievement=highest_achievement,
+                    is_active=True,
+                    deleted=False
+                ).first()
+                
+                if discount_config:
+                    referral_discount_percentage = float(discount_config.discount_percentage)
+            
             # Preparar respuesta
             response_data = {
                 'success': True,
@@ -2979,6 +3004,7 @@ class ClientInfoByReferralCodeView(APIView):
                     'last_name': client.last_name.split()[0] if client.last_name else '',  # Solo primer apellido
                     'facebook_linked': client.facebook_linked,
                     'profile_picture': client.get_facebook_profile_picture() if client.facebook_linked else None,
+                    'referral_discount_percentage': referral_discount_percentage,
                 },
                 'active_reservations': active_reservations
             }
