@@ -137,17 +137,18 @@ class PlayersListView(APIView):
                             current_media_info = None
                             if player.current_media:
                                 media_image = None
-                                # Intentar obtener la imagen del media item completo
-                                if hasattr(player.current_media, 'uri') and player.current_media.uri:
-                                    try:
-                                        # Obtener el item completo para tener acceso a la imagen
-                                        media_item = await music_client.music.get_item_by_uri(player.current_media.uri)
-                                        if media_item and hasattr(media_item, 'image') and media_item.image:
-                                            media_image = media_item.image.path
-                                    except:
-                                        pass
                                 
-                                # Si no se pudo obtener desde el item completo, intentar desde current_media
+                                # Intentar obtener la imagen desde la cola activa (más confiable)
+                                try:
+                                    queue = await music_client.player_queues.get_active_queue(player.player_id)
+                                    if queue and queue.current_item:
+                                        # El item actual de la cola tiene la metadata completa
+                                        if hasattr(queue.current_item, 'image') and queue.current_item.image:
+                                            media_image = queue.current_item.image.path
+                                except:
+                                    pass
+                                
+                                # Si no se pudo obtener desde la cola, intentar desde current_media
                                 if not media_image and hasattr(player.current_media, 'image') and player.current_media.image:
                                     media_image = player.current_media.image.path
                                 
