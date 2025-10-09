@@ -629,9 +629,10 @@ class PlayerQueueView(PlayerControlView):
             
             items = await music_client.player_queues.get_player_queue_items(queue.queue_id)
             
-            items_data = []
+            # Convertir items a lista y organizarlos
+            all_items = []
             for item in items:
-                items_data.append({
+                all_items.append({
                     "queue_item_id": item.queue_item_id,
                     "name": item.name,
                     "uri": item.uri,
@@ -639,13 +640,24 @@ class PlayerQueueView(PlayerControlView):
                     "image": item.image.path if hasattr(item, 'image') and item.image else None
                 })
             
+            # Separar en pasadas, actual y futuras según current_index
+            current_index = queue.current_index if queue.current_index is not None else 0
+            
+            past_tracks = all_items[:current_index] if current_index > 0 else []
+            current_track = all_items[current_index] if current_index < len(all_items) else None
+            upcoming_tracks = all_items[current_index + 1:] if current_index < len(all_items) - 1 else []
+            
             return Response({
                 "success": True,
                 "queue": {
                     "queue_id": queue.queue_id,
                     "state": queue.state.value if queue.state else None,
-                    "current_index": queue.current_index,
-                    "items": items_data
+                    "current_index": current_index,
+                    "total_items": len(all_items),
+                    "past_tracks": past_tracks,
+                    "current_track": current_track,
+                    "upcoming_tracks": upcoming_tracks,
+                    "all_items": all_items  # Mantener compatibilidad con versión anterior
                 }
             })
         except Exception as e:
