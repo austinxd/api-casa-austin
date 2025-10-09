@@ -2935,13 +2935,14 @@ class ClientInfoByReferralCodeView(APIView):
                 }, status=status.HTTP_404_NOT_FOUND)
             
             # Obtener reservas ACTIVAS (en curso ahora mismo)
-            now = timezone.now()
-            current_date = now.date()
-            current_time = now.time()
+            # Usar hora local del servidor (GMT-5) no UTC
+            local_now = timezone.localtime(timezone.now())
+            current_date = local_now.date()
+            current_time = local_now.time()
             
             # Una reserva está activa si:
             # - Check-in ya pasó (fecha < hoy O fecha == hoy y hora >= 15:00)
-            # - Aún no ha hecho check-out (fecha check-out >= hoy)
+            # - Check-out no ha pasado (fecha > hoy O fecha == hoy y hora < 11:00)
             from datetime import time
             
             active_reservations = []
@@ -2957,8 +2958,10 @@ class ClientInfoByReferralCodeView(APIView):
                     (reservation.check_in_date == current_date and current_time >= time(15, 0))
                 )
                 
-                # La reserva está activa todo el día del check-out (hasta las 23:59)
-                is_before_checkout = reservation.check_out_date >= current_date
+                is_before_checkout = (
+                    reservation.check_out_date > current_date or
+                    (reservation.check_out_date == current_date and current_time < time(11, 0))
+                )
                 
                 if is_after_checkin and is_before_checkout:
                     active_reservations.append({
