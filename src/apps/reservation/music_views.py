@@ -593,6 +593,55 @@ class PlayerVolumeView(PlayerControlView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class MusicAssistantHealthView(APIView):
+    """
+    GET /music/health
+    Verifica el estado de conexión con Music Assistant.
+    Endpoint público para monitoreo.
+    """
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    
+    @async_to_sync
+    async def get(self, request):
+        if not MUSIC_ASSISTANT_AVAILABLE:
+            return Response({
+                "status": "unavailable",
+                "error": "Music Assistant no está disponible (requiere Python 3.11+)",
+                "connected": False
+            })
+        
+        try:
+            from apps.reservation.music_client import music_assistant
+            
+            # Verificar si hay cliente
+            if music_assistant._client is None:
+                return Response({
+                    "status": "disconnected",
+                    "connected": False,
+                    "message": "No hay conexión activa"
+                })
+            
+            # Intentar obtener reproductores (prueba de conexión)
+            music_client = await get_music_client()
+            players_count = len(list(music_client.players))
+            
+            return Response({
+                "status": "connected",
+                "connected": True,
+                "players_count": players_count,
+                "message": "Music Assistant funcionando correctamente"
+            })
+            
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "connected": False,
+                "error": str(e),
+                "message": "Error al verificar conexión"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class AutoPowerOnAllView(APIView):
     """
     GET /music/auto-power-on-all
