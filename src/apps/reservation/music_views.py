@@ -593,6 +593,46 @@ class PlayerVolumeView(PlayerControlView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+class MusicAssistantDebugView(APIView):
+    """
+    GET /music/debug/all-players
+    [DEBUG] Muestra TODOS los players que Music Assistant ve (sin filtros)
+    """
+    permission_classes = []  # Público para debugging
+    
+    @async_to_sync
+    async def get(self, request):
+        try:
+            music_client = await get_music_client()
+            
+            # Esperar un momento para que se sincronicen los players
+            await asyncio.sleep(1)
+            
+            all_players = []
+            for player in music_client.players:
+                all_players.append({
+                    "player_id": player.player_id,
+                    "name": player.name,
+                    "display_name": player.display_name if hasattr(player, 'display_name') else None,
+                    "type": player.type.value if player.type else None,
+                    "available": player.available,
+                    "powered": player.powered,
+                    "playback_state": player.playback_state.value if player.playback_state else None
+                })
+            
+            return Response({
+                "success": True,
+                "total_players": len(all_players),
+                "players": all_players
+            })
+        except Exception as e:
+            logger.error(f"Error en debug view: {e}", exc_info=True)
+            return Response({
+                "success": False,
+                "error": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 class MusicAssistantHealthView(APIView):
     """
     GET /music/health

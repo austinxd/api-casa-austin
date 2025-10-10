@@ -11,6 +11,7 @@ from apps.reservation.music_views import (
     AutoPowerOnView,
     AutoPowerOnAllView,
     MusicAssistantHealthView,
+    MusicAssistantDebugView,
     PlayerQueueView,
     PlayerClearQueueView,
     PlayerPlayMediaView,
@@ -27,6 +28,7 @@ from apps.reservation.music_views import (
 urlpatterns = [
     # Monitoreo
     path('health/', MusicAssistantHealthView.as_view(), name='music-health'),
+    path('debug/all-players/', MusicAssistantDebugView.as_view(), name='music-debug-all-players'),
     
     # Utilidades
     path('auto-power-on/', AutoPowerOnView.as_view(), name='music-auto-power-on'),
