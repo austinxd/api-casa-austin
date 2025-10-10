@@ -1,6 +1,9 @@
 import asyncio
 from typing import Optional
 from music_assistant_client.client import MusicAssistantClient
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class MusicAssistantSingleton:
@@ -14,6 +17,7 @@ class MusicAssistantSingleton:
     _health_check_task: Optional[asyncio.Task] = None
     _lock = asyncio.Lock()
     _last_health_check: float = 0
+    _proactive_health_check_task: Optional[asyncio.Task] = None
     
     def __new__(cls):
         if cls._instance is None:
@@ -27,9 +31,11 @@ class MusicAssistantSingleton:
         async with self._lock:
             # Verificar si el cliente existe y tiene conexión activa
             if self._client is None:
+                logger.info("Cliente es None, conectando...")
                 await self._connect()
             elif not await self._is_connection_alive():
                 # Reconectar si la conexión se perdió
+                logger.warning("⚠️ Conexión perdida detectada en get_client, reconectando...")
                 print("⚠️ Conexión perdida, reconectando...")
                 await self._connect()
             else:
@@ -53,26 +59,80 @@ class MusicAssistantSingleton:
                 # Intentar acceder a los reproductores (operación ligera)
                 _ = list(self._client.players)
         except Exception as e:
+            logger.warning(f"⚠️ Health check falló: {e}. Marcando para reconexión...")
             print(f"⚠️ Health check falló: {e}. Marcando para reconexión...")
             # Marcar cliente como None para forzar reconexión en próxima petición
             self._client = None
+    
+    async def _proactive_health_check_loop(self):
+        """
+        Loop proactivo que verifica la conexión cada 30 segundos,
+        independientemente de si hay requests o no.
+        """
+        logger.info("🔄 Iniciando health check proactivo en background...")
+        print("🔄 Iniciando health check proactivo en background...")
+        
+        while True:
+            try:
+                await asyncio.sleep(30)  # Esperar 30 segundos
+                
+                if self._client is None:
+                    logger.warning("⚠️ Cliente es None en health check proactivo, intentando reconectar...")
+                    print("⚠️ Cliente es None en health check proactivo, intentando reconectar...")
+                    async with self._lock:
+                        if self._client is None:  # Double-check con lock
+                            await self._connect()
+                    continue
+                
+                # Verificar conexión
+                if not await self._is_connection_alive():
+                    logger.warning("⚠️ Conexión no está viva en health check proactivo, reconectando...")
+                    print("⚠️ Conexión no está viva en health check proactivo, reconectando...")
+                    async with self._lock:
+                        await self._connect()
+                    continue
+                
+                # Intentar acceder a los reproductores
+                try:
+                    if hasattr(self._client, 'players'):
+                        players_count = len(list(self._client.players))
+                        logger.debug(f"✅ Health check OK - {players_count} reproductores disponibles")
+                except Exception as e:
+                    logger.error(f"❌ Error al acceder a reproductores en health check: {e}")
+                    print(f"❌ Error al acceder a reproductores en health check: {e}")
+                    async with self._lock:
+                        self._client = None
+                        await self._connect()
+                
+            except asyncio.CancelledError:
+                logger.info("🛑 Health check proactivo cancelado")
+                print("🛑 Health check proactivo cancelado")
+                break
+            except Exception as e:
+                logger.error(f"❌ Error inesperado en health check proactivo: {e}")
+                print(f"❌ Error inesperado en health check proactivo: {e}")
+                await asyncio.sleep(5)  # Esperar un poco antes de continuar
     
     async def _is_connection_alive(self) -> bool:
         """
         Verifica si la conexión está realmente activa.
         """
         if self._client is None:
+            logger.debug("_is_connection_alive: cliente es None")
             return False
         
         # Verificar si el objeto de conexión existe
         if not hasattr(self._client, 'connection') or self._client.connection is None:
+            logger.warning("_is_connection_alive: cliente no tiene atributo 'connection' o es None")
             return False
         
         # Verificar si el WebSocket está abierto
         try:
             if hasattr(self._client.connection, 'closed') and self._client.connection.closed:
+                logger.warning("_is_connection_alive: WebSocket está cerrado (connection.closed = True)")
                 return False
-        except:
+        except Exception as e:
+            logger.error(f"_is_connection_alive: error al verificar estado del WebSocket: {e}")
             return False
         
         return True
@@ -110,23 +170,32 @@ class MusicAssistantSingleton:
                         break
                     await asyncio.sleep(0.5)
                 
+                logger.info("✅ Conectado a Music Assistant exitosamente")
                 print("✅ Conectado a Music Assistant exitosamente")
                 import time
                 self._last_health_check = time.time()
+                
+                # Iniciar health check proactivo en background
+                if self._proactive_health_check_task is None or self._proactive_health_check_task.done():
+                    self._proactive_health_check_task = asyncio.create_task(self._proactive_health_check_loop())
+                
                 return
                 
             except asyncio.TimeoutError:
+                logger.warning(f"⏱️ Timeout al conectar (intento {attempt + 1})")
                 print(f"⏱️ Timeout al conectar (intento {attempt + 1})")
                 if attempt < max_connection_attempts - 1:
                     await asyncio.sleep(2)  # Esperar antes de reintentar
                     continue
             except Exception as e:
+                logger.error(f"❌ Error al conectar (intento {attempt + 1}): {e}", exc_info=True)
                 print(f"❌ Error al conectar (intento {attempt + 1}): {e}")
                 if attempt < max_connection_attempts - 1:
                     await asyncio.sleep(2)  # Esperar antes de reintentar
                     continue
         
         # Si llega aquí, todos los intentos fallaron
+        logger.error("❌ No se pudo conectar a Music Assistant después de todos los intentos")
         print("❌ No se pudo conectar a Music Assistant después de todos los intentos")
         self._client = None
         raise ConnectionError("No se pudo establecer conexión con Music Assistant")

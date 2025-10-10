@@ -65,19 +65,29 @@ Preferred communication style: Simple, everyday language.
 - QR Code reservation endpoint: Public endpoint (`/api/v1/qr/{reservation_id}`) that shows reservation details including client info, Facebook profile, referral code, level (with icon), and referral discount percentage.
 - Client info by referral code endpoint: Public endpoint (`/api/v1/clients/by-referral-code/{referral_code}/`) that returns client data (first name, first surname, Facebook profile picture, verification status) and active reservations (only in-progress: from check-in 3 PM to check-out 11 AM server time).
 - Music Assistant Integration: Complete integration with Music Assistant server for music control in properties. Features include:
-  * Player control endpoints (play, pause, stop, next, previous, volume)
-  * Queue management (view queue, play media with queue options)
+  * Player control endpoints (play, pause, stop, next, previous, volume, power)
+  * Queue management (view queue, play media with queue options, clear queue - host only)
   * Music search and library browsing
   * **Reservation-based sessions**: Each reservation acts as a session (reservation_id = session_id)
   * **Access request system**: Users can request access to control music of an active reservation
   * **Host approval workflow**: Reservation owner (host) accepts/rejects access requests
   * **Time-based validation**: Music control only allowed during active reservation hours (check-in 3 PM, check-out 11 AM)
   * **Security fix (Oct 2025)**: Permission system now correctly validates that only the host of THE current active reservation or their accepted participants can control music (previously allowed any user with any reservation on that property)
+  * **Auto-power management (Oct 10, 2025)**: Automatic player power control based on active reservations
+    - `/auto-power-on/` - Powers on single property player if reservation is active
+    - `/auto-power-on-all/` - Powers on all property players with active reservations (public GET endpoint for cron)
+  * **Connection monitoring (Oct 10, 2025)**: Robust connection health and recovery system
+    - Proactive health check loop running every 30 seconds in background (independent of requests)
+    - Automatic reconnection with 3 retries on connection loss
+    - Comprehensive logging (logger + console) for debugging
+    - `/health/` public endpoint for external monitoring and alerts
+    - Telegram alert integration via cron script for production monitoring
   * WebSocket persistent connection to Music Assistant server (wss://music.casaaustin.pe/ws)
   * **PRODUCCIÓN:** Requiere Python 3.11+ (dependencias: music-assistant-client 1.2.4, music-assistant-models 1.1.51)
-  * **Implementación:** Singleton pattern con conexión persistente y `start_listening()` para sincronización de reproductores
+  * **Implementación:** Singleton pattern con conexión persistente, `start_listening()` para sincronización, y health check proactivo en background
   * **Servidor de producción:** AlmaLinux con Python 3.11 (venv-py311), Supervisor para gestión de procesos
-  * **Estado:** Completamente funcional, 9 reproductores detectados (incluyendo Casa Austin 3)
+  * **Monitoreo:** Script `/root/check_music_assistant.sh` ejecutado cada 5 min vía cron, envía alertas a Telegram
+  * **Estado:** Completamente funcional con sistema de recuperación automática, 8-9 reproductores detectados
 
 ## External Dependencies
 
