@@ -1037,7 +1037,7 @@ class PlayerQueueView(PlayerControlView):
         if error_response:
             return error_response
         
-        if not self.has_player_permission(request.user, player_id):
+        if not await self.has_player_permission(request.user, player_id):
             return Response({
                 "success": False,
                 "error": "No tienes permiso para ver esta cola"

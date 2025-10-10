@@ -152,6 +152,7 @@ class MusicAssistantSingleton:
                     except:
                         pass
                 
+                logger.info(f"🔄 Conectando a Music Assistant (intento {attempt + 1}/{max_connection_attempts})...")
                 print(f"🔄 Conectando a Music Assistant (intento {attempt + 1}/{max_connection_attempts})...")
                 
                 # Crear nueva conexión
