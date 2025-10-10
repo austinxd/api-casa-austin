@@ -715,17 +715,10 @@ class AutoPowerOnAllView(APIView):
             # Obtener cliente de Music Assistant
             music_client = await get_music_client()
             
-            # DEBUG: Listar todos los player_ids disponibles
-            available_players = list(music_client.players)
-            logger.info(f"🎵 Reproductores detectados en Music Assistant: {len(available_players)}")
-            for p in available_players:
-                logger.info(f"  - Player ID: {p.player_id} | Name: {p.name} | Powered: {p.powered}")
-            
             results = []
             
             # Procesar cada propiedad
             for property_obj in properties:
-                logger.info(f"🔍 Buscando reproductor para propiedad '{property_obj.name}' con player_id: {property_obj.player_id}")
                 result = {
                     "property_id": str(property_obj.id),
                     "property_name": property_obj.name,
@@ -746,19 +739,11 @@ class AutoPowerOnAllView(APIView):
                 player = next((p for p in music_client.players if p.player_id == property_obj.player_id), None)
                 
                 if not player:
-                    logger.warning(f"❌ Player ID '{property_obj.player_id}' NO encontrado en Music Assistant")
                     result["action"] = "error"
                     result["reason"] = "Reproductor no encontrado en Music Assistant"
                     result["player_powered"] = None
-                    # Agregar lista de players disponibles para debugging
-                    result["debug_available_players"] = [
-                        {"id": p.player_id, "name": p.name} 
-                        for p in available_players
-                    ]
                     results.append(result)
                     continue
-                
-                logger.info(f"✅ Player encontrado: {player.name} | Powered: {player.powered}")
                 
                 # Si ya está encendido
                 if player.powered:
