@@ -81,9 +81,15 @@ Preferred communication style: Simple, everyday language.
     - Automatic reconnection with 3 retries on connection loss
     - **TTL (Time To Live) de 5 minutos**: Fuerza reconexión automática cada 5 minutos para resincronizar players (detecta nuevos reproductores agregados a Music Assistant)
     - Comprehensive logging (logger + console) for debugging
-    - `/health/` public endpoint for external monitoring and alerts
+    - `/health/` public endpoint for external monitoring and alerts (now properly calls get_client() to establish connection)
     - `/debug/all-players/` endpoint for debugging player detection
     - Telegram alert integration via cron script for production monitoring
+    - Enhanced `/auto-power-on-all/` with robust error handling (HTTP 503 on connection failures)
+  * **Session status messaging (Oct 10, 2025)**: `/sessions/{reservationId}/participants/` endpoint now shows session state
+    - **Active sessions**: Returns host info with profile picture and list of accepted participants
+    - **Not started**: Shows activation date/time (check-in date at 3 PM) when session hasn't begun
+    - **Ended**: Shows termination date/time (check-out date at 11 AM) when session has finished
+    - Timezone-aware implementation supporting both USE_TZ=True and USE_TZ=False configurations
   * WebSocket persistent connection to Music Assistant server (wss://music.casaaustin.pe/ws)
   * **PRODUCCIÓN:** Requiere Python 3.11+ (dependencias: music-assistant-client 1.2.4, music-assistant-models 1.1.51)
   * **Implementación:** Singleton pattern con conexión persistente, `start_listening()` para sincronización, y health check proactivo en background

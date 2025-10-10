@@ -1610,13 +1610,17 @@ class RejectRequestView(APIView):
 class ParticipantsView(APIView):
     """
     GET /music/sessions/{reservation_id}/participants/
-    Lista los participantes aceptados.
+    Lista los participantes aceptados si la sesión está activa.
+    Si no está activa, muestra cuándo se activará o cuándo terminó.
     """
     authentication_classes = [ClientJWTAuthentication]
     permission_classes = [IsAuthenticated]
     
     def get(self, request, reservation_id):
         try:
+            from django.utils import timezone
+            from datetime import time, datetime
+            
             # Verificar que la reserva existe
             reservation = get_object_or_404(
                 Reservation,
@@ -1639,7 +1643,69 @@ class ParticipantsView(APIView):
                     "error": "No tienes permiso para ver esta información"
                 }, status=status.HTTP_403_FORBIDDEN)
             
-            # Obtener participantes aceptados
+            # Verificar si la sesión está activa (usando hora local del servidor GMT-5)
+            from django.conf import settings
+            
+            if settings.USE_TZ:
+                local_now = timezone.localtime(timezone.now())
+                checkin_datetime = timezone.make_aware(
+                    datetime.combine(reservation.check_in_date, time(15, 0))
+                )
+                checkout_datetime = timezone.make_aware(
+                    datetime.combine(reservation.check_out_date, time(11, 0))
+                )
+            else:
+                local_now = datetime.now()
+                checkin_datetime = datetime.combine(reservation.check_in_date, time(15, 0))
+                checkout_datetime = datetime.combine(reservation.check_out_date, time(11, 0))
+            
+            now_date = local_now.date()
+            now_time = local_now.time()
+            
+            # Verificar si está después del check-in
+            is_after_checkin = (
+                reservation.check_in_date < now_date or
+                (reservation.check_in_date == now_date and now_time >= time(15, 0))
+            )
+            
+            # Verificar si está antes del check-out
+            is_before_checkout = (
+                reservation.check_out_date > now_date or
+                (reservation.check_out_date == now_date and now_time < time(11, 0))
+            )
+            
+            session_active = is_after_checkin and is_before_checkout
+            
+            # Si la sesión NO está activa
+            if not session_active:
+                if not is_after_checkin:
+                    # Sesión aún no ha empezado
+                    return Response({
+                        "success": True,
+                        "session_active": False,
+                        "status": "not_started",
+                        "message": "La sesión se activará el día de check-in",
+                        "activation_datetime": checkin_datetime.isoformat(),
+                        "activation_date": reservation.check_in_date.strftime("%d/%m/%Y"),
+                        "activation_time": "15:00",
+                        "reservation_id": str(reservation.id),
+                        "property_name": reservation.property.name
+                    })
+                else:
+                    # Sesión ya terminó
+                    return Response({
+                        "success": True,
+                        "session_active": False,
+                        "status": "ended",
+                        "message": "La sesión terminó el día de check-out",
+                        "termination_datetime": checkout_datetime.isoformat(),
+                        "termination_date": reservation.check_out_date.strftime("%d/%m/%Y"),
+                        "termination_time": "11:00",
+                        "reservation_id": str(reservation.id),
+                        "property_name": reservation.property.name
+                    })
+            
+            # Sesión ACTIVA - Obtener participantes aceptados
             participants = MusicSessionParticipant.objects.filter(
                 reservation=reservation,
                 status='accepted',
@@ -1664,13 +1730,18 @@ class ParticipantsView(APIView):
             
             return Response({
                 "success": True,
+                "session_active": True,
+                "status": "active",
                 "reservation_id": str(reservation.id),
                 "property_name": reservation.property.name,
                 "host": {
                     "id": str(reservation.client.id),
-                    "name": f"{reservation.client.first_name} {reservation.client.last_name}"
+                    "name": f"{reservation.client.first_name} {reservation.client.last_name}",
+                    "facebook_linked": reservation.client.facebook_linked,
+                    "profile_picture": reservation.client.get_facebook_profile_picture() if reservation.client.facebook_linked else None
                 },
-                "participants": participants_data
+                "participants": participants_data,
+                "session_ends_at": checkout_datetime.isoformat()
             })
             
         except Exception as e:
