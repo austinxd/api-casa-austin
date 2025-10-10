@@ -655,18 +655,17 @@ class MusicAssistantHealthView(APIView):
             })
         
         try:
-            from apps.reservation.music_client import music_assistant
+            # Intentar conectar/obtener cliente (esto conectará si no está conectado)
+            music_client = await get_music_client()
             
-            # Verificar si hay cliente
-            if music_assistant._client is None:
+            if music_client is None:
                 return Response({
                     "status": "disconnected",
                     "connected": False,
-                    "message": "No hay conexión activa"
+                    "message": "No se pudo establecer conexión"
                 })
             
-            # Intentar obtener reproductores (prueba de conexión)
-            music_client = await get_music_client()
+            # Obtener count de reproductores (prueba de conexión)
             players_count = len(list(music_client.players))
             
             return Response({
@@ -756,7 +755,14 @@ class AutoPowerOnAllView(APIView):
                 return None
             
             # Obtener cliente de Music Assistant
-            music_client = await get_music_client()
+            try:
+                music_client = await get_music_client()
+            except Exception as e:
+                logger.error(f"Error al obtener cliente de Music Assistant: {e}", exc_info=True)
+                return Response({
+                    "success": False,
+                    "error": f"No se pudo conectar a Music Assistant: {str(e)}"
+                }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             
             results = []
             
