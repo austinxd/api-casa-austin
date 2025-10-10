@@ -79,8 +79,10 @@ Preferred communication style: Simple, everyday language.
   * **Connection monitoring (Oct 10, 2025)**: Robust connection health and recovery system
     - Proactive health check loop running every 30 seconds in background (independent of requests)
     - Automatic reconnection with 3 retries on connection loss
+    - **TTL (Time To Live) de 5 minutos**: Fuerza reconexión automática cada 5 minutos para resincronizar players (detecta nuevos reproductores agregados a Music Assistant)
     - Comprehensive logging (logger + console) for debugging
     - `/health/` public endpoint for external monitoring and alerts
+    - `/debug/all-players/` endpoint for debugging player detection
     - Telegram alert integration via cron script for production monitoring
   * WebSocket persistent connection to Music Assistant server (wss://music.casaaustin.pe/ws)
   * **PRODUCCIÓN:** Requiere Python 3.11+ (dependencias: music-assistant-client 1.2.4, music-assistant-models 1.1.51)

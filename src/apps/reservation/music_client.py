@@ -18,6 +18,8 @@ class MusicAssistantSingleton:
     _lock = asyncio.Lock()
     _last_health_check: float = 0
     _proactive_health_check_task: Optional[asyncio.Task] = None
+    _connection_time: float = 0  # Timestamp de cuándo se conectó
+    _CONNECTION_TTL = 300  # 5 minutos - TTL para forzar reconexión y resincronización
     
     def __new__(cls):
         if cls._instance is None:
@@ -29,8 +31,16 @@ class MusicAssistantSingleton:
         Obtiene el cliente de Music Assistant, creando la conexión si no existe.
         """
         async with self._lock:
+            import time
+            current_time = time.time()
+            
+            # Verificar TTL - Forzar reconexión cada 5 minutos para resincronizar players
+            if self._client is not None and (current_time - self._connection_time > self._CONNECTION_TTL):
+                logger.info(f"🔄 TTL expirado ({int((current_time - self._connection_time) / 60)} min), forzando reconexión para sincronizar players...")
+                print(f"🔄 TTL expirado, reconectando para sincronizar...")
+                await self._connect()
             # Verificar si el cliente existe y tiene conexión activa
-            if self._client is None:
+            elif self._client is None:
                 logger.info("Cliente es None, conectando...")
                 await self._connect()
             elif not await self._is_connection_alive():
@@ -39,9 +49,7 @@ class MusicAssistantSingleton:
                 print("⚠️ Conexión perdida, reconectando...")
                 await self._connect()
             else:
-                # Verificar periódicamente (cada 30 segundos)
-                import time
-                current_time = time.time()
+                # Health check periódico (cada 30 segundos)
                 if current_time - self._last_health_check > 30:
                     self._last_health_check = current_time
                     # Health check en background (no bloqueante)
@@ -174,7 +182,9 @@ class MusicAssistantSingleton:
                 logger.info("✅ Conectado a Music Assistant exitosamente")
                 print("✅ Conectado a Music Assistant exitosamente")
                 import time
-                self._last_health_check = time.time()
+                current_time = time.time()
+                self._last_health_check = current_time
+                self._connection_time = current_time  # Registrar timestamp de conexión
                 
                 # Iniciar health check proactivo en background
                 if self._proactive_health_check_task is None or self._proactive_health_check_task.done():

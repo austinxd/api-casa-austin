@@ -120,6 +120,9 @@ class PlayersListView(APIView):
                 try:
                     music_client = await get_music_client()
                     
+                    # NOTA: El cliente ahora tiene TTL de 5 minutos que fuerza reconexión automática
+                    # Esto asegura que los nuevos players agregados a Music Assistant se sincronicen
+                    
                     # Esperar a que los reproductores estén sincronizados
                     max_wait = 20  # Máximo 10 segundos
                     for i in range(max_wait):
