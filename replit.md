@@ -64,6 +64,10 @@ Preferred communication style: Simple, everyday language.
 - Referral discount system: Automatic discounts for first-time reservations of referred clients based on referrer's achievement level.
 - QR Code reservation endpoint: Public endpoint (`/api/v1/qr/{reservation_id}`) that shows reservation details including client info, Facebook profile, referral code, level (with icon), and referral discount percentage.
 - Client info by referral code endpoint: Public endpoint (`/api/v1/clients/by-referral-code/{referral_code}/`) that returns client data (first name, first surname, Facebook profile picture, verification status) and active reservations (only in-progress: from check-in 3 PM to check-out 11 AM server time).
+- **Client profile referral discount (Oct 11, 2025)**: `/api/v1/clients/client-auth/profile/` endpoint enhanced to show referral discount information
+  * `referred_by_info.has_used_discount`: Indicates if client has made any approved reservation
+  * For clients WITHOUT reservations: Shows `discount_percentage` (based on referrer's achievement level) and `discount_available` (true/false)
+  * For clients WITH reservations: Shows referrer info only, without discount details (discount already used)
 - Music Assistant Integration: Complete integration with Music Assistant server for music control in properties. Features include:
   * Player control endpoints (play, pause, stop, next, previous, volume, power)
   * Queue management (view queue, play media with queue options, clear queue - host only)

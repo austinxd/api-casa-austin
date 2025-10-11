@@ -163,13 +163,57 @@ class ClientProfileSerializer(serializers.ModelSerializer):
         if obj.referred_by:
             # Usar formato de privacidad para el nombre
             from apps.events.models import ActivityFeed
+            from apps.reservation.models import Reservation
+            from apps.property.models import ReferralDiscountByLevel
+            
             private_name = ActivityFeed.format_client_name_private(obj.referred_by)
             
-            return {
+            # Verificar si el cliente tiene reservas aprobadas
+            has_reservations = Reservation.objects.filter(
+                client=obj,
+                deleted=False,
+                status='approved'
+            ).exists()
+            
+            result = {
                 'id': obj.referred_by.id,
                 'name': private_name,
-                'referral_code': obj.referred_by.get_referral_code()
+                'referral_code': obj.referred_by.get_referral_code(),
+                'has_used_discount': has_reservations
             }
+            
+            # Si NO tiene reservas, mostrar el % de descuento disponible
+            if not has_reservations:
+                # Obtener el logro más alto del referente
+                highest_achievement = ClientAchievement.objects.filter(
+                    client=obj.referred_by,
+                    deleted=False
+                ).select_related('achievement').order_by(
+                    '-achievement__required_reservations',
+                    '-achievement__required_referrals',
+                    '-achievement__required_referral_reservations'
+                ).first()
+                
+                if highest_achievement:
+                    # Buscar descuento configurado para ese nivel
+                    discount_config = ReferralDiscountByLevel.objects.filter(
+                        achievement=highest_achievement.achievement,
+                        is_active=True,
+                        deleted=False
+                    ).first()
+                    
+                    if discount_config:
+                        result['discount_percentage'] = float(discount_config.discount_percentage)
+                        result['discount_available'] = True
+                    else:
+                        result['discount_percentage'] = 0
+                        result['discount_available'] = False
+                else:
+                    # El referente no tiene logros, no hay descuento
+                    result['discount_percentage'] = 0
+                    result['discount_available'] = False
+            
+            return result
         return None
 
     def get_referral_code(self, obj):
