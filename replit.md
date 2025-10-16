@@ -61,6 +61,9 @@ Preferred communication style: Simple, everyday language.
 - Unified referral statistics API with flexible filtering and detailed client views.
 - Event evidence upload system with configurable requirements and admin approval workflow.
 - Event slug implementation for SEO-friendly URLs.
+- **Event participant name format (Oct 16, 2025)**: Event endpoints now show first name + full first surname (e.g., "Juan Pérez" instead of "Juan P.")
+  * Affects: `/api/v1/events/{event_id}/participants/`, `/api/v1/events/{event_id}/winners/`, and contest ranking
+  * Consistent formatting across all event-related endpoints
 - Referral discount system: Automatic discounts for first-time reservations of referred clients based on referrer's achievement level.
 - QR Code reservation endpoint: Public endpoint (`/api/v1/qr/{reservation_id}`) that shows reservation details including client info, Facebook profile, referral code, level (with icon), and referral discount percentage.
 - Client info by referral code endpoint: Public endpoint (`/api/v1/clients/by-referral-code/{referral_code}/`) that returns client data (first name, first surname, Facebook profile picture, verification status) and active reservations (only in-progress: from check-in 3 PM to check-out 11 AM server time).

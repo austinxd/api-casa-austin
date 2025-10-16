@@ -181,9 +181,10 @@ class EventParticipantsView(APIView):
             if registration.client:
                 client = registration.client
                 
-                # Nombre y apellido inicial (solo primer nombre + inicial)
+                # Primer nombre + primer apellido completo
                 first_name_only = client.first_name.strip().split()[0] if client.first_name and client.first_name.strip() else "Usuario"
-                name = f"{first_name_only} {client.last_name[0]}." if client.last_name else first_name_only
+                first_last_name = client.last_name.strip().split()[0] if client.last_name and client.last_name.strip() else ""
+                name = f"{first_name_only} {first_last_name}".strip() if first_last_name else first_name_only
                 
                 # Tiempo relativo desde el registro (usar fecha más reciente si fue reactivado)
                 # Si updated es diferente de created, significa que fue reactivado
@@ -282,9 +283,10 @@ class EventWinnersView(APIView):
             if registration.client:
                 client = registration.client
                 
-                # Nombre y apellido inicial (solo primer nombre + inicial)
+                # Primer nombre + primer apellido completo
                 first_name_only = client.first_name.strip().split()[0] if client.first_name and client.first_name.strip() else "Usuario"
-                name = f"{first_name_only} {client.last_name[0]}." if client.last_name else first_name_only
+                first_last_name = client.last_name.strip().split()[0] if client.last_name and client.last_name.strip() else ""
+                name = f"{first_name_only} {first_last_name}".strip() if first_last_name else first_name_only
                 
                 # Tiempo relativo desde el anuncio del ganador
                 announcement_time_ago = None
@@ -346,9 +348,10 @@ class EventWinnersView(APIView):
             for i, entry in enumerate(contest_leaderboard, 1):
                 client = entry['client']
                 
-                # Formatear nombre (solo primer nombre + inicial)
+                # Primer nombre + primer apellido completo
                 first_name_only = client.first_name.strip().split()[0] if client.first_name and client.first_name.strip() else "Usuario"
-                participant_name = f"{first_name_only} {client.last_name[0]}." if client.last_name else first_name_only
+                first_last_name = client.last_name.strip().split()[0] if client.last_name and client.last_name.strip() else ""
+                participant_name = f"{first_name_only} {first_last_name}".strip() if first_last_name else first_name_only
                 
                 # Imagen de Facebook
                 facebook_image = None
