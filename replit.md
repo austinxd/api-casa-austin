@@ -50,6 +50,16 @@ Preferred communication style: Simple, everyday language.
 - Referral ranking system with monthly statistics and public access for general stats.
 - Event contest system for referral competitions (count and bookings).
 
+### Points System Automation
+- **Automatic points assignment**: Daily command `auto_assign_points` processes all reservations with checkout passed
+- Command features:
+  * Assigns 5% points on effective price (after discount from redeemed points)
+  * Assigns referral points to referrer based on configurable percentage
+  * Creates Activity Feed entries for both earned and referral points
+  * Verifies and assigns achievements automatically
+  * `--dry-run` flag for testing without saving changes
+- Dual system: Signal for immediate assignment on edits + Daily command for all pending reservations
+
 ### File Management
 - Image processing (Pillow) for property photos.
 - Document handling for vouchers and receipts.
