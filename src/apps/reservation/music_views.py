@@ -1013,7 +1013,7 @@ class PendingRequestsView(APIView):
                 'name': f"{participant.first_name} {participant.last_name}",
                 'facebook_linked': participant.facebook_linked,
                 'profile_picture': participant.get_facebook_profile_picture() if participant.facebook_linked else None,
-                'created_at': req.created_at.isoformat()
+                'requested_at': req.requested_at.isoformat()
             })
         
         return Response({
