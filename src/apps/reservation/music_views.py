@@ -4,7 +4,7 @@ from rest_framework import status as http_status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from datetime import time
+from datetime import time, datetime
 import logging
 
 from apps.reservation.music_client import get_music_client
@@ -1024,8 +1024,8 @@ class ParticipantsView(APIView):
         if now_date < reservation.check_in_date:
             # Sesión no ha comenzado
             checkin_datetime = timezone.make_aware(
-                timezone.datetime.combine(reservation.check_in_date, checkin_time)
-            ) if settings.USE_TZ else timezone.datetime.combine(reservation.check_in_date, checkin_time)
+                datetime.combine(reservation.check_in_date, checkin_time)
+            ) if settings.USE_TZ else datetime.combine(reservation.check_in_date, checkin_time)
             
             return Response({
                 "success": True,
@@ -1040,8 +1040,8 @@ class ParticipantsView(APIView):
         if now_date > reservation.check_out_date or (now_date == reservation.check_out_date and now_time >= checkout_time):
             # Sesión terminada
             checkout_datetime = timezone.make_aware(
-                timezone.datetime.combine(reservation.check_out_date, checkout_time)
-            ) if settings.USE_TZ else timezone.datetime.combine(reservation.check_out_date, checkout_time)
+                datetime.combine(reservation.check_out_date, checkout_time)
+            ) if settings.USE_TZ else datetime.combine(reservation.check_out_date, checkout_time)
             
             return Response({
                 "success": True,
@@ -1056,8 +1056,8 @@ class ParticipantsView(APIView):
         if now_date == reservation.check_in_date and now_time < checkin_time:
             # Día de check-in pero antes de las 3 PM
             checkin_datetime = timezone.make_aware(
-                timezone.datetime.combine(reservation.check_in_date, checkin_time)
-            ) if settings.USE_TZ else timezone.datetime.combine(reservation.check_in_date, checkin_time)
+                datetime.combine(reservation.check_in_date, checkin_time)
+            ) if settings.USE_TZ else datetime.combine(reservation.check_in_date, checkin_time)
             
             return Response({
                 "success": True,
