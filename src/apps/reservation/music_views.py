@@ -252,7 +252,7 @@ class PlayerControlView(APIView):
         # Verificar si es participante aceptado de LA reserva activa
         is_participant = MusicSessionParticipant.objects.filter(
             reservation=active_reservation,
-            participant=user,
+            client=user,
             status='accepted'
         ).exists()
         
