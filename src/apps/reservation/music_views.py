@@ -949,7 +949,7 @@ class RequestAccessView(APIView):
         # Verificar si ya tiene una solicitud pendiente o aceptada
         existing = MusicSessionParticipant.objects.filter(
             reservation=reservation,
-            participant=request.user,
+            client=request.user,
             status__in=['pending', 'accepted']
         ).first()
         
@@ -968,7 +968,7 @@ class RequestAccessView(APIView):
         # Crear solicitud
         participant = MusicSessionParticipant.objects.create(
             reservation=reservation,
-            participant=request.user,
+            client=request.user,
             status='pending'
         )
         
