@@ -958,7 +958,7 @@ class PendingRequestsView(APIView):
             requests_data.append({
                 'request_id': str(req.id),
                 'id': str(participant.id),
-                'participant_name': f"{participant.first_name} {participant.last_name}",
+                'name': f"{participant.first_name} {participant.last_name}",
                 'facebook_linked': participant.facebook_linked,
                 'profile_picture': participant.get_facebook_profile_picture() if participant.facebook_linked else None,
                 'created_at': req.created_at.isoformat()
@@ -1075,7 +1075,7 @@ class ParticipantsView(APIView):
             return Response({
                 "success": True,
                 "session_active": False,
-                "session_status": "not_started",
+                "status": "not_started",
                 "message": "Sesión programada",
                 "activation_date": checkin_datetime.isoformat(),
                 "host": None,
@@ -1091,7 +1091,7 @@ class ParticipantsView(APIView):
             return Response({
                 "success": True,
                 "session_active": False,
-                "session_status": "ended",
+                "status": "ended",
                 "message": "Sesión finalizada",
                 "termination_date": checkout_datetime.isoformat(),
                 "host": None,
@@ -1107,7 +1107,7 @@ class ParticipantsView(APIView):
             return Response({
                 "success": True,
                 "session_active": False,
-                "session_status": "not_started",
+                "status": "not_started",
                 "message": "Sesión programada",
                 "activation_date": checkin_datetime.isoformat(),
                 "host": None,
@@ -1118,7 +1118,7 @@ class ParticipantsView(APIView):
         host = reservation.client
         host_data = {
             'id': str(host.id),
-            'client_name': f"{host.first_name} {host.last_name}",
+            'name': f"{host.first_name} {host.last_name}",
             'facebook_linked': host.facebook_linked,
             'profile_picture': host.get_facebook_profile_picture() if host.facebook_linked else None
         }
@@ -1135,7 +1135,7 @@ class ParticipantsView(APIView):
             participants_data.append({
                 'participant_id': str(p.id),
                 'id': str(participant.id),
-                'participant_name': f"{participant.first_name} {participant.last_name}",
+                'name': f"{participant.first_name} {participant.last_name}",
                 'facebook_linked': participant.facebook_linked,
                 'profile_picture': participant.get_facebook_profile_picture() if participant.facebook_linked else None
             })
@@ -1143,7 +1143,7 @@ class ParticipantsView(APIView):
         return Response({
             "success": True,
             "session_active": True,
-            "session_status": "active",
+            "status": "active",
             "message": "Muestra datos de sesión",
             "host": host_data,
             "participants": participants_data
