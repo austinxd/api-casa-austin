@@ -121,7 +121,7 @@ class MusicAPIClient:
             house_id: ID de la casa (1-4)
             level: Nivel de volumen (0-100)
         """
-        return self._make_request("POST", f"/house/{house_id}/volume", json={"level": level})
+        return self._make_request("POST", f"/house/{house_id}/volume", json={"volume": level})
     
     def toggle_mute(self, house_id: int) -> Dict[str, Any]:
         """
