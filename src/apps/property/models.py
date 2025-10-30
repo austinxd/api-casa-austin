@@ -7,6 +7,7 @@ from io import BytesIO
 
 from apps.core.models import BaseModel
 from django.core.validators import MinValueValidator, MaxValueValidator
+from apps.property.constants import HOUSE_CHOICES
 
 
 class Property(BaseModel):
@@ -37,7 +38,14 @@ class Property(BaseModel):
     precio_desde = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Precio desde", help_text="Precio base de referencia para mostrar en listados")
     caracteristicas = models.JSONField(default=list, blank=True, verbose_name="Características", help_text="Lista de características de la propiedad")
     slug = models.SlugField(max_length=200, unique=True, blank=True, verbose_name="Slug", help_text="URL amigable generada automáticamente")
-    player_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="ID de Casa", help_text="ID de la casa (1-4) para el sistema de música")
+    player_id = models.CharField(
+        max_length=50, 
+        null=True, 
+        blank=True, 
+        choices=HOUSE_CHOICES,
+        verbose_name="Casa", 
+        help_text="Selecciona la casa para el sistema de música"
+    )
 
     def __str__(self):
         return self.name
