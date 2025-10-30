@@ -87,7 +87,7 @@ class PlayersListView(APIView):
                 
                 # Mapear campos de la API de música
                 is_playing = house_status.get('playing', False)
-                is_muted = house_status.get('muted', False)
+                is_connected = house_status.get('connected', False)
                 
                 player_info = {
                     "player_id": prop.player_id,
@@ -98,8 +98,7 @@ class PlayersListView(APIView):
                     "current_track": house_status.get('current_track'),
                     "volume": house_status.get('volume', 0),
                     "is_playing": is_playing,
-                    "power_state": "off" if is_muted else ("on" if house_status else "unknown"),
-                    "muted": is_muted
+                    "power_state": "on" if is_connected else "off"
                 }
                 
                 # Agregar información de reserva si existe
