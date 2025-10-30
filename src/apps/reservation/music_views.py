@@ -68,7 +68,7 @@ class PlayersListView(APIView):
             checkin_time = time(15, 0)
             checkout_time = time(11, 0)
             
-            # Obtener reservas del usuario
+            # Opción 1: Buscar reservas donde el usuario es el owner
             user_reservations = Reservation.objects.filter(
                 client=request.user,
                 deleted=False,
@@ -87,7 +87,27 @@ class PlayersListView(APIView):
                 active_reservation = res
                 break
             
-            # Si no hay reserva activa, devolver lista vacía
+            # Opción 2: Si no es owner, buscar si es participante aceptado
+            if not active_reservation:
+                from apps.reservation.music_models import MusicSessionParticipant
+                
+                participant_sessions = MusicSessionParticipant.objects.filter(
+                    client=request.user,
+                    status='accepted'
+                ).select_related('reservation__property')
+                
+                for session in participant_sessions:
+                    res = session.reservation
+                    if now_date < res.check_in_date or now_date > res.check_out_date:
+                        continue
+                    if now_date == res.check_in_date and now_time < checkin_time:
+                        continue
+                    if now_date == res.check_out_date and now_time >= checkout_time:
+                        continue
+                    active_reservation = res
+                    break
+            
+            # Si no hay reserva activa (ni como owner ni como participante), devolver lista vacía
             if not active_reservation:
                 return Response({
                     "success": True,
