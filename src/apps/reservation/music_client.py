@@ -150,7 +150,7 @@ class MusicAPIClient:
         """
         return self._make_request("GET", f"/house/{house_id}/queue")
     
-    def add_to_queue(self, house_id: int, track_id: str) -> Dict[str, Any]:
+    def add_to_queue(self, house_id: int, track_id: str, track_name: str, artist: str) -> Dict[str, Any]:
         """
         POST /house/{house_id}/queue
         Agrega una canción a la cola.
@@ -158,8 +158,14 @@ class MusicAPIClient:
         Args:
             house_id: ID de la casa (1-4)
             track_id: ID de la canción de Deezer
+            track_name: Nombre de la canción
+            artist: Artista de la canción
         """
-        return self._make_request("POST", f"/house/{house_id}/queue", json={"track_id": track_id})
+        return self._make_request("POST", f"/house/{house_id}/queue", json={
+            "track_id": track_id,
+            "track_name": track_name,
+            "artist": artist
+        })
     
     def remove_from_queue(self, house_id: int, index: int) -> Dict[str, Any]:
         """

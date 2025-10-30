@@ -607,6 +607,8 @@ class PlayerPlayMediaView(PlayerControlView):
         
         try:
             track_id = request.data.get('track_id')
+            track_name = request.data.get('track_name')
+            artist = request.data.get('artist')
             
             if not track_id:
                 return Response({
@@ -614,10 +616,22 @@ class PlayerPlayMediaView(PlayerControlView):
                     "error": "Se requiere el parámetro 'track_id'"
                 }, status=http_status.HTTP_400_BAD_REQUEST)
             
+            if not track_name:
+                return Response({
+                    "success": False,
+                    "error": "Se requiere el parámetro 'track_name'"
+                }, status=http_status.HTTP_400_BAD_REQUEST)
+            
+            if not artist:
+                return Response({
+                    "success": False,
+                    "error": "Se requiere el parámetro 'artist'"
+                }, status=http_status.HTTP_400_BAD_REQUEST)
+            
             music_client = get_music_client()
             
             # Agregar a cola
-            result = music_client.add_to_queue(house_id, track_id)
+            result = music_client.add_to_queue(house_id, track_id, track_name, artist)
             
             return Response({
                 "success": True,
