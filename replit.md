@@ -81,38 +81,30 @@ Preferred communication style: Simple, everyday language.
   * `referred_by_info.has_used_discount`: Indicates if client has made any approved reservation
   * For clients WITHOUT reservations: Shows `discount_percentage` (based on referrer's achievement level) and `discount_available` (true/false)
   * For clients WITH reservations: Shows referrer info only, without discount details (discount already used)
-- Music Assistant Integration: Complete integration with Music Assistant server for music control in properties. Features include:
-  * Player control endpoints (play, pause, stop, next, previous, volume, power)
-  * Queue management (view queue, play media with queue options, clear queue - host only)
-  * Music search and library browsing
+- **Music System Integration (Oct 30, 2025)**: Migrated to custom Deezer-based API (https://music.casaaustin.pe)
+  * **NEW: HTTP-based architecture** replacing WebSocket Music Assistant connection
+  * **Deezer streaming**: 320kbps MP3 quality for all houses
+  * Player control endpoints (play, pause, stop, next, previous, volume, power, mute)
+  * Queue management (view queue, add to queue, remove from queue, clear queue - host only)
+  * Music search via Deezer API and charts browsing
   * **Reservation-based sessions**: Each reservation acts as a session (reservation_id = session_id)
   * **Access request system**: Users can request access to control music of an active reservation
   * **Host approval workflow**: Reservation owner (host) accepts/rejects access requests
   * **Time-based validation**: Music control only allowed during active reservation hours (check-in 3 PM, check-out 11 AM)
-  * **Security fix (Oct 2025)**: Permission system now correctly validates that only the host of THE current active reservation or their accepted participants can control music (previously allowed any user with any reservation on that property)
-  * **Auto-power management (Oct 10, 2025)**: Automatic player power control based on active reservations
+  * **Security**: Permission system validates that only the host of THE current active reservation or their accepted participants can control music
+  * **Auto-power management**: Automatic player power control based on active reservations
     - `/auto-power-on/` - Powers on single property player if reservation is active
     - `/auto-power-on-all/` - Powers on all property players with active reservations (public GET endpoint for cron)
-  * **Connection monitoring (Oct 10, 2025)**: Robust connection health and recovery system
-    - Proactive health check loop running every 30 seconds in background (independent of requests)
-    - Automatic reconnection with 3 retries on connection loss
-    - **TTL (Time To Live) de 5 minutos**: Fuerza reconexión automática cada 5 minutos para resincronizar players (detecta nuevos reproductores agregados a Music Assistant)
-    - Comprehensive logging (logger + console) for debugging
-    - `/health/` public endpoint for external monitoring and alerts (now properly calls get_client() to establish connection)
-    - `/debug/all-players/` endpoint for debugging player detection
-    - Telegram alert integration via cron script for production monitoring
-    - Enhanced `/auto-power-on-all/` with robust error handling (HTTP 503 on connection failures)
-  * **Session status messaging (Oct 10, 2025)**: `/sessions/{reservationId}/participants/` endpoint now shows session state
-    - **Active sessions**: Returns host info with profile picture and list of accepted participants (message: shows session data)
+  * **Session status messaging**: `/sessions/{reservationId}/participants/` endpoint shows session state
+    - **Active sessions**: Returns host info with profile picture and list of accepted participants
     - **Not started**: Shows activation date/time (check-in date at 3 PM) when session hasn't begun (message: "Sesión programada")
     - **Ended**: Shows termination date/time (check-out date at 11 AM) when session has finished (message: "Sesión finalizada")
     - Timezone-aware implementation supporting both USE_TZ=True and USE_TZ=False configurations
-  * WebSocket persistent connection to Music Assistant server (wss://music.casaaustin.pe/ws)
-  * **PRODUCCIÓN:** Requiere Python 3.11+ (dependencias: music-assistant-client 1.2.4, music-assistant-models 1.1.51)
-  * **Implementación:** Singleton pattern con conexión persistente, `start_listening()` para sincronización, y health check proactivo en background
-  * **Servidor de producción:** AlmaLinux con Python 3.11 (venv-py311), Supervisor para gestión de procesos
-  * **Monitoreo:** Script `/root/check_music_assistant.sh` ejecutado cada 5 min vía cron, envía alertas a Telegram
-  * **Estado:** Completamente funcional con sistema de recuperación automática, 8-9 reproductores detectados
+  * **DLNA Support**: Music API supports DLNA device discovery and playback
+  * **House-based architecture**: 4 independent houses (house_id: 1-4) mapped to Property.player_id
+  * **Dependencies**: Uses standard `requests` library (no Music Assistant dependencies needed)
+  * **Frontend compatibility**: No frontend changes required - same endpoints and responses
+  * **Production ready**: Simplified HTTP architecture, no complex WebSocket management needed
 
 ## External Dependencies
 
