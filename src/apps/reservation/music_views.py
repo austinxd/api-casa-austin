@@ -957,7 +957,9 @@ class PendingRequestsView(APIView):
             participant = req.client
             requests_data.append({
                 'request_id': str(req.id),
+                'id': str(participant.id),
                 'participant_name': f"{participant.first_name} {participant.last_name}",
+                'facebook_linked': participant.facebook_linked,
                 'profile_picture': participant.get_facebook_profile_picture() if participant.facebook_linked else None,
                 'created_at': req.created_at.isoformat()
             })
@@ -1115,7 +1117,9 @@ class ParticipantsView(APIView):
         # Sesión activa - mostrar host y participantes
         host = reservation.client
         host_data = {
+            'id': str(host.id),
             'client_name': f"{host.first_name} {host.last_name}",
+            'facebook_linked': host.facebook_linked,
             'profile_picture': host.get_facebook_profile_picture() if host.facebook_linked else None
         }
         
@@ -1130,7 +1134,9 @@ class ParticipantsView(APIView):
             participant = p.client
             participants_data.append({
                 'participant_id': str(p.id),
+                'id': str(participant.id),
                 'participant_name': f"{participant.first_name} {participant.last_name}",
+                'facebook_linked': participant.facebook_linked,
                 'profile_picture': participant.get_facebook_profile_picture() if participant.facebook_linked else None
             })
         
