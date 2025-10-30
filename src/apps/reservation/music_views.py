@@ -11,6 +11,7 @@ from apps.reservation.music_client import get_music_client
 from apps.reservation.music_models import MusicSessionParticipant
 from apps.reservation.models import Reservation
 from apps.property.models import Property
+from apps.property.constants import get_house_id
 from apps.clients.auth_views import ClientJWTAuthentication
 
 logger = logging.getLogger(__name__)
@@ -78,11 +79,11 @@ class PlayersListView(APIView):
                 houses_status = {}
             
             for prop in properties:
-                # El player_id debe ser un número de casa (1-4)
+                # El player_id es un nombre de casa que se convierte a ID numérico
                 try:
-                    house_id = int(prop.player_id)
-                except ValueError:
-                    logger.warning(f"Property {prop.name} tiene player_id inválido: {prop.player_id}")
+                    house_id = get_house_id(prop.player_id)
+                except (ValueError, TypeError) as e:
+                    logger.warning(f"Property {prop.name} tiene player_id inválido: {prop.player_id} - {e}")
                     continue
                 
                 # Obtener estado de esta casa
@@ -228,7 +229,7 @@ class PlayerPlayView(PlayerControlView):
             }, status=http_status.HTTP_403_FORBIDDEN)
         
         try:
-            house_id = int(player_id)
+            house_id = get_house_id(player_id)
             music_client = get_music_client()
             
             # Obtener track_id si viene en el body
@@ -261,7 +262,7 @@ class PlayerPauseView(PlayerControlView):
             }, status=http_status.HTTP_403_FORBIDDEN)
         
         try:
-            house_id = int(player_id)
+            house_id = get_house_id(player_id)
             music_client = get_music_client()
             result = music_client.pause(house_id)
             
@@ -290,7 +291,7 @@ class PlayerStopView(PlayerControlView):
             }, status=http_status.HTTP_403_FORBIDDEN)
         
         try:
-            house_id = int(player_id)
+            house_id = get_house_id(player_id)
             music_client = get_music_client()
             result = music_client.stop(house_id)
             
@@ -319,7 +320,7 @@ class PlayerNextView(PlayerControlView):
             }, status=http_status.HTTP_403_FORBIDDEN)
         
         try:
-            house_id = int(player_id)
+            house_id = get_house_id(player_id)
             music_client = get_music_client()
             result = music_client.next_track(house_id)
             
@@ -348,7 +349,7 @@ class PlayerPreviousView(PlayerControlView):
             }, status=http_status.HTTP_403_FORBIDDEN)
         
         try:
-            house_id = int(player_id)
+            house_id = get_house_id(player_id)
             music_client = get_music_client()
             result = music_client.previous_track(house_id)
             
@@ -377,7 +378,7 @@ class PlayerVolumeView(PlayerControlView):
             }, status=http_status.HTTP_403_FORBIDDEN)
         
         try:
-            house_id = int(player_id)
+            house_id = get_house_id(player_id)
             level = request.data.get('level')
             
             if level is None:
@@ -414,7 +415,7 @@ class PlayerPowerView(PlayerControlView):
             }, status=http_status.HTTP_403_FORBIDDEN)
         
         try:
-            house_id = int(player_id)
+            house_id = get_house_id(player_id)
             state = request.data.get('state', 'on')
             
             music_client = get_music_client()
@@ -445,7 +446,7 @@ class PlayerQueueView(PlayerControlView):
             }, status=http_status.HTTP_403_FORBIDDEN)
         
         try:
-            house_id = int(player_id)
+            house_id = get_house_id(player_id)
             music_client = get_music_client()
             result = music_client.get_queue(house_id)
             
@@ -502,7 +503,7 @@ class PlayerClearQueueView(PlayerControlView):
             }, status=http_status.HTTP_403_FORBIDDEN)
         
         try:
-            house_id = int(player_id)
+            house_id = get_house_id(player_id)
             music_client = get_music_client()
             result = music_client.clear_queue(house_id)
             
@@ -531,7 +532,7 @@ class PlayerPlayMediaView(PlayerControlView):
             }, status=http_status.HTTP_403_FORBIDDEN)
         
         try:
-            house_id = int(player_id)
+            house_id = get_house_id(player_id)
             track_id = request.data.get('track_id')
             
             if not track_id:
@@ -722,7 +723,7 @@ class AutoPowerOnView(APIView):
                 }, status=http_status.HTTP_400_BAD_REQUEST)
             
             # Encender el reproductor
-            house_id = int(property_obj.player_id)
+            house_id = get_house_id(property_obj.player_id)
             music_client = get_music_client()
             result = music_client.set_power(house_id, "on")
             
@@ -783,7 +784,7 @@ class AutoPowerOnAllView(APIView):
                 
                 if has_active:
                     try:
-                        house_id = int(prop.player_id)
+                        house_id = get_house_id(prop.player_id)
                         music_client.set_power(house_id, "on")
                         powered_on.append(prop.name)
                     except Exception as e:
