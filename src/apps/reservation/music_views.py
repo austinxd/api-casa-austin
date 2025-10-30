@@ -609,6 +609,7 @@ class PlayerPlayMediaView(PlayerControlView):
             track_id = request.data.get('track_id')
             track_name = request.data.get('track_name')
             artist = request.data.get('artist')
+            queue_option = request.data.get('queue_option', 'add')  # 'play' o 'add'
             
             if not track_id:
                 return Response({
@@ -616,26 +617,33 @@ class PlayerPlayMediaView(PlayerControlView):
                     "error": "Se requiere el parámetro 'track_id'"
                 }, status=http_status.HTTP_400_BAD_REQUEST)
             
-            if not track_name:
-                return Response({
-                    "success": False,
-                    "error": "Se requiere el parámetro 'track_name'"
-                }, status=http_status.HTTP_400_BAD_REQUEST)
-            
-            if not artist:
-                return Response({
-                    "success": False,
-                    "error": "Se requiere el parámetro 'artist'"
-                }, status=http_status.HTTP_400_BAD_REQUEST)
-            
             music_client = get_music_client()
             
-            # Agregar a cola
-            result = music_client.add_to_queue(house_id, track_id, track_name, artist)
+            # Opción 1: Reproducir inmediatamente (sin agregar a cola)
+            if queue_option == 'play':
+                result = music_client.play(house_id, track_id)
+                message = "Reproduciendo canción"
+            
+            # Opción 2: Agregar a la cola
+            else:
+                if not track_name:
+                    return Response({
+                        "success": False,
+                        "error": "Se requiere el parámetro 'track_name' para agregar a la cola"
+                    }, status=http_status.HTTP_400_BAD_REQUEST)
+                
+                if not artist:
+                    return Response({
+                        "success": False,
+                        "error": "Se requiere el parámetro 'artist' para agregar a la cola"
+                    }, status=http_status.HTTP_400_BAD_REQUEST)
+                
+                result = music_client.add_to_queue(house_id, track_id, track_name, artist)
+                message = "Canción agregada a la cola"
             
             return Response({
                 "success": True,
-                "message": "Canción agregada a la cola",
+                "message": message,
                 "data": result
             })
             
