@@ -502,60 +502,6 @@ class PlayerPowerView(PlayerControlView):
 class PlayerQueueView(PlayerControlView):
     """GET /players/{player_id}/queue/"""
     
-    def _enrich_track_info(self, track_item, music_client):
-        """
-        Enriquece un item de la cola con información completa de Deezer.
-        Busca por track_id para obtener thumbnail, album, duración, etc.
-        """
-        try:
-            track_id = track_item.get('track_id')
-            track_name = track_item.get('track_name', '')
-            artist = track_item.get('artist', '')
-            
-            # Intentar buscar por nombre y artista para obtener detalles completos
-            search_query = f"{track_name} {artist}".strip()
-            if not search_query:
-                return track_item
-            
-            search_result = music_client.search_tracks(search_query, limit=5)
-            tracks = search_result.get('tracks', [])
-            
-            # Buscar el track exacto por ID
-            for track in tracks:
-                if str(track.get('track_id')) == str(track_id):
-                    # Encontramos el track exacto
-                    return {
-                        'track_id': track_id,
-                        'track_name': track_name,
-                        'artist': artist,
-                        'album': track.get('album'),
-                        'duration_ms': track.get('duration_ms'),
-                        'thumbnail': track.get('thumbnail'),
-                        'preview_url': track.get('preview_url'),
-                        'link': track.get('link')
-                    }
-            
-            # Si no encontramos por ID, usar el primer resultado si coincide
-            if tracks:
-                first_track = tracks[0]
-                return {
-                    'track_id': track_id,
-                    'track_name': track_name,
-                    'artist': artist,
-                    'album': first_track.get('album'),
-                    'duration_ms': first_track.get('duration_ms'),
-                    'thumbnail': first_track.get('thumbnail'),
-                    'preview_url': first_track.get('preview_url'),
-                    'link': first_track.get('link')
-                }
-            
-            # Si no hay resultados, devolver datos básicos
-            return track_item
-            
-        except Exception as e:
-            logger.warning(f"Error enriqueciendo track {track_item.get('track_id')}: {e}")
-            return track_item
-    
     def get(self, request, player_id):
         if not self.has_player_permission(request.user, player_id):
             return Response({
@@ -570,17 +516,10 @@ class PlayerQueueView(PlayerControlView):
         try:
             music_client = get_music_client()
             result = music_client.get_queue(house_id)
-            queue = result.get('queue', [])
-            
-            # Enriquecer cada item de la cola con información completa
-            enriched_queue = []
-            for item in queue:
-                enriched_item = self._enrich_track_info(item, music_client)
-                enriched_queue.append(enriched_item)
             
             return Response({
                 "success": True,
-                "queue": enriched_queue
+                "queue": result.get('queue', [])
             })
             
         except Exception as e:
