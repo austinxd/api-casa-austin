@@ -1,267 +1,217 @@
-import asyncio
-from typing import Optional
-from music_assistant_client.client import MusicAssistantClient
+import requests
 import logging
+from typing import Dict, List, Optional, Any
 
 logger = logging.getLogger(__name__)
 
 
-class MusicAssistantSingleton:
+class MusicAPIClient:
     """
-    Singleton para manejar una única instancia del cliente de Music Assistant.
-    Mantiene la conexión WebSocket persistente durante la vida del servidor.
+    Cliente HTTP para la nueva API de música de Casa Austin.
+    Reemplaza la conexión WebSocket de Music Assistant.
     """
-    _instance: Optional['MusicAssistantSingleton'] = None
-    _client: Optional[MusicAssistantClient] = None
-    _connection_task: Optional[asyncio.Task] = None
-    _health_check_task: Optional[asyncio.Task] = None
-    _lock = asyncio.Lock()
-    _last_health_check: float = 0
-    _proactive_health_check_task: Optional[asyncio.Task] = None
-    _connection_time: float = 0  # Timestamp de cuándo se conectó
-    _CONNECTION_TTL = 300  # 5 minutos - TTL para forzar reconexión y resincronización
     
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+    def __init__(self, base_url: str = "https://music.casaaustin.pe"):
+        self.base_url = base_url
+        self.timeout = 10  # Timeout de 10 segundos para requests
     
-    async def get_client(self) -> MusicAssistantClient:
+    def _make_request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
         """
-        Obtiene el cliente de Music Assistant, creando la conexión si no existe.
+        Realiza una petición HTTP a la API de música.
+        
+        Args:
+            method: HTTP method (GET, POST, DELETE, etc.)
+            endpoint: API endpoint (e.g., "/status", "/house/1/play")
+            **kwargs: Argumentos adicionales para requests (json, params, etc.)
+        
+        Returns:
+            Response JSON como diccionario
+        
+        Raises:
+            requests.exceptions.RequestException: Si hay error en la petición
         """
-        async with self._lock:
-            import time
-            current_time = time.time()
+        url = f"{self.base_url}{endpoint}"
+        
+        try:
+            response = requests.request(
+                method=method,
+                url=url,
+                timeout=self.timeout,
+                **kwargs
+            )
+            response.raise_for_status()
             
-            # Verificar TTL - Forzar reconexión cada 5 minutos para resincronizar players
-            if self._client is not None and (current_time - self._connection_time > self._CONNECTION_TTL):
-                logger.info(f"🔄 TTL expirado ({int((current_time - self._connection_time) / 60)} min), forzando reconexión para sincronizar players...")
-                print(f"🔄 TTL expirado, reconectando para sincronizar...")
-                await self._connect()
-            # Verificar si el cliente existe y tiene conexión activa
-            elif self._client is None:
-                logger.info("Cliente es None, conectando...")
-                await self._connect()
-            elif not await self._is_connection_alive():
-                # Reconectar si la conexión se perdió
-                logger.warning("⚠️ Conexión perdida detectada en get_client, reconectando...")
-                print("⚠️ Conexión perdida, reconectando...")
-                await self._connect()
-            else:
-                # Health check periódico (cada 30 segundos)
-                if current_time - self._last_health_check > 30:
-                    self._last_health_check = current_time
-                    # Health check en background (no bloqueante)
-                    asyncio.create_task(self._periodic_health_check())
+            # Manejar respuestas vacías o 204 No Content
+            if response.status_code == 204 or not response.content:
+                return {"success": True}
             
-            return self._client
-    
-    async def _periodic_health_check(self):
-        """
-        Health check periódico en background.
-        Intenta acceder a los reproductores para verificar que la conexión funciona.
-        """
-        try:
-            if self._client is not None and hasattr(self._client, 'players'):
-                # Intentar acceder a los reproductores (operación ligera)
-                _ = list(self._client.players)
-        except Exception as e:
-            logger.warning(f"⚠️ Health check falló: {e}. Marcando para reconexión...")
-            print(f"⚠️ Health check falló: {e}. Marcando para reconexión...")
-            # Marcar cliente como None para forzar reconexión en próxima petición
-            self._client = None
-    
-    async def _proactive_health_check_loop(self):
-        """
-        Loop proactivo que verifica la conexión cada 30 segundos,
-        independientemente de si hay requests o no.
-        """
-        logger.info("🔄 Iniciando health check proactivo en background...")
-        print("🔄 Iniciando health check proactivo en background...")
+            return response.json()
         
-        while True:
-            try:
-                await asyncio.sleep(30)  # Esperar 30 segundos
-                
-                if self._client is None:
-                    logger.warning("⚠️ Cliente es None en health check proactivo, intentando reconectar...")
-                    print("⚠️ Cliente es None en health check proactivo, intentando reconectar...")
-                    async with self._lock:
-                        if self._client is None:  # Double-check con lock
-                            await self._connect()
-                    continue
-                
-                # Verificar conexión
-                if not await self._is_connection_alive():
-                    logger.warning("⚠️ Conexión no está viva en health check proactivo, reconectando...")
-                    print("⚠️ Conexión no está viva en health check proactivo, reconectando...")
-                    async with self._lock:
-                        await self._connect()
-                    continue
-                
-                # Intentar acceder a los reproductores
-                try:
-                    if hasattr(self._client, 'players'):
-                        players_count = len(list(self._client.players))
-                        logger.debug(f"✅ Health check OK - {players_count} reproductores disponibles")
-                except Exception as e:
-                    logger.error(f"❌ Error al acceder a reproductores en health check: {e}")
-                    print(f"❌ Error al acceder a reproductores en health check: {e}")
-                    async with self._lock:
-                        self._client = None
-                        await self._connect()
-                
-            except asyncio.CancelledError:
-                logger.info("🛑 Health check proactivo cancelado")
-                print("🛑 Health check proactivo cancelado")
-                break
-            except Exception as e:
-                logger.error(f"❌ Error inesperado en health check proactivo: {e}")
-                print(f"❌ Error inesperado en health check proactivo: {e}")
-                await asyncio.sleep(5)  # Esperar un poco antes de continuar
-    
-    async def _is_connection_alive(self) -> bool:
-        """
-        Verifica si la conexión está realmente activa.
-        """
-        if self._client is None:
-            logger.debug("_is_connection_alive: cliente es None")
-            return False
-        
-        # Verificar si el objeto de conexión existe
-        if not hasattr(self._client, 'connection') or self._client.connection is None:
-            logger.warning("_is_connection_alive: cliente no tiene atributo 'connection' o es None")
-            return False
-        
-        # Verificar si el WebSocket está abierto
-        try:
-            if hasattr(self._client.connection, 'closed') and self._client.connection.closed:
-                logger.warning("_is_connection_alive: WebSocket está cerrado (connection.closed = True)")
-                return False
-        except Exception as e:
-            logger.error(f"_is_connection_alive: error al verificar estado del WebSocket: {e}")
-            return False
-        
-        return True
-    
-    async def _connect(self):
-        """
-        Establece la conexión con el servidor de Music Assistant con reintentos.
-        """
-        max_connection_attempts = 3
-        
-        for attempt in range(max_connection_attempts):
-            try:
-                # Cerrar conexión previa si existe
-                if self._client is not None:
-                    try:
-                        await self._client.disconnect()
-                    except:
-                        pass
-                
-                logger.info(f"🔄 Conectando a Music Assistant (intento {attempt + 1}/{max_connection_attempts})...")
-                print(f"🔄 Conectando a Music Assistant (intento {attempt + 1}/{max_connection_attempts})...")
-                
-                # Crear nueva conexión
-                self._client = MusicAssistantClient("wss://music.casaaustin.pe/ws", None)
-                
-                # Conectar con timeout
-                await asyncio.wait_for(self._client.connect(), timeout=10.0)
-                
-                # Iniciar escucha de eventos para sincronizar reproductores
-                asyncio.create_task(self._client.start_listening())
-                
-                # Esperar a que el módulo de música esté disponible
-                max_wait = 10  # 10 intentos
-                for i in range(max_wait):
-                    if hasattr(self._client, 'music') and self._client.music is not None:
-                        break
-                    await asyncio.sleep(0.5)
-                
-                logger.info("✅ Conectado a Music Assistant exitosamente")
-                print("✅ Conectado a Music Assistant exitosamente")
-                import time
-                current_time = time.time()
-                self._last_health_check = current_time
-                self._connection_time = current_time  # Registrar timestamp de conexión
-                
-                # Iniciar health check proactivo en background
-                if self._proactive_health_check_task is None or self._proactive_health_check_task.done():
-                    self._proactive_health_check_task = asyncio.create_task(self._proactive_health_check_loop())
-                
-                return
-                
-            except asyncio.TimeoutError:
-                logger.warning(f"⏱️ Timeout al conectar (intento {attempt + 1})")
-                print(f"⏱️ Timeout al conectar (intento {attempt + 1})")
-                if attempt < max_connection_attempts - 1:
-                    await asyncio.sleep(2)  # Esperar antes de reintentar
-                    continue
-            except Exception as e:
-                logger.error(f"❌ Error al conectar (intento {attempt + 1}): {e}", exc_info=True)
-                print(f"❌ Error al conectar (intento {attempt + 1}): {e}")
-                if attempt < max_connection_attempts - 1:
-                    await asyncio.sleep(2)  # Esperar antes de reintentar
-                    continue
-        
-        # Si llega aquí, todos los intentos fallaron
-        logger.error("❌ No se pudo conectar a Music Assistant después de todos los intentos")
-        print("❌ No se pudo conectar a Music Assistant después de todos los intentos")
-        self._client = None
-        raise ConnectionError("No se pudo establecer conexión con Music Assistant")
-    
-    async def disconnect(self):
-        """
-        Cierra la conexión con Music Assistant.
-        """
-        async with self._lock:
-            if self._client is not None:
-                try:
-                    await self._client.disconnect()
-                    print("🔌 Desconectado de Music Assistant")
-                except Exception as e:
-                    print(f"Error al desconectar: {e}")
-                finally:
-                    self._client = None
-    
-    @property
-    def is_connected(self) -> bool:
-        """
-        Verifica si hay una conexión activa.
-        """
-        return self._client is not None and self._client.connection is not None
-
-
-# Instancia global
-music_assistant = MusicAssistantSingleton()
-
-
-async def get_music_client() -> MusicAssistantClient:
-    """
-    Helper function para obtener el cliente de Music Assistant.
-    """
-    return await music_assistant.get_client()
-
-
-async def execute_with_retry(func, *args, max_retries=2, **kwargs):
-    """
-    Ejecuta una función con reintentos automáticos en caso de error de conexión.
-    Si falla, intenta reconectar y ejecutar de nuevo.
-    """
-    for attempt in range(max_retries):
-        try:
-            client = await get_music_client()
-            return await func(client, *args, **kwargs)
-        except Exception as e:
-            error_msg = str(e).lower()
-            # Detectar errores de conexión
-            if any(keyword in error_msg for keyword in ['connection', 'websocket', 'not connected', 'closed']):
-                if attempt < max_retries - 1:
-                    print(f"🔄 Intento {attempt + 1}/{max_retries}: Error de conexión, reconectando...")
-                    # Forzar reconexión
-                    music_assistant._client = None
-                    await asyncio.sleep(1)  # Esperar antes de reintentar
-                    continue
-            # Si no es error de conexión o último intento, lanzar error
+        except requests.exceptions.Timeout:
+            logger.error(f"Timeout al llamar a {url}")
             raise
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error en request a {url}: {str(e)}")
+            raise
+    
+    # ==================== STATUS ====================
+    
+    def get_all_status(self) -> Dict[str, Any]:
+        """
+        GET /status
+        Obtiene el estado de todas las casas.
+        """
+        return self._make_request("GET", "/status")
+    
+    def get_house_status(self, house_id: int) -> Dict[str, Any]:
+        """
+        GET /house/{house_id}/status
+        Obtiene el estado de una casa específica.
+        """
+        return self._make_request("GET", f"/house/{house_id}/status")
+    
+    # ==================== PLAYBACK CONTROL ====================
+    
+    def play(self, house_id: int, track_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        POST /house/{house_id}/play
+        Reproduce una canción o resume la reproducción.
+        
+        Args:
+            house_id: ID de la casa (1-4)
+            track_id: ID de la canción de Deezer (opcional)
+        """
+        body = {"track_id": track_id} if track_id else {}
+        return self._make_request("POST", f"/house/{house_id}/play", json=body)
+    
+    def pause(self, house_id: int) -> Dict[str, Any]:
+        """
+        POST /house/{house_id}/pause
+        Pausa la reproducción.
+        """
+        return self._make_request("POST", f"/house/{house_id}/pause")
+    
+    def stop(self, house_id: int) -> Dict[str, Any]:
+        """
+        POST /house/{house_id}/stop
+        Detiene completamente la reproducción.
+        """
+        return self._make_request("POST", f"/house/{house_id}/stop")
+    
+    def next_track(self, house_id: int) -> Dict[str, Any]:
+        """
+        POST /house/{house_id}/next
+        Salta a la siguiente canción.
+        """
+        return self._make_request("POST", f"/house/{house_id}/next")
+    
+    def previous_track(self, house_id: int) -> Dict[str, Any]:
+        """
+        POST /house/{house_id}/previous
+        Vuelve a la canción anterior.
+        """
+        return self._make_request("POST", f"/house/{house_id}/previous")
+    
+    def set_volume(self, house_id: int, level: int) -> Dict[str, Any]:
+        """
+        POST /house/{house_id}/volume
+        Ajusta el volumen (0-100).
+        
+        Args:
+            house_id: ID de la casa (1-4)
+            level: Nivel de volumen (0-100)
+        """
+        return self._make_request("POST", f"/house/{house_id}/volume", json={"level": level})
+    
+    def toggle_mute(self, house_id: int) -> Dict[str, Any]:
+        """
+        POST /house/{house_id}/mute
+        Alterna el estado de mute.
+        """
+        return self._make_request("POST", f"/house/{house_id}/mute")
+    
+    def set_power(self, house_id: int, state: str) -> Dict[str, Any]:
+        """
+        POST /house/{house_id}/power
+        Enciende o apaga el sistema.
+        
+        Args:
+            house_id: ID de la casa (1-4)
+            state: "on" o "off"
+        """
+        return self._make_request("POST", f"/house/{house_id}/power", json={"state": state})
+    
+    # ==================== QUEUE MANAGEMENT ====================
+    
+    def get_queue(self, house_id: int) -> Dict[str, Any]:
+        """
+        GET /house/{house_id}/queue
+        Obtiene la cola de reproducción.
+        """
+        return self._make_request("GET", f"/house/{house_id}/queue")
+    
+    def add_to_queue(self, house_id: int, track_id: str) -> Dict[str, Any]:
+        """
+        POST /house/{house_id}/queue
+        Agrega una canción a la cola.
+        
+        Args:
+            house_id: ID de la casa (1-4)
+            track_id: ID de la canción de Deezer
+        """
+        return self._make_request("POST", f"/house/{house_id}/queue", json={"track_id": track_id})
+    
+    def remove_from_queue(self, house_id: int, index: int) -> Dict[str, Any]:
+        """
+        DELETE /house/{house_id}/queue/{index}
+        Elimina una canción de la cola por índice.
+        
+        Args:
+            house_id: ID de la casa (1-4)
+            index: Índice de la canción en la cola
+        """
+        return self._make_request("DELETE", f"/house/{house_id}/queue/{index}")
+    
+    def clear_queue(self, house_id: int) -> Dict[str, Any]:
+        """
+        DELETE /house/{house_id}/queue/clear
+        Limpia toda la cola de reproducción.
+        """
+        return self._make_request("DELETE", f"/house/{house_id}/queue/clear")
+    
+    # ==================== SEARCH ====================
+    
+    def search_tracks(self, query: str, limit: int = 20) -> Dict[str, Any]:
+        """
+        POST /search
+        Busca canciones en Deezer.
+        
+        Args:
+            query: Término de búsqueda
+            limit: Número máximo de resultados (default: 20)
+        """
+        return self._make_request("POST", "/search", json={"query": query, "limit": limit})
+    
+    # ==================== CHARTS ====================
+    
+    def get_charts(self) -> Dict[str, Any]:
+        """
+        GET /charts
+        Obtiene las canciones más populares (charts de Deezer).
+        """
+        return self._make_request("GET", "/charts")
+
+
+# Instancia global del cliente
+_music_client = None
+
+
+def get_music_client() -> MusicAPIClient:
+    """
+    Obtiene la instancia global del cliente de música.
+    Crea una nueva instancia si no existe.
+    """
+    global _music_client
+    if _music_client is None:
+        _music_client = MusicAPIClient()
+    return _music_client
