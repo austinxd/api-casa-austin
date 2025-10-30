@@ -101,7 +101,7 @@ Preferred communication style: Simple, everyday language.
     - **Ended**: Shows termination date/time (check-out date at 11 AM) when session has finished (message: "Sesión finalizada")
     - Timezone-aware implementation supporting both USE_TZ=True and USE_TZ=False configurations
   * **DLNA Support**: Music API supports DLNA device discovery and playback
-  * **House-based architecture**: 4 independent houses (house_id: 1-4) mapped to Property.player_id
+  * **House-based architecture**: 4 independent houses (house_id: 1-4) mapped to Property.player_id (configured in Django Admin as "ID de Casa")
   * **Dependencies**: Uses standard `requests` library (no Music Assistant dependencies needed)
   * **Frontend compatibility**: No frontend changes required - same endpoints and responses
   * **Production ready**: Simplified HTTP architecture, no complex WebSocket management needed
