@@ -7,7 +7,6 @@ from io import BytesIO
 
 from apps.core.models import BaseModel
 from django.core.validators import MinValueValidator, MaxValueValidator
-from apps.property.constants import HOUSE_CHOICES
 
 
 class Property(BaseModel):
@@ -42,9 +41,8 @@ class Property(BaseModel):
         max_length=50, 
         null=True, 
         blank=True, 
-        choices=HOUSE_CHOICES,
-        verbose_name="Casa", 
-        help_text="Selecciona la casa para el sistema de música"
+        verbose_name="ID de Casa", 
+        help_text="Escribe el ID de la casa (ej: ca1, ca2, ca3, ca4)"
     )
 
     def __str__(self):

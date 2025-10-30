@@ -11,7 +11,6 @@ from apps.reservation.music_client import get_music_client
 from apps.reservation.music_models import MusicSessionParticipant
 from apps.reservation.models import Reservation
 from apps.property.models import Property
-from apps.property.constants import get_house_id
 from apps.clients.auth_views import ClientJWTAuthentication
 
 logger = logging.getLogger(__name__)
@@ -79,12 +78,8 @@ class PlayersListView(APIView):
                 houses_status = {}
             
             for prop in properties:
-                # El player_id es un nombre de casa que se convierte a ID numérico
-                try:
-                    house_id = get_house_id(prop.player_id)
-                except (ValueError, TypeError) as e:
-                    logger.warning(f"Property {prop.name} tiene player_id inválido: {prop.player_id} - {e}")
-                    continue
+                # player_id se usa directamente como house_id
+                house_id = prop.player_id
                 
                 # Obtener estado de esta casa
                 house_status = houses_status.get(str(house_id), {})
@@ -146,19 +141,20 @@ class PlayerControlView(APIView):
     
     def _get_house_id_safe(self, player_id):
         """
-        Convierte player_id a house_id con manejo de errores.
+        Valida que player_id no esté vacío.
         Retorna (house_id, error_response) donde error_response es None si todo está bien.
+        player_id se usa directamente como house_id.
         """
-        try:
-            house_id = get_house_id(player_id)
-            return house_id, None
-        except (ValueError, TypeError) as e:
-            logger.error(f"player_id inválido: {player_id} - {e}")
+        if not player_id:
+            logger.error(f"player_id vacío o no configurado")
             error_response = Response({
                 "success": False,
                 "error": "Reproductor no configurado correctamente"
             }, status=http_status.HTTP_400_BAD_REQUEST)
             return None, error_response
+        
+        # player_id se usa directamente como house_id
+        return player_id, None
     
     def _is_reservation_active_now(self, reservation):
         """
@@ -769,18 +765,9 @@ class AutoPowerOnView(APIView):
                     "error": "No hay reserva activa en esta propiedad"
                 }, status=http_status.HTTP_400_BAD_REQUEST)
             
-            # Encender el reproductor
-            try:
-                house_id = get_house_id(property_obj.player_id)
-            except (ValueError, TypeError) as e:
-                logger.error(f"player_id inválido en AutoPowerOn: {property_obj.player_id} - {e}")
-                return Response({
-                    "success": False,
-                    "error": "Reproductor no configurado correctamente"
-                }, status=http_status.HTTP_400_BAD_REQUEST)
-            
+            # Encender el reproductor (player_id se usa directamente como house_id)
             music_client = get_music_client()
-            result = music_client.set_power(house_id, "on")
+            result = music_client.set_power(property_obj.player_id, "on")
             
             return Response({
                 "success": True,
@@ -839,11 +826,9 @@ class AutoPowerOnAllView(APIView):
                 
                 if has_active:
                     try:
-                        house_id = get_house_id(prop.player_id)
-                        music_client.set_power(house_id, "on")
+                        # player_id se usa directamente como house_id
+                        music_client.set_power(prop.player_id, "on")
                         powered_on.append(prop.name)
-                    except (ValueError, TypeError) as e:
-                        logger.error(f"player_id inválido en {prop.name}: {prop.player_id} - {e}")
                     except Exception as e:
                         logger.error(f"Error encendiendo {prop.name}: {e}")
             
