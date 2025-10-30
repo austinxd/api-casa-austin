@@ -72,7 +72,8 @@ class PlayersListView(APIView):
             # Obtener estado de todas las casas
             try:
                 all_status = music_client.get_all_status()
-                houses_status = all_status.get('houses', {})
+                # La API devuelve las casas directamente en el root, no en 'houses'
+                houses_status = all_status
             except Exception as e:
                 logger.error(f"Error al obtener estado de todas las casas: {e}")
                 houses_status = {}
@@ -84,16 +85,21 @@ class PlayersListView(APIView):
                 # Obtener estado de esta casa
                 house_status = houses_status.get(str(house_id), {})
                 
+                # Mapear campos de la API de música
+                is_playing = house_status.get('playing', False)
+                is_muted = house_status.get('muted', False)
+                
                 player_info = {
                     "player_id": prop.player_id,
                     "name": prop.name,
                     "property_name": prop.name,
                     "available": True,
-                    "state": house_status.get('playback_state', 'idle'),
+                    "state": "playing" if is_playing else "idle",
                     "current_track": house_status.get('current_track'),
                     "volume": house_status.get('volume', 0),
-                    "is_playing": house_status.get('playback_state') == 'playing',
-                    "power_state": house_status.get('power_state', 'unknown')
+                    "is_playing": is_playing,
+                    "power_state": "off" if is_muted else ("on" if house_status else "unknown"),
+                    "muted": is_muted
                 }
                 
                 # Agregar información de reserva si existe
