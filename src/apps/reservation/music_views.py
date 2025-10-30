@@ -60,11 +60,47 @@ class PlayersListView(APIView):
     
     def get(self, request):
         try:
-            # Obtener propiedades con player_id configurado
-            properties = Property.objects.filter(
-                player_id__isnull=False,
-                deleted=False
-            ).exclude(player_id='')
+            # Buscar reserva activa del usuario autenticado
+            local_now = timezone.localtime(timezone.now())
+            now_date = local_now.date()
+            now_time = local_now.time()
+            
+            checkin_time = time(15, 0)
+            checkout_time = time(11, 0)
+            
+            # Obtener reservas del usuario
+            user_reservations = Reservation.objects.filter(
+                client=request.user,
+                deleted=False,
+                status__in=['approved', 'pending', 'incomplete', 'under_review']
+            ).select_related('property')
+            
+            # Encontrar la reserva activa actual
+            active_reservation = None
+            for res in user_reservations:
+                if now_date < res.check_in_date or now_date > res.check_out_date:
+                    continue
+                if now_date == res.check_in_date and now_time < checkin_time:
+                    continue
+                if now_date == res.check_out_date and now_time >= checkout_time:
+                    continue
+                active_reservation = res
+                break
+            
+            # Si no hay reserva activa, devolver lista vacía
+            if not active_reservation:
+                return Response({
+                    "success": True,
+                    "players": []
+                })
+            
+            # Verificar que la propiedad tenga player_id
+            prop = active_reservation.property
+            if not prop.player_id:
+                return Response({
+                    "success": True,
+                    "players": []
+                })
             
             players_data = []
             music_client = get_music_client()
@@ -72,56 +108,45 @@ class PlayersListView(APIView):
             # Obtener estado de todas las casas
             try:
                 all_status = music_client.get_all_status()
-                # La API devuelve las casas directamente en el root, no en 'houses'
                 houses_status = all_status
             except Exception as e:
                 logger.error(f"Error al obtener estado de todas las casas: {e}")
                 houses_status = {}
             
-            for prop in properties:
-                # player_id se usa directamente como house_id
-                house_id = prop.player_id
-                
-                # Obtener estado de esta casa
-                house_status = houses_status.get(str(house_id), {})
-                
-                # Mapear campos de la API de música
-                is_playing = house_status.get('playing', False)
-                is_connected = house_status.get('connected', False)
-                
-                player_info = {
-                    "player_id": prop.player_id,
-                    "name": prop.name,
-                    "property_name": prop.name,
-                    "available": True,
-                    "state": "playing" if is_playing else "idle",
-                    "current_track": house_status.get('current_track'),
-                    "volume": house_status.get('volume', 0),
-                    "is_playing": is_playing,
-                    "power_state": "on" if is_connected else "off"
+            # Obtener estado de esta casa específica
+            house_status = houses_status.get(str(prop.player_id), {})
+            
+            # Mapear campos de la API de música
+            is_playing = house_status.get('playing', False)
+            is_connected = house_status.get('connected', False)
+            
+            # Extraer nombre del cliente
+            client = active_reservation.client
+            first_name_parts = client.first_name.split() if client.first_name else []
+            last_name_parts = client.last_name.split() if client.last_name else []
+            first_name = first_name_parts[0].capitalize() if first_name_parts else ""
+            last_name = last_name_parts[0].capitalize() if last_name_parts else ""
+            
+            player_info = {
+                "player_id": prop.player_id,
+                "name": prop.name,
+                "property_name": prop.name,
+                "available": True,
+                "state": "playing" if is_playing else "idle",
+                "current_track": house_status.get('current_track'),
+                "volume": house_status.get('volume', 0),
+                "is_playing": is_playing,
+                "power_state": "on" if is_connected else "off",
+                "reservation": {
+                    'client_name': f"{first_name} {last_name}".strip(),
+                    'facebook_linked': client.facebook_linked,
+                    'profile_picture': client.get_facebook_profile_picture() if client.facebook_linked else None,
+                    'check_in_date': active_reservation.check_in_date.isoformat(),
+                    'check_out_date': active_reservation.check_out_date.isoformat(),
                 }
-                
-                # Agregar información de reserva si existe
-                active_res = self._get_active_reservation_for_property(prop)
-                if active_res:
-                    client = active_res.client
-                    # Extraer solo el PRIMER nombre y PRIMER apellido
-                    first_name_parts = client.first_name.split() if client.first_name else []
-                    last_name_parts = client.last_name.split() if client.last_name else []
-                    
-                    # Primer nombre y primer apellido - solo primera letra en mayúscula
-                    first_name = first_name_parts[0].capitalize() if first_name_parts else ""
-                    last_name = last_name_parts[0].capitalize() if last_name_parts else ""
-                    
-                    player_info['reservation'] = {
-                        'client_name': f"{first_name} {last_name}".strip(),
-                        'facebook_linked': client.facebook_linked,
-                        'profile_picture': client.get_facebook_profile_picture() if client.facebook_linked else None,
-                        'check_in_date': active_res.check_in_date.isoformat(),
-                        'check_out_date': active_res.check_out_date.isoformat(),
-                    }
-                
-                players_data.append(player_info)
+            }
+            
+            players_data.append(player_info)
             
             return Response({
                 "success": True,
