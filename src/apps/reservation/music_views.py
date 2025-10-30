@@ -950,11 +950,11 @@ class PendingRequestsView(APIView):
         requests_qs = MusicSessionParticipant.objects.filter(
             reservation=reservation,
             status='pending'
-        ).select_related('participant')
+        ).select_related('client')
         
         requests_data = []
         for req in requests_qs:
-            participant = req.participant
+            participant = req.client
             requests_data.append({
                 'request_id': str(req.id),
                 'participant_name': f"{participant.first_name} {participant.last_name}",
@@ -1123,11 +1123,11 @@ class ParticipantsView(APIView):
         participants_qs = MusicSessionParticipant.objects.filter(
             reservation=reservation,
             status='accepted'
-        ).select_related('participant')
+        ).select_related('client')
         
         participants_data = []
         for p in participants_qs:
-            participant = p.participant
+            participant = p.client
             participants_data.append({
                 'participant_id': str(p.id),
                 'participant_name': f"{participant.first_name} {participant.last_name}",
