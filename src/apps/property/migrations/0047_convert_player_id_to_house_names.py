@@ -18,15 +18,24 @@ def convert_numbers_to_house_names(apps, schema_editor):
     skipped_count = 0
     
     for prop in Property.objects.all():
-        if prop.player_id and prop.player_id in NUMBER_TO_HOUSE_NAME:
+        if not prop.player_id:
+            continue
+            
+        # Convertir a string y limpiar espacios
+        player_id_str = str(prop.player_id).strip()
+        
+        if player_id_str in NUMBER_TO_HOUSE_NAME:
             old_value = prop.player_id
-            prop.player_id = NUMBER_TO_HOUSE_NAME[old_value]
+            prop.player_id = NUMBER_TO_HOUSE_NAME[player_id_str]
             prop.save(update_fields=['player_id'])
             converted_count += 1
             print(f"  ✓ {prop.name}: {old_value} → {prop.player_id}")
-        elif prop.player_id:
+        elif player_id_str in NUMBER_TO_HOUSE_NAME.values():
+            # Ya es un slug válido, no hacer nada
+            print(f"  ✓ {prop.name}: '{prop.player_id}' (ya es un slug válido)")
+        else:
             skipped_count += 1
-            print(f"  ⊘ {prop.name}: '{prop.player_id}' (ya es un nombre o valor desconocido)")
+            print(f"  ⚠ {prop.name}: '{prop.player_id}' (valor inválido - se recomienda revisión manual)")
     
     print(f"\nConvertidas: {converted_count} propiedades")
     print(f"Omitidas: {skipped_count} propiedades")

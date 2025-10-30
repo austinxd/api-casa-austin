@@ -144,6 +144,22 @@ class PlayerControlView(APIView):
     authentication_classes = [ClientJWTAuthentication]
     permission_classes = [IsAuthenticated]
     
+    def _get_house_id_safe(self, player_id):
+        """
+        Convierte player_id a house_id con manejo de errores.
+        Retorna (house_id, error_response) donde error_response es None si todo está bien.
+        """
+        try:
+            house_id = get_house_id(player_id)
+            return house_id, None
+        except (ValueError, TypeError) as e:
+            logger.error(f"player_id inválido: {player_id} - {e}")
+            error_response = Response({
+                "success": False,
+                "error": "Reproductor no configurado correctamente"
+            }, status=http_status.HTTP_400_BAD_REQUEST)
+            return None, error_response
+    
     def _is_reservation_active_now(self, reservation):
         """
         Verifica si la reserva está activa AHORA según los horarios:
@@ -228,8 +244,12 @@ class PlayerPlayView(PlayerControlView):
                 "error": "No tienes permiso para controlar este reproductor"
             }, status=http_status.HTTP_403_FORBIDDEN)
         
+        # Convertir player_id a house_id con manejo de errores
+        house_id, error_response = self._get_house_id_safe(player_id)
+        if error_response:
+            return error_response
+        
         try:
-            house_id = get_house_id(player_id)
             music_client = get_music_client()
             
             # Obtener track_id si viene en el body
@@ -261,8 +281,11 @@ class PlayerPauseView(PlayerControlView):
                 "error": "No tienes permiso para controlar este reproductor"
             }, status=http_status.HTTP_403_FORBIDDEN)
         
+        house_id, error_response = self._get_house_id_safe(player_id)
+        if error_response:
+            return error_response
+        
         try:
-            house_id = get_house_id(player_id)
             music_client = get_music_client()
             result = music_client.pause(house_id)
             
@@ -290,8 +313,11 @@ class PlayerStopView(PlayerControlView):
                 "error": "No tienes permiso para controlar este reproductor"
             }, status=http_status.HTTP_403_FORBIDDEN)
         
+        house_id, error_response = self._get_house_id_safe(player_id)
+        if error_response:
+            return error_response
+        
         try:
-            house_id = get_house_id(player_id)
             music_client = get_music_client()
             result = music_client.stop(house_id)
             
@@ -319,8 +345,11 @@ class PlayerNextView(PlayerControlView):
                 "error": "No tienes permiso para controlar este reproductor"
             }, status=http_status.HTTP_403_FORBIDDEN)
         
+        house_id, error_response = self._get_house_id_safe(player_id)
+        if error_response:
+            return error_response
+        
         try:
-            house_id = get_house_id(player_id)
             music_client = get_music_client()
             result = music_client.next_track(house_id)
             
@@ -348,8 +377,11 @@ class PlayerPreviousView(PlayerControlView):
                 "error": "No tienes permiso para controlar este reproductor"
             }, status=http_status.HTTP_403_FORBIDDEN)
         
+        house_id, error_response = self._get_house_id_safe(player_id)
+        if error_response:
+            return error_response
+        
         try:
-            house_id = get_house_id(player_id)
             music_client = get_music_client()
             result = music_client.previous_track(house_id)
             
@@ -377,8 +409,11 @@ class PlayerVolumeView(PlayerControlView):
                 "error": "No tienes permiso para controlar este reproductor"
             }, status=http_status.HTTP_403_FORBIDDEN)
         
+        house_id, error_response = self._get_house_id_safe(player_id)
+        if error_response:
+            return error_response
+        
         try:
-            house_id = get_house_id(player_id)
             level = request.data.get('level')
             
             if level is None:
@@ -414,8 +449,11 @@ class PlayerPowerView(PlayerControlView):
                 "error": "No tienes permiso para controlar este reproductor"
             }, status=http_status.HTTP_403_FORBIDDEN)
         
+        house_id, error_response = self._get_house_id_safe(player_id)
+        if error_response:
+            return error_response
+        
         try:
-            house_id = get_house_id(player_id)
             state = request.data.get('state', 'on')
             
             music_client = get_music_client()
@@ -445,8 +483,11 @@ class PlayerQueueView(PlayerControlView):
                 "error": "No tienes permiso para ver la cola de este reproductor"
             }, status=http_status.HTTP_403_FORBIDDEN)
         
+        house_id, error_response = self._get_house_id_safe(player_id)
+        if error_response:
+            return error_response
+        
         try:
-            house_id = get_house_id(player_id)
             music_client = get_music_client()
             result = music_client.get_queue(house_id)
             
@@ -502,8 +543,11 @@ class PlayerClearQueueView(PlayerControlView):
                 "error": "Solo el anfitrión puede limpiar la cola"
             }, status=http_status.HTTP_403_FORBIDDEN)
         
+        house_id, error_response = self._get_house_id_safe(player_id)
+        if error_response:
+            return error_response
+        
         try:
-            house_id = get_house_id(player_id)
             music_client = get_music_client()
             result = music_client.clear_queue(house_id)
             
@@ -531,8 +575,11 @@ class PlayerPlayMediaView(PlayerControlView):
                 "error": "No tienes permiso para controlar este reproductor"
             }, status=http_status.HTTP_403_FORBIDDEN)
         
+        house_id, error_response = self._get_house_id_safe(player_id)
+        if error_response:
+            return error_response
+        
         try:
-            house_id = get_house_id(player_id)
             track_id = request.data.get('track_id')
             
             if not track_id:
@@ -723,7 +770,15 @@ class AutoPowerOnView(APIView):
                 }, status=http_status.HTTP_400_BAD_REQUEST)
             
             # Encender el reproductor
-            house_id = get_house_id(property_obj.player_id)
+            try:
+                house_id = get_house_id(property_obj.player_id)
+            except (ValueError, TypeError) as e:
+                logger.error(f"player_id inválido en AutoPowerOn: {property_obj.player_id} - {e}")
+                return Response({
+                    "success": False,
+                    "error": "Reproductor no configurado correctamente"
+                }, status=http_status.HTTP_400_BAD_REQUEST)
+            
             music_client = get_music_client()
             result = music_client.set_power(house_id, "on")
             
@@ -787,6 +842,8 @@ class AutoPowerOnAllView(APIView):
                         house_id = get_house_id(prop.player_id)
                         music_client.set_power(house_id, "on")
                         powered_on.append(prop.name)
+                    except (ValueError, TypeError) as e:
+                        logger.error(f"player_id inválido en {prop.name}: {prop.player_id} - {e}")
                     except Exception as e:
                         logger.error(f"Error encendiendo {prop.name}: {e}")
             
