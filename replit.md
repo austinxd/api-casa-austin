@@ -81,6 +81,11 @@ Preferred communication style: Simple, everyday language.
   * `referred_by_info.has_used_discount`: Indicates if client has made any approved reservation
   * For clients WITHOUT reservations: Shows `discount_percentage` (based on referrer's achievement level) and `discount_available` (true/false)
   * For clients WITH reservations: Shows referrer info only, without discount details (discount already used)
+- **Active Reservations Endpoint (Oct 31, 2025)**: Public endpoint `/api/v1/reservation/active/` that lists all currently active reservations
+  * Time-based validation: Check-in from 3 PM onwards, check-out until 11 AM (Peru timezone)
+  * Returns: reservation ID, property name, property player_id, full client name, referral code, check-in/check-out dates
+  * Used for monitoring current guests and music system integration
+  * No authentication required (public endpoint)
 - **Music System Integration (Oct 30, 2025)**: Migrated to custom Deezer-based API (https://music.casaaustin.pe)
   * **NEW: HTTP-based architecture** replacing WebSocket Music Assistant connection
   * **Deezer streaming**: 320kbps MP3 quality for all houses
@@ -92,6 +97,7 @@ Preferred communication style: Simple, everyday language.
   * **Host approval workflow**: Reservation owner (host) accepts/rejects access requests
   * **Time-based validation**: Music control only allowed during active reservation hours (check-in 3 PM, check-out 11 AM)
   * **Security**: Permission system validates that only the host of THE current active reservation or their accepted participants can control music
+  * **Player visibility**: Both reservation owners and accepted MusicSessionParticipant users can see and control players
   * **Auto-power management**: Automatic player power control based on active reservations
     - `/auto-power-on/` - Powers on single property player if reservation is active
     - `/auto-power-on-all/` - Powers on all property players with active reservations (public GET endpoint for cron)

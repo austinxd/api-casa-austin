@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from .views import ReservationsApiView, DeleteRecipeApiView, GetICSApiView, UpdateICSApiView, ProfitApiView, VistaCalendarioApiView, confirm_reservation, MonthlyReservationsExportAPIView, PropertyCalendarOccupancyAPIView, QRReservationView
+from .views import ReservationsApiView, DeleteRecipeApiView, GetICSApiView, UpdateICSApiView, ProfitApiView, VistaCalendarioApiView, confirm_reservation, MonthlyReservationsExportAPIView, PropertyCalendarOccupancyAPIView, QRReservationView, ActiveReservationsView
 from .payment_views import ProcessPaymentView, ProcessAdditionalServicesPaymentView
 from .homeassistant_views import HomeAssistantReservationView
 
@@ -25,4 +25,5 @@ urlpatterns = [
     path('export/monthly/', MonthlyReservationsExportAPIView.as_view(), name='monthly-reservations-export'),
     path("homeassistant/", HomeAssistantReservationView.as_view(), name="homeassistant-reservation"),
     path('qr/<str:reservation_id>/', QRReservationView.as_view(), name='qr-reservation'),
+    path('active/', ActiveReservationsView.as_view(), name='active-reservations'),
 ]

@@ -1303,3 +1303,76 @@ class QRReservationView(APIView):
                 "success": False,
                 "error": f"Error interno: {str(e)}"
             }, status=500)
+
+
+class ActiveReservationsView(APIView):
+    """
+    GET /api/v1/reservation/active/
+    Devuelve todas las reservas activas en este momento.
+    Valida horarios de check-in (3 PM) y check-out (11 AM) en horario de Perú.
+    """
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        try:
+            from django.utils import timezone
+            
+            # Obtener hora actual en horario de Perú
+            local_now = timezone.localtime(timezone.now())
+            now_date = local_now.date()
+            now_time = local_now.time()
+            
+            checkin_time = time(15, 0)  # 3 PM
+            checkout_time = time(11, 0)  # 11 AM
+            
+            # Obtener todas las reservas aprobadas que podrían estar activas
+            reservations = Reservation.objects.filter(
+                deleted=False,
+                status='approved',
+                check_in_date__lte=now_date,  # Ya empezó o empieza hoy
+                check_out_date__gte=now_date   # No ha terminado o termina hoy
+            ).select_related('property', 'client')
+            
+            active_reservations = []
+            
+            for res in reservations:
+                # Verificar si la reserva está activa en este momento
+                is_active = True
+                
+                # Si es el día de check-in, debe ser después de las 3 PM
+                if now_date == res.check_in_date and now_time < checkin_time:
+                    is_active = False
+                
+                # Si es el día de check-out, debe ser antes de las 11 AM
+                if now_date == res.check_out_date and now_time >= checkout_time:
+                    is_active = False
+                
+                # Si está fuera del rango de fechas
+                if now_date < res.check_in_date or now_date > res.check_out_date:
+                    is_active = False
+                
+                if is_active:
+                    client = res.client
+                    
+                    active_reservations.append({
+                        'id': str(res.id),
+                        'property': res.property.name if res.property else 'Sin propiedad',
+                        'property_id': res.property.player_id if res.property else None,
+                        'client_name': f"{client.first_name or ''} {client.last_name or ''}".strip() or "Sin nombre",
+                        'referral_code': client.get_referral_code() if hasattr(client, 'get_referral_code') else client.referral_code,
+                        'check_in_date': res.check_in_date.isoformat(),
+                        'check_out_date': res.check_out_date.isoformat(),
+                        'is_currently_active': True
+                    })
+            
+            return Response({
+                "success": True,
+                "count": len(active_reservations),
+                "active_reservations": active_reservations
+            })
+            
+        except Exception as e:
+            return Response({
+                "success": False,
+                "error": f"Error interno: {str(e)}"
+            }, status=500)
