@@ -55,6 +55,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://192.168.1.240",
     "http://192.168.1.240:8843",
     "https://192.168.1.240:8843",
+    "http://192.168.1.240:8088",
+    "https://192.168.1.240:8088",
 ]
 
 CORS_ALLOWED_ORIGIN_REGEXES = [
