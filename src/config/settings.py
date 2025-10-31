@@ -57,6 +57,10 @@ CORS_ALLOWED_ORIGINS = [
     "https://192.168.1.240:8843",
 ]
 
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^null$",  # Permite origen null (archivos locales de Omada)
+]
+
 # Permitir headers adicionales para autenticación
 CORS_ALLOW_HEADERS = [
     'accept',
