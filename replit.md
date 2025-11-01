@@ -81,8 +81,8 @@ Preferred communication style: Simple, everyday language.
   * `referred_by_info.has_used_discount`: Indicates if client has made any approved reservation
   * For clients WITHOUT reservations: Shows `discount_percentage` (based on referrer's achievement level) and `discount_available` (true/false)
   * For clients WITH reservations: Shows referrer info only, without discount details (discount already used)
-- **Active Reservations Endpoint (Oct 31, 2025)**: Public endpoint `/api/v1/reservation/active/` that lists all currently active reservations
-  * Time-based validation: Check-in from 3 PM onwards, check-out until 11 AM (Peru timezone)
+- **Active Reservations Endpoint (Oct 31, 2025)**: Public endpoint `/api/v1/active/` that lists all currently active reservations
+  * Time-based validation: Check-in from 1 PM onwards, check-out until 11 AM (Peru timezone)
   * Returns: reservation ID, property name, property player_id, full client name, referral code, check-in/check-out dates
   * Used for monitoring current guests and music system integration
   * No authentication required (public endpoint)

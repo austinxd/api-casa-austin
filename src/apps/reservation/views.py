@@ -1309,7 +1309,7 @@ class ActiveReservationsView(APIView):
     """
     GET /api/v1/reservation/active/
     Devuelve todas las reservas activas en este momento.
-    Valida horarios de check-in (3 PM) y check-out (11 AM) en horario de Perú.
+    Valida horarios de check-in (1 PM) y check-out (11 AM) en horario de Perú.
     """
     permission_classes = [AllowAny]
     
@@ -1322,7 +1322,7 @@ class ActiveReservationsView(APIView):
             now_date = local_now.date()
             now_time = local_now.time()
             
-            checkin_time = time(15, 0)  # 3 PM
+            checkin_time = time(13, 0)  # 1 PM
             checkout_time = time(11, 0)  # 11 AM
             
             # Obtener todas las reservas aprobadas que podrían estar activas
@@ -1339,7 +1339,7 @@ class ActiveReservationsView(APIView):
                 # Verificar si la reserva está activa en este momento
                 is_active = True
                 
-                # Si es el día de check-in, debe ser después de las 3 PM
+                # Si es el día de check-in, debe ser después de la 1 PM
                 if now_date == res.check_in_date and now_time < checkin_time:
                     is_active = False
                 
