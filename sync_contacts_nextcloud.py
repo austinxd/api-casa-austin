@@ -69,12 +69,13 @@ PROPERTY_ICONS = {
 # =========================
 def read_contacts_from_db():
     """
-    Retorna lista de tuplas: (client_id:str, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkout_today)
+    Retorna lista de tuplas: (client_id:str, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkout_today, referral_code)
     top_icon puede ser '' si no tiene logros.
     points: balance de puntos del cliente.
     active_property_id: property_id de la reserva, o '' si no tiene.
     is_active: 1 si está actualmente hospedado (entre check-in 12 PM y check-out 11 AM), 0 si no.
     is_checkout_today: 1 si hoy es su día de check-out, 0 si no.
+    referral_code: código de referido del cliente.
     Solo considera contactos con deleted = 0.
     """
     conn = mysql.connector.connect(**db_config)
@@ -90,7 +91,8 @@ def read_contacts_from_db():
             COALESCE(c.points_balance, 0) AS points,
             r.property_id AS active_property_id,
             r.is_active,
-            r.is_checkout_today
+            r.is_checkout_today,
+            c.referral_code
         FROM clients_clients c
         LEFT JOIN (
             SELECT
@@ -160,7 +162,7 @@ def read_contacts_from_db():
     conn.close()
 
     contacts = []
-    for client_id, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkout_today in rows:
+    for client_id, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkout_today, referral_code in rows:
         contacts.append((
             str(client_id or "").strip(),    # UUID/string
             first_name or "",
@@ -170,20 +172,22 @@ def read_contacts_from_db():
             float(points or 0),
             str(active_property_id or "").strip(),
             bool(is_active or 0),
-            bool(is_checkout_today or 0)
+            bool(is_checkout_today or 0),
+            str(referral_code or "").strip()
         ))
     return contacts
 
 # =========================
 # vCard
 # =========================
-def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: str, top_icon: str, points: float, active_property_id: str, is_active: bool, is_checkout_today: bool) -> str:
+def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: str, top_icon: str, points: float, active_property_id: str, is_active: bool, is_checkout_today: bool, referral_code: str) -> str:
     """
-    N: apellido + puntos + indicador; icono + primer nombre → 'Robalino (250 P) 🟢1️⃣;🐣 Isabel'
-    FN: icono + nombre completo + puntos + indicador activo → '🐣 Isabel Robalino (250 P) 🟢1️⃣'
+    N: apellido + puntos + indicador; icono + primer nombre → 'Robalino (250 P) 🟢1️⃣ CA123;🐣 Isabel'
+    FN: icono + nombre completo + puntos + indicador activo + código → '🐣 Isabel Robalino (250 P) 🟢1️⃣ CA123'
     UID: estable por client_id (string/UUID)
     
     Indicadores:
+    - 🟡 = Reserva futura
     - 🟢 = Reserva activa (cliente está hospedado ahora)
     - 🔴 = Día de checkout (hoy es su salida)
     """
@@ -213,13 +217,16 @@ def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: st
             # Rojo = día de checkout
             color_indicator = "🔴"
         else:
-            # Sin color = reserva futura
-            color_indicator = ""
+            # Amarillo = reserva futura
+            color_indicator = "🟡"
         
-        active_indicator = f" {color_indicator}{property_emoji}" if color_indicator else f" {property_emoji}"
+        active_indicator = f" {color_indicator}{property_emoji}"
 
-    # Sufijo con puntos e indicador
-    suffix = f"({points_str} P){active_indicator}"
+    # Código de referido
+    referral_suffix = f" {referral_code}" if referral_code else ""
+
+    # Sufijo con puntos, indicador y código de referido
+    suffix = f"({points_str} P){active_indicator}{referral_suffix}"
 
     # Nombre con icono al inicio para campo N (solo primer nombre)
     given_with_icon = f"{icon} {given_clean}".strip()
@@ -320,7 +327,7 @@ def sync_contacts(contacts):
     print(f"Iniciando sincronización de {total} contactos...")
     print(f"{'='*60}\n")
 
-    for index, (client_id, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkout_today) in enumerate(contacts, 1):
+    for index, (client_id, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkout_today, referral_code) in enumerate(contacts, 1):
         cid = (client_id or "").strip()
         name_display = f"{first_name} {last_name}".strip()
         
@@ -330,7 +337,7 @@ def sync_contacts(contacts):
             continue
 
         contact_file = f"{cid}.vcf"
-        desired_vcard = create_vcard(cid, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkout_today)
+        desired_vcard = create_vcard(cid, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkout_today, referral_code)
 
         if not desired_vcard:
             omitted += 1
