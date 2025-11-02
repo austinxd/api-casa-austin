@@ -204,8 +204,10 @@ def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: st
     points_int = int(points)
     points_str = str(points_int) if points == points_int else f"{points:.2f}"
 
-    # Indicador de reserva con número de casa
+    # Indicador de reserva con número de casa y código de referido
     active_indicator = ""
+    referral_suffix = ""
+    
     if active_property_id:
         property_emoji = PROPERTY_ICONS.get(active_property_id, "")
         
@@ -221,9 +223,10 @@ def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: st
             color_indicator = "🟡"
         
         active_indicator = f" {color_indicator}{property_emoji}"
-
-    # Código de referido
-    referral_suffix = f" {referral_code}" if referral_code else ""
+        
+        # Solo mostrar código de referido si tiene reserva
+        if referral_code:
+            referral_suffix = f" {referral_code}"
 
     # Sufijo con puntos, indicador y código de referido
     suffix = f"({points_str} P){active_indicator}{referral_suffix}"
