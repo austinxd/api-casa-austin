@@ -111,6 +111,21 @@ Preferred communication style: Simple, everyday language.
   * **Dependencies**: Uses standard `requests` library (no Music Assistant dependencies needed)
   * **Frontend compatibility**: No frontend changes required - same endpoints and responses
   * **Production ready**: Simplified HTTP architecture, no complex WebSocket management needed
+- **Contact Synchronization (Nov 2, 2025)**: Script `sync_contacts_nextcloud.py` synchronizes client contacts to Nextcloud via WebDAV
+  * **Status indicators with color coding**:
+    - 🟢 (Green) = Active reservation (client is currently checked-in, between 12 PM check-in and 11 AM check-out)
+    - 🔴 (Red) = Checkout today (today is the client's checkout date)
+    - No color = Future reservation (upcoming stay)
+  * **Contact format**: `🐣 Isabel Robalino (250 P) 🟢1️⃣`
+    - Emoji icon = Client's achievement level
+    - Points balance displayed
+    - Real-time reservation status (green/red indicator + house number)
+  * **Smart reservation detection**:
+    - Detects active stays based on current date/time and check-in/check-out hours (12 PM - 11 AM)
+    - Prioritizes active reservations over future ones
+    - Uses `client_id.vcf` naming to prevent duplicates
+  * **Sync operations**: Creates, updates, or skips contacts based on changes
+  * **WebDAV integration**: Connects to `https://contactos.casaaustin.pe`
 
 ## External Dependencies
 

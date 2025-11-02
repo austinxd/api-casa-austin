@@ -69,10 +69,12 @@ PROPERTY_ICONS = {
 # =========================
 def read_contacts_from_db():
     """
-    Retorna lista de tuplas: (client_id:str, first_name, last_name, tel_number, top_icon, points, active_property_id)
+    Retorna lista de tuplas: (client_id:str, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkout_today)
     top_icon puede ser '' si no tiene logros.
     points: balance de puntos del cliente.
-    active_property_id: property_id de la reserva activa más cercana, o '' si no tiene.
+    active_property_id: property_id de la reserva, o '' si no tiene.
+    is_active: 1 si está actualmente hospedado (entre check-in 12 PM y check-out 11 AM), 0 si no.
+    is_checkout_today: 1 si hoy es su día de check-out, 0 si no.
     Solo considera contactos con deleted = 0.
     """
     conn = mysql.connector.connect(**db_config)
@@ -86,16 +88,9 @@ def read_contacts_from_db():
             c.tel_number,
             t.icon AS top_icon,
             COALESCE(c.points_balance, 0) AS points,
-            (
-                SELECT r.property_id
-                FROM reservation_reservation r
-                WHERE r.client_id = c.id
-                  AND COALESCE(r.deleted, 0) = 0
-                  AND r.status = 'approved'
-                  AND r.check_in_date >= CURDATE()
-                ORDER BY r.check_in_date ASC
-                LIMIT 1
-            ) AS active_property_id
+            r.property_id AS active_property_id,
+            r.is_active,
+            r.is_checkout_today
         FROM clients_clients c
         LEFT JOIN (
             SELECT
@@ -116,6 +111,48 @@ def read_contacts_from_db():
               AND COALESCE(ca.deleted, 0) = 0
         ) AS t
             ON t.client_id = c.id AND t.rn = 1
+        LEFT JOIN (
+            SELECT
+                client_id,
+                property_id,
+                check_in_date,
+                check_out_date,
+                CASE
+                    WHEN (
+                        (CURDATE() > check_in_date AND CURDATE() < check_out_date)
+                        OR (CURDATE() = check_in_date AND CURTIME() >= '12:00:00')
+                        OR (CURDATE() = check_out_date AND CURTIME() < '11:00:00')
+                    ) THEN 1
+                    ELSE 0
+                END AS is_active,
+                CASE
+                    WHEN CURDATE() = check_out_date THEN 1
+                    ELSE 0
+                END AS is_checkout_today,
+                ROW_NUMBER() OVER (
+                    PARTITION BY client_id
+                    ORDER BY
+                        CASE
+                            WHEN (
+                                (CURDATE() > check_in_date AND CURDATE() < check_out_date)
+                                OR (CURDATE() = check_in_date AND CURTIME() >= '12:00:00')
+                                OR (CURDATE() = check_out_date AND CURTIME() < '11:00:00')
+                            ) THEN 0
+                            ELSE 1
+                        END,
+                        check_in_date ASC
+                ) AS rn
+            FROM reservation_reservation
+            WHERE COALESCE(deleted, 0) = 0
+              AND status = 'approved'
+              AND (
+                  (CURDATE() > check_in_date AND CURDATE() < check_out_date)
+                  OR (CURDATE() = check_in_date AND CURTIME() >= '12:00:00')
+                  OR (CURDATE() = check_out_date)
+                  OR (check_in_date >= CURDATE())
+              )
+        ) AS r
+            ON r.client_id = c.id AND r.rn = 1
         WHERE COALESCE(c.deleted, 0) = 0
     """
     cursor.execute(query)
@@ -123,7 +160,7 @@ def read_contacts_from_db():
     conn.close()
 
     contacts = []
-    for client_id, first_name, last_name, tel_number, top_icon, points, active_property_id in rows:
+    for client_id, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkout_today in rows:
         contacts.append((
             str(client_id or "").strip(),    # UUID/string
             first_name or "",
@@ -131,18 +168,24 @@ def read_contacts_from_db():
             (tel_number or "").strip(),
             top_icon or "",
             float(points or 0),
-            str(active_property_id or "").strip()
+            str(active_property_id or "").strip(),
+            bool(is_active or 0),
+            bool(is_checkout_today or 0)
         ))
     return contacts
 
 # =========================
 # vCard
 # =========================
-def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: str, top_icon: str, points: float, active_property_id: str) -> str:
+def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: str, top_icon: str, points: float, active_property_id: str, is_active: bool, is_checkout_today: bool) -> str:
     """
     N: apellido + puntos + indicador; icono + primer nombre → 'Robalino (250 P) 🟢1️⃣;🐣 Isabel'
     FN: icono + nombre completo + puntos + indicador activo → '🐣 Isabel Robalino (250 P) 🟢1️⃣'
     UID: estable por client_id (string/UUID)
+    
+    Indicadores:
+    - 🟢 = Reserva activa (cliente está hospedado ahora)
+    - 🔴 = Día de checkout (hoy es su salida)
     """
     given_clean = format_first_word(first_name)
     family_clean = format_first_word(last_name)
@@ -157,11 +200,23 @@ def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: st
     points_int = int(points)
     points_str = str(points_int) if points == points_int else f"{points:.2f}"
 
-    # Indicador de reserva activa con número de casa
+    # Indicador de reserva con número de casa
     active_indicator = ""
     if active_property_id:
         property_emoji = PROPERTY_ICONS.get(active_property_id, "")
-        active_indicator = f" 🟢{property_emoji}"
+        
+        # Determinar color del indicador
+        if is_active:
+            # Verde = actualmente hospedado (entre check-in 12 PM y check-out 11 AM)
+            color_indicator = "🟢"
+        elif is_checkout_today:
+            # Rojo = día de checkout
+            color_indicator = "🔴"
+        else:
+            # Sin color = reserva futura
+            color_indicator = ""
+        
+        active_indicator = f" {color_indicator}{property_emoji}" if color_indicator else f" {property_emoji}"
 
     # Sufijo con puntos e indicador
     suffix = f"({points_str} P){active_indicator}"
@@ -265,7 +320,7 @@ def sync_contacts(contacts):
     print(f"Iniciando sincronización de {total} contactos...")
     print(f"{'='*60}\n")
 
-    for index, (client_id, first_name, last_name, tel_number, top_icon, points, active_property_id) in enumerate(contacts, 1):
+    for index, (client_id, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkout_today) in enumerate(contacts, 1):
         cid = (client_id or "").strip()
         name_display = f"{first_name} {last_name}".strip()
         
@@ -275,7 +330,7 @@ def sync_contacts(contacts):
             continue
 
         contact_file = f"{cid}.vcf"
-        desired_vcard = create_vcard(cid, first_name, last_name, tel_number, top_icon, points, active_property_id)
+        desired_vcard = create_vcard(cid, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkout_today)
 
         if not desired_vcard:
             omitted += 1
