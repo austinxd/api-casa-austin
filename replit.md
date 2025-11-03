@@ -114,16 +114,18 @@ Preferred communication style: Simple, everyday language.
 - **Contact Synchronization (Nov 2, 2025)**: Script `sync_contacts_nextcloud.py` synchronizes client contacts to Nextcloud via WebDAV
   * **Status indicators with color coding**:
     - 🟡 (Yellow) = Future reservation (upcoming stay)
-    - 🟢 (Green) = Active reservation (client is currently checked-in, between 12 PM check-in and 11 AM check-out)
-    - 🔴 (Red) = Checkout today (today is the client's checkout date)
+    - 🟠 (Orange) = Check-in today (all day long on check-in date)
+    - 🟢 (Green) = Active stay (intermediate days between check-in and check-out)
+    - 🔴 (Red) = Checkout today (all day long on check-out date)
   * **Contact format**: `🐣 Isabel Robalino (250 P) 🟢1️⃣ CA123`
     - Emoji icon = Client's achievement level
     - Points balance displayed
-    - Real-time reservation status (yellow/green/red indicator + house number)
-    - Referral code at the end
+    - Real-time reservation status (yellow/orange/green/red indicator + house number)
+    - Referral code shown only when reservation exists
   * **Smart reservation detection**:
-    - Detects active stays based on current date/time and check-in/check-out hours (12 PM - 11 AM)
-    - Prioritizes active reservations over future ones
+    - Check-in day: 🟠 orange all day (even before 12 PM)
+    - Intermediate days: 🟢 green (between check-in and check-out)
+    - Checkout day: 🔴 red all day (even after 11 AM)
     - Uses `client_id.vcf` naming to prevent duplicates
   * **Sync operations**: Creates, updates, or skips contacts based on changes
   * **WebDAV integration**: Connects to `https://contactos.casaaustin.pe`

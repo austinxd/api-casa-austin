@@ -69,11 +69,12 @@ PROPERTY_ICONS = {
 # =========================
 def read_contacts_from_db():
     """
-    Retorna lista de tuplas: (client_id:str, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkout_today, referral_code)
+    Retorna lista de tuplas: (client_id:str, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkin_today, is_checkout_today, referral_code)
     top_icon puede ser '' si no tiene logros.
     points: balance de puntos del cliente.
     active_property_id: property_id de la reserva, o '' si no tiene.
     is_active: 1 si está actualmente hospedado (entre check-in 12 PM y check-out 11 AM), 0 si no.
+    is_checkin_today: 1 si hoy es su día de check-in, 0 si no.
     is_checkout_today: 1 si hoy es su día de check-out, 0 si no.
     referral_code: código de referido del cliente.
     Solo considera contactos con deleted = 0.
@@ -91,6 +92,7 @@ def read_contacts_from_db():
             COALESCE(c.points_balance, 0) AS points,
             r.property_id AS active_property_id,
             r.is_active,
+            r.is_checkin_today,
             r.is_checkout_today,
             c.referral_code
         FROM clients_clients c
@@ -128,6 +130,10 @@ def read_contacts_from_db():
                     ELSE 0
                 END AS is_active,
                 CASE
+                    WHEN CURDATE() = check_in_date THEN 1
+                    ELSE 0
+                END AS is_checkin_today,
+                CASE
                     WHEN CURDATE() = check_out_date THEN 1
                     ELSE 0
                 END AS is_checkout_today,
@@ -162,7 +168,7 @@ def read_contacts_from_db():
     conn.close()
 
     contacts = []
-    for client_id, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkout_today, referral_code in rows:
+    for client_id, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkin_today, is_checkout_today, referral_code in rows:
         contacts.append((
             str(client_id or "").strip(),    # UUID/string
             first_name or "",
@@ -172,6 +178,7 @@ def read_contacts_from_db():
             float(points or 0),
             str(active_property_id or "").strip(),
             bool(is_active or 0),
+            bool(is_checkin_today or 0),
             bool(is_checkout_today or 0),
             str(referral_code or "").strip()
         ))
@@ -180,7 +187,7 @@ def read_contacts_from_db():
 # =========================
 # vCard
 # =========================
-def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: str, top_icon: str, points: float, active_property_id: str, is_active: bool, is_checkout_today: bool, referral_code: str) -> str:
+def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: str, top_icon: str, points: float, active_property_id: str, is_active: bool, is_checkin_today: bool, is_checkout_today: bool, referral_code: str) -> str:
     """
     N: apellido + puntos + indicador; icono + primer nombre → 'Robalino (250 P) 🟢1️⃣ CA123;🐣 Isabel'
     FN: icono + nombre completo + puntos + indicador activo + código → '🐣 Isabel Robalino (250 P) 🟢1️⃣ CA123'
@@ -188,8 +195,9 @@ def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: st
     
     Indicadores:
     - 🟡 = Reserva futura
-    - 🟢 = Reserva activa (cliente está hospedado ahora)
-    - 🔴 = Día de checkout (hoy es su salida)
+    - 🟠 = Día de check-in (todo el día)
+    - 🟢 = Hospedado ahora (días intermedios)
+    - 🔴 = Día de checkout (todo el día)
     """
     given_clean = format_first_word(first_name)
     family_clean = format_first_word(last_name)
@@ -211,12 +219,15 @@ def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: st
     if active_property_id:
         property_emoji = PROPERTY_ICONS.get(active_property_id, "")
         
-        # Determinar color del indicador (prioridad: checkout > activo > futuro)
+        # Determinar color del indicador (prioridad: checkout > checkin > activo > futuro)
         if is_checkout_today:
-            # Rojo = día de checkout (tiene prioridad sobre activo)
+            # Rojo = día de checkout (todo el día, máxima prioridad)
             color_indicator = "🔴"
+        elif is_checkin_today:
+            # Naranja = día de check-in (todo el día)
+            color_indicator = "🟠"
         elif is_active:
-            # Verde = actualmente hospedado (entre check-in 12 PM y check-out 11 AM)
+            # Verde = hospedado ahora (días intermedios entre check-in y check-out)
             color_indicator = "🟢"
         else:
             # Amarillo = reserva futura
@@ -330,7 +341,7 @@ def sync_contacts(contacts):
     print(f"Iniciando sincronización de {total} contactos...")
     print(f"{'='*60}\n")
 
-    for index, (client_id, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkout_today, referral_code) in enumerate(contacts, 1):
+    for index, (client_id, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkin_today, is_checkout_today, referral_code) in enumerate(contacts, 1):
         cid = (client_id or "").strip()
         name_display = f"{first_name} {last_name}".strip()
         
@@ -340,7 +351,7 @@ def sync_contacts(contacts):
             continue
 
         contact_file = f"{cid}.vcf"
-        desired_vcard = create_vcard(cid, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkout_today, referral_code)
+        desired_vcard = create_vcard(cid, first_name, last_name, tel_number, top_icon, points, active_property_id, is_active, is_checkin_today, is_checkout_today, referral_code)
 
         if not desired_vcard:
             omitted += 1
