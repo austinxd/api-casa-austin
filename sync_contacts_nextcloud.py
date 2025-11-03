@@ -211,13 +211,13 @@ def create_vcard(client_id: str, first_name: str, last_name: str, tel_number: st
     if active_property_id:
         property_emoji = PROPERTY_ICONS.get(active_property_id, "")
         
-        # Determinar color del indicador
-        if is_active:
+        # Determinar color del indicador (prioridad: checkout > activo > futuro)
+        if is_checkout_today:
+            # Rojo = día de checkout (tiene prioridad sobre activo)
+            color_indicator = "🔴"
+        elif is_active:
             # Verde = actualmente hospedado (entre check-in 12 PM y check-out 11 AM)
             color_indicator = "🟢"
-        elif is_checkout_today:
-            # Rojo = día de checkout
-            color_indicator = "🔴"
         else:
             # Amarillo = reserva futura
             color_indicator = "🟡"
