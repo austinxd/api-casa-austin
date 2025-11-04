@@ -453,8 +453,8 @@ class LateCheckoutConfigAdmin(admin.ModelAdmin):
 
 @admin.register(DynamicDiscountConfig)
 class DynamicDiscountConfigAdmin(admin.ModelAdmin):
-    list_display = ('name', 'prefix', 'discount_percentage', 'validity_days', 'min_amount_usd', 'usage_limit', 'is_active')
-    list_filter = ('is_active', 'validity_days', 'properties')
+    list_display = ('name', 'prefix', 'discount_percentage', 'validity_days', 'min_amount_usd', 'usage_limit', 'apply_only_to_base_price', 'is_active')
+    list_filter = ('is_active', 'apply_only_to_base_price', 'validity_days', 'properties')
     search_fields = ('name', 'prefix')
     filter_horizontal = ('properties',)
 
@@ -463,7 +463,8 @@ class DynamicDiscountConfigAdmin(admin.ModelAdmin):
             'fields': ('name', 'prefix', 'is_active')
         }),
         ('Configuración del Descuento', {
-            'fields': ('discount_percentage', 'min_amount_usd', 'max_discount_usd', 'usage_limit')
+            'fields': ('discount_percentage', 'min_amount_usd', 'max_discount_usd', 'usage_limit', 'apply_only_to_base_price'),
+            'description': '💡 Si "Aplicar solo al precio base" está activo, el descuento NO incluirá huéspedes adicionales'
         }),
         ('Propiedades Aplicables', {
             'fields': ('properties',),

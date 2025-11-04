@@ -337,6 +337,12 @@ class DiscountCode(BaseModel):
         default=False,
         help_text="Restringir solo a noches de fin de semana (viernes y sábado)"
     )
+    
+    # Aplicar solo al precio base
+    apply_only_to_base_price = models.BooleanField(
+        default=False,
+        help_text="Si está activo, el descuento solo se aplica al precio base (sin incluir huéspedes adicionales)"
+    )
 
     class Meta:
         verbose_name = "🎫 Código de Descuento"
@@ -998,6 +1004,10 @@ class DynamicDiscountConfig(BaseModel):
         blank=True,
         help_text="Propiedades donde serán válidos los códigos generados (vacío = todas)"
     )
+    apply_only_to_base_price = models.BooleanField(
+        default=False,
+        help_text="Si está activo, los códigos generados solo se aplicarán al precio base (sin incluir huéspedes adicionales)"
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -1037,6 +1047,7 @@ class DynamicDiscountConfig(BaseModel):
             usage_limit=self.usage_limit,
             min_amount_usd=self.min_amount_usd,
             max_discount_usd=self.max_discount_usd,
+            apply_only_to_base_price=self.apply_only_to_base_price,
             is_active=True
         )
 

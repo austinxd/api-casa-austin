@@ -34,8 +34,10 @@ Preferred communication style: Simple, everyday language.
 - Dynamic pricing based on seasons and special dates.
 - Automatic discount system with achievement-based triggers and specific weekday selection.
 - Discount codes with weekend/weekday restrictions.
+- **Base price discount option**: Both manual discount codes and dynamic discount generators support `apply_only_to_base_price` field to apply discounts only to base price (excluding additional guests).
 - Late checkout pricing configuration.
 - **Referral discount system**: First-time reservation discounts for referred clients, with percentage based on referrer's achievement level (configurable in Django Admin).
+- **Dynamic discount code generator** (`DynamicDiscountConfig`): Allows creating automatic discount code configurations with customizable prefix, percentage, validity days, usage limits, base price discount option, and property-specific applicability.
 
 ### Authentication and Security
 - JWT-based authentication (SimpleJWT).
