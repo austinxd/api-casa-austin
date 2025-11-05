@@ -40,12 +40,14 @@ Preferred communication style: Simple, everyday language.
 - **Dynamic discount code generator** (`DynamicDiscountConfig`): Allows creating automatic discount code configurations with customizable prefix, percentage, validity days, usage limits, base price discount option, and property-specific applicability.
 - **Welcome discount system** (Nov 5, 2025): Configurable new user registration incentive with `WelcomeDiscountConfig` model
   * Activatable/deactivatable from Django Admin (only one active config at a time)
+  * **Automatic generation**: Codes are generated automatically during user registration if promotion is active
   * Only users registered while benefit is active receive discount code
   * Configurable discount percentage, validity days, minimum amount, and maximum discount
   * Weekday/weekend restrictions available
   * Option to apply only to base price (excluding additional guests)
   * Property-specific applicability
-  * Single-use codes with automatic generation via `/api/v1/clients/client-auth/welcome-discount/` endpoint
+  * Registration response includes `welcome_discount` object with code details when promotion is active
+  * Manual endpoint available: `/api/v1/clients/client-auth/welcome-discount/` for post-registration requests
   * Client tracking fields: `welcome_discount_issued` and `welcome_discount_issued_at`
   * Validation: Only for new clients without approved reservations
   * Code format: `WELCOME-XXXXXX` (6-character random suffix)

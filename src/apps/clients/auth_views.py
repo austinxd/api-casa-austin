@@ -46,21 +46,54 @@ class ClientPublicRegisterView(APIView):
                     f'Nuevo cliente registrado: {client.first_name} {client.last_name} - {client.number_doc}'
                 )
 
-                return Response(
-                    {
-                        'success': True,
-                        'message': 'Cliente registrado exitosamente',
-                        'client': {
-                            'id': str(client.id),
-                            'document_type': client.document_type,
-                            'number_doc': client.number_doc,
-                            'first_name': client.first_name,
-                            'last_name': client.last_name,
-                            'email': client.email,
-                            'tel_number': client.tel_number
+                response_data = {
+                    'success': True,
+                    'message': 'Cliente registrado exitosamente',
+                    'client': {
+                        'id': str(client.id),
+                        'document_type': client.document_type,
+                        'number_doc': client.number_doc,
+                        'first_name': client.first_name,
+                        'last_name': client.last_name,
+                        'email': client.email,
+                        'tel_number': client.tel_number
+                    }
+                }
+
+                # Verificar y generar código de bienvenida automáticamente si hay promoción activa
+                try:
+                    from apps.property.pricing_models import WelcomeDiscountConfig
+                    
+                    welcome_config = WelcomeDiscountConfig.get_active_config()
+                    if welcome_config:
+                        discount_code = welcome_config.generate_welcome_code(client)
+                        client.welcome_discount_issued = True
+                        client.welcome_discount_issued_at = timezone.now()
+                        client.save()
+                        
+                        restrictions = []
+                        if discount_code.restrict_weekdays:
+                            restrictions.append("Solo noches de semana (domingo a jueves)")
+                        if discount_code.restrict_weekends:
+                            restrictions.append("Solo fines de semana (viernes y sábado)")
+                        if discount_code.apply_only_to_base_price:
+                            restrictions.append("Aplica solo al precio base (sin huéspedes adicionales)")
+                        
+                        response_data['welcome_discount'] = {
+                            'code': discount_code.code,
+                            'discount_percentage': float(discount_code.discount_value),
+                            'valid_from': discount_code.start_date.isoformat(),
+                            'valid_until': discount_code.end_date.isoformat(),
+                            'min_amount_usd': float(discount_code.min_amount_usd) if discount_code.min_amount_usd else None,
+                            'max_discount_usd': float(discount_code.max_discount_usd) if discount_code.max_discount_usd else None,
+                            'restrictions': restrictions
                         }
-                    },
-                    status=status.HTTP_201_CREATED)
+                        
+                        logger.info(f"Código de bienvenida {discount_code.code} generado automáticamente para {client.first_name}")
+                except Exception as e:
+                    logger.error(f"Error generando código de bienvenida automático: {str(e)}")
+
+                return Response(response_data, status=status.HTTP_201_CREATED)
             else:
                 return Response(
                     {
@@ -177,6 +210,49 @@ class ClientPublicRegistrationView(APIView):
                 if password:
                     response_data['message'] = 'Cliente registrado exitosamente con contraseña'
                     logger.info(f"Cliente {client.first_name} registrado con contraseña configurada")
+
+                # Verificar y generar código de bienvenida automáticamente si hay promoción activa
+                try:
+                    from apps.property.pricing_models import WelcomeDiscountConfig
+                    
+                    welcome_config = WelcomeDiscountConfig.get_active_config()
+                    if welcome_config:
+                        # Generar código de bienvenida automáticamente
+                        discount_code = welcome_config.generate_welcome_code(client)
+                        
+                        # Marcar que el cliente recibió su código
+                        client.welcome_discount_issued = True
+                        client.welcome_discount_issued_at = timezone.now()
+                        client.save()
+                        
+                        # Preparar restricciones
+                        restrictions = []
+                        if discount_code.restrict_weekdays:
+                            restrictions.append("Solo noches de semana (domingo a jueves)")
+                        if discount_code.restrict_weekends:
+                            restrictions.append("Solo fines de semana (viernes y sábado)")
+                        if discount_code.apply_only_to_base_price:
+                            restrictions.append("Aplica solo al precio base (sin huéspedes adicionales)")
+                        
+                        # Agregar información del descuento a la respuesta
+                        response_data['welcome_discount'] = {
+                            'code': discount_code.code,
+                            'discount_percentage': float(discount_code.discount_value),
+                            'valid_from': discount_code.start_date.isoformat(),
+                            'valid_until': discount_code.end_date.isoformat(),
+                            'min_amount_usd': float(discount_code.min_amount_usd) if discount_code.min_amount_usd else None,
+                            'max_discount_usd': float(discount_code.max_discount_usd) if discount_code.max_discount_usd else None,
+                            'restrictions': restrictions,
+                            'properties': [
+                                {'id': str(prop.id), 'name': prop.name} 
+                                for prop in discount_code.properties.all()
+                            ] if discount_code.properties.exists() else None
+                        }
+                        
+                        logger.info(f"Código de bienvenida {discount_code.code} generado automáticamente para {client.first_name}")
+                except Exception as e:
+                    # Si falla la generación del código, no afecta el registro
+                    logger.error(f"Error generando código de bienvenida automático: {str(e)}")
 
                 return Response(response_data, status=201)
             else:
