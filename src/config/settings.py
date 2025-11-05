@@ -49,6 +49,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://reservas.casaaustin.pe",
     "https://6d9c1416-4d5a-43ff-b6d9-45dcb8a576cf-00-1qgg6m6ft27vv.riker.replit.dev:5000",
     "https://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.replit.dev",
+    "https://cab29a16-7aa5-424c-bab7-ab151a3d5519-00-2791s37o4sobf.picard.repl.co",
     "https://acceso.casaaustin.pe",
     "https://a5c9efe0-4d89-4b2b-9355-d467d38050bb-00-16q7i41vtpj85.kirk.replit.dev",
     "http://192.168.1.240",
