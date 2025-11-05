@@ -46,6 +46,7 @@ Preferred communication style: Simple, everyday language.
   * Weekday/weekend restrictions available
   * Option to apply only to base price (excluding additional guests)
   * Property-specific applicability
+  * **Public status endpoint**: `/api/v1/clients/welcome-discount/status/` (GET, no auth) - Allows frontend to check if promotion is active before registration
   * Registration response includes `welcome_discount` object with code details when promotion is active
   * Manual endpoint available: `/api/v1/clients/client-auth/welcome-discount/` for post-registration requests
   * Client tracking fields: `welcome_discount_issued` and `welcome_discount_issued_at`

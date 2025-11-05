@@ -1319,6 +1319,55 @@ class ClientUnlinkFacebookView(APIView):
             }, status=500)
 
 
+class WelcomeDiscountStatusView(APIView):
+    """
+    Endpoint público para verificar si hay una promoción de bienvenida activa
+    No requiere autenticación - usado por el frontend para mostrar banners promocionales
+    """
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        try:
+            from apps.property.pricing_models import WelcomeDiscountConfig
+            
+            # Obtener configuración activa
+            config = WelcomeDiscountConfig.get_active_config()
+            
+            if not config:
+                return Response({
+                    'active': False,
+                    'message': 'No hay promoción de bienvenida activa'
+                })
+            
+            # Preparar restricciones
+            restrictions = []
+            if config.restrict_weekdays:
+                restrictions.append("Solo noches de semana (domingo a jueves)")
+            if config.restrict_weekends:
+                restrictions.append("Solo fines de semana (viernes y sábado)")
+            if config.apply_only_to_base_price:
+                restrictions.append("Aplica solo al precio base")
+            
+            return Response({
+                'active': True,
+                'promotion': {
+                    'discount_percentage': float(config.discount_percentage),
+                    'validity_days': config.validity_days,
+                    'min_amount_usd': float(config.min_amount_usd) if config.min_amount_usd else None,
+                    'max_discount_usd': float(config.max_discount_usd) if config.max_discount_usd else None,
+                    'restrictions': restrictions,
+                    'message': f"¡Regístrate y recibe {config.discount_percentage}% de descuento en tu primera reserva!"
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f'Error verificando estado de promoción de bienvenida: {str(e)}')
+            return Response({
+                'active': False,
+                'message': 'Error al verificar promoción'
+            }, status=500)
+
+
 class ClientWelcomeDiscountView(APIView):
     """Endpoint para generar código de descuento de bienvenida para nuevos clientes"""
     authentication_classes = [ClientJWTAuthentication]

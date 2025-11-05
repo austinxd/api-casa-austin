@@ -18,6 +18,11 @@ router = DefaultRouter()
 router.register(r'clients', views.ClientsApiView, basename='clients')
 
 urlpatterns = [
+    # Welcome Discount Status - Public endpoint (Must be before router)
+    path('clients/welcome-discount/status/',
+         auth_views.WelcomeDiscountStatusView.as_view(),
+         name='welcome-discount-status'),
+    
     # Client Authentication URLs (Must be before router to avoid conflicts)
     path('clients/verify-document/',
          auth_views.ClientVerifyDocumentView.as_view(),
