@@ -1174,6 +1174,14 @@ class WelcomeDiscountConfig(BaseModel):
         help_text="Si está activo, el descuento solo se aplica al precio base (sin incluir huéspedes adicionales)"
     )
     
+    # Mensaje promocional personalizado
+    promotional_message = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text="Mensaje personalizado para mostrar en la web (ej: '¡Regístrate hoy y recibe 15% OFF!'). Si está vacío, se genera automáticamente."
+    )
+    
     # Propiedades aplicables
     properties = models.ManyToManyField(
         Property,
@@ -1188,6 +1196,12 @@ class WelcomeDiscountConfig(BaseModel):
     def __str__(self):
         status = "✅ ACTIVO" if self.is_active else "❌ Inactivo"
         return f"{self.name} - {self.discount_percentage}% ({status})"
+    
+    def get_promotional_message(self):
+        """Obtiene el mensaje promocional personalizado o genera uno por defecto"""
+        if self.promotional_message:
+            return self.promotional_message
+        return f"¡Regístrate y recibe {self.discount_percentage}% de descuento en tu primera reserva!"
     
     def save(self, *args, **kwargs):
         """Asegurar que solo haya una configuración activa a la vez"""

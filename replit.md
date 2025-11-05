@@ -43,6 +43,7 @@ Preferred communication style: Simple, everyday language.
   * **Automatic generation**: Codes are generated automatically during user registration if promotion is active
   * Only users registered while benefit is active receive discount code
   * Configurable discount percentage, validity days, minimum amount, and maximum discount
+  * **Customizable promotional message**: Admin can set custom message for marketing (auto-generated if blank)
   * Weekday/weekend restrictions available
   * Option to apply only to base price (excluding additional guests)
   * Property-specific applicability

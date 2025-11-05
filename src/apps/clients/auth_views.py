@@ -1356,7 +1356,7 @@ class WelcomeDiscountStatusView(APIView):
                     'min_amount_usd': float(config.min_amount_usd) if config.min_amount_usd else None,
                     'max_discount_usd': float(config.max_discount_usd) if config.max_discount_usd else None,
                     'restrictions': restrictions,
-                    'message': f"¡Regístrate y recibe {config.discount_percentage}% de descuento en tu primera reserva!"
+                    'message': config.get_promotional_message()
                 }
             })
             
