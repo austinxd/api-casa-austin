@@ -500,6 +500,49 @@ class ReferralDiscountByLevelAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related('achievement')
 
 
+@admin.register(WelcomeDiscountConfig)
+class WelcomeDiscountConfigAdmin(admin.ModelAdmin):
+    list_display = ('name', 'discount_percentage', 'validity_days', 'is_active', 'get_restrictions_display')
+    list_filter = ('is_active', 'restrict_weekdays', 'restrict_weekends', 'apply_only_to_base_price')
+    search_fields = ('name',)
+    filter_horizontal = ('properties',)
+    
+    fieldsets = (
+        ('Información General', {
+            'fields': ('name', 'is_active'),
+            'description': '⚠️ Solo puede haber una configuración activa a la vez. Al activar esta, se desactivarán las demás automáticamente.'
+        }),
+        ('Configuración del Descuento', {
+            'fields': ('discount_percentage', 'min_amount_usd', 'max_discount_usd', 'validity_days'),
+            'description': '💡 Configura el porcentaje de descuento y sus límites. El código será válido por los días especificados desde su emisión.'
+        }),
+        ('Restricciones de Días', {
+            'fields': ('restrict_weekdays', 'restrict_weekends'),
+            'description': '📅 Restricciones de días de la semana para el uso del descuento'
+        }),
+        ('Opciones de Aplicación', {
+            'fields': ('apply_only_to_base_price',),
+            'description': '💰 Si está activo, el descuento solo se aplica al precio base (sin huéspedes adicionales)'
+        }),
+        ('Propiedades Aplicables', {
+            'fields': ('properties',),
+            'description': '🏠 Selecciona las propiedades donde será válido el descuento (vacío = todas las propiedades)'
+        }),
+    )
+    
+    def get_restrictions_display(self, obj):
+        """Muestra las restricciones de forma legible"""
+        restrictions = []
+        if obj.restrict_weekdays:
+            restrictions.append("Solo semana")
+        if obj.restrict_weekends:
+            restrictions.append("Solo fines de semana")
+        if obj.apply_only_to_base_price:
+            restrictions.append("Precio base")
+        return ", ".join(restrictions) if restrictions else "Sin restricciones"
+    get_restrictions_display.short_description = "Restricciones"
+
+
 # Configurar títulos del admin para organizar mejor
 admin.site.site_header = "Casa Austin - Panel de Administración"
 admin.site.site_title = "Casa Austin Admin"

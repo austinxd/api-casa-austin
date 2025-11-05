@@ -96,6 +96,10 @@ class Clients(BaseModel):
     facebook_profile_data = models.JSONField(null=True, blank=True, help_text="Datos del perfil de Facebook (nombre, foto, etc.)")
     facebook_linked_at = models.DateTimeField(null=True, blank=True, help_text="Fecha en que se vinculó la cuenta de Facebook")
     
+    # Descuento de bienvenida
+    welcome_discount_issued = models.BooleanField(default=False, help_text="Indica si ya se le emitió un código de descuento de bienvenida")
+    welcome_discount_issued_at = models.DateTimeField(null=True, blank=True, help_text="Fecha en que se emitió el código de bienvenida")
+    
     # Sistema de puntos
     points_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Balance actual de puntos")
     points_expires_at = models.DateTimeField(null=True, blank=True, help_text="Fecha de expiración de los puntos actuales")

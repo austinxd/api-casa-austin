@@ -1123,22 +1123,122 @@ class LateCheckoutConfig(BaseModel):
             return config.discount_value
 
 
+class WelcomeDiscountConfig(BaseModel):
+    """Configuración para descuentos de bienvenida a nuevos usuarios"""
+    
+    name = models.CharField(
+        max_length=200,
+        default="Descuento de Bienvenida",
+        help_text="Nombre descriptivo de la configuración"
+    )
+    is_active = models.BooleanField(
+        default=False,
+        help_text="Si está activo, los nuevos usuarios registrados recibirán este descuento"
+    )
+    discount_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        help_text="Porcentaje de descuento (ej: 15.00 para 15%)"
+    )
+    validity_days = models.PositiveIntegerField(
+        default=14,
+        help_text="Días de validez del código desde su emisión"
+    )
+    min_amount_usd = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text="Monto mínimo de reserva en USD para aplicar el descuento"
+    )
+    max_discount_usd = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Descuento máximo en USD (opcional)"
+    )
+    
+    # Restricciones de días
+    restrict_weekdays = models.BooleanField(
+        default=False,
+        help_text="Restringir solo a noches de semana (domingo a jueves)"
+    )
+    restrict_weekends = models.BooleanField(
+        default=False,
+        help_text="Restringir solo a noches de fin de semana (viernes y sábado)"
+    )
+    
+    # Aplicar solo al precio base
+    apply_only_to_base_price = models.BooleanField(
+        default=False,
+        help_text="Si está activo, el descuento solo se aplica al precio base (sin incluir huéspedes adicionales)"
+    )
+    
+    # Propiedades aplicables
+    properties = models.ManyToManyField(
+        Property,
+        blank=True,
+        help_text="Propiedades donde será válido el descuento (vacío = todas)"
+    )
+    
+    class Meta:
+        verbose_name = "🎁 Configuración de Descuento de Bienvenida"
+        verbose_name_plural = "🎁 Configuraciones de Descuento de Bienvenida"
+    
+    def __str__(self):
+        status = "✅ ACTIVO" if self.is_active else "❌ Inactivo"
+        return f"{self.name} - {self.discount_percentage}% ({status})"
+    
+    def save(self, *args, **kwargs):
+        """Asegurar que solo haya una configuración activa a la vez"""
+        if self.is_active:
+            # Desactivar todas las demás configuraciones
+            WelcomeDiscountConfig.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
+        super().save(*args, **kwargs)
+    
+    def generate_welcome_code(self, client):
+        """Genera un código de bienvenida único para un cliente"""
+        from datetime import date, timedelta
+        import random
+        import string
+        
+        # Generar código único
+        suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        code = f"WELCOME-{suffix}"
+        
+        # Verificar que no existe
+        while DiscountCode.objects.filter(code=code).exists():
+            suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+            code = f"WELCOME-{suffix}"
+        
+        # Calcular fechas
+        start_date = date.today()
+        end_date = start_date + timedelta(days=self.validity_days)
+        
         # Crear el código de descuento
         discount_code = DiscountCode.objects.create(
             code=code,
-            description=f"Código dinámico generado - {self.name}",
-            discount_type=DiscountCode.DiscountType.PERCENTAGE,
+            description=f"Descuento de bienvenida para {client.get_full_name() if hasattr(client, 'get_full_name') else client.email}",
+            discount_type='percentage',
             discount_value=self.discount_percentage,
-            min_amount_usd=self.min_amount_usd,
-            max_discount_usd=self.max_discount_usd,
             start_date=start_date,
             end_date=end_date,
-            usage_limit=self.usage_limit,
+            usage_limit=1,
+            min_amount_usd=self.min_amount_usd,
+            max_discount_usd=self.max_discount_usd,
+            restrict_weekdays=self.restrict_weekdays,
+            restrict_weekends=self.restrict_weekends,
+            apply_only_to_base_price=self.apply_only_to_base_price,
             is_active=True
         )
-
-        # Asignar las propiedades del generador al código
+        
+        # Asignar propiedades si están definidas
         if self.properties.exists():
             discount_code.properties.set(self.properties.all())
-
+        
         return discount_code
+    
+    @classmethod
+    def get_active_config(cls):
+        """Obtiene la configuración activa actual"""
+        return cls.objects.filter(is_active=True).first()
