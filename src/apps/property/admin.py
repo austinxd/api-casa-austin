@@ -514,8 +514,8 @@ class WelcomeDiscountConfigAdmin(admin.ModelAdmin):
             'description': '⚠️ Solo puede haber una configuración activa a la vez. Al activar esta, se desactivarán las demás automáticamente.'
         }),
         ('Mensaje Promocional', {
-            'fields': ('promotional_message',),
-            'description': '📢 Mensaje personalizado que se mostrará en la web. Si lo dejas vacío, se generará automáticamente como: "¡Regístrate y recibe X% de descuento en tu primera reserva!"'
+            'fields': ('promotional_message', 'promotional_subtitle'),
+            'description': '📢 Mensaje principal que se mostrará en la web. Si lo dejas vacío, se generará automáticamente.\n💬 El subtítulo aparecerá en letras más pequeñas debajo del mensaje principal (opcional).'
         }),
         ('Configuración del Descuento', {
             'fields': ('discount_percentage', 'min_amount_usd', 'max_discount_usd', 'validity_days'),

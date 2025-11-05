@@ -1356,7 +1356,8 @@ class WelcomeDiscountStatusView(APIView):
                     'min_amount_usd': float(config.min_amount_usd) if config.min_amount_usd else None,
                     'max_discount_usd': float(config.max_discount_usd) if config.max_discount_usd else None,
                     'restrictions': restrictions,
-                    'message': config.get_promotional_message()
+                    'message': config.get_promotional_message(),
+                    'subtitle': config.promotional_subtitle if config.promotional_subtitle else None
                 }
             })
             

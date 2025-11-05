@@ -44,6 +44,7 @@ Preferred communication style: Simple, everyday language.
   * Only users registered while benefit is active receive discount code
   * Configurable discount percentage, validity days, minimum amount, and maximum discount
   * **Customizable promotional message**: Admin can set custom message for marketing (auto-generated if blank)
+  * **Promotional subtitle**: Optional secondary text for additional conditions/details (appears in smaller text)
   * Weekday/weekend restrictions available
   * Option to apply only to base price (excluding additional guests)
   * Property-specific applicability

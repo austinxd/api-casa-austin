@@ -1182,6 +1182,14 @@ class WelcomeDiscountConfig(BaseModel):
         help_text="Mensaje personalizado para mostrar en la web (ej: '¡Regístrate hoy y recibe 15% OFF!'). Si está vacío, se genera automáticamente."
     )
     
+    # Subtítulo o condiciones adicionales
+    promotional_subtitle = models.CharField(
+        max_length=300,
+        blank=True,
+        null=True,
+        help_text="Texto adicional en letras pequeñas (ej: 'Válido solo para reservas de 3+ noches' o 'No aplica en días festivos')"
+    )
+    
     # Propiedades aplicables
     properties = models.ManyToManyField(
         Property,
