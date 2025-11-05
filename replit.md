@@ -38,6 +38,17 @@ Preferred communication style: Simple, everyday language.
 - Late checkout pricing configuration.
 - **Referral discount system**: First-time reservation discounts for referred clients, with percentage based on referrer's achievement level (configurable in Django Admin).
 - **Dynamic discount code generator** (`DynamicDiscountConfig`): Allows creating automatic discount code configurations with customizable prefix, percentage, validity days, usage limits, base price discount option, and property-specific applicability.
+- **Welcome discount system** (Nov 5, 2025): Configurable new user registration incentive with `WelcomeDiscountConfig` model
+  * Activatable/deactivatable from Django Admin (only one active config at a time)
+  * Only users registered while benefit is active receive discount code
+  * Configurable discount percentage, validity days, minimum amount, and maximum discount
+  * Weekday/weekend restrictions available
+  * Option to apply only to base price (excluding additional guests)
+  * Property-specific applicability
+  * Single-use codes with automatic generation via `/api/v1/clients/client-auth/welcome-discount/` endpoint
+  * Client tracking fields: `welcome_discount_issued` and `welcome_discount_issued_at`
+  * Validation: Only for new clients without approved reservations
+  * Code format: `WELCOME-XXXXXX` (6-character random suffix)
 
 ### Authentication and Security
 - JWT-based authentication (SimpleJWT).
