@@ -11,7 +11,8 @@ from .pricing_models import (
     AdditionalService,
     CancellationPolicy,
     AutomaticDiscount,
-    LateCheckoutConfig
+    LateCheckoutConfig,
+    WelcomeDiscountConfig
 )
 
 

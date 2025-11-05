@@ -100,6 +100,11 @@ urlpatterns = [
     path('clients/client-auth/unlink-facebook/',
          auth_views.ClientUnlinkFacebookView.as_view(),
          name='client-unlink-facebook'),
+    
+    # Welcome Discount
+    path('clients/client-auth/welcome-discount/',
+         auth_views.ClientWelcomeDiscountView.as_view(),
+         name='client-welcome-discount'),
     path('clients/client-auth/referral-config/',
          views.ReferralConfigView.as_view(),
          name='client-referral-config'),

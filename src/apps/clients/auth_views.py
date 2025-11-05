@@ -1241,3 +1241,96 @@ class ClientUnlinkFacebookView(APIView):
             return Response({
                 'message': 'Error interno del servidor'
             }, status=500)
+
+
+class ClientWelcomeDiscountView(APIView):
+    """Endpoint para generar código de descuento de bienvenida para nuevos clientes"""
+    authentication_classes = [ClientJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            from apps.property.pricing_models import WelcomeDiscountConfig
+            from apps.reservation.models import Reservation
+            
+            # Cliente ya autenticado por DRF
+            client = request.user
+            
+            # Verificar si ya recibió código de bienvenida
+            if client.welcome_discount_issued:
+                return Response({
+                    'success': False,
+                    'message': 'Ya has recibido tu código de descuento de bienvenida anteriormente',
+                    'discount_issued_at': client.welcome_discount_issued_at
+                }, status=400)
+            
+            # Verificar si ya tiene reservas aprobadas
+            has_approved_reservations = Reservation.objects.filter(
+                client=client,
+                status='approved',
+                deleted=False
+            ).exists()
+            
+            if has_approved_reservations:
+                return Response({
+                    'success': False,
+                    'message': 'El descuento de bienvenida solo está disponible para nuevos clientes sin reservas previas'
+                }, status=400)
+            
+            # Obtener configuración activa
+            config = WelcomeDiscountConfig.get_active_config()
+            
+            if not config:
+                return Response({
+                    'success': False,
+                    'message': 'No hay promoción de bienvenida activa en este momento'
+                }, status=404)
+            
+            # Generar el código de descuento
+            discount_code = config.generate_welcome_code(client)
+            
+            # Marcar que ya recibió el código
+            client.welcome_discount_issued = True
+            client.welcome_discount_issued_at = timezone.now()
+            client.save()
+            
+            logger.info(f'Código de bienvenida {discount_code.code} generado para cliente {client.first_name} {client.last_name}')
+            
+            # Preparar restricciones para la respuesta
+            restrictions = []
+            if discount_code.restrict_weekdays:
+                restrictions.append("Solo noches de semana (domingo a jueves)")
+            if discount_code.restrict_weekends:
+                restrictions.append("Solo fines de semana (viernes y sábado)")
+            if discount_code.apply_only_to_base_price:
+                restrictions.append("Aplica solo al precio base (sin huéspedes adicionales)")
+            
+            return Response({
+                'success': True,
+                'message': '¡Felicidades! Tu código de descuento ha sido generado',
+                'discount_code': {
+                    'code': discount_code.code,
+                    'discount_percentage': float(discount_code.discount_value),
+                    'valid_from': discount_code.start_date.isoformat(),
+                    'valid_until': discount_code.end_date.isoformat(),
+                    'min_amount_usd': float(discount_code.min_amount_usd) if discount_code.min_amount_usd else None,
+                    'max_discount_usd': float(discount_code.max_discount_usd) if discount_code.max_discount_usd else None,
+                    'usage_limit': discount_code.usage_limit,
+                    'restrictions': restrictions,
+                    'properties': [
+                        {
+                            'id': str(prop.id),
+                            'name': prop.name
+                        } for prop in discount_code.properties.all()
+                    ] if discount_code.properties.exists() else None
+                }
+            })
+            
+        except (InvalidToken, TokenError) as e:
+            return Response({'message': 'Token inválido'}, status=401)
+        except Exception as e:
+            logger.error(f'Error generando código de bienvenida: {str(e)}')
+            return Response({
+                'success': False,
+                'message': 'Error interno del servidor'
+            }, status=500)
