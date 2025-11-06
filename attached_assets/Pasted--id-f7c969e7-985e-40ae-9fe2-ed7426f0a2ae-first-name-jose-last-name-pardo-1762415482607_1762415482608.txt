@@ -1,0 +1,69 @@
+
+    "id": "f7c969e7-985e-40ae-9fe2-ed7426f0a2ae",
+    "first_name": "jose",
+    "last_name": "pardo",
+    "email": "noexiste@asd.com",
+    "tel_number": "51999902992",
+    "document_type": "dni",
+    "number_doc": "10000000",
+    "date": "2007-10-17",
+    "sex": "m",
+    "last_login": "2025-11-06T02:49:52.396526-05:00",
+    "points_balance": "0.00",
+    "points_expires_at": null,
+    "available_points": 0.0,
+    "points_are_expired": false,
+    "referred_by_info": null,
+    "referral_code": "JOS238",
+    "level_info": {
+        "current_level": {
+            "name": "Curioso",
+            "description": "Usuario registrado, acceso básico a la plataforma\r\n\r\n• Acceso completo a todas las propiedades\r\n• Gana 5% en puntos por Reservas\r\n• Gana 5% en puntos por Reservas de referidos",
+            "icon": "🐣",
+            "earned_at": "2025-11-06T07:41:31.734400Z"
+        },
+        "next_level": {
+            "name": "Cliente Casa Austin",
+            "description": "Usuario con almenos 1 reserva confirmadas.\r\n\r\n• Acceso completo a todas las propiedades\r\n• Gana 5% en puntos por Reservas\r\n• Gana 5% en puntos por Reservas de referidos\r\n• 5% De descuento en todas sus reservas\r\n• 10% De descuento en todas las reservas que inicien en el mes de tu cumpleaños.",
+            "icon": "🏠",
+            "required_reservations": 1,
+            "required_referrals": 0,
+            "required_referral_reservations": 0
+        },
+        "progress": {
+            "reservations": {
+                "current": 0,
+                "required": 1,
+                "remaining": 1
+            },
+            "referrals": {
+                "current": 0,
+                "required": 0,
+                "remaining": 0
+            },
+            "referral_reservations": {
+                "current": 0,
+                "required": 0,
+                "remaining": 0
+            }
+        },
+        "total_achievements": 1
+    },
+    "achievements_stats": {
+        "client_stats": {
+            "reservations": 0,
+            "referrals": 0,
+            "referral_reservations": 0
+        },
+        "achievements": {
+            "earned": 1,
+            "total": 5,
+            "percentage": 20.0
+        }
+    },
+    "facebook_linked": false,
+    "facebook_profile_picture": null,
+    "facebook_name": null,
+    "facebook_linked_at": null,
+    "welcome_discount": null
+}
