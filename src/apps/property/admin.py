@@ -454,8 +454,8 @@ class LateCheckoutConfigAdmin(admin.ModelAdmin):
 
 @admin.register(DynamicDiscountConfig)
 class DynamicDiscountConfigAdmin(admin.ModelAdmin):
-    list_display = ('name', 'prefix', 'discount_percentage', 'validity_days', 'min_amount_usd', 'usage_limit', 'apply_only_to_base_price', 'is_active')
-    list_filter = ('is_active', 'apply_only_to_base_price', 'validity_days', 'properties')
+    list_display = ('name', 'prefix', 'discount_percentage', 'validity_days', 'min_amount_usd', 'usage_limit', 'apply_only_to_base_price', 'restrict_weekdays', 'restrict_weekends', 'is_active')
+    list_filter = ('is_active', 'apply_only_to_base_price', 'restrict_weekdays', 'restrict_weekends', 'validity_days', 'properties')
     search_fields = ('name', 'prefix')
     filter_horizontal = ('properties',)
 
@@ -466,6 +466,10 @@ class DynamicDiscountConfigAdmin(admin.ModelAdmin):
         ('Configuración del Descuento', {
             'fields': ('discount_percentage', 'min_amount_usd', 'max_discount_usd', 'usage_limit', 'apply_only_to_base_price'),
             'description': '💡 Si "Aplicar solo al precio base" está activo, el descuento NO incluirá huéspedes adicionales'
+        }),
+        ('Restricciones de Días', {
+            'fields': ('restrict_weekdays', 'restrict_weekends'),
+            'description': '📅 Restricciones de días de la semana:\n• Noches de semana (domingo a jueves)\n• Fines de semana (viernes y sábado)\n\n⚠️ No activar ambas opciones simultáneamente'
         }),
         ('Propiedades Aplicables', {
             'fields': ('properties',),

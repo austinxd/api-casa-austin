@@ -1008,6 +1008,14 @@ class DynamicDiscountConfig(BaseModel):
         default=False,
         help_text="Si está activo, los códigos generados solo se aplicarán al precio base (sin incluir huéspedes adicionales)"
     )
+    restrict_weekdays = models.BooleanField(
+        default=False,
+        help_text="Si está activo, los códigos generados solo serán válidos para noches de semana (domingo a jueves)"
+    )
+    restrict_weekends = models.BooleanField(
+        default=False,
+        help_text="Si está activo, los códigos generados solo serán válidos para fines de semana (viernes y sábado)"
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -1048,6 +1056,8 @@ class DynamicDiscountConfig(BaseModel):
             min_amount_usd=self.min_amount_usd,
             max_discount_usd=self.max_discount_usd,
             apply_only_to_base_price=self.apply_only_to_base_price,
+            restrict_weekdays=self.restrict_weekdays,
+            restrict_weekends=self.restrict_weekends,
             is_active=True
         )
 

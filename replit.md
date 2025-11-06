@@ -37,7 +37,9 @@ Preferred communication style: Simple, everyday language.
 - **Base price discount option**: Both manual discount codes and dynamic discount generators support `apply_only_to_base_price` field to apply discounts only to base price (excluding additional guests).
 - Late checkout pricing configuration.
 - **Referral discount system**: First-time reservation discounts for referred clients, with percentage based on referrer's achievement level (configurable in Django Admin).
-- **Dynamic discount code generator** (`DynamicDiscountConfig`): Allows creating automatic discount code configurations with customizable prefix, percentage, validity days, usage limits, base price discount option, and property-specific applicability.
+- **Dynamic discount code generator** (`DynamicDiscountConfig`): Allows creating automatic discount code configurations with customizable prefix, percentage, validity days, usage limits, base price discount option, weekday/weekend restrictions, and property-specific applicability.
+  * Weekday/weekend restriction configuration (Nov 6, 2025): Added `restrict_weekdays` and `restrict_weekends` fields to allow restricting generated codes to specific days
+  * Admin interface includes dedicated "Restricciones de Días" section with visual guidance
 - **Welcome discount system** (Nov 5, 2025): Configurable new user registration incentive with `WelcomeDiscountConfig` model
   * Activatable/deactivatable from Django Admin (only one active config at a time)
   * **Automatic generation**: Codes are generated automatically during user registration if promotion is active
