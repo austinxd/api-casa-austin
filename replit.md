@@ -50,10 +50,17 @@ Preferred communication style: Simple, everyday language.
   * Property-specific applicability
   * **Public status endpoint**: `/api/v1/clients/welcome-discount/status/` (GET, no auth) - Allows frontend to check if promotion is active before registration
   * Registration response includes `welcome_discount` object with code details when promotion is active
+  * **Profile endpoint includes welcome discount**: `/api/v1/clients/client-auth/profile/` now shows `welcome_discount` field with code details, usage status, and expiration
   * Manual endpoint available: `/api/v1/clients/client-auth/welcome-discount/` for post-registration requests
   * Client tracking fields: `welcome_discount_issued` and `welcome_discount_issued_at`
   * Validation: Only for new clients without approved reservations
   * Code format: `WELCOME-XXXXXX` (6-character random suffix)
+  * **Database fix (Nov 6, 2025)**: Resolved MySQL/MariaDB compatibility issue where codes were created as NULL
+    - Increased `DiscountCode.code` field from max_length=20 to max_length=50
+    - Added validation in `generate_welcome_code()` to verify code length and prevent NULL persistence
+    - Registration endpoints now validate code is not NULL before marking `welcome_discount_issued=True`
+    - Backfill script available: `src/backfill_welcome_codes.py` to regenerate historical NULL codes
+    - Enhanced error logging with explicit messages for debugging
 
 ### Authentication and Security
 - JWT-based authentication (SimpleJWT).
