@@ -456,20 +456,66 @@ class ClientCompleteRegistrationView(APIView):
                     f'Cliente registrado completamente: {client.first_name} {client.last_name} - {client.number_doc}'
                 )
 
-                return Response(
-                    {
-                        'success': True,
-                        'message': 'Cuenta creada exitosamente',
-                        'client': {
-                            'id': str(client.id),
-                            'document_type': client.document_type,
-                            'number_doc': client.number_doc,
-                            'first_name': client.first_name,
-                            'last_name': client.last_name,
-                            'email': client.email
+                response_data = {
+                    'success': True,
+                    'message': 'Cuenta creada exitosamente',
+                    'client': {
+                        'id': str(client.id),
+                        'document_type': client.document_type,
+                        'number_doc': client.number_doc,
+                        'first_name': client.first_name,
+                        'last_name': client.last_name,
+                        'email': client.email
+                    }
+                }
+
+                # Verificar y generar código de bienvenida automáticamente si hay promoción activa
+                try:
+                    from apps.property.pricing_models import WelcomeDiscountConfig
+                    
+                    logger.info("Verificando si hay promoción de bienvenida activa...")
+                    welcome_config = WelcomeDiscountConfig.get_active_config()
+                    
+                    if welcome_config:
+                        logger.info(f"✅ Promoción activa encontrada: {welcome_config.name} ({welcome_config.discount_percentage}%)")
+                        
+                        discount_code = welcome_config.generate_welcome_code(client)
+                        client.welcome_discount_issued = True
+                        client.welcome_discount_issued_at = timezone.now()
+                        client.save()
+                        
+                        restrictions = []
+                        if discount_code.restrict_weekdays:
+                            restrictions.append("Solo noches de semana (domingo a jueves)")
+                        if discount_code.restrict_weekends:
+                            restrictions.append("Solo fines de semana (viernes y sábado)")
+                        if discount_code.apply_only_to_base_price:
+                            restrictions.append("Aplica solo al precio base (sin huéspedes adicionales)")
+                        
+                        response_data['welcome_discount'] = {
+                            'code': discount_code.code,
+                            'discount_percentage': float(discount_code.discount_value),
+                            'valid_from': discount_code.start_date.isoformat(),
+                            'valid_until': discount_code.end_date.isoformat(),
+                            'min_amount_usd': float(discount_code.min_amount_usd) if discount_code.min_amount_usd else None,
+                            'max_discount_usd': float(discount_code.max_discount_usd) if discount_code.max_discount_usd else None,
+                            'restrictions': restrictions,
+                            'properties': [
+                                {'id': str(prop.id), 'name': prop.name} 
+                                for prop in discount_code.properties.all()
+                            ] if discount_code.properties.exists() else None
                         }
-                    },
-                    status=status.HTTP_201_CREATED)
+                        
+                        logger.info(f"✅ Código de bienvenida {discount_code.code} generado automáticamente para {client.first_name}")
+                    else:
+                        logger.info("ℹ️ No hay promoción de bienvenida activa en este momento")
+                        
+                except Exception as e:
+                    import traceback
+                    logger.error(f"❌ Error generando código de bienvenida automático: {str(e)}")
+                    logger.error(f"Traceback completo: {traceback.format_exc()}")
+
+                return Response(response_data, status=status.HTTP_201_CREATED)
             else:
                 return Response(
                     {
