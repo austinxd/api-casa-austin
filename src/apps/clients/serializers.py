@@ -120,6 +120,7 @@ class ClientProfileSerializer(serializers.ModelSerializer):
     achievements_stats = serializers.SerializerMethodField()
     facebook_profile_picture = serializers.SerializerMethodField()
     facebook_name = serializers.SerializerMethodField()
+    welcome_discount = serializers.SerializerMethodField()
 
     class Meta:
         model = Clients
@@ -145,7 +146,8 @@ class ClientProfileSerializer(serializers.ModelSerializer):
             "facebook_linked",
             "facebook_profile_picture",
             "facebook_name",
-            "facebook_linked_at"
+            "facebook_linked_at",
+            "welcome_discount"
         ]
         read_only_fields = [
             "id", "document_type", "number_doc", "last_login",
@@ -366,6 +368,49 @@ class ClientProfileSerializer(serializers.ModelSerializer):
         """Nombre del perfil de Facebook"""
         if obj.facebook_profile_data and isinstance(obj.facebook_profile_data, dict):
             return obj.facebook_profile_data.get('name')
+        return None
+    
+    def get_welcome_discount(self, obj):
+        """Información del código de descuento de bienvenida si existe"""
+        if obj.welcome_discount_issued:
+            # Buscar el código de bienvenida del cliente
+            from apps.property.pricing_models import DiscountCode
+            from django.utils import timezone
+            
+            discount_code = DiscountCode.objects.filter(
+                code__startswith='WELCOME-',
+                description__icontains=obj.first_name,
+                is_active=True,
+                deleted=False
+            ).first()
+            
+            if discount_code:
+                # Verificar si el código ya fue usado
+                used_times = discount_code.used_times if hasattr(discount_code, 'used_times') else 0
+                is_expired = discount_code.end_date < timezone.now().date() if discount_code.end_date else False
+                is_used = used_times >= discount_code.usage_limit if discount_code.usage_limit else False
+                
+                restrictions = []
+                if discount_code.restrict_weekdays:
+                    restrictions.append("Solo noches de semana (domingo a jueves)")
+                if discount_code.restrict_weekends:
+                    restrictions.append("Solo fines de semana (viernes y sábado)")
+                if discount_code.apply_only_to_base_price:
+                    restrictions.append("Aplica solo al precio base (sin huéspedes adicionales)")
+                
+                return {
+                    'code': discount_code.code,
+                    'discount_percentage': float(discount_code.discount_value),
+                    'valid_from': discount_code.start_date.isoformat() if discount_code.start_date else None,
+                    'valid_until': discount_code.end_date.isoformat() if discount_code.end_date else None,
+                    'min_amount_usd': float(discount_code.min_amount_usd) if discount_code.min_amount_usd else None,
+                    'max_discount_usd': float(discount_code.max_discount_usd) if discount_code.max_discount_usd else None,
+                    'restrictions': restrictions,
+                    'is_used': is_used,
+                    'is_expired': is_expired,
+                    'issued_at': obj.welcome_discount_issued_at.isoformat() if obj.welcome_discount_issued_at else None
+                }
+        
         return None
 
 
