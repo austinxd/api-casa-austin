@@ -372,44 +372,81 @@ class ClientProfileSerializer(serializers.ModelSerializer):
     
     def get_welcome_discount(self, obj):
         """Información del código de descuento de bienvenida si existe"""
-        if obj.welcome_discount_issued:
-            # Buscar el código de bienvenida del cliente
-            from apps.property.pricing_models import DiscountCode
-            from django.utils import timezone
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        if not obj.welcome_discount_issued:
+            logger.debug(f"Cliente {obj.id} - welcome_discount_issued es False")
+            return None
+        
+        logger.info(f"🔍 Buscando código de bienvenida para cliente {obj.id} ({obj.get_full_name() if hasattr(obj, 'get_full_name') else obj.first_name})")
+        logger.info(f"   - welcome_discount_issued_at: {obj.welcome_discount_issued_at}")
+            
+        # Buscar el código de bienvenida del cliente
+        from apps.property.pricing_models import DiscountCode
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # Preparar criterios de búsqueda más específicos
+        search_filters = {
+            'code__startswith': 'WELCOME-',
+            'is_active': True,
+            'deleted': False,
+            'usage_limit': 1  # Los códigos de bienvenida tienen límite de 1 uso
+        }
+        
+        # Buscar primero por nombre completo (más específico)
+        full_name = obj.get_full_name() if hasattr(obj, 'get_full_name') else f"{obj.first_name} {obj.last_name}".strip()
+        discount_code = DiscountCode.objects.filter(
+            description__icontains=full_name,
+            **search_filters
+        ).first()
+        
+        # Si no encuentra por nombre completo, intentar por email
+        if not discount_code and obj.email:
+            discount_code = DiscountCode.objects.filter(
+                description__icontains=obj.email,
+                **search_filters
+            ).first()
+        
+        # Si aún no encuentra, buscar por fecha cercana a cuando se emitió
+        if not discount_code and obj.welcome_discount_issued_at:
+            # Buscar códigos creados en un rango de ±1 día de cuando se marcó el flag
+            date_from = obj.welcome_discount_issued_at - timedelta(days=1)
+            date_to = obj.welcome_discount_issued_at + timedelta(days=1)
             
             discount_code = DiscountCode.objects.filter(
-                code__startswith='WELCOME-',
-                description__icontains=obj.first_name,
-                is_active=True,
-                deleted=False
-            ).first()
+                created__gte=date_from,
+                created__lte=date_to,
+                **search_filters
+            ).order_by('-created').first()
+        
+        if discount_code:
+            # Verificar si el código ya fue usado
+            used_times = discount_code.used_count if hasattr(discount_code, 'used_count') else 0
+            is_expired = discount_code.end_date < timezone.now().date() if discount_code.end_date else False
+            is_used = used_times >= discount_code.usage_limit if discount_code.usage_limit else False
             
-            if discount_code:
-                # Verificar si el código ya fue usado
-                used_times = discount_code.used_times if hasattr(discount_code, 'used_times') else 0
-                is_expired = discount_code.end_date < timezone.now().date() if discount_code.end_date else False
-                is_used = used_times >= discount_code.usage_limit if discount_code.usage_limit else False
-                
-                restrictions = []
-                if discount_code.restrict_weekdays:
-                    restrictions.append("Solo noches de semana (domingo a jueves)")
-                if discount_code.restrict_weekends:
-                    restrictions.append("Solo fines de semana (viernes y sábado)")
-                if discount_code.apply_only_to_base_price:
-                    restrictions.append("Aplica solo al precio base (sin huéspedes adicionales)")
-                
-                return {
-                    'code': discount_code.code,
-                    'discount_percentage': float(discount_code.discount_value),
-                    'valid_from': discount_code.start_date.isoformat() if discount_code.start_date else None,
-                    'valid_until': discount_code.end_date.isoformat() if discount_code.end_date else None,
-                    'min_amount_usd': float(discount_code.min_amount_usd) if discount_code.min_amount_usd else None,
-                    'max_discount_usd': float(discount_code.max_discount_usd) if discount_code.max_discount_usd else None,
-                    'restrictions': restrictions,
-                    'is_used': is_used,
-                    'is_expired': is_expired,
-                    'issued_at': obj.welcome_discount_issued_at.isoformat() if obj.welcome_discount_issued_at else None
-                }
+            restrictions = []
+            if discount_code.restrict_weekdays:
+                restrictions.append("Solo noches de semana (domingo a jueves)")
+            if discount_code.restrict_weekends:
+                restrictions.append("Solo fines de semana (viernes y sábado)")
+            if discount_code.apply_only_to_base_price:
+                restrictions.append("Aplica solo al precio base (sin huéspedes adicionales)")
+            
+            return {
+                'code': discount_code.code,
+                'discount_percentage': float(discount_code.discount_value),
+                'valid_from': discount_code.start_date.isoformat() if discount_code.start_date else None,
+                'valid_until': discount_code.end_date.isoformat() if discount_code.end_date else None,
+                'min_amount_usd': float(discount_code.min_amount_usd) if discount_code.min_amount_usd else None,
+                'max_discount_usd': float(discount_code.max_discount_usd) if discount_code.max_discount_usd else None,
+                'restrictions': restrictions,
+                'is_used': is_used,
+                'is_expired': is_expired,
+                'issued_at': obj.welcome_discount_issued_at.isoformat() if obj.welcome_discount_issued_at else None
+            }
         
         return None
 
