@@ -291,7 +291,7 @@ class DiscountCode(BaseModel):
         FIXED_USD = "fixed_usd", ("Monto Fijo USD")
         FIXED_SOL = "fixed_sol", ("Monto Fijo SOL")
 
-    code = models.CharField(max_length=20, unique=True, help_text="Código de descuento")
+    code = models.CharField(max_length=50, unique=True, help_text="Código de descuento")
     description = models.CharField(max_length=200, help_text="Descripción del descuento")
     discount_type = models.CharField(max_length=10, choices=DiscountType.choices)
     discount_value = models.DecimalField(
@@ -1223,36 +1223,58 @@ class WelcomeDiscountConfig(BaseModel):
         from datetime import date, timedelta
         import random
         import string
+        import logging
         
-        # Generar código único
+        logger = logging.getLogger(__name__)
+        
+        # Generar código único con longitud validada
         suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
         code = f"WELCOME-{suffix}"
         
-        # Verificar que no existe
-        while DiscountCode.objects.filter(code=code).exists():
+        # Validar longitud del código (max_length=50 en el modelo)
+        if len(code) > 50:
+            raise ValueError(f"El código generado '{code}' excede el límite de 50 caracteres")
+        
+        # Verificar que no existe (máximo 10 intentos para evitar loops infinitos)
+        attempts = 0
+        max_attempts = 10
+        while DiscountCode.objects.filter(code=code).exists() and attempts < max_attempts:
             suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
             code = f"WELCOME-{suffix}"
+            attempts += 1
+        
+        if attempts >= max_attempts:
+            raise ValueError("No se pudo generar un código único después de 10 intentos")
         
         # Calcular fechas
         start_date = date.today()
         end_date = start_date + timedelta(days=self.validity_days)
         
+        logger.info(f"🎫 Generando código de bienvenida: {code} (longitud: {len(code)} chars)")
+        
         # Crear el código de descuento
-        discount_code = DiscountCode.objects.create(
-            code=code,
-            description=f"Descuento de bienvenida para {client.get_full_name() if hasattr(client, 'get_full_name') else client.email}",
-            discount_type='percentage',
-            discount_value=self.discount_percentage,
-            start_date=start_date,
-            end_date=end_date,
-            usage_limit=1,
-            min_amount_usd=self.min_amount_usd,
-            max_discount_usd=self.max_discount_usd,
-            restrict_weekdays=self.restrict_weekdays,
-            restrict_weekends=self.restrict_weekends,
-            apply_only_to_base_price=self.apply_only_to_base_price,
-            is_active=True
-        )
+        try:
+            discount_code = DiscountCode.objects.create(
+                code=code,
+                description=f"Descuento de bienvenida para {client.get_full_name() if hasattr(client, 'get_full_name') else client.email}",
+                discount_type='percentage',
+                discount_value=self.discount_percentage,
+                start_date=start_date,
+                end_date=end_date,
+                usage_limit=1,
+                min_amount_usd=self.min_amount_usd,
+                max_discount_usd=self.max_discount_usd,
+                restrict_weekdays=self.restrict_weekdays,
+                restrict_weekends=self.restrict_weekends,
+                apply_only_to_base_price=self.apply_only_to_base_price,
+                is_active=True
+            )
+            logger.info(f"✅ Código creado exitosamente en base de datos: {code}")
+        except Exception as e:
+            logger.error(f"❌ Error al crear código de descuento en BD: {str(e)}")
+            logger.error(f"   Código: {code} (longitud: {len(code)})")
+            logger.error(f"   Tipo de error: {type(e).__name__}")
+            raise  # Re-lanzar la excepción para que se maneje arriba
         
         # Asignar propiedades si están definidas
         if self.properties.exists():
