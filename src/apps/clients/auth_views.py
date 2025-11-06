@@ -64,8 +64,12 @@ class ClientPublicRegisterView(APIView):
                 try:
                     from apps.property.pricing_models import WelcomeDiscountConfig
                     
+                    logger.info("Verificando si hay promoción de bienvenida activa...")
                     welcome_config = WelcomeDiscountConfig.get_active_config()
+                    
                     if welcome_config:
+                        logger.info(f"✅ Promoción activa encontrada: {welcome_config.name} ({welcome_config.discount_percentage}%)")
+                        
                         discount_code = welcome_config.generate_welcome_code(client)
                         client.welcome_discount_issued = True
                         client.welcome_discount_issued_at = timezone.now()
@@ -89,9 +93,14 @@ class ClientPublicRegisterView(APIView):
                             'restrictions': restrictions
                         }
                         
-                        logger.info(f"Código de bienvenida {discount_code.code} generado automáticamente para {client.first_name}")
+                        logger.info(f"✅ Código de bienvenida {discount_code.code} generado automáticamente para {client.first_name}")
+                    else:
+                        logger.info("ℹ️ No hay promoción de bienvenida activa en este momento")
+                        
                 except Exception as e:
-                    logger.error(f"Error generando código de bienvenida automático: {str(e)}")
+                    import traceback
+                    logger.error(f"❌ Error generando código de bienvenida automático: {str(e)}")
+                    logger.error(f"Traceback completo: {traceback.format_exc()}")
 
                 return Response(response_data, status=status.HTTP_201_CREATED)
             else:
@@ -215,8 +224,12 @@ class ClientPublicRegistrationView(APIView):
                 try:
                     from apps.property.pricing_models import WelcomeDiscountConfig
                     
+                    logger.info("Verificando si hay promoción de bienvenida activa...")
                     welcome_config = WelcomeDiscountConfig.get_active_config()
+                    
                     if welcome_config:
+                        logger.info(f"✅ Promoción activa encontrada: {welcome_config.name} ({welcome_config.discount_percentage}%)")
+                        
                         # Generar código de bienvenida automáticamente
                         discount_code = welcome_config.generate_welcome_code(client)
                         
@@ -249,10 +262,15 @@ class ClientPublicRegistrationView(APIView):
                             ] if discount_code.properties.exists() else None
                         }
                         
-                        logger.info(f"Código de bienvenida {discount_code.code} generado automáticamente para {client.first_name}")
+                        logger.info(f"✅ Código de bienvenida {discount_code.code} generado automáticamente para {client.first_name}")
+                    else:
+                        logger.info("ℹ️ No hay promoción de bienvenida activa en este momento")
+                        
                 except Exception as e:
                     # Si falla la generación del código, no afecta el registro
-                    logger.error(f"Error generando código de bienvenida automático: {str(e)}")
+                    import traceback
+                    logger.error(f"❌ Error generando código de bienvenida automático: {str(e)}")
+                    logger.error(f"Traceback completo: {traceback.format_exc()}")
 
                 return Response(response_data, status=201)
             else:
