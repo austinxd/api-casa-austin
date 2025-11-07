@@ -128,7 +128,6 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 # Filtrar por reservas creadas hoy
                 if self.request.query_params.get('created_today') == 'true':
                     from django.utils import timezone
-                    from datetime import datetime, time
                     # Obtener la fecha local de hoy
                     local_now = timezone.localtime()
                     today = local_now.date()
