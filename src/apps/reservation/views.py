@@ -128,7 +128,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 # Filtrar por reservas creadas hoy
                 if self.request.query_params.get('created_today') == 'true':
                     today = now.date()
-                    queryset = queryset.filter(created_at__date=today)
+                    queryset = queryset.filter(created__date=today)
 
         elif self.action in ['partial_update', 'update', 'destroy']:
             if not check_user_has_rol("admin", self.request.user):

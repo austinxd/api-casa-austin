@@ -1,0 +1,21 @@
+FieldError at /api/v1/reservations/
+Cannot resolve keyword 'created_at' into field. Choices are: ManychatFecha, advance_payment, advance_payment_currency, check_in_date, check_out_date, client, client_id, clientpoints, comentarios_reservas, created, deleted, discount_code_used, fbc, fbclid, fbp, full_payment, guests, id, ip_cliente, late_check_out_date, late_checkout, music_participants, origin, payment_approved_notification_sent, payment_confirmed, payment_voucher_deadline, payment_voucher_uploaded, paymenttoken, points_redeemed, price_latecheckout, price_sol, price_temperature_pool, price_usd, property, property_id, propertycleaninggap, referer, rentalreceipt, seller, seller_id, status, tel_contact_number, temperature_pool, updated, user_agent, utm_campaign, utm_medium, utm_source, uuid_external, worktask
+Request Method:	GET
+Request URL:	http://api.casaaustin.pe/api/v1/reservations/?created_today=true
+Django Version:	4.2.11
+Exception Type:	FieldError
+Exception Value:	
+Cannot resolve keyword 'created_at' into field. Choices are: ManychatFecha, advance_payment, advance_payment_currency, check_in_date, check_out_date, client, client_id, clientpoints, comentarios_reservas, created, deleted, discount_code_used, fbc, fbclid, fbp, full_payment, guests, id, ip_cliente, late_check_out_date, late_checkout, music_participants, origin, payment_approved_notification_sent, payment_confirmed, payment_voucher_deadline, payment_voucher_uploaded, paymenttoken, points_redeemed, price_latecheckout, price_sol, price_temperature_pool, price_usd, property, property_id, propertycleaninggap, referer, rentalreceipt, seller, seller_id, status, tel_contact_number, temperature_pool, updated, user_agent, utm_campaign, utm_medium, utm_source, uuid_external, worktask
+Exception Location:	/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/db/models/sql/query.py, line 1725, in names_to_path
+Raised during:	apps.reservation.views.ReservationsApiView
+Python Executable:	/srv/casaaustin/api-casa-austin/venv-py311/bin/python3.11
+Python Version:	3.11.11
+Python Path:	
+['/srv/casaaustin/api-casa-austin/src',
+ '/srv/casaaustin/api-casa-austin/venv-py311/bin',
+ '/usr/lib64/python311.zip',
+ '/usr/lib64/python3.11',
+ '/usr/lib64/python3.11/lib-dynload',
+ '/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages',
+ '/srv/casaaustin/api-casa-austin/venv-py311/lib/python3.11/site-packages']
+Server time:	Fri, 07 Nov 2025 16:13:40 -0500
