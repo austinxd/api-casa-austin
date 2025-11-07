@@ -406,8 +406,8 @@ class PricingCalculationService:
                     # Verificar si el código debe aplicarse solo al precio base
                     if code.apply_only_to_base_price and base_total_usd is not None:
                         # Calcular descuento solo sobre el precio base (sin huéspedes adicionales)
-                        discount_amount_usd = code.calculate_base_price_discount(base_total_usd, extra_person_total_usd or Decimal('0.00'))
-                        logger.info(f"💰 Descuento BASE aplicado: ${discount_amount_usd} USD sobre precio base ${base_total_usd} USD (sin incluir {extra_person_total_usd} USD de personas extras)")
+                        discount_amount_usd = code.calculate_discount(base_total_usd)
+                        logger.info(f"💰 Descuento BASE aplicado: ${discount_amount_usd} USD sobre precio base ${base_total_usd} USD (excluyendo ${extra_person_total_usd or 0} USD de personas extras)")
                     else:
                         # Calcular descuento sobre el total completo
                         discount_amount_usd = code.calculate_discount(subtotal_usd)

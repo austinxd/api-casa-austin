@@ -1,0 +1,71 @@
+{
+    "success": true,
+    "error": 0,
+    "data": {
+        "totalCasasDisponibles": 1,
+        "check_in_date": "2025-12-17",
+        "check_out_date": "2025-12-18",
+        "guests": 1,
+        "total_nights": 1,
+        "exchange_rate": 3.6,
+        "properties": [
+            {
+                "property_id": "0ff9b525-ff7c-4be3-b872-3937d958c1a6",
+                "property_name": "Casa Austin 3",
+                "property_slug": "casa-austin-3",
+                "base_price_usd": 300.0,
+                "base_price_sol": 1080.0,
+                "extra_person_price_per_night_usd": 20.0,
+                "extra_person_price_per_night_sol": 72.0,
+                "extra_person_total_usd": 0.0,
+                "extra_person_total_sol": 0.0,
+                "total_nights": 1,
+                "total_guests": 1,
+                "extra_guests": 0,
+                "subtotal_usd": 300.0,
+                "subtotal_sol": 1080.0,
+                "final_price_usd": 300.0,
+                "final_price_sol": 1080.0,
+                "available": true,
+                "availability_message": "Propiedad disponible",
+                "additional_services": [],
+                "selected_additional_services": [],
+                "selected_services_total_usd": 0.0,
+                "selected_services_total_sol": 0.0,
+                "final_price_with_services_usd": 300.0,
+                "final_price_with_services_sol": 1080.0,
+                "services_applied_count": 0,
+                "cancellation_policy": null,
+                "recommendations": [
+                    "Esta propiedad cuenta con piscina temperada disponible"
+                ],
+                "discount_applied": {
+                    "type": "error",
+                    "description": "Error al procesar código: 'DiscountCode' object has no attribute 'calculate_base_price_discount'",
+                    "discount_percentage": 0,
+                    "discount_amount_usd": 0.0,
+                    "discount_amount_sol": 0.0,
+                    "code_used": "WELCOME-12JXEQ"
+                },
+                "client_benefits": {
+                    "points_available": 0,
+                    "points_value_usd": 0.0,
+                    "points_value_sol": 0.0,
+                    "referral_code": null,
+                    "membership_level": "bronze"
+                }
+            }
+        ],
+        "general_recommendations": [],
+        "message1": "📅 Del 17 al 18 de diciembre de 2025",
+        "message2": "🏠 Casa Austin 3: *$300.00* ó *S/.1080.00*",
+        "client_info": {
+            "status": "registered",
+            "name": "Rene Bardales Ahuanari",
+            "membership_level": "bronze",
+            "total_reservations": 0,
+            "points_available": 0.0
+        }
+    },
+    "message": "Cálculo de precios realizado exitosamente"
+}
