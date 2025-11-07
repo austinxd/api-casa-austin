@@ -1,0 +1,79 @@
+INFO 2025-11-07 15:51:59,217 views 1575627 139670111958848 ClientCreateReservationView: New reservation request from client
+INFO 2025-11-07 15:51:59,354 signals 1575627 139670111958848 🔥 SIGNAL EJECUTADO: Nueva reserva creada ID 1df19775-2c4b-451c-8719-fdb5a7f5a6e8 - Origen: client - Cliente: Clients object (e1140fef-9fbf-445b-b377-17e183d3da4d)
+DEBUG 2025-11-07 15:51:59,355 signals 1575627 139670111958848 Enviando mensaje de Telegram: 💻 **WEB CLIENTE** - Reserva en Casa Austin 3
+Cliente: Rene Bardales Ahuanari
+Check-in : Miércoles 17 de diciembre
+Check-out : Jueves 18 de diciembre
+Invitados : 6
+Temperado : No
+Precio (USD) : 200.00 dólares
+Precio (Soles) : 720.00 soles
+Adelanto : 0.00 USD
+Teléfono : +51999902992 con imagen: None
+DEBUG 2025-11-07 15:51:59,355 telegram_notifier 1575627 139670111958848 Preparando para enviar mensaje: ******************************************
+💻 RESERVA DESDE PANEL WEB 💻
+Cliente: Rene Bardales Ahuanari
+Propiedad: Casa Austin 3
+Check-in : Miércoles 17 de diciembre
+Check-out : Jueves 18 de diciembre
+Invitados : 6
+Temperado : No
+💰 Total: 720.00 soles soles
+📱 Teléfono: +51999902992
+******************************************
+DEBUG 2025-11-07 15:51:59,356 telegram_notifier 1575627 139670111958848 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-11-07 15:51:59,787 telegram_notifier 1575627 139670111958848 Mensaje enviado.
+DEBUG 2025-11-07 15:51:59,787 telegram_notifier 1575627 139670111958848 Mensaje enviado a través del executor.
+DEBUG 2025-11-07 15:51:59,787 telegram_notifier 1575627 139670111958848 Preparando para enviar mensaje: ******Reserva en Casa Austin 3******
+Cliente: Rene Bardales Ahuanari
+Cumpleaños: Miércoles 26 de mayo (Cumple 111 años)
+Check-in : Miércoles 17 de diciembre
+Check-out : Jueves 18 de diciembre
+Invitados : 6
+Temperado : No
+Teléfono : https://wa.me/51999902992
+DEBUG 2025-11-07 15:51:59,787 telegram_notifier 1575627 139670111958848 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-11-07 15:52:00,014 telegram_notifier 1575627 139670111958848 Mensaje enviado.
+DEBUG 2025-11-07 15:52:00,015 telegram_notifier 1575627 139670111958848 Mensaje enviado a través del executor.
+INFO 2025-11-07 15:52:00,015 signals 1575627 139670111958848 🎯 Intentando crear actividad de feed para reserva 1df19775-2c4b-451c-8719-fdb5a7f5a6e8
+INFO 2025-11-07 15:52:00,099 signals 1575627 139670111958848 ✅ Actividad de nueva reserva creada exitosamente: 646dc5fd-cc4e-4cf1-a7c3-80b26f84ee54
+INFO 2025-11-07 15:52:00,101 pricing_models 1575627 139670111958848 Validando fechas - Hoy: 2025-11-07, Check date: 2025-11-07, Start: 2025-11-07, End: 2025-11-14
+INFO 2025-11-07 15:52:00,101 pricing_models 1575627 139670111958848 Fechas válidas - Código activo
+INFO 2025-11-07 15:52:00,101 pricing_models 1575627 139670111958848 📅 Día de la semana: 4 (Viernes) - Fin de semana
+INFO 2025-11-07 15:52:00,101 pricing_models 1575627 139670111958848 📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana
+INFO 2025-11-07 15:52:00,101 pricing_models 1575627 139670111958848 ❌ Restringido a días de semana pero Viernes es fin de semana
+✅ Actividad de eliminación de reserva creada para cliente e1140fef-9fbf-445b-b377-17e183d3da4d
+DEBUG 2025-11-07 15:52:00,182 models 1575627 139670111958848 Verificando logros para cliente e1140fef-9fbf-445b-b377-17e183d3da4d después de eliminar reserva 1df19775-2c4b-451c-8719-fdb5a7f5a6e8
+DEBUG 2025-11-07 15:52:00,182 points_signals 1575627 139670111958848 🔄 Verificando logros para cliente e1140fef-9fbf-445b-b377-17e183d3da4d
+DEBUG 2025-11-07 15:52:00,187 points_signals 1575627 139670111958848 🔄 Cliente e1140fef-9fbf-445b-b377-17e183d3da4d ya tiene el logro 'Curioso'
+DEBUG 2025-11-07 15:52:00,190 points_signals 1575627 139670111958848 ❌ Cliente e1140fef-9fbf-445b-b377-17e183d3da4d no cumple requisitos para 'Cliente Casa Austin'
+DEBUG 2025-11-07 15:52:00,193 points_signals 1575627 139670111958848 ❌ Cliente e1140fef-9fbf-445b-b377-17e183d3da4d no cumple requisitos para 'Cliente Recurrente'
+DEBUG 2025-11-07 15:52:00,195 points_signals 1575627 139670111958848 ❌ Cliente e1140fef-9fbf-445b-b377-17e183d3da4d no cumple requisitos para 'Cliente Premium'
+DEBUG 2025-11-07 15:52:00,198 points_signals 1575627 139670111958848 ❌ Cliente e1140fef-9fbf-445b-b377-17e183d3da4d no cumple requisitos para 'Austin Legend'
+INFO 2025-11-07 15:52:00,198 points_signals 1575627 139670111958848 📊 Verificación de logros completada para cliente e1140fef-9fbf-445b-b377-17e183d3da4d. Sin cambios en logros
+DEBUG 2025-11-07 15:52:00,288 points_signals 1575627 139670111958848 🔄 Verificando logros para cliente e1140fef-9fbf-445b-b377-17e183d3da4d
+DEBUG 2025-11-07 15:52:00,292 points_signals 1575627 139670111958848 🔄 Cliente e1140fef-9fbf-445b-b377-17e183d3da4d ya tiene el logro 'Curioso'
+DEBUG 2025-11-07 15:52:00,295 points_signals 1575627 139670111958848 ❌ Cliente e1140fef-9fbf-445b-b377-17e183d3da4d no cumple requisitos para 'Cliente Casa Austin'
+DEBUG 2025-11-07 15:52:00,297 points_signals 1575627 139670111958848 ❌ Cliente e1140fef-9fbf-445b-b377-17e183d3da4d no cumple requisitos para 'Cliente Recurrente'
+DEBUG 2025-11-07 15:52:00,300 points_signals 1575627 139670111958848 ❌ Cliente e1140fef-9fbf-445b-b377-17e183d3da4d no cumple requisitos para 'Cliente Premium'
+DEBUG 2025-11-07 15:52:00,303 points_signals 1575627 139670111958848 ❌ Cliente e1140fef-9fbf-445b-b377-17e183d3da4d no cumple requisitos para 'Austin Legend'
+INFO 2025-11-07 15:52:00,303 points_signals 1575627 139670111958848 📊 Verificación de logros completada para cliente e1140fef-9fbf-445b-b377-17e183d3da4d. Sin cambios en logros
+✅ Actividad de eliminación de reserva creada para cliente e1140fef-9fbf-445b-b377-17e183d3da4d
+DEBUG 2025-11-07 15:52:00,399 models 1575627 139670111958848 Verificando logros para cliente e1140fef-9fbf-445b-b377-17e183d3da4d después de eliminar reserva 1df19775-2c4b-451c-8719-fdb5a7f5a6e8
+DEBUG 2025-11-07 15:52:00,399 points_signals 1575627 139670111958848 🔄 Verificando logros para cliente e1140fef-9fbf-445b-b377-17e183d3da4d
+DEBUG 2025-11-07 15:52:00,403 points_signals 1575627 139670111958848 🔄 Cliente e1140fef-9fbf-445b-b377-17e183d3da4d ya tiene el logro 'Curioso'
+DEBUG 2025-11-07 15:52:00,406 points_signals 1575627 139670111958848 ❌ Cliente e1140fef-9fbf-445b-b377-17e183d3da4d no cumple requisitos para 'Cliente Casa Austin'
+DEBUG 2025-11-07 15:52:00,409 points_signals 1575627 139670111958848 ❌ Cliente e1140fef-9fbf-445b-b377-17e183d3da4d no cumple requisitos para 'Cliente Recurrente'
+DEBUG 2025-11-07 15:52:00,411 points_signals 1575627 139670111958848 ❌ Cliente e1140fef-9fbf-445b-b377-17e183d3da4d no cumple requisitos para 'Cliente Premium'
+DEBUG 2025-11-07 15:52:00,414 points_signals 1575627 139670111958848 ❌ Cliente e1140fef-9fbf-445b-b377-17e183d3da4d no cumple requisitos para 'Austin Legend'
+INFO 2025-11-07 15:52:00,414 points_signals 1575627 139670111958848 📊 Verificación de logros completada para cliente e1140fef-9fbf-445b-b377-17e183d3da4d. Sin cambios en logros
+DEBUG 2025-11-07 15:52:00,517 points_signals 1575627 139670111958848 🔄 Verificando logros para cliente e1140fef-9fbf-445b-b377-17e183d3da4d
+DEBUG 2025-11-07 15:52:00,521 points_signals 1575627 139670111958848 🔄 Cliente e1140fef-9fbf-445b-b377-17e183d3da4d ya tiene el logro 'Curioso'
+DEBUG 2025-11-07 15:52:00,523 points_signals 1575627 139670111958848 ❌ Cliente e1140fef-9fbf-445b-b377-17e183d3da4d no cumple requisitos para 'Cliente Casa Austin'
+DEBUG 2025-11-07 15:52:00,526 points_signals 1575627 139670111958848 ❌ Cliente e1140fef-9fbf-445b-b377-17e183d3da4d no cumple requisitos para 'Cliente Recurrente'
+DEBUG 2025-11-07 15:52:00,529 points_signals 1575627 139670111958848 ❌ Cliente e1140fef-9fbf-445b-b377-17e183d3da4d no cumple requisitos para 'Cliente Premium'
+DEBUG 2025-11-07 15:52:00,532 points_signals 1575627 139670111958848 ❌ Cliente e1140fef-9fbf-445b-b377-17e183d3da4d no cumple requisitos para 'Austin Legend'
+INFO 2025-11-07 15:52:00,532 points_signals 1575627 139670111958848 📊 Verificación de logros completada para cliente e1140fef-9fbf-445b-b377-17e183d3da4d. Sin cambios en logros
+ERROR 2025-11-07 15:52:00,532 views 1575627 139670111958848 ClientCreateReservationView: Error creating reservation: [ErrorDetail(string="Error al procesar código de descuento: [ErrorDetail(string='Error con código de descuento: Descuento solo válido para días de semana (Domingo a Jueves). Hoy es Viernes.', code='invalid')]", code='invalid')]
+Internal Server Error: /api/v1/clients/reservations/create/
+ERROR 2025-11-07 15:52:00,533 log 1575627 139670111958848 Internal Server Error: /api/v1/clients/reservations/create/

@@ -34,6 +34,9 @@ Preferred communication style: Simple, everyday language.
 - Dynamic pricing based on seasons and special dates.
 - Automatic discount system with achievement-based triggers and specific weekday selection.
 - Discount codes with weekend/weekday restrictions and an option to apply only to the base price.
+  * **Bug fix (Nov 7, 2025)**: Fixed validation of weekday/weekend restrictions to check against check-in date instead of current date
+  * Improved error messages to clearly indicate "El check-in seleccionado cae en {día}" instead of "Hoy es {día}"
+  * Validation now properly checks the day of the week of the reservation's check-in date, not today's date
 - Late checkout pricing configuration.
 - Referral discount system for first-time reservations based on referrer's achievement level.
 - Dynamic discount code generator with customizable prefixes, percentages, validity, and usage limits.

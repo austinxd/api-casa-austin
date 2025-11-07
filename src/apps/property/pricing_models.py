@@ -401,34 +401,42 @@ class DiscountCode(BaseModel):
 
         logger.info(f"Fechas válidas - Código activo")
 
-        # Verificar restricciones por día de la semana (usar fecha de reserva si se proporciona)
-        day_check_date = booking_check_date if booking_check_date else check_date
+        # Verificar restricciones por día de la semana (SIEMPRE usar fecha de reserva si se proporciona)
+        # Si no se proporciona booking_date, NO aplicar restricciones de días
+        if not booking_check_date or booking_check_date == today:
+            logger.info(f"⚠️ No se proporcionó fecha de check-in válida para validar restricciones de días")
+            # Si no hay fecha de reserva válida, omitir validación de días de semana
+            # Esto permite que la cotización funcione pero la reserva real requiere fecha
+            if self.restrict_weekdays or self.restrict_weekends:
+                logger.info(f"ℹ️ Código tiene restricciones de días pero no se puede validar sin fecha de check-in")
+        else:
+            day_check_date = booking_check_date
 
-        # Verificar restricciones de días de la semana
-        # DEFINICIÓN EMPRESARIAL: Domingo-Jueves = días de semana, Viernes-Sábado = fin de semana
-        weekday = day_check_date.weekday()  # 0=Lunes, 6=Domingo
-        is_weekend = weekday in [4, 5]  # Viernes=4, Sábado=5
-        is_weekday = weekday in [6, 0, 1, 2, 3]  # Domingo=6, Lunes=0, Martes=1, Miércoles=2, Jueves=3
+            # Verificar restricciones de días de la semana
+            # DEFINICIÓN EMPRESARIAL: Domingo-Jueves = días de semana, Viernes-Sábado = fin de semana
+            weekday = day_check_date.weekday()  # 0=Lunes, 6=Domingo
+            is_weekend = weekday in [4, 5]  # Viernes=4, Sábado=5
+            is_weekday = weekday in [6, 0, 1, 2, 3]  # Domingo=6, Lunes=0, Martes=1, Miércoles=2, Jueves=3
 
-        day_names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
-        day_name = day_names[weekday]
+            day_names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+            day_name = day_names[weekday]
 
-        logger.info(f"📅 Día de la semana: {weekday} ({day_name}) - {'Fin de semana' if is_weekend else 'Día de semana'}")
-        logger.info(f"📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana")
+            logger.info(f"📅 Validando día del check-in: {day_check_date} - {weekday} ({day_name}) - {'Fin de semana' if is_weekend else 'Día de semana'}")
+            logger.info(f"📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana")
 
-        if self.restrict_weekdays and not is_weekday:
-            logger.info(f"❌ Restringido a días de semana pero {day_name} es fin de semana")
-            return False, f"Descuento solo válido para días de semana (Domingo a Jueves). Hoy es {day_name}."
+            if self.restrict_weekdays and not is_weekday:
+                logger.info(f"❌ Restringido a días de semana pero check-in {day_check_date} ({day_name}) es fin de semana")
+                return False, f"Descuento solo válido para check-in en días de semana (Domingo a Jueves). El check-in seleccionado cae en {day_name}."
 
-        if self.restrict_weekends and not is_weekend:
-            logger.info(f"❌ Restringido a fines de semana pero {day_name} es día de semana")
-            return False, f"Descuento solo válido para fines de semana (Viernes y Sábado). Hoy es {day_name}."
-        elif self.restrict_weekdays and self.restrict_weekends:
-             # Si ambos están marcados, es un error de configuración, pero por lógica no debería aplicar
-             # o podría interpretarse como que aplica a ambos, pero es ambiguo.
-             # Por ahora, lo dejaremos como no válido para evitar confusiones.
-             # Podríamos considerar lanzar un error o tener una lógica más específica si es necesario.
-             return False, "Configuración de restricción de días ambigua (semana y fin de semana)."
+            if self.restrict_weekends and not is_weekend:
+                logger.info(f"❌ Restringido a fines de semana pero check-in {day_check_date} ({day_name}) es día de semana")
+                return False, f"Descuento solo válido para check-in en fines de semana (Viernes y Sábado). El check-in seleccionado cae en {day_name}."
+            
+            # Verificar configuración ambigua
+            if self.restrict_weekdays and self.restrict_weekends:
+                # Si ambos están marcados, es un error de configuración
+                logger.info(f"❌ Configuración ambigua: ambas restricciones activadas")
+                return False, "Configuración de restricción de días ambigua (semana y fin de semana)."
 
 
         # Verificar límite de uso

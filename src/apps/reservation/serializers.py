@@ -211,7 +211,7 @@ class ReservationSerializer(serializers.ModelSerializer):
                     is_valid, message = code_obj.is_valid(
                         property_id=reservation.property.id,
                         total_amount_usd=float(reservation.price_usd) if reservation.price_usd else 0,
-                        booking_date=None  # Usar fecha actual para validación
+                        booking_date=reservation.check_in_date  # Usar fecha de check-in para validar restricciones de días
                     )
 
                     if is_valid:
@@ -512,7 +512,7 @@ class ClientReservationSerializer(serializers.ModelSerializer):
                     is_valid, message = code_obj.is_valid(
                         property_id=reservation.property.id,
                         total_amount_usd=float(reservation.price_usd) if reservation.price_usd else 0,
-                        booking_date=None  # Usar fecha actual para validación
+                        booking_date=reservation.check_in_date  # Usar fecha de check-in para validar restricciones de días
                     )
 
                     if is_valid:
