@@ -128,10 +128,26 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 # Filtrar por reservas creadas hoy
                 if self.request.query_params.get('created_today') == 'true':
                     from django.utils import timezone
-                    # Usar timezone.localtime() para obtener la fecha en la zona horaria configurada
+                    from datetime import datetime, time
+                    # Obtener la fecha local de hoy
                     local_now = timezone.localtime()
                     today = local_now.date()
-                    queryset = queryset.filter(created__date=today)
+                    
+                    # Crear el inicio y fin del día en la zona horaria local
+                    start_of_day_local = timezone.make_aware(
+                        datetime.combine(today, time.min),
+                        timezone.get_current_timezone()
+                    )
+                    end_of_day_local = timezone.make_aware(
+                        datetime.combine(today, time.max),
+                        timezone.get_current_timezone()
+                    )
+                    
+                    # Filtrar usando rango en UTC (evita problemas con CONVERT_TZ en MySQL)
+                    queryset = queryset.filter(
+                        created__gte=start_of_day_local,
+                        created__lte=end_of_day_local
+                    )
 
         elif self.action in ['partial_update', 'update', 'destroy']:
             if not check_user_has_rol("admin", self.request.user):

@@ -77,6 +77,7 @@ Preferred communication style: Simple, everyday language.
 - Client profile endpoint enhanced to show referral discount information.
 - Public endpoint `/api/v1/active/` for listing currently active reservations.
 - Reservations API filter `created_today=true` to list only reservations created on the current date.
+  * **Bug fix (Nov 7, 2025)**: Fixed filter to use UTC boundary ranges instead of `__date` lookup to avoid MySQL CONVERT_TZ issues when timezone tables are missing.
 - Music System Integration migrated to a custom Deezer-based HTTP API for streaming and player control, with reservation-based sessions, host approval workflow for access requests, time-based validation, and auto-power management for players. Supports DLNA.
 - Contact Synchronization script (`sync_contacts_nextcloud.py`) to Nextcloud via WebDAV, showing real-time reservation status with color-coded indicators, client points, and referral codes.
 
