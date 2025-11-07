@@ -127,7 +127,10 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 
                 # Filtrar por reservas creadas hoy
                 if self.request.query_params.get('created_today') == 'true':
-                    today = now.date()
+                    from django.utils import timezone
+                    # Usar timezone.localtime() para obtener la fecha en la zona horaria configurada
+                    local_now = timezone.localtime()
+                    today = local_now.date()
                     queryset = queryset.filter(created__date=today)
 
         elif self.action in ['partial_update', 'update', 'destroy']:
