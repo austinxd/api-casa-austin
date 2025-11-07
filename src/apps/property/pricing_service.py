@@ -403,14 +403,24 @@ class PricingCalculationService:
                 logger.info(f"Resultado validación: {is_valid} - {message}")
 
                 if is_valid:
-                    discount_amount_usd = code.calculate_discount(subtotal_usd)
+                    # Verificar si el código debe aplicarse solo al precio base
+                    if code.apply_only_to_base_price and base_total_usd is not None:
+                        # Calcular descuento solo sobre el precio base (sin huéspedes adicionales)
+                        discount_amount_usd = code.calculate_base_price_discount(base_total_usd, extra_person_total_usd or Decimal('0.00'))
+                        logger.info(f"💰 Descuento BASE aplicado: ${discount_amount_usd} USD sobre precio base ${base_total_usd} USD (sin incluir {extra_person_total_usd} USD de personas extras)")
+                    else:
+                        # Calcular descuento sobre el total completo
+                        discount_amount_usd = code.calculate_discount(subtotal_usd)
+                        logger.info(f"💰 Descuento TOTAL aplicado: ${discount_amount_usd} USD sobre total ${subtotal_usd} USD")
+                    
                     discount_info.update({
                         'type': 'discount_code',
                         'description': f"Código: {code.code} - {code.description}",
                         'discount_percentage': float(code.discount_value) if code.discount_type == 'percentage' else 0,
                         'discount_amount_usd': discount_amount_usd,
                         'discount_amount_sol': discount_amount_usd * self.exchange_rate,
-                        'code_used': code.code
+                        'code_used': code.code,
+                        'apply_only_to_base_price': code.apply_only_to_base_price
                     })
                     return discount_info
                 else:
