@@ -220,17 +220,15 @@ class ReservationSerializer(serializers.ModelSerializer):
                         code_obj.used_count += 1
                         code_obj.save()
                         reservation.save()
+                    # Si el código no es válido, simplemente no aplicarlo y continuar con la reserva
+                    # No lanzar error, no eliminar reserva - solo omitir el descuento
 
-                    else:
-                        # Si el código no es válido al momento de crear la reserva, 
-                        # eliminar la reserva y lanzar error
-                        reservation.delete()
-                        raise serializers.ValidationError(f"Error con código de descuento: {message}")
-
-            except Exception as e:
-                # Si hay error procesando el código, eliminar la reserva
-                reservation.delete()
-                raise serializers.ValidationError(f"Error al procesar código de descuento: {str(e)}")
+            except DiscountCode.DoesNotExist:
+                # Si el código no existe, continuar sin aplicar descuento
+                pass
+            except Exception:
+                # Si hay cualquier error procesando el código, continuar sin aplicar descuento
+                pass
 
         # Si hay puntos para canjear, procesarlos
         if points_to_redeem and points_to_redeem > 0 and reservation.client:
@@ -524,16 +522,15 @@ class ClientReservationSerializer(serializers.ModelSerializer):
                         code_obj.save()
 
                         reservation.save()
-                    else:
-                        # Si el código no es válido al momento de crear la reserva, 
-                        # eliminar la reserva y lanzar error
-                        reservation.delete()
-                        raise serializers.ValidationError(f"Error con código de descuento: {message}")
+                    # Si el código no es válido, simplemente no aplicarlo y continuar con la reserva
+                    # No lanzar error, no eliminar reserva - solo omitir el descuento
 
-            except Exception as e:
-                # Si hay error procesando el código, eliminar la reserva
-                reservation.delete()
-                raise serializers.ValidationError(f"Error al procesar código de descuento: {str(e)}")
+            except DiscountCode.DoesNotExist:
+                # Si el código no existe, continuar sin aplicar descuento
+                pass
+            except Exception:
+                # Si hay cualquier error procesando el código, continuar sin aplicar descuento
+                pass
 
         # Si hay puntos para canjear, procesarlos INMEDIATAMENTE
         if points_to_redeem and points_to_redeem > 0:
