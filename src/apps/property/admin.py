@@ -526,8 +526,8 @@ class WelcomeDiscountConfigAdmin(admin.ModelAdmin):
             'description': '💡 Configura el porcentaje de descuento y sus límites. El código será válido por los días especificados desde su emisión.'
         }),
         ('Restricciones de Días', {
-            'fields': ('restrict_weekdays', 'restrict_weekends'),
-            'description': '📅 Restricciones de días de la semana para el uso del descuento'
+            'fields': ('restrict_weekdays', 'restrict_weekends', 'specific_weekdays'),
+            'description': '📅 Restricciones de días de la semana para el uso del descuento.\n💡 Los días específicos tienen prioridad sobre las restricciones de semana/fin de semana.'
         }),
         ('Opciones de Aplicación', {
             'fields': ('apply_only_to_base_price',),
@@ -542,10 +542,18 @@ class WelcomeDiscountConfigAdmin(admin.ModelAdmin):
     def get_restrictions_display(self, obj):
         """Muestra las restricciones de forma legible"""
         restrictions = []
-        if obj.restrict_weekdays:
+        
+        # Días específicos tienen prioridad
+        if obj.specific_weekdays:
+            day_names = {0: "Lun", 1: "Mar", 2: "Mié", 3: "Jue", 4: "Vie", 5: "Sáb", 6: "Dom"}
+            specific_days = [int(d.strip()) for d in obj.specific_weekdays.split(',') if d.strip().isdigit()]
+            allowed_day_names = [day_names[d] for d in specific_days if 0 <= d <= 6]
+            restrictions.append(f"Solo: {', '.join(allowed_day_names)}")
+        elif obj.restrict_weekdays:
             restrictions.append("Solo semana")
-        if obj.restrict_weekends:
+        elif obj.restrict_weekends:
             restrictions.append("Solo fines de semana")
+            
         if obj.apply_only_to_base_price:
             restrictions.append("Precio base")
         return ", ".join(restrictions) if restrictions else "Sin restricciones"

@@ -41,7 +41,8 @@ Preferred communication style: Simple, everyday language.
 - Late checkout pricing configuration.
 - Referral discount system for first-time reservations based on referrer's achievement level.
 - Dynamic discount code generator with customizable prefixes, percentages, validity, and usage limits.
-- Configurable welcome discount system for new user registrations, with automatic code generation and public status endpoint.
+- Configurable welcome discount system for new user registrations, with automatic code generation, public status endpoint, and specific weekday selection.
+  * **Feature added (Nov 14, 2025)**: Welcome discount configuration now supports specific weekday selection (same as automatic discounts), with priority over generic weekday/weekend restrictions.
 
 ### Authentication and Security
 - JWT-based authentication (SimpleJWT).

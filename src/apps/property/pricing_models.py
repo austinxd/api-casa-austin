@@ -1185,6 +1185,12 @@ class WelcomeDiscountConfig(BaseModel):
         default=False,
         help_text="Restringir solo a noches de fin de semana (viernes y sábado)"
     )
+    specific_weekdays = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Días específicos de la semana (0=Lun,1=Mar,2=Mié,3=Jue,4=Vie,5=Sáb,6=Dom). Ej: '4' para solo Viernes, '4,5' para Viernes y Sábado"
+    )
     
     # Aplicar solo al precio base
     apply_only_to_base_price = models.BooleanField(
@@ -1284,6 +1290,7 @@ class WelcomeDiscountConfig(BaseModel):
                 max_discount_usd=self.max_discount_usd,
                 restrict_weekdays=self.restrict_weekdays,
                 restrict_weekends=self.restrict_weekends,
+                specific_weekdays=self.specific_weekdays,
                 apply_only_to_base_price=self.apply_only_to_base_price,
                 is_active=True
             )
