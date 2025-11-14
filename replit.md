@@ -37,6 +37,7 @@ Preferred communication style: Simple, everyday language.
   * **Bug fix (Nov 7, 2025)**: Fixed validation of weekday/weekend restrictions to check against check-in date instead of current date
   * Improved error messages to clearly indicate "El check-in seleccionado cae en {día}" instead of "Hoy es {día}"
   * Validation now properly checks the day of the week of the reservation's check-in date, not today's date
+  * **Bug fix (Nov 14, 2025)**: Fixed error handling in client reservation creation - discount code validation errors now return proper error messages instead of generic "Error interno del servidor"
 - Late checkout pricing configuration.
 - Referral discount system for first-time reservations based on referrer's achievement level.
 - Dynamic discount code generator with customizable prefixes, percentages, validity, and usage limits.

@@ -190,34 +190,54 @@ class ClientCreateReservationView(APIView):
                 data=request.data, context={'request': request})
 
             if serializer.is_valid():
-                # Establecer deadline de 1 hora para subir voucher
-                payment_deadline = timezone.now() + timedelta(hours=1)
+                try:
+                    # Establecer deadline de 1 hora para subir voucher
+                    payment_deadline = timezone.now() + timedelta(hours=1)
 
-                # Crear la reserva y disparar las señales
-                reservation = serializer.save(
-                    client=client,
-                    origin='client',
-                    status='incomplete',
-                    payment_voucher_deadline=payment_deadline,
-                    payment_voucher_uploaded=False,
-                    payment_confirmed=False
-                )
+                    # Crear la reserva y disparar las señales
+                    reservation = serializer.save(
+                        client=client,
+                        origin='client',
+                        status='incomplete',
+                        payment_voucher_deadline=payment_deadline,
+                        payment_voucher_uploaded=False,
+                        payment_confirmed=False
+                    )
 
-                # Retornar la reserva creada
-                response_serializer = ReservationListSerializer(reservation)
+                    # Retornar la reserva creada
+                    response_serializer = ReservationListSerializer(reservation)
 
-                logger.info(
-                    f"ClientCreateReservationView: Reservation created successfully - ID: {reservation.id}"
-                )
+                    logger.info(
+                        f"ClientCreateReservationView: Reservation created successfully - ID: {reservation.id}"
+                    )
 
-                return Response(
-                    {
-                        'success': True,
-                        'message':
-                        'Reserva creada exitosamente. Está pendiente de aprobación.',
-                        'reservation': response_serializer.data
-                    },
-                    status=201)
+                    return Response(
+                        {
+                            'success': True,
+                            'message':
+                            'Reserva creada exitosamente. Está pendiente de aprobación.',
+                            'reservation': response_serializer.data
+                        },
+                        status=201)
+                except serializers.ValidationError as ve:
+                    # Capturar errores de validación lanzados durante save() (ej: códigos de descuento)
+                    logger.error(
+                        f"ClientCreateReservationView: Validation error during save: {str(ve)}"
+                    )
+                    # Extraer el mensaje de error
+                    error_message = str(ve)
+                    if hasattr(ve, 'detail'):
+                        if isinstance(ve.detail, dict):
+                            error_message = next(iter(ve.detail.values()))[0] if ve.detail else str(ve)
+                        elif isinstance(ve.detail, list):
+                            error_message = ve.detail[0] if ve.detail else str(ve)
+                    
+                    return Response(
+                        {
+                            'success': False,
+                            'message': error_message
+                        },
+                        status=400)
             else:
                 logger.error(
                     f"ClientCreateReservationView: Validation errors: {serializer.errors}"
@@ -230,6 +250,17 @@ class ClientCreateReservationView(APIView):
                     },
                     status=400)
 
+        except serializers.ValidationError as ve:
+            # Capturar ValidationError que pueda venir de autenticación u otros lugares
+            logger.error(
+                f"ClientCreateReservationView: Validation error: {str(ve)}"
+            )
+            return Response(
+                {
+                    'success': False,
+                    'message': str(ve)
+                },
+                status=400)
         except Exception as e:
             logger.error(
                 f"ClientCreateReservationView: Error creating reservation: {str(e)}"
