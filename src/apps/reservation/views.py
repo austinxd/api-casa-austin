@@ -1177,7 +1177,7 @@ class PropertyCalendarOccupancyAPIView(APIView):
             reservations = Reservation.objects.filter(
                 property=property_obj,
                 deleted=False,
-                status__in=['approved', 'pending', 'incomplete']
+                status__in=['approved', 'pending', 'incomplete', 'under_review']
             ).filter(
                 Q(check_in_date__lte=end_date) & Q(check_out_date__gte=start_date)
             ).select_related('client').order_by('check_in_date')

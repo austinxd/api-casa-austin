@@ -68,6 +68,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Technical Implementations
 - ERP pricing endpoint integration for smart availability search.
+  * **Bug fix (Nov 14, 2025)**: Fixed availability check to include 'under_review' status - reservations in review no longer show properties as available
 - Enhanced points system with clearer transaction types and staff adjustment capabilities.
 - Bulk import commands for historical data.
 - Unified referral statistics API with flexible filtering.

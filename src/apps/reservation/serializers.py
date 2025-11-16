@@ -170,7 +170,7 @@ class ReservationSerializer(serializers.ModelSerializer):
             if Reservation.objects.exclude(deleted=True
                 ).filter(
                     property=property_field,
-                    status__in=['approved', 'pending', 'incomplete']  # Considerar todos los estados activos
+                    status__in=['approved', 'pending', 'incomplete', 'under_review']  # Considerar todos los estados activos
                 ).filter(
                     Q(check_in_date__lt=attrs.get('check_out_date')) & Q(check_out_date__gt=attrs.get('check_in_date'))
                 ).exclude(
@@ -416,7 +416,7 @@ class ClientReservationSerializer(serializers.ModelSerializer):
             if Reservation.objects.exclude(deleted=True
                 ).filter(
                     property=property_field,
-                    status__in=['approved', 'pending', 'incomplete']  # Considerar aprobadas, pendientes e incompletas
+                    status__in=['approved', 'pending', 'incomplete', 'under_review']  # Considerar aprobadas, pendientes, incompletas y en revisión
                 ).filter(
                     Q(check_in_date__lt=attrs.get('check_out_date')) & Q(check_out_date__gt=attrs.get('check_in_date'))
                 ).exists():
