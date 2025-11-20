@@ -1385,6 +1385,7 @@ class ActiveReservationsView(APIView):
                         'referral_code': client.get_referral_code() if hasattr(client, 'get_referral_code') else client.referral_code,
                         'check_in_date': res.check_in_date.isoformat(),
                         'check_out_date': res.check_out_date.isoformat(),
+                        'guests': res.guests,
                         'is_currently_active': True
                     })
             
