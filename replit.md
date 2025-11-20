@@ -78,8 +78,9 @@ Preferred communication style: Simple, everyday language.
 - QR Code reservation endpoint displaying client info, referral code, and discount.
 - Client info by referral code endpoint showing client data and active reservations.
 - Client profile endpoint enhanced to show referral discount information.
-- Public endpoint `/api/v1/active/` for listing currently active reservations with guest count.
+- Public endpoint `/api/v1/active/` for listing currently active reservations with guest count and check-in information.
   * **Enhancement (Nov 20, 2025)**: Added `guests` field to show number of people in each active reservation.
+  * **Enhancement (Nov 20, 2025)**: Added `check_in_today` field to list all reservations checking in today.
 - Reservations API filter `created_today=true` to list only reservations created on the current date.
   * **Bug fix (Nov 7, 2025)**: Fixed filter to use UTC boundary ranges instead of `__date` lookup to avoid MySQL CONVERT_TZ issues when timezone tables are missing.
 - Music System Integration migrated to a custom Deezer-based HTTP API for streaming and player control, with reservation-based sessions, host approval workflow for access requests, time-based validation, and auto-power management for players. Supports DLNA.

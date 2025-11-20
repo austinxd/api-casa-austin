@@ -1389,10 +1389,35 @@ class ActiveReservationsView(APIView):
                         'is_currently_active': True
                     })
             
+            # Obtener reservas que hacen check-in hoy
+            checkin_today_reservations = Reservation.objects.filter(
+                deleted=False,
+                status='approved',
+                check_in_date=now_date
+            ).select_related('property', 'client')
+            
+            checkin_today = []
+            
+            for res in checkin_today_reservations:
+                client = res.client
+                
+                checkin_today.append({
+                    'id': str(res.id),
+                    'property': res.property.name if res.property else 'Sin propiedad',
+                    'property_id': res.property.player_id if res.property else None,
+                    'client_name': f"{client.first_name or ''} {client.last_name or ''}".strip() or "Sin nombre",
+                    'referral_code': client.get_referral_code() if hasattr(client, 'get_referral_code') else client.referral_code,
+                    'check_in_date': res.check_in_date.isoformat(),
+                    'check_out_date': res.check_out_date.isoformat(),
+                    'guests': res.guests,
+                    'checkin_time': '12:00 PM'
+                })
+            
             return Response({
                 "success": True,
                 "count": len(active_reservations),
-                "active_reservations": active_reservations
+                "active_reservations": active_reservations,
+                "check_in_today": checkin_today
             })
             
         except Exception as e:
