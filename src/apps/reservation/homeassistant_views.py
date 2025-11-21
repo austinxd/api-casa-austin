@@ -33,6 +33,7 @@ class HomeAssistantReservationView(APIView):
                     "client_id": {"type": "string"},
                     "first_name": {"type": "string"},
                     "last_name": {"type": "string"},
+                    "referral_code": {"type": "string"},
                     "check_in_date": {"type": "string"},
                     "check_out_date": {"type": "string"},
                     "temperature_pool": {"type": "integer"},
@@ -190,10 +191,14 @@ class HomeAssistantReservationView(APIView):
                         "temperature_pool": reservation.temperature_pool
                     })
 
+            # Obtener referral code del cliente
+            referral_code = active_reservation.client.get_referral_code() if hasattr(active_reservation.client, 'get_referral_code') else active_reservation.client.referral_code
+            
             return Response({
                 "client_id": str(active_reservation.client.id),
                 "first_name": first_name,
                 "last_name": last_name,
+                "referral_code": referral_code,
                 "check_in_date": check_in_formatted,
                 "check_out_date": check_out_formatted,
                 "temperature_pool": 1 if active_reservation.temperature_pool else 0,
@@ -210,6 +215,7 @@ class HomeAssistantReservationView(APIView):
                 "client_id": "Reserva no activa",
                 "first_name": "Reserva no activa", 
                 "last_name": "Reserva no activa",
+                "referral_code": "Reserva no activa",
                 "check_in_date": "Reserva no activa",
                 "check_out_date": "Reserva no activa",
                 "temperature_pool": 0,

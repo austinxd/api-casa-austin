@@ -103,6 +103,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Smart Home Integration
 - **Home Assistant**
+  * **Enhancement (Nov 21, 2025)**: Added `referral_code` field to Home Assistant endpoint for displaying client referral information in smart home dashboards.
 
 ### Authentication
 - **Facebook OAuth**
