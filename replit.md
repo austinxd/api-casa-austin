@@ -81,6 +81,7 @@ Preferred communication style: Simple, everyday language.
 - Public endpoint `/api/v1/active/` for listing currently active reservations with guest count and check-in information.
   * **Enhancement (Nov 20, 2025)**: Added `guests` field to show number of people in each active reservation.
   * **Enhancement (Nov 20, 2025)**: Added `check_in_today` field to list all reservations checking in today.
+  * **Enhancement (Nov 21, 2025)**: Added `temperature_pool`, `late_checkout`, and `comentarios` fields to show pool heating status, late checkout status, and user comments.
 - Reservations API filter `created_today=true` to list only reservations created on the current date.
   * **Bug fix (Nov 7, 2025)**: Fixed filter to use UTC boundary ranges instead of `__date` lookup to avoid MySQL CONVERT_TZ issues when timezone tables are missing.
 - Music System Integration migrated to a custom Deezer-based HTTP API for streaming and player control, with reservation-based sessions, host approval workflow for access requests, time-based validation, and auto-power management for players. Supports DLNA.

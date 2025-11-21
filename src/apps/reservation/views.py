@@ -1386,6 +1386,9 @@ class ActiveReservationsView(APIView):
                         'check_in_date': res.check_in_date.isoformat(),
                         'check_out_date': res.check_out_date.isoformat(),
                         'guests': res.guests,
+                        'temperature_pool': res.temperature_pool,
+                        'late_checkout': res.late_checkout,
+                        'comentarios': res.comentarios_reservas or '',
                         'is_currently_active': True
                     })
             
@@ -1410,6 +1413,9 @@ class ActiveReservationsView(APIView):
                     'check_in_date': res.check_in_date.isoformat(),
                     'check_out_date': res.check_out_date.isoformat(),
                     'guests': res.guests,
+                    'temperature_pool': res.temperature_pool,
+                    'late_checkout': res.late_checkout,
+                    'comentarios': res.comentarios_reservas or '',
                     'checkin_time': '12:00 PM'
                 })
             
