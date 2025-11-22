@@ -1188,9 +1188,25 @@ class ParticipantsView(APIView):
         
         # Sesión activa - mostrar host y participantes
         host = reservation.client
+        
+        # Obtener thumbnail de la propiedad (foto principal/portada)
+        property_thumbnail = None
+        main_photo = reservation.property.photos.filter(deleted=False, is_main=True).first()
+        photo = main_photo or reservation.property.photos.filter(deleted=False).order_by('order').first()
+        
+        if photo:
+            if photo.thumbnail:
+                property_thumbnail = request.build_absolute_uri(photo.thumbnail.url)
+            elif photo.image_file:
+                property_thumbnail = request.build_absolute_uri(photo.image_file.url)
+            elif photo.image_url:
+                property_thumbnail = photo.image_url
+        
         host_data = {
             'id': str(host.id),
-            'name': f"{host.first_name} {host.last_name}",
+            'first_name': host.first_name,
+            'last_name': host.last_name or "",
+            'referral_code': host.referral_code,
             'facebook_linked': host.facebook_linked,
             'profile_picture': host.get_facebook_profile_picture() if host.facebook_linked else None
         }
@@ -1207,7 +1223,9 @@ class ParticipantsView(APIView):
             participants_data.append({
                 'participant_id': str(p.id),
                 'id': str(participant.id),
-                'name': f"{participant.first_name} {participant.last_name}",
+                'first_name': participant.first_name,
+                'last_name': participant.last_name or "",
+                'referral_code': participant.referral_code,
                 'facebook_linked': participant.facebook_linked,
                 'profile_picture': participant.get_facebook_profile_picture() if participant.facebook_linked else None
             })
@@ -1217,6 +1235,8 @@ class ParticipantsView(APIView):
             "session_active": True,
             "status": "active",
             "message": "Muestra datos de sesión",
+            "property_name": reservation.property.name,
+            "property_thumbnail": property_thumbnail,
             "host": host_data,
             "participants": participants_data
         })
