@@ -730,7 +730,6 @@ class ClientDeviceListView(HasActiveReservationMixin, APIView):
         
         # Obtener información del cliente
         client = active_reservation.client
-        client_name = f"{client.first_name} {client.last_name}".strip() if client.last_name else client.first_name
         
         # Obtener thumbnail de la propiedad (foto principal/portada)
         property_thumbnail = None
@@ -752,7 +751,8 @@ class ClientDeviceListView(HasActiveReservationMixin, APIView):
             "property_id": str(active_reservation.property.id),
             "property_thumbnail": property_thumbnail,
             "reservation_id": str(active_reservation.id),
-            "client_name": client_name,
+            "client_first_name": client.first_name,
+            "client_last_name": client.last_name or "",
             "client_referral_code": client.referral_code,
             "check_in": active_reservation.check_in_date.isoformat(),
             "check_out": active_reservation.check_out_date.isoformat(),

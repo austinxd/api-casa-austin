@@ -127,7 +127,7 @@ Preferred communication style: Simple, everyday language.
     - JWT authentication required for all client endpoints
     - Added security: reservation_id in URL prevents ambiguity and improves audit trail
     - Uses ClientJWTAuthentication backend to authenticate against Clients model (UUID primary key) instead of CustomUser model
-    - Device list response includes: client_name, client_referral_code, property_thumbnail, and device location for grouping
+    - Device list response includes: client_first_name, client_last_name, client_referral_code, property_thumbnail (main photo), and device location for grouping
 
 ### Authentication
 - **Facebook OAuth**
