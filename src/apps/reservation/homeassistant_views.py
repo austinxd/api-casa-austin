@@ -728,10 +728,28 @@ class ClientDeviceListView(HasActiveReservationMixin, APIView):
                 "attributes": attributes
             })
         
+        # Obtener información del cliente
+        client = active_reservation.client
+        client_name = f"{client.first_name} {client.last_name}".strip() if client.last_name else client.first_name
+        
+        # Obtener thumbnail de la propiedad (primera foto disponible)
+        property_thumbnail = None
+        first_photo = active_reservation.property.photos.filter(deleted=False).order_by('order').first()
+        if first_photo:
+            if first_photo.thumbnail:
+                property_thumbnail = request.build_absolute_uri(first_photo.thumbnail.url)
+            elif first_photo.image_file:
+                property_thumbnail = request.build_absolute_uri(first_photo.image_file.url)
+            elif first_photo.image_url:
+                property_thumbnail = first_photo.image_url
+        
         return Response({
             "property_name": active_reservation.property.name,
             "property_id": str(active_reservation.property.id),
+            "property_thumbnail": property_thumbnail,
             "reservation_id": str(active_reservation.id),
+            "client_name": client_name,
+            "client_referral_code": client.referral_code,
             "check_in": active_reservation.check_in_date.isoformat(),
             "check_out": active_reservation.check_out_date.isoformat(),
             "devices_count": len(devices_data),
