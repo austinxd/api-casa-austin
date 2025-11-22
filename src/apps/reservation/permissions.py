@@ -3,6 +3,7 @@ from django.utils import timezone
 from rest_framework.permissions import BasePermission
 from rest_framework.exceptions import PermissionDenied
 from django.db.models import Q
+import pytz
 
 from .models import Reservation
 
@@ -49,10 +50,11 @@ class HasActiveReservationMixin:
                 "Solo puedes controlar dispositivos de reservas aprobadas."
             )
         
-        # Validar que esté activa según horarios
-        now = timezone.now()
-        today = now.date()
-        current_time = now.time()
+        # Validar que esté activa según horarios (convertir a hora de Perú)
+        lima_tz = pytz.timezone('America/Lima')
+        now_lima = timezone.now().astimezone(lima_tz)
+        today = now_lima.date()
+        current_time = now_lima.time()
         
         check_in_time = time(12, 0)  # 12:00 PM
         check_out_time = time(10, 59)  # 10:59 AM
@@ -99,9 +101,11 @@ class HasActiveReservationMixin:
         Raises:
             PermissionDenied: Si no hay reserva activa
         """
-        now = timezone.now()
-        today = now.date()
-        current_time = now.time()
+        # Convertir a hora de Perú
+        lima_tz = pytz.timezone('America/Lima')
+        now_lima = timezone.now().astimezone(lima_tz)
+        today = now_lima.date()
+        current_time = now_lima.time()
         
         # Horarios de check-in y check-out
         check_in_time = time(12, 0)  # 12:00 PM
