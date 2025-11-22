@@ -1,0 +1,143 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Descubrir Dispositivos de Home Assistant{% endblock %}
+
+{% block content %}
+<h1>🔍 Descubrir Dispositivos de Home Assistant</h1>
+
+<div class="module" style="margin-bottom: 20px;">
+    <div style="padding: 15px;">
+        <h2>Filtros de Búsqueda</h2>
+        <form method="get" style="display: flex; gap: 15px; align-items: end;">
+            <div>
+                <label for="filter_type">Tipo de Dispositivo:</label><br>
+                <select name="filter_type" id="filter_type" style="padding: 5px; min-width: 150px;">
+                    <option value="">Todos</option>
+                    <option value="light" {% if request.GET.filter_type == 'light' %}selected{% endif %}>💡 Luces</option>
+                    <option value="switch" {% if request.GET.filter_type == 'switch' %}selected{% endif %}>🔌 Switches</option>
+                    <option value="climate" {% if request.GET.filter_type == 'climate' %}selected{% endif %}>🌡️ Clima</option>
+                    <option value="cover" {% if request.GET.filter_type == 'cover' %}selected{% endif %}>🪟 Cortinas</option>
+                    <option value="fan" {% if request.GET.filter_type == 'fan' %}selected{% endif %}>🌀 Ventiladores</option>
+                    <option value="sensor" {% if request.GET.filter_type == 'sensor' %}selected{% endif %}>📊 Sensores</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="search">Buscar por nombre:</label><br>
+                <input type="text" name="search" id="search" value="{{ request.GET.search }}" 
+                       placeholder="Ej: piscina, sala, etc." style="padding: 5px; min-width: 200px;">
+            </div>
+            
+            <div>
+                <label>
+                    <input type="checkbox" name="unassigned" value="true" 
+                           {% if request.GET.unassigned == 'true' %}checked{% endif %}>
+                    Solo mostrar NO asignados
+                </label>
+            </div>
+            
+            <div>
+                <button type="submit" style="padding: 6px 15px; background: #417690; color: white; border: none; cursor: pointer; border-radius: 4px;">
+                    🔍 Buscar
+                </button>
+                <a href="{% url 'admin:homeassistant-discover' %}" style="padding: 6px 15px; background: #666; color: white; text-decoration: none; border-radius: 4px; margin-left: 5px;">
+                    🔄 Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if error %}
+<div class="messagelist">
+    <div class="error">{{ error }}</div>
+</div>
+{% endif %}
+
+{% if stats %}
+<div class="module" style="margin-bottom: 20px; background: #f8f8f8;">
+    <div style="padding: 15px;">
+        <h3>📊 Estadísticas</h3>
+        <p>
+            <strong>Total en Home Assistant:</strong> {{ stats.total_in_ha }} dispositivos<br>
+            <strong>Ya configurados en BD:</strong> {{ stats.configured }} dispositivos<br>
+            <strong>Sin asignar:</strong> {{ stats.unassigned }} dispositivos<br>
+            <strong>Mostrando:</strong> {{ stats.count }} dispositivos
+        </p>
+    </div>
+</div>
+{% endif %}
+
+{% if devices %}
+<div class="module">
+    <table style="width: 100%;">
+        <thead>
+            <tr>
+                <th>Estado</th>
+                <th>Entity ID</th>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>Estado Actual</th>
+                <th>¿Configurado?</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for device in devices %}
+            <tr style="{% if device.already_configured %}background-color: #e8f5e9;{% endif %}">
+                <td style="text-align: center; font-size: 20px;">
+                    {% if device.state == 'on' %}🟢
+                    {% elif device.state == 'off' %}⚫
+                    {% elif device.state == 'unavailable' %}⚠️
+                    {% else %}❓{% endif %}
+                </td>
+                <td><code style="background: #f0f0f0; padding: 2px 6px; border-radius: 3px;">{{ device.entity_id }}</code></td>
+                <td><strong>{{ device.friendly_name }}</strong></td>
+                <td>
+                    {% if device.device_type == 'light' %}💡 Luz
+                    {% elif device.device_type == 'switch' %}🔌 Switch
+                    {% elif device.device_type == 'climate' %}🌡️ Clima
+                    {% elif device.device_type == 'cover' %}🪟 Cortina
+                    {% elif device.device_type == 'fan' %}🌀 Ventilador
+                    {% elif device.device_type == 'sensor' %}📊 Sensor
+                    {% else %}{{ device.device_type }}{% endif %}
+                </td>
+                <td>{{ device.state }}</td>
+                <td style="text-align: center;">
+                    {% if device.already_configured %}
+                        <span style="color: green; font-weight: bold;">✅ Sí</span>
+                    {% else %}
+                        <span style="color: orange; font-weight: bold;">❌ No</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if not device.already_configured %}
+                        <a href="{% url 'admin:property_homeassistantdevice_add' %}?entity_id={{ device.entity_id }}&friendly_name={{ device.friendly_name }}&device_type={{ device.device_type }}" 
+                           style="padding: 5px 10px; background: #417690; color: white; text-decoration: none; border-radius: 3px; font-size: 12px;">
+                            ➕ Agregar
+                        </a>
+                    {% else %}
+                        <span style="color: #999;">Ya configurado</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+    {% if not error %}
+    <p style="padding: 20px; text-align: center; color: #666;">
+        No se encontraron dispositivos con los filtros aplicados.
+    </p>
+    {% endif %}
+{% endif %}
+
+<div style="margin-top: 20px;">
+    <a href="{% url 'admin:property_homeassistantdevice_changelist' %}" class="button" style="background: #417690;">
+        ← Volver a la lista de dispositivos
+    </a>
+</div>
+
+{% endblock %}

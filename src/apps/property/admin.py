@@ -625,6 +625,79 @@ class HomeAssistantDeviceAdmin(admin.ModelAdmin):
         """Mostrar todos los dispositivos incluyendo eliminados"""
         return HomeAssistantDevice.objects.all()
     
+    def get_urls(self):
+        from django.urls import path
+        urls = super().get_urls()
+        custom_urls = [
+            path('discover/', self.admin_site.admin_view(self.discover_view), name='homeassistant-discover'),
+        ]
+        return custom_urls + urls
+    
+    def discover_view(self, request):
+        """Vista personalizada para descubrir dispositivos de Home Assistant"""
+        from django.shortcuts import render
+        from apps.reservation.homeassistant_service import HomeAssistantService
+        
+        context = {
+            'title': 'Descubrir Dispositivos de Home Assistant',
+            'site_title': self.admin_site.site_title,
+            'site_header': self.admin_site.site_header,
+            'has_permission': True,
+        }
+        
+        try:
+            ha_service = HomeAssistantService()
+            
+            filter_type = request.GET.get('filter_type')
+            search_term = request.GET.get('search')
+            show_only_unassigned = request.GET.get('unassigned') == 'true'
+            
+            if filter_type:
+                devices = ha_service.get_devices_by_type(filter_type)
+            elif search_term:
+                devices = ha_service.search_devices(search_term)
+            else:
+                devices = ha_service.get_all_states()
+            
+            configured_entity_ids = set(
+                HomeAssistantDevice.objects.filter(deleted=False).values_list('entity_id', flat=True)
+            )
+            
+            devices_data = []
+            for device in devices:
+                entity_id = device['entity_id']
+                already_configured = entity_id in configured_entity_ids
+                
+                if show_only_unassigned and already_configured:
+                    continue
+                
+                devices_data.append({
+                    "entity_id": entity_id,
+                    "friendly_name": device.get('attributes', {}).get('friendly_name', entity_id),
+                    "state": device.get('state', 'unknown'),
+                    "device_type": entity_id.split('.')[0],
+                    "already_configured": already_configured,
+                })
+            
+            context['devices'] = devices_data
+            context['stats'] = {
+                'total_in_ha': len(devices),
+                'configured': len(configured_entity_ids),
+                'unassigned': len(devices) - len([d for d in devices if d['entity_id'] in configured_entity_ids]),
+                'count': len(devices_data),
+            }
+            
+        except Exception as e:
+            context['error'] = f"Error al conectar con Home Assistant: {str(e)}"
+        
+        return render(request, 'admin/homeassistant_discover.html', context)
+    
+    def changelist_view(self, request, extra_context=None):
+        """Agregar botón personalizado en la lista"""
+        extra_context = extra_context or {}
+        extra_context['show_discover_button'] = True
+        return super().changelist_view(request, extra_context)
+    
     actions = ['test_devices', 'activate_devices', 'deactivate_devices']
     
     def test_devices(self, request, queryset):
