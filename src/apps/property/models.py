@@ -269,3 +269,97 @@ class ReferralDiscountByLevel(BaseModel):
     
     def __str__(self):
         return f"{self.achievement.name}: {self.discount_percentage}% en primera reserva"
+
+
+class HomeAssistantDevice(BaseModel):
+    """Dispositivos de Home Assistant controlables por propiedad"""
+    
+    class DeviceType(models.TextChoices):
+        LIGHT = "light", "Luz"
+        CLIMATE = "climate", "Clima/Calefacción"
+        SWITCH = "switch", "Interruptor"
+        COVER = "cover", "Cortina/Persiana"
+        SCENE = "scene", "Escena"
+        FAN = "fan", "Ventilador"
+        MEDIA_PLAYER = "media_player", "Reproductor Multimedia"
+        LOCK = "lock", "Cerradura"
+        CAMERA = "camera", "Cámara"
+        SENSOR = "sensor", "Sensor"
+        OTHER = "other", "Otro"
+    
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name='homeassistant_devices',
+        help_text="Propiedad a la que pertenece este dispositivo"
+    )
+    entity_id = models.CharField(
+        max_length=200,
+        help_text="Entity ID del dispositivo en Home Assistant (ej: light.sala_principal)"
+    )
+    friendly_name = models.CharField(
+        max_length=200,
+        help_text="Nombre amigable para mostrar al usuario (ej: Luz Principal)"
+    )
+    device_type = models.CharField(
+        max_length=20,
+        choices=DeviceType.choices,
+        default=DeviceType.LIGHT,
+        help_text="Tipo de dispositivo"
+    )
+    icon = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="Emoji o ícono para mostrar (ej: 💡, 🌡️, 🔌)"
+    )
+    display_order = models.IntegerField(
+        default=0,
+        help_text="Orden de visualización (menor número = más arriba)"
+    )
+    guest_accessible = models.BooleanField(
+        default=True,
+        help_text="¿Los huéspedes pueden controlar este dispositivo?"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="¿Este dispositivo está activo?"
+    )
+    device_config = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Configuración adicional específica del tipo de dispositivo"
+    )
+    description = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Descripción o instrucciones para el huésped"
+    )
+    
+    class Meta:
+        ordering = ['property', 'display_order', 'friendly_name']
+        verbose_name = "Dispositivo de Home Assistant"
+        verbose_name_plural = "Dispositivos de Home Assistant"
+        unique_together = ('property', 'entity_id')
+    
+    def __str__(self):
+        return f"{self.property.name} - {self.icon or ''} {self.friendly_name}"
+    
+    def get_icon_display(self):
+        """Retorna el ícono o un ícono por defecto según el tipo"""
+        if self.icon:
+            return self.icon
+        
+        icon_map = {
+            self.DeviceType.LIGHT: "💡",
+            self.DeviceType.CLIMATE: "🌡️",
+            self.DeviceType.SWITCH: "🔌",
+            self.DeviceType.COVER: "🪟",
+            self.DeviceType.SCENE: "🎬",
+            self.DeviceType.FAN: "🌀",
+            self.DeviceType.MEDIA_PLAYER: "📺",
+            self.DeviceType.LOCK: "🔒",
+            self.DeviceType.CAMERA: "📷",
+            self.DeviceType.SENSOR: "📡",
+        }
+        return icon_map.get(self.device_type, "🔧")

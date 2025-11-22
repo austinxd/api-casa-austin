@@ -43,3 +43,4 @@ pandas
 # music-assistant-client
 # music-assistant-models
 mysql-connector-python
+homeassistant-api
