@@ -732,16 +732,20 @@ class ClientDeviceListView(HasActiveReservationMixin, APIView):
         client = active_reservation.client
         client_name = f"{client.first_name} {client.last_name}".strip() if client.last_name else client.first_name
         
-        # Obtener thumbnail de la propiedad (primera foto disponible)
+        # Obtener thumbnail de la propiedad (foto principal/portada)
         property_thumbnail = None
-        first_photo = active_reservation.property.photos.filter(deleted=False).order_by('order').first()
-        if first_photo:
-            if first_photo.thumbnail:
-                property_thumbnail = request.build_absolute_uri(first_photo.thumbnail.url)
-            elif first_photo.image_file:
-                property_thumbnail = request.build_absolute_uri(first_photo.image_file.url)
-            elif first_photo.image_url:
-                property_thumbnail = first_photo.image_url
+        # Buscar primero la foto marcada como portada (is_main=True)
+        main_photo = active_reservation.property.photos.filter(deleted=False, is_main=True).first()
+        # Si no hay foto principal, usar la primera ordenada
+        photo = main_photo or active_reservation.property.photos.filter(deleted=False).order_by('order').first()
+        
+        if photo:
+            if photo.thumbnail:
+                property_thumbnail = request.build_absolute_uri(photo.thumbnail.url)
+            elif photo.image_file:
+                property_thumbnail = request.build_absolute_uri(photo.image_file.url)
+            elif photo.image_url:
+                property_thumbnail = photo.image_url
         
         return Response({
             "property_name": active_reservation.property.name,
