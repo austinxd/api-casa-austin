@@ -71,7 +71,25 @@ class PropertyApiView(viewsets.ReadOnlyModelViewSet):
     )
     def list(self, request, *args, **kwargs):
         self.pagination_class = self.get_pagination_class()
-        return super().list(request, *args, **kwargs)
+        response = super().list(request, *args, **kwargs)
+        
+        # Agregar el tipo de cambio a la respuesta
+        exchange_rate = ExchangeRate.get_current_rate()
+        
+        # Si la respuesta tiene paginación, incluir exchange_rate antes de results
+        if isinstance(response.data, dict) and 'results' in response.data:
+            response.data = {
+                'exchange_rate': float(exchange_rate),
+                **response.data
+            }
+        else:
+            # Si no hay paginación, envolver la data con exchange_rate
+            response.data = {
+                'exchange_rate': float(exchange_rate),
+                'results': response.data
+            }
+        
+        return response
 
 class ProfitPropertyApiView(viewsets.ModelViewSet):
     serializer_class = ProfitPropertyAirBnbSerializer

@@ -17,6 +17,7 @@ Preferred communication style: Simple, everyday language.
 ### Core Applications
 - **Clients App**: Client authentication, profiles, loyalty program (points and achievements), referral system.
 - **Property App**: Property listings, photos, dynamic pricing, and configurations.
+  * **Enhancement (Nov 22, 2025)**: Property list endpoint (`/api/v1/property/`) now includes `exchange_rate` field at the top level of the response, showing the current USD to SOL conversion rate.
 - **Reservation App**: Booking workflows, payment processing, reservation lifecycle, availability search with ERP integration.
 - **Staff App**: Staff management, task assignment, scheduling, time tracking.
 - **Accounts App**: User management and administrative functions.
