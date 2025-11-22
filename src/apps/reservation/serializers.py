@@ -273,15 +273,21 @@ class ReservationListSerializer(ReservationSerializer):
 
     @extend_schema_field(ClientShortSerializer)
     def get_client(self, instance):
-        return ClientShortSerializer(instance.client).data
+        if instance.client:
+            return ClientShortSerializer(instance.client).data
+        return None
 
     @extend_schema_field(SellerSerializer)
     def get_seller(self, instance):
-        return SellerSerializer(instance.seller).data
+        if instance.seller:
+            return SellerSerializer(instance.seller).data
+        return None
 
     @extend_schema_field(PropertySerializer) 
     def get_property(self, instance):
-        return PropertySerializer(instance.property).data
+        if instance.property:
+            return PropertySerializer(instance.property).data
+        return None
 
     @extend_schema_field(serializers.FloatField())
     def get_resta_pagar(self, instance):

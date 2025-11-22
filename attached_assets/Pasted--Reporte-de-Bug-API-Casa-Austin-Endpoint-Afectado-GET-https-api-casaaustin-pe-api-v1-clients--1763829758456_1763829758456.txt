@@ -1,0 +1,71 @@
+🐛 Reporte de Bug - API Casa Austin
+Endpoint Afectado:
+GET https://api.casaaustin.pe/api/v1/clients/reservations/
+
+Error:
+ValueError at /api/v1/clients/reservations/
+Field 'id' expected a number but got '405a0119-caba-467c-8f4c-835f45402367'.
+
+Descripción del Problema:
+El endpoint /api/v1/clients/reservations/ está fallando cuando el token JWT contiene un client_id en formato UUID. El error indica que hay un campo llamado id en el modelo o query que está esperando un número entero pero está recibiendo un UUID.
+
+Cómo Reproducir:
+Hacer login con las credenciales:
+
+POST https://api.casaaustin.pe/api/v1/clients/client-auth/login/
+Content-Type: application/json
+{
+  "document_type": "dni",
+  "number_doc": "45816846",
+  "password": "leonel123"
+}
+
+Usar el token JWT recibido para consultar las reservaciones:
+
+GET https://api.casaaustin.pe/api/v1/clients/reservations/
+Authorization: Bearer {token}
+
+El API devuelve un error 500 con el mensaje:
+
+Field 'id' expected a number but got '405a0119-caba-467c-8f4c-835f45402367'
+
+Token JWT del Cliente de Prueba:
+client_id: "405a0119-caba-467c-8f4c-835f45402367"
+document_type: "dni"
+number_doc: "45816846"
+
+Causa Probable:
+El problema está en el archivo de vistas o serializers de /apps/reservation/ o /apps/clients/. Probablemente hay una de estas situaciones:
+
+Query incorrecta: Están filtrando por id en lugar de client_id:
+
+# ❌ Incorrecto
+Reservation.objects.filter(id=client_id)
+# ✅ Correcto
+Reservation.objects.filter(client_id=client_id)
+
+Tipo de campo incorrecto: El campo id en algún modelo está definido como IntegerField pero debería ser UUIDField:
+
+# ❌ Incorrecto
+id = models.IntegerField()
+# ✅ Correcto
+id = models.UUIDField(default=uuid.uuid4, primary_key=True)
+
+Conversión de tipos: Están intentando convertir el UUID a int:
+
+# ❌ Incorrecto
+client_id = int(request.user.client_id)
+# ✅ Correcto
+client_id = request.user.client_id  # Ya es UUID
+
+Solución Recomendada:
+Revisar el archivo: /srv/casaaustin/api-casa-austin/src/apps/reservation/views.py o /apps/clients/views.py
+Buscar la vista que maneja GET /api/v1/clients/reservations/
+Verificar que:
+Se esté usando client_id (no id) para filtrar
+El tipo de dato del campo sea correcto (UUIDField)
+No se esté intentando convertir UUID a int
+Impacto:
+❌ Los clientes NO pueden ver su lista de reservaciones en el dashboard
+❌ Afecta a TODOS los usuarios que tengan client_id en formato UUID
+🔴 Prioridad: ALTA - Funcionalidad crítica rota

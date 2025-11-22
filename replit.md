@@ -36,6 +36,7 @@ Preferred communication style: Simple, everyday language.
 - Automatic discount system with achievement-based triggers and specific weekday selection.
 - Discount codes with weekend/weekday restrictions and an option to apply only to the base price.
   * **Bug fix (Nov 7, 2025)**: Fixed validation of weekday/weekend restrictions to check against check-in date instead of current date
+  * **Bug fix (Nov 22, 2025)**: Fixed ReservationListSerializer to handle null values for client, seller, and property fields, preventing ValueError when serializing reservations with missing foreign key references
   * Improved error messages to clearly indicate "El check-in seleccionado cae en {día}" instead of "Hoy es {día}"
   * Validation now properly checks the day of the week of the reservation's check-in date, not today's date
   * **Behavior change (Nov 14, 2025)**: When discount code is invalid (wrong day, expired, etc), reservations now proceed WITHOUT the discount instead of failing completely
