@@ -664,17 +664,11 @@ class ClientDeviceListView(HasActiveReservationMixin, APIView):
     def get(self, request, reservation_id):
         """Lista dispositivos accesibles para el cliente en esta reserva"""
         
-        # Verificar que el usuario tenga un cliente asociado
-        if not hasattr(request.user, 'client'):
-            return Response(
-                {"error": "Usuario no tiene un perfil de cliente asociado"},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
         # Validar ownership y que la reserva esté activa
+        # request.user ya es un objeto Clients gracias a ClientJWTAuthentication
         try:
             active_reservation = self.validate_reservation_ownership_and_active(
-                request.user.client, 
+                request.user, 
                 reservation_id
             )
         except PermissionDenied as e:
@@ -769,17 +763,11 @@ class ClientDeviceActionView(HasActiveReservationMixin, APIView):
     def post(self, request, reservation_id, device_id):
         """Ejecuta una acción de control en un dispositivo"""
         
-        # Verificar que el usuario tenga un cliente asociado
-        if not hasattr(request.user, 'client'):
-            return Response(
-                {"error": "Usuario no tiene un perfil de cliente asociado"},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
         # Validar ownership y que la reserva esté activa
+        # request.user ya es un objeto Clients gracias a ClientJWTAuthentication
         try:
             active_reservation = self.validate_reservation_ownership_and_active(
-                request.user.client, 
+                request.user, 
                 reservation_id
             )
         except PermissionDenied as e:
