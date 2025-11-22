@@ -607,7 +607,7 @@ class HomeAssistantDeviceAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Información Básica', {
-            'fields': ('property', 'entity_id', 'friendly_name', 'device_type')
+            'fields': ('property', 'entity_id', 'friendly_name', 'location', 'device_type')
         }),
         ('Visualización', {
             'fields': ('icon', 'display_order', 'description')
