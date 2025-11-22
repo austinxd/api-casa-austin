@@ -108,13 +108,14 @@ Preferred communication style: Simple, everyday language.
 - **Home Assistant** (REST API)
   * **Enhancement (Nov 21, 2025)**: Added `referral_code` field to Home Assistant endpoint for displaying client referral information in smart home dashboards.
   * **Feature added (Nov 22, 2025)**: Full Home Assistant device control integration implemented:
-    - `HomeAssistantDevice` model for storing devices per property with guest access control
+    - `HomeAssistantDevice` model for storing devices per property with guest access control and location field for grouping
     - `HomeAssistantService` for REST API communication with HA (turn_on, turn_off, toggle, brightness, temperature)
     - Admin endpoints for device management: list, control, test connection, and discover devices
     - Django admin interface for inline device management per property with discovery page and control buttons
     - Support for lights, switches, climate devices with real-time state monitoring
     - Secure token-based authentication using long-lived access tokens stored in Replit secrets
     - Environment variables: HOME_ASSISTANT_URL (https://tunnel.casaaustin.pe) and HOME_ASSISTANT_TOKEN
+    - Location field allows grouping devices by area (e.g., "2nd Floor", "Pool Area", "Main Living Room")
   * **Feature added (Nov 22, 2025)**: Client device control API for guests with active reservations:
     - `GET /api/v1/{reservation_id}/ha/devices/` - List accessible devices for a specific reservation (guest_accessible=True only)
     - `POST /api/v1/{reservation_id}/ha/devices/{device_id}/actions/` - Control devices (turn_on, turn_off, toggle, set_brightness, set_temperature)

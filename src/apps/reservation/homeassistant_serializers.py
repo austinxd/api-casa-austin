@@ -9,6 +9,7 @@ class ClientDeviceSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only=True)
     entity_id = serializers.CharField(read_only=True)
     friendly_name = serializers.CharField(read_only=True)
+    location = serializers.CharField(read_only=True, allow_null=True)
     device_type = serializers.CharField(read_only=True)
     icon = serializers.CharField(read_only=True, allow_null=True)
     description = serializers.CharField(read_only=True, allow_null=True)

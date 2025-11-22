@@ -717,6 +717,7 @@ class ClientDeviceListView(HasActiveReservationMixin, APIView):
                 "id": str(device.id),
                 "entity_id": device.entity_id,
                 "friendly_name": device.friendly_name,
+                "location": device.location,
                 "device_type": device.device_type,
                 "icon": device.icon,
                 "description": device.description,

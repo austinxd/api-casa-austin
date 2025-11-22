@@ -57,7 +57,7 @@ class HomeAssistantDeviceInline(admin.StackedInline):
     
     fieldsets = (
         ('Información del Dispositivo', {
-            'fields': ('entity_id', 'friendly_name', 'device_type', 'icon')
+            'fields': ('entity_id', 'friendly_name', 'location', 'device_type', 'icon')
         }),
         ('Configuración', {
             'fields': ('display_order', 'guest_accessible', 'is_active')

@@ -301,6 +301,12 @@ class HomeAssistantDevice(BaseModel):
         max_length=200,
         help_text="Nombre amigable para mostrar al usuario (ej: Luz Principal)"
     )
+    location = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="Ubicación del dispositivo para agrupar en el frontend (ej: 2do Piso, Área Piscina, Sala Principal)"
+    )
     device_type = models.CharField(
         max_length=20,
         choices=DeviceType.choices,
