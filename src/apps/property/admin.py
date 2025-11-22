@@ -698,25 +698,94 @@ class HomeAssistantDeviceAdmin(admin.ModelAdmin):
         extra_context['show_discover_button'] = True
         return super().changelist_view(request, extra_context)
     
-    actions = ['test_devices', 'activate_devices', 'deactivate_devices']
+    actions = ['turn_on_devices', 'turn_off_devices', 'toggle_devices', 'activate_devices', 'deactivate_devices']
     
-    def test_devices(self, request, queryset):
-        """Acción para probar la conexión con los dispositivos seleccionados"""
-        # Esta será implementada cuando tengamos el servicio de Home Assistant
-        self.message_user(request, f'Prueba de conexión para {queryset.count()} dispositivos (pendiente de implementar)')
-    test_devices.short_description = "Probar conexión con dispositivos"
+    def turn_on_devices(self, request, queryset):
+        """Encender los dispositivos seleccionados en Home Assistant"""
+        from apps.reservation.homeassistant_service import HomeAssistantService
+        
+        ha_service = HomeAssistantService()
+        success_count = 0
+        error_count = 0
+        
+        for device in queryset:
+            try:
+                result = ha_service.turn_on(device.entity_id)
+                if result:
+                    success_count += 1
+                else:
+                    error_count += 1
+            except Exception as e:
+                error_count += 1
+                self.message_user(request, f'Error en {device.entity_id}: {str(e)}', level='ERROR')
+        
+        if success_count > 0:
+            self.message_user(request, f'✅ {success_count} dispositivos encendidos correctamente.')
+        if error_count > 0:
+            self.message_user(request, f'⚠️ {error_count} dispositivos con errores.', level='WARNING')
+    turn_on_devices.short_description = "🟢 Encender dispositivos"
+    
+    def turn_off_devices(self, request, queryset):
+        """Apagar los dispositivos seleccionados en Home Assistant"""
+        from apps.reservation.homeassistant_service import HomeAssistantService
+        
+        ha_service = HomeAssistantService()
+        success_count = 0
+        error_count = 0
+        
+        for device in queryset:
+            try:
+                result = ha_service.turn_off(device.entity_id)
+                if result:
+                    success_count += 1
+                else:
+                    error_count += 1
+            except Exception as e:
+                error_count += 1
+                self.message_user(request, f'Error en {device.entity_id}: {str(e)}', level='ERROR')
+        
+        if success_count > 0:
+            self.message_user(request, f'✅ {success_count} dispositivos apagados correctamente.')
+        if error_count > 0:
+            self.message_user(request, f'⚠️ {error_count} dispositivos con errores.', level='WARNING')
+    turn_off_devices.short_description = "⚫ Apagar dispositivos"
+    
+    def toggle_devices(self, request, queryset):
+        """Alternar el estado de los dispositivos seleccionados"""
+        from apps.reservation.homeassistant_service import HomeAssistantService
+        
+        ha_service = HomeAssistantService()
+        success_count = 0
+        error_count = 0
+        
+        for device in queryset:
+            try:
+                result = ha_service.toggle(device.entity_id)
+                if result:
+                    success_count += 1
+                else:
+                    error_count += 1
+            except Exception as e:
+                error_count += 1
+                self.message_user(request, f'Error en {device.entity_id}: {str(e)}', level='ERROR')
+        
+        if success_count > 0:
+            self.message_user(request, f'✅ {success_count} dispositivos alternados correctamente.')
+        if error_count > 0:
+            self.message_user(request, f'⚠️ {error_count} dispositivos con errores.', level='WARNING')
+    toggle_devices.short_description = "🔄 Alternar dispositivos (on/off)"
     
     def activate_devices(self, request, queryset):
-        """Activar dispositivos seleccionados"""
+        """Activar dispositivos en la base de datos (marcar como activos)"""
         updated = queryset.update(is_active=True)
-        self.message_user(request, f'{updated} dispositivos activados.')
-    activate_devices.short_description = "Activar dispositivos"
+        self.message_user(request, f'{updated} dispositivos marcados como activos en BD.')
+    activate_devices.short_description = "✅ Marcar como activos (BD)"
     
     def deactivate_devices(self, request, queryset):
-        """Desactivar dispositivos seleccionados"""
+        """Desactivar dispositivos en la base de datos (marcar como inactivos)"""
         updated = queryset.update(is_active=False)
-        self.message_user(request, f'{updated} dispositivos desactivados.')
-    deactivate_devices.short_description = "Desactivar dispositivos"
+        self.message_user(request, f'{updated} dispositivos marcados como inactivos en BD.')
+    deactivate_devices.short_description = "❌ Marcar como inactivos (BD)"
 
 
 # Configurar títulos del admin para organizar mejor
