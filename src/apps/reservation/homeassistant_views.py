@@ -4,6 +4,7 @@ from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework.exceptions import PermissionDenied
 from rest_framework import status
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
@@ -658,8 +659,8 @@ class ClientDeviceListView(HasActiveReservationMixin, APIView):
         },
         tags=['Cliente - Home Assistant']
     )
-    def get(self, request):
-        """Lista dispositivos accesibles para el cliente durante su reserva activa"""
+    def get(self, request, reservation_id):
+        """Lista dispositivos accesibles para el cliente en esta reserva"""
         
         # Verificar que el usuario tenga un cliente asociado
         if not hasattr(request.user, 'client'):
@@ -668,10 +669,13 @@ class ClientDeviceListView(HasActiveReservationMixin, APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Obtener reserva activa del cliente
+        # Validar ownership y que la reserva esté activa
         try:
-            active_reservation = self.get_active_reservation(request.user.client)
-        except Exception as e:
+            active_reservation = self.validate_reservation_ownership_and_active(
+                request.user.client, 
+                reservation_id
+            )
+        except PermissionDenied as e:
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_403_FORBIDDEN
@@ -759,7 +763,7 @@ class ClientDeviceActionView(HasActiveReservationMixin, APIView):
         },
         tags=['Cliente - Home Assistant']
     )
-    def post(self, request, device_id):
+    def post(self, request, reservation_id, device_id):
         """Ejecuta una acción de control en un dispositivo"""
         
         # Verificar que el usuario tenga un cliente asociado
@@ -769,10 +773,13 @@ class ClientDeviceActionView(HasActiveReservationMixin, APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Obtener reserva activa del cliente
+        # Validar ownership y que la reserva esté activa
         try:
-            active_reservation = self.get_active_reservation(request.user.client)
-        except Exception as e:
+            active_reservation = self.validate_reservation_ownership_and_active(
+                request.user.client, 
+                reservation_id
+            )
+        except PermissionDenied as e:
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_403_FORBIDDEN

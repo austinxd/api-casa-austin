@@ -39,7 +39,7 @@ urlpatterns = [
     path('ha/admin/test/', AdminHAConnectionTestView.as_view(), name='ha-admin-test'),
     path('ha/admin/discover/', AdminHADiscoverDevicesView.as_view(), name='ha-admin-discover'),
     
-    # Endpoints para clientes (control de dispositivos durante reserva activa)
-    path('ha/client/devices/', ClientDeviceListView.as_view(), name='ha-client-devices'),
-    path('ha/client/devices/<uuid:device_id>/actions/', ClientDeviceActionView.as_view(), name='ha-client-device-action'),
+    # Endpoints para clientes (control de dispositivos durante reserva específica)
+    path('<uuid:reservation_id>/ha/devices/', ClientDeviceListView.as_view(), name='ha-client-devices'),
+    path('<uuid:reservation_id>/ha/devices/<uuid:device_id>/actions/', ClientDeviceActionView.as_view(), name='ha-client-device-action'),
 ]

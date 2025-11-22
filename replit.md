@@ -116,13 +116,15 @@ Preferred communication style: Simple, everyday language.
     - Secure token-based authentication using long-lived access tokens stored in Replit secrets
     - Environment variables: HOME_ASSISTANT_URL (https://tunnel.casaaustin.pe) and HOME_ASSISTANT_TOKEN
   * **Feature added (Nov 22, 2025)**: Client device control API for guests with active reservations:
-    - `GET /api/v1/ha/client/devices/` - List accessible devices during active reservation (guest_accessible=True only)
-    - `POST /api/v1/ha/client/devices/{device_id}/actions/` - Control devices (turn_on, turn_off, toggle, set_brightness, set_temperature)
+    - `GET /api/v1/{reservation_id}/ha/devices/` - List accessible devices for a specific reservation (guest_accessible=True only)
+    - `POST /api/v1/{reservation_id}/ha/devices/{device_id}/actions/` - Control devices (turn_on, turn_off, toggle, set_brightness, set_temperature)
+    - Reservation ownership validation: Client must own the reservation specified in URL
     - Active reservation validation: Check-in from 12:00 PM, checkout until 10:59 AM
     - Property-based access control: Clients can only control devices from their reservation property
     - Device compatibility validation: brightness only for lights, temperature only for climate devices
     - Real-time state synchronization with Home Assistant
     - JWT authentication required for all client endpoints
+    - Added security: reservation_id in URL prevents ambiguity and improves audit trail
 
 ### Authentication
 - **Facebook OAuth**

@@ -13,6 +13,77 @@ class HasActiveReservationMixin:
     Proporciona el método get_active_reservation() que valida y retorna la reserva.
     """
     
+    def validate_reservation_ownership_and_active(self, client, reservation_id):
+        """
+        Valida que una reserva específica pertenece al cliente y está activa.
+        Reutiliza la lógica de validación de get_active_reservation().
+        
+        Args:
+            client: Cliente autenticado
+            reservation_id: UUID de la reserva a validar
+            
+        Returns:
+            Reservation: La reserva activa validada
+            
+        Raises:
+            Reservation.DoesNotExist: Si la reserva no existe
+            PermissionDenied: Si la reserva no pertenece al cliente o no está activa
+        """
+        # Obtener la reserva
+        try:
+            reservation = Reservation.objects.select_related('property', 'client').get(
+                id=reservation_id,
+                deleted=False
+            )
+        except Reservation.DoesNotExist:
+            raise PermissionDenied("Reserva no encontrada")
+        
+        # Validar ownership
+        if reservation.client.id != client.id:
+            raise PermissionDenied("No tienes acceso a esta reserva")
+        
+        # Validar status
+        if reservation.status != 'approved':
+            raise PermissionDenied(
+                "Esta reserva no está aprobada. "
+                "Solo puedes controlar dispositivos de reservas aprobadas."
+            )
+        
+        # Validar que esté activa según horarios
+        now = timezone.now()
+        today = now.date()
+        current_time = now.time()
+        
+        check_in_time = time(12, 0)  # 12:00 PM
+        check_out_time = time(10, 59)  # 10:59 AM
+        
+        # Si la reserva inicia hoy, verificar que ya sea después de las 12:00 PM
+        if reservation.check_in_date == today and current_time < check_in_time:
+            raise PermissionDenied(
+                f"Esta reserva inicia hoy pero el acceso está disponible desde las 12:00 PM. "
+                f"Hora actual: {current_time.strftime('%H:%M')}"
+            )
+        
+        # Si la reserva termina hoy (y no inicia hoy), verificar que no sea después de las 10:59 AM
+        if reservation.check_out_date == today and reservation.check_in_date < today and current_time > check_out_time:
+            raise PermissionDenied(
+                "Esta reserva terminó hoy a las 10:59 AM. El acceso ya no está disponible."
+            )
+        
+        # Verificar que la fecha actual esté dentro del rango de la reserva
+        if today < reservation.check_in_date:
+            raise PermissionDenied(
+                f"Esta reserva aún no ha iniciado. "
+                f"Check-in disponible desde las 12:00 PM del {reservation.check_in_date.strftime('%d/%m/%Y')}"
+            )
+        
+        if today > reservation.check_out_date:
+            raise PermissionDenied(
+                f"Esta reserva ya finalizó el {reservation.check_out_date.strftime('%d/%m/%Y')}"
+            )
+        
+        return reservation
+    
     def get_active_reservation(self, client):
         """
         Obtiene la reserva activa del cliente basándose en la lógica de negocio:
