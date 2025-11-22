@@ -8,7 +8,9 @@ from .homeassistant_views import (
     AdminHADeviceListView,
     AdminHADeviceControlView,
     AdminHAConnectionTestView,
-    AdminHADiscoverDevicesView
+    AdminHADiscoverDevicesView,
+    ClientDeviceListView,
+    ClientDeviceActionView
 )
 
 router = DefaultRouter()
@@ -36,4 +38,8 @@ urlpatterns = [
     path('ha/admin/control/', AdminHADeviceControlView.as_view(), name='ha-admin-control'),
     path('ha/admin/test/', AdminHAConnectionTestView.as_view(), name='ha-admin-test'),
     path('ha/admin/discover/', AdminHADiscoverDevicesView.as_view(), name='ha-admin-discover'),
+    
+    # Endpoints para clientes (control de dispositivos durante reserva activa)
+    path('ha/client/devices/', ClientDeviceListView.as_view(), name='ha-client-devices'),
+    path('ha/client/devices/<uuid:device_id>/actions/', ClientDeviceActionView.as_view(), name='ha-client-device-action'),
 ]

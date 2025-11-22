@@ -11,6 +11,12 @@ from drf_spectacular.types import OpenApiTypes
 from .models import Reservation
 from apps.property.models import Property, HomeAssistantDevice
 from .homeassistant_service import HomeAssistantService
+from .permissions import HasActiveReservationMixin
+from .homeassistant_serializers import (
+    ClientDeviceSerializer,
+    DeviceActionSerializer,
+    DeviceActionResponseSerializer
+)
 
 
 class HomeAssistantReservationView(APIView):
@@ -607,4 +613,297 @@ class AdminHADiscoverDevicesView(APIView):
             return Response(
                 {"error": f"Error al descubrir dispositivos: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class ClientDeviceListView(HasActiveReservationMixin, APIView):
+    """
+    Endpoint para clientes: Listar dispositivos de Home Assistant accesibles
+    durante su reserva activa.
+    
+    Requiere autenticación y reserva activa.
+    Solo muestra dispositivos de la propiedad donde se hospedan,
+    marcados como guest_accessible=True.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    @extend_schema(
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "property_name": {"type": "string"},
+                    "reservation_id": {"type": "string"},
+                    "check_in": {"type": "string", "format": "date"},
+                    "check_out": {"type": "string", "format": "date"},
+                    "devices": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {"type": "string"},
+                                "entity_id": {"type": "string"},
+                                "friendly_name": {"type": "string"},
+                                "device_type": {"type": "string"},
+                                "icon": {"type": "string"},
+                                "current_state": {"type": "string"},
+                                "supports_brightness": {"type": "boolean"},
+                                "supports_temperature": {"type": "boolean"}
+                            }
+                        }
+                    }
+                }
+            },
+            403: {"type": "object", "properties": {"error": {"type": "string"}}}
+        },
+        tags=['Cliente - Home Assistant']
+    )
+    def get(self, request):
+        """Lista dispositivos accesibles para el cliente durante su reserva activa"""
+        
+        # Verificar que el usuario tenga un cliente asociado
+        if not hasattr(request.user, 'client'):
+            return Response(
+                {"error": "Usuario no tiene un perfil de cliente asociado"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Obtener reserva activa del cliente
+        try:
+            active_reservation = self.get_active_reservation(request.user.client)
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Obtener dispositivos de la propiedad que son accesibles para huéspedes
+        devices = HomeAssistantDevice.objects.filter(
+            property=active_reservation.property,
+            guest_accessible=True,
+            is_active=True,
+            deleted=False
+        ).order_by('display_order', 'friendly_name')
+        
+        # Inicializar servicio de Home Assistant
+        try:
+            ha_service = HomeAssistantService()
+        except ValueError as e:
+            return Response(
+                {"error": f"Error de configuración: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        # Construir respuesta con estado actual de cada dispositivo
+        devices_data = []
+        for device in devices:
+            try:
+                # Obtener estado actual desde Home Assistant
+                state_info = ha_service.get_entity_state(device.entity_id)
+                current_state = state_info.get('state', 'unknown')
+                attributes = state_info.get('attributes', {})
+            except Exception:
+                current_state = 'unavailable'
+                attributes = {}
+            
+            # Determinar capacidades del dispositivo
+            supports_brightness = (
+                device.device_type == 'light' and
+                'brightness' in attributes
+            )
+            supports_temperature = device.device_type == 'climate'
+            
+            devices_data.append({
+                "id": str(device.id),
+                "entity_id": device.entity_id,
+                "friendly_name": device.friendly_name,
+                "device_type": device.device_type,
+                "icon": device.icon,
+                "description": device.description,
+                "display_order": device.display_order,
+                "current_state": current_state,
+                "supports_brightness": supports_brightness,
+                "supports_temperature": supports_temperature,
+                "attributes": attributes
+            })
+        
+        return Response({
+            "property_name": active_reservation.property.name,
+            "property_id": str(active_reservation.property.id),
+            "reservation_id": str(active_reservation.id),
+            "check_in": active_reservation.check_in_date.isoformat(),
+            "check_out": active_reservation.check_out_date.isoformat(),
+            "devices_count": len(devices_data),
+            "devices": devices_data
+        })
+
+
+class ClientDeviceActionView(HasActiveReservationMixin, APIView):
+    """
+    Endpoint para clientes: Controlar un dispositivo específico de Home Assistant
+    durante su reserva activa.
+    
+    Requiere autenticación y reserva activa.
+    Solo permite controlar dispositivos de la propiedad donde se hospedan,
+    marcados como guest_accessible=True.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    @extend_schema(
+        request=DeviceActionSerializer,
+        responses={
+            200: DeviceActionResponseSerializer,
+            400: {"type": "object", "properties": {"error": {"type": "string"}}},
+            403: {"type": "object", "properties": {"error": {"type": "string"}}},
+            404: {"type": "object", "properties": {"error": {"type": "string"}}}
+        },
+        tags=['Cliente - Home Assistant']
+    )
+    def post(self, request, device_id):
+        """Ejecuta una acción de control en un dispositivo"""
+        
+        # Verificar que el usuario tenga un cliente asociado
+        if not hasattr(request.user, 'client'):
+            return Response(
+                {"error": "Usuario no tiene un perfil de cliente asociado"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Obtener reserva activa del cliente
+        try:
+            active_reservation = self.get_active_reservation(request.user.client)
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Validar datos de entrada
+        serializer = DeviceActionSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        action = serializer.validated_data['action']
+        value = serializer.validated_data.get('value')
+        
+        # Buscar el dispositivo
+        try:
+            device = HomeAssistantDevice.objects.get(
+                id=device_id,
+                deleted=False
+            )
+        except HomeAssistantDevice.DoesNotExist:
+            return Response(
+                {"error": "Dispositivo no encontrado"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Verificar que el dispositivo pertenece a la propiedad de la reserva
+        if device.property != active_reservation.property:
+            return Response(
+                {"error": "No tienes permiso para controlar este dispositivo"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Verificar que el dispositivo es accesible para huéspedes
+        if not device.guest_accessible:
+            return Response(
+                {"error": "Este dispositivo no está disponible para huéspedes"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Verificar que el dispositivo está activo
+        if not device.is_active:
+            return Response(
+                {"error": "Este dispositivo no está activo"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validar compatibilidad de la acción con el tipo de dispositivo
+        try:
+            from rest_framework import serializers as drf_serializers
+            serializer.validate_device_compatibility(device, action)
+        except drf_serializers.ValidationError as e:
+            return Response(
+                {"error": str(e.detail) if hasattr(e, 'detail') else str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Inicializar servicio de Home Assistant
+        try:
+            ha_service = HomeAssistantService()
+        except ValueError as e:
+            return Response(
+                {"error": f"Error de configuración: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
+        # Ejecutar la acción en Home Assistant
+        try:
+            result = None
+            if action == 'turn_on':
+                result = ha_service.turn_on(device.entity_id)
+                message = f"{device.friendly_name} encendido"
+            elif action == 'turn_off':
+                result = ha_service.turn_off(device.entity_id)
+                message = f"{device.friendly_name} apagado"
+            elif action == 'toggle':
+                result = ha_service.toggle(device.entity_id)
+                message = f"{device.friendly_name} alternado"
+            elif action == 'set_brightness':
+                result = ha_service.set_light_brightness(device.entity_id, value)
+                message = f"Brillo de {device.friendly_name} ajustado a {value}"
+            elif action == 'set_temperature':
+                result = ha_service.set_climate_temperature(device.entity_id, value)
+                message = f"Temperatura de {device.friendly_name} ajustada a {value}°"
+            else:
+                return Response(
+                    {"error": "Acción no soportada"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Verificar que el resultado incluya la entidad correcta
+            # Home Assistant retorna lista de estados de entidades afectadas
+            if isinstance(result, list):
+                # Verificar que alguna entidad en la respuesta coincide con nuestro device
+                entity_found = any(
+                    entity.get('entity_id') == device.entity_id 
+                    for entity in result 
+                    if isinstance(entity, dict)
+                )
+                if not entity_found and len(result) > 0:
+                    # Advertir si la respuesta no incluye nuestra entidad
+                    pass  # La acción se ejecutó pero la respuesta puede no incluir la entidad
+            
+            # Obtener el estado actualizado del dispositivo directamente
+            try:
+                entity_state = ha_service.get_entity_state(device.entity_id)
+            except Exception:
+                entity_state = {"state": "unknown", "entity_id": device.entity_id}
+            
+            # TODO: Registrar la acción en logs de auditoría
+            # Almacenar: client_id, reservation_id, device_id, action, timestamp
+            
+            return Response({
+                "status": "success",
+                "message": message,
+                "device_id": str(device.id),
+                "device_name": device.friendly_name,
+                "action": action,
+                "value": value,
+                "entity_state": entity_state
+            })
+            
+        except Exception as e:
+            return Response(
+                {"error": f"Error al controlar dispositivo: {str(e)}"},
+                status=status.HTTP_502_BAD_GATEWAY
             )
