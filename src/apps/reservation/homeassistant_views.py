@@ -518,6 +518,13 @@ class AdminHADiscoverDevicesView(APIView):
                 description="Buscar en entity_id o friendly_name",
                 location=OpenApiParameter.QUERY
             ),
+            OpenApiParameter(
+                "unassigned",
+                OpenApiTypes.BOOL,
+                required=False,
+                description="Si es true, muestra solo dispositivos NO asignados a la base de datos",
+                location=OpenApiParameter.QUERY
+            ),
         ],
         responses={
             200: {
@@ -544,6 +551,7 @@ class AdminHADiscoverDevicesView(APIView):
         """Descubre todos los dispositivos disponibles en Home Assistant"""
         filter_type = request.query_params.get('filter_type')
         search_term = request.query_params.get('search')
+        show_only_unassigned = request.query_params.get('unassigned', 'false').lower() == 'true'
         
         try:
             ha_service = HomeAssistantService()
@@ -561,20 +569,37 @@ class AdminHADiscoverDevicesView(APIView):
             else:
                 devices = ha_service.get_all_states()
             
+            # Obtener todos los entity_ids que ya están en la BD
+            configured_entity_ids = set(
+                HomeAssistantDevice.objects.filter(deleted=False)
+                .values_list('entity_id', flat=True)
+            )
+            
             devices_data = []
             for device in devices:
-                device_type = device['entity_id'].split('.')[0]
+                entity_id = device['entity_id']
+                device_type = entity_id.split('.')[0]
+                already_configured = entity_id in configured_entity_ids
+                
+                # Si solo queremos los no asignados, filtrar
+                if show_only_unassigned and already_configured:
+                    continue
+                
                 devices_data.append({
-                    "entity_id": device['entity_id'],
-                    "friendly_name": device.get('attributes', {}).get('friendly_name', device['entity_id']),
+                    "entity_id": entity_id,
+                    "friendly_name": device.get('attributes', {}).get('friendly_name', entity_id),
                     "state": device.get('state', 'unknown'),
                     "device_type": device_type,
                     "last_changed": device.get('last_changed'),
+                    "already_configured": already_configured,
                     "attributes": device.get('attributes', {})
                 })
             
             return Response({
                 "count": len(devices_data),
+                "total_in_ha": len(devices),
+                "configured": len(configured_entity_ids),
+                "unassigned": len(devices) - len([d for d in devices if d['entity_id'] in configured_entity_ids]),
                 "devices": devices_data
             })
             

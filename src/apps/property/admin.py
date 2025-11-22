@@ -47,14 +47,26 @@ class SpecialDatePricingInline(admin.TabularInline):
 
 
 # Inline para dispositivos de Home Assistant
-class HomeAssistantDeviceInline(admin.TabularInline):
+class HomeAssistantDeviceInline(admin.StackedInline):
     model = HomeAssistantDevice
-    extra = 1
-    fields = ('entity_id', 'friendly_name', 'device_type', 'icon', 'display_order', 'guest_accessible', 'is_active', 'description')
+    extra = 0
     ordering = ['display_order', 'friendly_name']
     verbose_name = "Dispositivo Home Assistant"
     verbose_name_plural = "🏠 Dispositivos de Home Assistant"
     classes = ['collapse']
+    
+    fieldsets = (
+        ('Información del Dispositivo', {
+            'fields': ('entity_id', 'friendly_name', 'device_type', 'icon')
+        }),
+        ('Configuración', {
+            'fields': ('display_order', 'guest_accessible', 'is_active')
+        }),
+        ('Descripción', {
+            'fields': ('description',),
+            'classes': ('collapse',)
+        }),
+    )
     
     def get_queryset(self, request):
         """Solo mostrar dispositivos no eliminados"""
