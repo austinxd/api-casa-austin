@@ -602,7 +602,7 @@ class HomeAssistantDeviceAdmin(admin.ModelAdmin):
     list_filter = ('property', 'device_type', 'guest_accessible', 'is_active', 'deleted')
     search_fields = ('friendly_name', 'entity_id', 'property__name', 'description')
     ordering = ['property', 'display_order', 'friendly_name']
-    list_editable = ('display_order', 'guest_accessible', 'is_active')
+    list_editable = ()  # Temporalmente desactivado para mostrar las acciones
     
     fieldsets = (
         ('Información Básica', {
