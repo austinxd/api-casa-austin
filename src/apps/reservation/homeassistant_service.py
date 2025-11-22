@@ -1,7 +1,10 @@
 import os
 import requests
+import logging
 from typing import Dict, Any, Optional, List
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 class HomeAssistantService:
@@ -49,6 +52,16 @@ class HomeAssistantService:
         url = f"{self.base_url}{endpoint}"
         response = None
         
+        # Log de la petición
+        logger.info("=" * 80)
+        logger.info(f"🔵 HOME ASSISTANT REQUEST - {method.upper()}")
+        logger.info(f"URL: {url}")
+        logger.info(f"Token configurado: {'✓ Sí' if self.token else '✗ No'}")
+        if self.token:
+            logger.info(f"Token preview: {self.token[:20]}...{self.token[-10:]}")
+        if data:
+            logger.info(f"Datos enviados: {data}")
+        
         try:
             if method.upper() == 'GET':
                 response = requests.get(url, headers=self.headers, timeout=10)
@@ -57,18 +70,35 @@ class HomeAssistantService:
             else:
                 raise ValueError(f"Método HTTP no soportado: {method}")
             
+            # Log de la respuesta exitosa
+            logger.info(f"✅ Respuesta HTTP {response.status_code}")
+            response_json = response.json()
+            logger.info(f"Respuesta completa: {response_json}")
+            logger.info("=" * 80)
+            
             response.raise_for_status()
-            return response.json()
+            return response_json
             
         except requests.exceptions.Timeout:
+            logger.error("❌ TIMEOUT al conectar con Home Assistant")
+            logger.error("=" * 80)
             raise Exception("Timeout al conectar con Home Assistant")
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"❌ ERROR DE CONEXIÓN con Home Assistant: {str(e)}")
+            logger.error("=" * 80)
             raise Exception("Error de conexión con Home Assistant")
         except requests.exceptions.HTTPError:
             if response:
+                logger.error(f"❌ ERROR HTTP {response.status_code}")
+                logger.error(f"Respuesta: {response.text}")
+                logger.error("=" * 80)
                 raise Exception(f"Error HTTP {response.status_code}: {response.text}")
+            logger.error("❌ ERROR HTTP en petición (sin respuesta)")
+            logger.error("=" * 80)
             raise Exception("Error HTTP en petición")
         except requests.exceptions.RequestException as e:
+            logger.error(f"❌ ERROR en petición a Home Assistant: {str(e)}")
+            logger.error("=" * 80)
             raise Exception(f"Error en petición a Home Assistant: {str(e)}")
     
     def test_connection(self) -> Dict[str, Any]:
@@ -124,12 +154,20 @@ class HomeAssistantService:
             # Ajustar temperatura
             service.call_service('climate', 'set_temperature', 'climate.ac', temperature=22)
         """
+        logger.info(f"🎯 Llamando servicio: {domain}.{service} para {entity_id}")
+        if kwargs:
+            logger.info(f"   Parámetros adicionales: {kwargs}")
+        
         data = {
             'entity_id': entity_id,
             **kwargs
         }
         
-        return self._make_request('POST', f'/api/services/{domain}/{service}', data)
+        result = self._make_request('POST', f'/api/services/{domain}/{service}', data)
+        
+        logger.info(f"✅ Servicio ejecutado - Entidades afectadas: {len(result) if isinstance(result, list) else 'N/A'}")
+        
+        return result
     
     def turn_on(self, entity_id: str, **kwargs) -> List[Dict[str, Any]]:
         """
