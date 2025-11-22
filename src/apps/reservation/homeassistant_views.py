@@ -3,11 +3,14 @@ from datetime import datetime, time
 from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
+from rest_framework import status
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 
 from .models import Reservation
-from apps.property.models import Property
+from apps.property.models import Property, HomeAssistantDevice
+from .homeassistant_service import HomeAssistantService
 
 
 class HomeAssistantReservationView(APIView):
@@ -226,3 +229,313 @@ class HomeAssistantReservationView(APIView):
                 "points_balance": 0,
                 "upcoming_reservations": []
             })
+
+
+class AdminHADeviceListView(APIView):
+    """
+    Endpoint administrativo para listar dispositivos de Home Assistant
+    Puede filtrar por propiedad o tipo de dispositivo
+    """
+    permission_classes = [IsAdminUser]
+    
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "property_id",
+                OpenApiTypes.STR,
+                required=False,
+                description="UUID de la propiedad para filtrar dispositivos",
+                location=OpenApiParameter.QUERY
+            ),
+            OpenApiParameter(
+                "device_type",
+                OpenApiTypes.STR,
+                required=False,
+                description="Tipo de dispositivo (light, switch, climate, etc.)",
+                location=OpenApiParameter.QUERY
+            ),
+        ],
+        responses={200: {
+            "type": "object",
+            "properties": {
+                "count": {"type": "integer"},
+                "devices": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "string"},
+                            "entity_id": {"type": "string"},
+                            "friendly_name": {"type": "string"},
+                            "device_type": {"type": "string"},
+                            "icon": {"type": "string"},
+                            "property_name": {"type": "string"},
+                            "guest_accessible": {"type": "boolean"},
+                            "is_active": {"type": "boolean"},
+                            "current_state": {"type": "string"}
+                        }
+                    }
+                }
+            }
+        }}
+    )
+    def get(self, request):
+        """Lista todos los dispositivos configurados"""
+        property_id = request.query_params.get('property_id')
+        device_type = request.query_params.get('device_type')
+        
+        queryset = HomeAssistantDevice.objects.filter(deleted=False).select_related('property')
+        
+        if property_id:
+            queryset = queryset.filter(property_id=property_id)
+        
+        if device_type:
+            queryset = queryset.filter(device_type=device_type)
+        
+        ha_service = HomeAssistantService()
+        devices_data = []
+        
+        for device in queryset:
+            try:
+                state_info = ha_service.get_entity_state(device.entity_id)
+                current_state = state_info.get('state', 'unknown')
+            except Exception:
+                current_state = 'unavailable'
+            
+            devices_data.append({
+                "id": str(device.id),
+                "entity_id": device.entity_id,
+                "friendly_name": device.friendly_name,
+                "device_type": device.device_type,
+                "icon": device.icon,
+                "property_name": device.property.name if device.property else None,
+                "guest_accessible": device.guest_accessible,
+                "is_active": device.is_active,
+                "display_order": device.display_order,
+                "current_state": current_state
+            })
+        
+        return Response({
+            "count": len(devices_data),
+            "devices": devices_data
+        })
+
+
+class AdminHADeviceControlView(APIView):
+    """
+    Endpoint administrativo para controlar dispositivos de Home Assistant
+    Permite turn_on, turn_off, toggle
+    """
+    permission_classes = [IsAdminUser]
+    
+    @extend_schema(
+        request={
+            "type": "object",
+            "properties": {
+                "device_id": {"type": "string", "description": "UUID del dispositivo en la base de datos"},
+                "action": {"type": "string", "enum": ["turn_on", "turn_off", "toggle"], "description": "Acción a realizar"},
+                "brightness": {"type": "integer", "description": "Brillo para luces (0-255, opcional)"},
+                "temperature": {"type": "number", "description": "Temperatura para clima (opcional)"}
+            },
+            "required": ["device_id", "action"]
+        },
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "success": {"type": "boolean"},
+                    "message": {"type": "string"},
+                    "new_state": {"type": "object"}
+                }
+            },
+            400: {"type": "object", "properties": {"error": {"type": "string"}}},
+            404: {"type": "object", "properties": {"error": {"type": "string"}}}
+        }
+    )
+    def post(self, request):
+        """Controla un dispositivo específico"""
+        device_id = request.data.get('device_id')
+        action = request.data.get('action')
+        brightness = request.data.get('brightness')
+        temperature = request.data.get('temperature')
+        
+        if not device_id or not action:
+            return Response(
+                {"error": "device_id y action son requeridos"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if action not in ['turn_on', 'turn_off', 'toggle']:
+            return Response(
+                {"error": "action debe ser: turn_on, turn_off o toggle"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            device = HomeAssistantDevice.objects.get(id=device_id, deleted=False)
+        except HomeAssistantDevice.DoesNotExist:
+            return Response(
+                {"error": "Dispositivo no encontrado"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if not device.is_active:
+            return Response(
+                {"error": "Dispositivo no está activo"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        ha_service = HomeAssistantService()
+        
+        try:
+            if action == 'turn_on':
+                if brightness and device.device_type == 'light':
+                    result = ha_service.set_light_brightness(device.entity_id, brightness)
+                elif temperature and device.device_type == 'climate':
+                    result = ha_service.set_climate_temperature(device.entity_id, temperature)
+                else:
+                    result = ha_service.turn_on(device.entity_id)
+            elif action == 'turn_off':
+                result = ha_service.turn_off(device.entity_id)
+            else:
+                result = ha_service.toggle(device.entity_id)
+            
+            new_state = ha_service.get_entity_state(device.entity_id)
+            
+            return Response({
+                "success": True,
+                "message": f"Dispositivo {device.friendly_name} controlado exitosamente",
+                "action": action,
+                "new_state": new_state
+            })
+            
+        except Exception as e:
+            return Response(
+                {"error": f"Error al controlar dispositivo: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class AdminHAConnectionTestView(APIView):
+    """
+    Endpoint administrativo para probar la conexión con Home Assistant
+    """
+    permission_classes = [IsAdminUser]
+    
+    @extend_schema(
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "connected": {"type": "boolean"},
+                    "message": {"type": "string"},
+                    "total_entities": {"type": "integer"}
+                }
+            }
+        }
+    )
+    def get(self, request):
+        """Prueba la conexión con Home Assistant"""
+        ha_service = HomeAssistantService()
+        
+        try:
+            api_info = ha_service.test_connection()
+            all_states = ha_service.get_all_states()
+            
+            return Response({
+                "connected": True,
+                "message": api_info.get('message', 'API running'),
+                "total_entities": len(all_states),
+                "base_url": ha_service.base_url
+            })
+            
+        except Exception as e:
+            return Response({
+                "connected": False,
+                "error": str(e),
+                "base_url": ha_service.base_url
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AdminHADiscoverDevicesView(APIView):
+    """
+    Endpoint administrativo para descubrir todos los dispositivos disponibles en Home Assistant
+    Útil para agregar nuevos dispositivos a la base de datos
+    """
+    permission_classes = [IsAdminUser]
+    
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "filter_type",
+                OpenApiTypes.STR,
+                required=False,
+                description="Filtrar por tipo: light, switch, climate, sensor, etc.",
+                location=OpenApiParameter.QUERY
+            ),
+            OpenApiParameter(
+                "search",
+                OpenApiTypes.STR,
+                required=False,
+                description="Buscar en entity_id o friendly_name",
+                location=OpenApiParameter.QUERY
+            ),
+        ],
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "count": {"type": "integer"},
+                    "devices": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "entity_id": {"type": "string"},
+                                "friendly_name": {"type": "string"},
+                                "state": {"type": "string"},
+                                "device_type": {"type": "string"}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    )
+    def get(self, request):
+        """Descubre todos los dispositivos disponibles en Home Assistant"""
+        filter_type = request.query_params.get('filter_type')
+        search_term = request.query_params.get('search')
+        
+        ha_service = HomeAssistantService()
+        
+        try:
+            if filter_type:
+                devices = ha_service.get_devices_by_type(filter_type)
+            elif search_term:
+                devices = ha_service.search_devices(search_term)
+            else:
+                devices = ha_service.get_all_states()
+            
+            devices_data = []
+            for device in devices:
+                device_type = device['entity_id'].split('.')[0]
+                devices_data.append({
+                    "entity_id": device['entity_id'],
+                    "friendly_name": device.get('attributes', {}).get('friendly_name', device['entity_id']),
+                    "state": device.get('state', 'unknown'),
+                    "device_type": device_type,
+                    "last_changed": device.get('last_changed'),
+                    "attributes": device.get('attributes', {})
+                })
+            
+            return Response({
+                "count": len(devices_data),
+                "devices": devices_data
+            })
+            
+        except Exception as e:
+            return Response(
+                {"error": f"Error al descubrir dispositivos: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

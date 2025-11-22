@@ -3,7 +3,13 @@ from rest_framework.routers import DefaultRouter
 
 from .views import ReservationsApiView, DeleteRecipeApiView, GetICSApiView, UpdateICSApiView, ProfitApiView, VistaCalendarioApiView, confirm_reservation, MonthlyReservationsExportAPIView, PropertyCalendarOccupancyAPIView, QRReservationView, ActiveReservationsView
 from .payment_views import ProcessPaymentView, ProcessAdditionalServicesPaymentView
-from .homeassistant_views import HomeAssistantReservationView
+from .homeassistant_views import (
+    HomeAssistantReservationView,
+    AdminHADeviceListView,
+    AdminHADeviceControlView,
+    AdminHAConnectionTestView,
+    AdminHADiscoverDevicesView
+)
 
 router = DefaultRouter()
 
@@ -26,4 +32,8 @@ urlpatterns = [
     path("homeassistant/", HomeAssistantReservationView.as_view(), name="homeassistant-reservation"),
     path('qr/<str:reservation_id>/', QRReservationView.as_view(), name='qr-reservation'),
     path('active/', ActiveReservationsView.as_view(), name='active-reservations'),
+    path('ha/admin/devices/', AdminHADeviceListView.as_view(), name='ha-admin-devices'),
+    path('ha/admin/control/', AdminHADeviceControlView.as_view(), name='ha-admin-control'),
+    path('ha/admin/test/', AdminHAConnectionTestView.as_view(), name='ha-admin-test'),
+    path('ha/admin/discover/', AdminHADiscoverDevicesView.as_view(), name='ha-admin-discover'),
 ]

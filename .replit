@@ -67,3 +67,8 @@ externalPort = 3000
 
 [agent]
 expertMode = true
+
+[userenv]
+
+[userenv.shared]
+HOME_ASSISTANT_URL = "https://tunnel.casaaustin.pe"
