@@ -595,6 +595,7 @@ class HomeAssistantDeviceAdmin(admin.ModelAdmin):
         'property',
         'entity_id',
         'device_type',
+        'get_control_buttons',
         'display_order',
         'guest_accessible',
         'is_active'
@@ -624,6 +625,24 @@ class HomeAssistantDeviceAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Mostrar todos los dispositivos incluyendo eliminados"""
         return HomeAssistantDevice.objects.all()
+    
+    def get_control_buttons(self, obj):
+        """Botones de control directo para cada dispositivo"""
+        from django.utils.html import format_html
+        from django.urls import reverse
+        
+        return format_html(
+            '<a class="button" href="{}?action=turn_on&device_id={}" style="background: #28a745; color: white; padding: 3px 8px; margin: 2px; text-decoration: none; border-radius: 3px; font-size: 11px;">🟢 ON</a>'
+            '<a class="button" href="{}?action=turn_off&device_id={}" style="background: #dc3545; color: white; padding: 3px 8px; margin: 2px; text-decoration: none; border-radius: 3px; font-size: 11px;">⚫ OFF</a>'
+            '<a class="button" href="{}?action=toggle&device_id={}" style="background: #007bff; color: white; padding: 3px 8px; margin: 2px; text-decoration: none; border-radius: 3px; font-size: 11px;">🔄 Toggle</a>',
+            reverse('admin:property_homeassistantdevice_changelist'),
+            obj.id,
+            reverse('admin:property_homeassistantdevice_changelist'),
+            obj.id,
+            reverse('admin:property_homeassistantdevice_changelist'),
+            obj.id,
+        )
+    get_control_buttons.short_description = "Control Rápido"
     
     def get_urls(self):
         from django.urls import path
@@ -693,7 +712,42 @@ class HomeAssistantDeviceAdmin(admin.ModelAdmin):
         return render(request, 'admin/homeassistant_discover.html', context)
     
     def changelist_view(self, request, extra_context=None):
-        """Agregar botón personalizado en la lista"""
+        """Agregar botón personalizado en la lista y manejar control de dispositivos"""
+        from apps.reservation.homeassistant_service import HomeAssistantService
+        from django.contrib import messages
+        
+        # Manejar acciones de control directo
+        action = request.GET.get('action')
+        device_id = request.GET.get('device_id')
+        
+        if action and device_id:
+            try:
+                device = HomeAssistantDevice.objects.get(id=device_id)
+                ha_service = HomeAssistantService()
+                
+                if action == 'turn_on':
+                    result = ha_service.turn_on(device.entity_id)
+                    if result:
+                        messages.success(request, f'✅ {device.friendly_name} encendido correctamente')
+                    else:
+                        messages.error(request, f'⚠️ Error al encender {device.friendly_name}')
+                elif action == 'turn_off':
+                    result = ha_service.turn_off(device.entity_id)
+                    if result:
+                        messages.success(request, f'✅ {device.friendly_name} apagado correctamente')
+                    else:
+                        messages.error(request, f'⚠️ Error al apagar {device.friendly_name}')
+                elif action == 'toggle':
+                    result = ha_service.toggle(device.entity_id)
+                    if result:
+                        messages.success(request, f'✅ {device.friendly_name} alternado correctamente')
+                    else:
+                        messages.error(request, f'⚠️ Error al alternar {device.friendly_name}')
+            except HomeAssistantDevice.DoesNotExist:
+                messages.error(request, 'Dispositivo no encontrado')
+            except Exception as e:
+                messages.error(request, f'Error: {str(e)}')
+        
         extra_context = extra_context or {}
         extra_context['show_discover_button'] = True
         return super().changelist_view(request, extra_context)
