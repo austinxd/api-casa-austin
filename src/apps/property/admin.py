@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Property, ProfitPropertyAirBnb, PropertyPhoto, ReferralDiscountByLevel
+from .models import Property, ProfitPropertyAirBnb, PropertyPhoto, ReferralDiscountByLevel, HomeAssistantDevice
 from .pricing_models import (
     ExchangeRate,
     PropertyPricing,
@@ -44,6 +44,21 @@ class SpecialDatePricingInline(admin.TabularInline):
     def get_queryset(self, request):
         """Solo mostrar fechas especiales activas"""
         return SpecialDatePricing.objects.filter(deleted=False)
+
+
+# Inline para dispositivos de Home Assistant
+class HomeAssistantDeviceInline(admin.TabularInline):
+    model = HomeAssistantDevice
+    extra = 1
+    fields = ('entity_id', 'friendly_name', 'device_type', 'icon', 'display_order', 'guest_accessible', 'is_active', 'description')
+    ordering = ['display_order', 'friendly_name']
+    verbose_name = "Dispositivo Home Assistant"
+    verbose_name_plural = "🏠 Dispositivos de Home Assistant"
+    classes = ['collapse']
+    
+    def get_queryset(self, request):
+        """Solo mostrar dispositivos no eliminados"""
+        return HomeAssistantDevice.objects.filter(deleted=False)
 
 
 
@@ -99,7 +114,7 @@ class PropertyAdmin(admin.ModelAdmin):
     list_filter = ("dormitorios", "banos", "deleted")
     search_fields = ("name", "titulo", "location", "slug")
     prepopulated_fields = {"slug": ("name",)}
-    inlines = [PropertyPhotoInline, SpecialDatePricingInline]
+    inlines = [PropertyPhotoInline, SpecialDatePricingInline, HomeAssistantDeviceInline]
     fieldsets = (
         ("Información Básica", {
             "fields": ("name", "titulo", "slug", "descripcion", "location", "background_color")
@@ -558,6 +573,65 @@ class WelcomeDiscountConfigAdmin(admin.ModelAdmin):
             restrictions.append("Precio base")
         return ", ".join(restrictions) if restrictions else "Sin restricciones"
     get_restrictions_display.short_description = "Restricciones"
+
+
+@admin.register(HomeAssistantDevice)
+class HomeAssistantDeviceAdmin(admin.ModelAdmin):
+    list_display = (
+        'get_icon_display',
+        'friendly_name',
+        'property',
+        'entity_id',
+        'device_type',
+        'display_order',
+        'guest_accessible',
+        'is_active'
+    )
+    list_filter = ('property', 'device_type', 'guest_accessible', 'is_active', 'deleted')
+    search_fields = ('friendly_name', 'entity_id', 'property__name', 'description')
+    ordering = ['property', 'display_order', 'friendly_name']
+    list_editable = ('display_order', 'guest_accessible', 'is_active')
+    
+    fieldsets = (
+        ('Información Básica', {
+            'fields': ('property', 'entity_id', 'friendly_name', 'device_type')
+        }),
+        ('Visualización', {
+            'fields': ('icon', 'display_order', 'description')
+        }),
+        ('Permisos y Estado', {
+            'fields': ('guest_accessible', 'is_active')
+        }),
+        ('Configuración Adicional', {
+            'fields': ('device_config',),
+            'classes': ('collapse',),
+            'description': 'Configuración JSON específica del tipo de dispositivo'
+        })
+    )
+    
+    def get_queryset(self, request):
+        """Mostrar todos los dispositivos incluyendo eliminados"""
+        return HomeAssistantDevice.objects.all()
+    
+    actions = ['test_devices', 'activate_devices', 'deactivate_devices']
+    
+    def test_devices(self, request, queryset):
+        """Acción para probar la conexión con los dispositivos seleccionados"""
+        # Esta será implementada cuando tengamos el servicio de Home Assistant
+        self.message_user(request, f'Prueba de conexión para {queryset.count()} dispositivos (pendiente de implementar)')
+    test_devices.short_description = "Probar conexión con dispositivos"
+    
+    def activate_devices(self, request, queryset):
+        """Activar dispositivos seleccionados"""
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f'{updated} dispositivos activados.')
+    activate_devices.short_description = "Activar dispositivos"
+    
+    def deactivate_devices(self, request, queryset):
+        """Desactivar dispositivos seleccionados"""
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f'{updated} dispositivos desactivados.')
+    deactivate_devices.short_description = "Desactivar dispositivos"
 
 
 # Configurar títulos del admin para organizar mejor
