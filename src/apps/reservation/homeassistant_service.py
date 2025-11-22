@@ -11,8 +11,21 @@ class HomeAssistantService:
     """
     
     def __init__(self):
-        self.base_url = os.getenv('HOME_ASSISTANT_URL', 'https://tunnel.casaaustin.pe')
-        self.token = os.getenv('HOME_ASSISTANT_TOKEN', '')
+        self.base_url = os.getenv('HOME_ASSISTANT_URL')
+        self.token = os.getenv('HOME_ASSISTANT_TOKEN')
+        
+        if not self.base_url:
+            raise ValueError(
+                "HOME_ASSISTANT_URL no está configurada. "
+                "Por favor configura esta variable de entorno."
+            )
+        
+        if not self.token:
+            raise ValueError(
+                "HOME_ASSISTANT_TOKEN no está configurado. "
+                "Por favor configura este secret en Replit."
+            )
+        
         self.headers = {
             'Authorization': f'Bearer {self.token}',
             'Content-Type': 'application/json'

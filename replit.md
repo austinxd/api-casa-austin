@@ -105,8 +105,16 @@ Preferred communication style: Simple, everyday language.
 - **ChatGPT Builder API**
 
 ### Smart Home Integration
-- **Home Assistant**
+- **Home Assistant** (REST API)
   * **Enhancement (Nov 21, 2025)**: Added `referral_code` field to Home Assistant endpoint for displaying client referral information in smart home dashboards.
+  * **Feature added (Nov 22, 2025)**: Full Home Assistant device control integration implemented:
+    - `HomeAssistantDevice` model for storing devices per property with guest access control
+    - `HomeAssistantService` for REST API communication with HA (turn_on, turn_off, toggle, brightness, temperature)
+    - Admin endpoints for device management: list, control, test connection, and discover devices
+    - Django admin interface for inline device management per property
+    - Support for lights, switches, climate devices with real-time state monitoring
+    - Secure token-based authentication using long-lived access tokens stored in Replit secrets
+    - Environment variables: HOME_ASSISTANT_URL (https://tunnel.casaaustin.pe) and HOME_ASSISTANT_TOKEN
 
 ### Authentication
 - **Facebook OAuth**

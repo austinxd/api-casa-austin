@@ -292,7 +292,14 @@ class AdminHADeviceListView(APIView):
         if device_type:
             queryset = queryset.filter(device_type=device_type)
         
-        ha_service = HomeAssistantService()
+        try:
+            ha_service = HomeAssistantService()
+        except ValueError as e:
+            return Response(
+                {"error": f"Error de configuración de Home Assistant: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
         devices_data = []
         
         for device in queryset:
@@ -381,17 +388,42 @@ class AdminHADeviceControlView(APIView):
         
         if not device.is_active:
             return Response(
-                {"error": "Dispositivo no está activo"},
+                {"error": "Dispositivo no está activo y no puede ser controlado"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        ha_service = HomeAssistantService()
+        if brightness is not None:
+            if device.device_type != 'light':
+                return Response(
+                    {"error": "El parámetro brightness solo es válido para dispositivos de tipo 'light'"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if not isinstance(brightness, int) or brightness < 0 or brightness > 255:
+                return Response(
+                    {"error": "brightness debe ser un número entero entre 0 y 255"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        if temperature is not None:
+            if device.device_type != 'climate':
+                return Response(
+                    {"error": "El parámetro temperature solo es válido para dispositivos de tipo 'climate'"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        try:
+            ha_service = HomeAssistantService()
+        except ValueError as e:
+            return Response(
+                {"error": f"Error de configuración de Home Assistant: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
         try:
             if action == 'turn_on':
-                if brightness and device.device_type == 'light':
+                if brightness is not None and device.device_type == 'light':
                     result = ha_service.set_light_brightness(device.entity_id, brightness)
-                elif temperature and device.device_type == 'climate':
+                elif temperature is not None and device.device_type == 'climate':
                     result = ha_service.set_climate_temperature(device.entity_id, temperature)
                 else:
                     result = ha_service.turn_on(device.entity_id)
@@ -436,7 +468,13 @@ class AdminHAConnectionTestView(APIView):
     )
     def get(self, request):
         """Prueba la conexión con Home Assistant"""
-        ha_service = HomeAssistantService()
+        try:
+            ha_service = HomeAssistantService()
+        except ValueError as e:
+            return Response(
+                {"error": f"Error de configuración de Home Assistant: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
         try:
             api_info = ha_service.test_connection()
@@ -507,7 +545,13 @@ class AdminHADiscoverDevicesView(APIView):
         filter_type = request.query_params.get('filter_type')
         search_term = request.query_params.get('search')
         
-        ha_service = HomeAssistantService()
+        try:
+            ha_service = HomeAssistantService()
+        except ValueError as e:
+            return Response(
+                {"error": f"Error de configuración de Home Assistant: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         
         try:
             if filter_type:
