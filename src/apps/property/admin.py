@@ -726,23 +726,14 @@ class HomeAssistantDeviceAdmin(admin.ModelAdmin):
                 ha_service = HomeAssistantService()
                 
                 if action == 'turn_on':
-                    result = ha_service.turn_on(device.entity_id)
-                    if result:
-                        messages.success(request, f'✅ {device.friendly_name} encendido correctamente')
-                    else:
-                        messages.error(request, f'⚠️ Error al encender {device.friendly_name}')
+                    ha_service.turn_on(device.entity_id)
+                    messages.success(request, f'✅ {device.friendly_name} encendido correctamente')
                 elif action == 'turn_off':
-                    result = ha_service.turn_off(device.entity_id)
-                    if result:
-                        messages.success(request, f'✅ {device.friendly_name} apagado correctamente')
-                    else:
-                        messages.error(request, f'⚠️ Error al apagar {device.friendly_name}')
+                    ha_service.turn_off(device.entity_id)
+                    messages.success(request, f'✅ {device.friendly_name} apagado correctamente')
                 elif action == 'toggle':
-                    result = ha_service.toggle(device.entity_id)
-                    if result:
-                        messages.success(request, f'✅ {device.friendly_name} alternado correctamente')
-                    else:
-                        messages.error(request, f'⚠️ Error al alternar {device.friendly_name}')
+                    ha_service.toggle(device.entity_id)
+                    messages.success(request, f'✅ {device.friendly_name} alternado correctamente')
             except HomeAssistantDevice.DoesNotExist:
                 messages.error(request, 'Dispositivo no encontrado')
             except Exception as e:
@@ -757,6 +748,7 @@ class HomeAssistantDeviceAdmin(admin.ModelAdmin):
     def turn_on_devices(self, request, queryset):
         """Encender los dispositivos seleccionados en Home Assistant"""
         from apps.reservation.homeassistant_service import HomeAssistantService
+        from django.contrib import messages
         
         ha_service = HomeAssistantService()
         success_count = 0
@@ -764,24 +756,22 @@ class HomeAssistantDeviceAdmin(admin.ModelAdmin):
         
         for device in queryset:
             try:
-                result = ha_service.turn_on(device.entity_id)
-                if result:
-                    success_count += 1
-                else:
-                    error_count += 1
+                ha_service.turn_on(device.entity_id)
+                success_count += 1
             except Exception as e:
                 error_count += 1
-                self.message_user(request, f'Error en {device.entity_id}: {str(e)}', level='ERROR')
+                messages.error(request, f'Error en {device.entity_id}: {str(e)}')
         
         if success_count > 0:
-            self.message_user(request, f'✅ {success_count} dispositivos encendidos correctamente.')
+            messages.success(request, f'✅ {success_count} dispositivos encendidos correctamente.')
         if error_count > 0:
-            self.message_user(request, f'⚠️ {error_count} dispositivos con errores.', level='WARNING')
+            messages.warning(request, f'⚠️ {error_count} dispositivos con errores.')
     turn_on_devices.short_description = "🟢 Encender dispositivos"
     
     def turn_off_devices(self, request, queryset):
         """Apagar los dispositivos seleccionados en Home Assistant"""
         from apps.reservation.homeassistant_service import HomeAssistantService
+        from django.contrib import messages
         
         ha_service = HomeAssistantService()
         success_count = 0
@@ -789,24 +779,22 @@ class HomeAssistantDeviceAdmin(admin.ModelAdmin):
         
         for device in queryset:
             try:
-                result = ha_service.turn_off(device.entity_id)
-                if result:
-                    success_count += 1
-                else:
-                    error_count += 1
+                ha_service.turn_off(device.entity_id)
+                success_count += 1
             except Exception as e:
                 error_count += 1
-                self.message_user(request, f'Error en {device.entity_id}: {str(e)}', level='ERROR')
+                messages.error(request, f'Error en {device.entity_id}: {str(e)}')
         
         if success_count > 0:
-            self.message_user(request, f'✅ {success_count} dispositivos apagados correctamente.')
+            messages.success(request, f'✅ {success_count} dispositivos apagados correctamente.')
         if error_count > 0:
-            self.message_user(request, f'⚠️ {error_count} dispositivos con errores.', level='WARNING')
+            messages.warning(request, f'⚠️ {error_count} dispositivos con errores.')
     turn_off_devices.short_description = "⚫ Apagar dispositivos"
     
     def toggle_devices(self, request, queryset):
         """Alternar el estado de los dispositivos seleccionados"""
         from apps.reservation.homeassistant_service import HomeAssistantService
+        from django.contrib import messages
         
         ha_service = HomeAssistantService()
         success_count = 0
@@ -814,19 +802,16 @@ class HomeAssistantDeviceAdmin(admin.ModelAdmin):
         
         for device in queryset:
             try:
-                result = ha_service.toggle(device.entity_id)
-                if result:
-                    success_count += 1
-                else:
-                    error_count += 1
+                ha_service.toggle(device.entity_id)
+                success_count += 1
             except Exception as e:
                 error_count += 1
-                self.message_user(request, f'Error en {device.entity_id}: {str(e)}', level='ERROR')
+                messages.error(request, f'Error en {device.entity_id}: {str(e)}')
         
         if success_count > 0:
-            self.message_user(request, f'✅ {success_count} dispositivos alternados correctamente.')
+            messages.success(request, f'✅ {success_count} dispositivos alternados correctamente.')
         if error_count > 0:
-            self.message_user(request, f'⚠️ {error_count} dispositivos con errores.', level='WARNING')
+            messages.warning(request, f'⚠️ {error_count} dispositivos con errores.')
     toggle_devices.short_description = "🔄 Alternar dispositivos (on/off)"
     
     def activate_devices(self, request, queryset):
