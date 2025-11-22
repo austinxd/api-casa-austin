@@ -599,25 +599,8 @@ class ClientCompleteRegistrationView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# Custom JWT Authentication for Clients
-class ClientJWTAuthentication(JWTAuthentication):
-
-    def get_user(self, validated_token):
-        """
-        Override to get client instead of user
-        """
-        try:
-            # Intentar primero con client_id (nuestro claim personalizado)
-            client_id = validated_token.get('client_id')
-            if not client_id:
-                # Si no hay client_id, intentar con user_id (claim estándar)
-                client_id = validated_token.get('user_id')
-
-            if client_id:
-                return Clients.objects.get(id=client_id, deleted=False)
-        except Clients.DoesNotExist:
-            pass
-        return None
+# Import ClientJWTAuthentication from dedicated module
+from .authentication import ClientJWTAuthentication
 
 
 class ClientVerifyDocumentView(APIView):

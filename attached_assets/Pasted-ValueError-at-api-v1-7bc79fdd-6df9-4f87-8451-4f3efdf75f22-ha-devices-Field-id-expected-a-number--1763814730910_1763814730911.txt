@@ -1,0 +1,119 @@
+ValueError at /api/v1/7bc79fdd-6df9-4f87-8451-4f3efdf75f22/ha/devices/
+Field 'id' expected a number but got '405a0119-caba-467c-8f4c-835f45402367'.
+
+Request Method: GET
+Request URL: http://api.casaaustin.pe/api/v1/7bc79fdd-6df9-4f87-8451-4f3efdf75f22/ha/devices/
+Django Version: 4.2.11
+Python Executable: /srv/casaaustin/api-casa-austin/venv-py311/bin/python3.11
+Python Version: 3.11.11
+Python Path: ['/srv/casaaustin/api-casa-austin/src', '/srv/casaaustin/api-casa-austin/venv-py311/bin', '/usr/lib64/python311.zip', '/usr/lib64/python3.11', '/usr/lib64/python3.11/lib-dynload', '/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages', '/srv/casaaustin/api-casa-austin/venv-py311/lib/python3.11/site-packages']
+Server time: Sat, 22 Nov 2025 07:31:49 -0500
+Installed Applications:
+['django.contrib.admin',
+ 'django.contrib.auth',
+ 'django.contrib.contenttypes',
+ 'django.contrib.sessions',
+ 'django.contrib.messages',
+ 'django.contrib.staticfiles',
+ 'apps.accounts',
+ 'apps.clients.apps.ClientsConfig',
+ 'apps.property',
+ 'apps.reservation',
+ 'apps.dashboard',
+ 'apps.staff',
+ 'apps.events',
+ 'rest_framework',
+ 'rest_framework_simplejwt',
+ 'drf_spectacular',
+ 'corsheaders']
+Installed Middleware:
+['corsheaders.middleware.CorsMiddleware',
+ 'django.middleware.security.SecurityMiddleware',
+ 'django.contrib.sessions.middleware.SessionMiddleware',
+ 'django.middleware.common.CommonMiddleware',
+ 'django.middleware.csrf.CsrfViewMiddleware',
+ 'django.contrib.auth.middleware.AuthenticationMiddleware',
+ 'django.contrib.messages.middleware.MessageMiddleware',
+ 'django.middleware.clickjacking.XFrameOptionsMiddleware']
+
+
+Traceback (most recent call last):
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/db/models/fields/__init__.py", line 2053, in get_prep_value
+    return int(value)
+           ^^^^^^^^^^
+
+The above exception (invalid literal for int() with base 10: '405a0119-caba-467c-8f4c-835f45402367') was the direct cause of the following exception:
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/core/handlers/exception.py", line 42, in inner
+    response = await get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/core/handlers/base.py", line 253, in _get_response_async
+    response = await wrapped_callback(
+               
+  File "/usr/lib64/python3.11/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/views/decorators/csrf.py", line 56, in wrapper_view
+    return view_func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/views/generic/base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/rest_framework/views.py", line 509, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/rest_framework/views.py", line 469, in handle_exception
+    self.raise_uncaught_exception(exc)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/rest_framework/views.py", line 480, in raise_uncaught_exception
+    raise exc
+    ^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/rest_framework/views.py", line 497, in dispatch
+    self.initial(request, *args, **kwargs)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/rest_framework/views.py", line 414, in initial
+    self.perform_authentication(request)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/rest_framework/views.py", line 324, in perform_authentication
+    request.user
+    ^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/rest_framework/request.py", line 231, in user
+    self._authenticate()
+    ^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/rest_framework/request.py", line 384, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/rest_framework_simplejwt/authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/rest_framework_simplejwt/authentication.py", line 130, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/db/models/query.py", line 623, in get
+    clone = self._chain() if self.query.combinator else self.filter(*args, **kwargs)
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/db/models/query.py", line 1436, in filter
+    return self._filter_or_exclude(False, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/db/models/query.py", line 1454, in _filter_or_exclude
+    clone._filter_or_exclude_inplace(negate, args, kwargs)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/db/models/query.py", line 1461, in _filter_or_exclude_inplace
+    self._query.add_q(Q(*args, **kwargs))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/db/models/sql/query.py", line 1546, in add_q
+    clause, _ = self._add_q(q_object, self.used_aliases)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/db/models/sql/query.py", line 1577, in _add_q
+    child_clause, needed_inner = self.build_filter(
+                                 
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/db/models/sql/query.py", line 1492, in build_filter
+    condition = self.build_lookup(lookups, col, value)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/db/models/sql/query.py", line 1319, in build_lookup
+    lookup = lookup_class(lhs, rhs)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/srv/casaaustin/api-casa-austin/venv-py311/lib64/python3.11/site-packages/django/db/models/lookups.py", line 27, in __init__
+    self.rhs = self.get_prep_lookup()

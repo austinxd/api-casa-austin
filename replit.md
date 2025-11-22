@@ -125,6 +125,7 @@ Preferred communication style: Simple, everyday language.
     - Real-time state synchronization with Home Assistant
     - JWT authentication required for all client endpoints
     - Added security: reservation_id in URL prevents ambiguity and improves audit trail
+    - Uses ClientJWTAuthentication backend to authenticate against Clients model (UUID primary key) instead of CustomUser model
 
 ### Authentication
 - **Facebook OAuth**

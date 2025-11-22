@@ -18,6 +18,7 @@ from .homeassistant_serializers import (
     DeviceActionSerializer,
     DeviceActionResponseSerializer
 )
+from apps.clients.authentication import ClientJWTAuthentication
 
 
 class HomeAssistantReservationView(APIView):
@@ -626,6 +627,7 @@ class ClientDeviceListView(HasActiveReservationMixin, APIView):
     Solo muestra dispositivos de la propiedad donde se hospedan,
     marcados como guest_accessible=True.
     """
+    authentication_classes = [ClientJWTAuthentication]
     permission_classes = [IsAuthenticated]
     
     @extend_schema(
@@ -751,6 +753,7 @@ class ClientDeviceActionView(HasActiveReservationMixin, APIView):
     Solo permite controlar dispositivos de la propiedad donde se hospedan,
     marcados como guest_accessible=True.
     """
+    authentication_classes = [ClientJWTAuthentication]
     permission_classes = [IsAuthenticated]
     
     @extend_schema(
