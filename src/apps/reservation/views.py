@@ -1311,6 +1311,11 @@ class QRReservationView(APIView):
                     if referral_discount:
                         client_data["referral_discount_percentage"] = float(referral_discount.discount_percentage)
             
+            # Agregar información de check-in, check-out y late checkout
+            client_data["check_in_date"] = reservation.check_in_date.isoformat()
+            client_data["check_out_date"] = reservation.check_out_date.isoformat()
+            client_data["late_checkout"] = reservation.late_checkout
+            
             return Response({
                 "success": True,
                 "data": client_data

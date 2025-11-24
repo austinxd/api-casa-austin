@@ -163,6 +163,7 @@ class PlayersListView(APIView):
                     'profile_picture': client.get_facebook_profile_picture() if client.facebook_linked else None,
                     'check_in_date': active_reservation.check_in_date.isoformat(),
                     'check_out_date': active_reservation.check_out_date.isoformat(),
+                    'late_checkout': active_reservation.late_checkout,
                 }
             }
             
@@ -1237,6 +1238,9 @@ class ParticipantsView(APIView):
             "message": "Muestra datos de sesión",
             "property_name": reservation.property.name,
             "property_thumbnail": property_thumbnail,
+            "check_in_date": reservation.check_in_date.isoformat(),
+            "check_out_date": reservation.check_out_date.isoformat(),
+            "late_checkout": reservation.late_checkout,
             "host": host_data,
             "participants": participants_data
         })

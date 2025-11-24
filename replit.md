@@ -89,6 +89,7 @@ Preferred communication style: Simple, everyday language.
   * **Bug fix (Nov 7, 2025)**: Fixed filter to use UTC boundary ranges instead of `__date` lookup to avoid MySQL CONVERT_TZ issues when timezone tables are missing.
 - Music System Integration migrated to a custom Deezer-based HTTP API for streaming and player control, with reservation-based sessions, host approval workflow for access requests, time-based validation, and auto-power management for players. Supports DLNA.
   * **Enhancement (Nov 22, 2025)**: Participants endpoint now includes separated first_name/last_name, referral_code, and property_thumbnail (main photo) for both host and participants.
+  * **Enhancement (Nov 24, 2025)**: Added `late_checkout` field to music endpoints (PlayersListView and ParticipantsView) and QR code endpoint (QRReservationView) to display late checkout status alongside check-in/check-out information.
 - Contact Synchronization script (`sync_contacts_nextcloud.py`) to Nextcloud via WebDAV, showing real-time reservation status with color-coded indicators, client points, and referral codes.
 
 ## External Dependencies
