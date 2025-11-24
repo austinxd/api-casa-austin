@@ -756,6 +756,7 @@ class ClientDeviceListView(HasActiveReservationMixin, APIView):
             "client_referral_code": client.referral_code,
             "check_in": active_reservation.check_in_date.isoformat(),
             "check_out": active_reservation.check_out_date.isoformat(),
+            "late_checkout": active_reservation.late_checkout,
             "devices_count": len(devices_data),
             "devices": devices_data
         })
