@@ -360,7 +360,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
             document_type_map = {
                 'pas': 'pasaporte',
                 'cex': 'carnet de extranjería',
-                'dni': 'DNI'
+                'dni': 'DNI',
+                'ruc': 'RUC'
             }
 
             document_type = document_type_map.get(client.document_type, None)
@@ -370,7 +371,13 @@ class ReservationsApiView(viewsets.ModelViewSet):
             checkin_date = format_date(reservation.check_in_date, format="d 'de' MMMM 'del' YYYY", locale='es')
             checkout_date = format_date(reservation.check_out_date, format="d 'de' MMMM 'del' YYYY", locale='es')
 
-            doc = DocxTemplate("/srv/casaaustin/api-casa-austin/src/plantilla.docx")
+            # Determinar qué plantilla usar según el tipo de documento
+            if client.document_type == 'ruc':
+                template_path = os.path.join(os.path.dirname(__file__), '../../plantilla_ruc.docx')
+            else:
+                template_path = os.path.join(os.path.dirname(__file__), '../../plantilla.docx')
+
+            doc = DocxTemplate(template_path)
 
             context = {
                 'nombre': f"{client.first_name.upper()} {client.last_name.upper()}",

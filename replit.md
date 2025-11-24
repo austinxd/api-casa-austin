@@ -67,6 +67,12 @@ Preferred communication style: Simple, everyday language.
 ### File Management
 - Image processing (Pillow) for property photos.
 - Document handling for vouchers and receipts.
+- Contract generation system with dual templates:
+  * **Feature added (Nov 24, 2025)**: Endpoint `/api/v1/reservations/{id}/contrato/` now supports both natural persons and companies
+  * Uses `plantilla.docx` for DNI, Passport, and Carnet de Extranjería (natural persons)
+  * Uses `plantilla_ruc.docx` for RUC (companies/legal entities)
+  * Automatically selects the appropriate template based on client's document type
+  * Generates PDF contracts using LibreOffice with reservation details (property, dates, price, guests)
 
 ### Technical Implementations
 - ERP pricing endpoint integration for smart availability search.
