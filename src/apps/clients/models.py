@@ -646,3 +646,95 @@ class ReferralRanking(BaseModel):
             deleted=False
         ).select_related('client').order_by('position')[:limit]
 
+
+class PushToken(BaseModel):
+    """Modelo para almacenar tokens de dispositivos Expo Push"""
+    
+    class DeviceType(models.TextChoices):
+        IOS = "ios", ("iOS")
+        ANDROID = "android", ("Android")
+    
+    client = models.ForeignKey(
+        Clients, 
+        on_delete=models.CASCADE, 
+        related_name='push_tokens',
+        help_text="Cliente propietario del dispositivo"
+    )
+    expo_token = models.CharField(
+        max_length=255, 
+        unique=True,
+        help_text="Token Expo Push (ExponentPushToken[xxx])"
+    )
+    device_type = models.CharField(
+        max_length=10,
+        choices=DeviceType.choices,
+        default=DeviceType.ANDROID,
+        help_text="Tipo de dispositivo"
+    )
+    device_name = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="Nombre del dispositivo (opcional)"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Token activo para recibir notificaciones"
+    )
+    last_used = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Última vez que se envió una notificación"
+    )
+    failed_attempts = models.PositiveIntegerField(
+        default=0,
+        help_text="Intentos fallidos consecutivos"
+    )
+    
+    class Meta:
+        verbose_name = "Token Push"
+        verbose_name_plural = "Tokens Push"
+        ordering = ['-created']
+    
+    def __str__(self):
+        return f"{self.client.first_name} - {self.device_type} - {'Activo' if self.is_active else 'Inactivo'}"
+    
+    def mark_as_used(self):
+        """Marca el token como usado y resetea intentos fallidos"""
+        from django.utils import timezone
+        self.last_used = timezone.now()
+        self.failed_attempts = 0
+        self.save(update_fields=['last_used', 'failed_attempts'])
+    
+    def mark_as_failed(self):
+        """Incrementa el contador de fallos"""
+        self.failed_attempts += 1
+        if self.failed_attempts >= 3:
+            self.is_active = False
+        self.save(update_fields=['failed_attempts', 'is_active'])
+    
+    @classmethod
+    def get_active_tokens_for_client(cls, client):
+        """Obtiene todos los tokens activos de un cliente"""
+        return cls.objects.filter(
+            client=client,
+            is_active=True,
+            deleted=False
+        )
+    
+    @classmethod
+    def register_token(cls, client, expo_token, device_type='android', device_name=None):
+        """Registra o actualiza un token de dispositivo"""
+        token, created = cls.objects.update_or_create(
+            expo_token=expo_token,
+            defaults={
+                'client': client,
+                'device_type': device_type,
+                'device_name': device_name,
+                'is_active': True,
+                'failed_attempts': 0,
+                'deleted': False
+            }
+        )
+        return token, created
+

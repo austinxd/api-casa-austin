@@ -108,6 +108,21 @@ Preferred communication style: Simple, everyday language.
 - **Twilio**
 - **Telegram Bot API**
 - **WhatsApp Business API**
+- **Expo Push Notifications**
+  * **Feature added (Nov 25, 2025)**: Full push notification system for React Native/Expo mobile apps
+  * `PushToken` model stores device tokens per client with automatic deactivation after 3 failed attempts
+  * `ExpoPushService` for sending notifications via Expo Push API (https://exp.host/--/api/v2/push/send)
+  * Client endpoints (JWT authenticated):
+    - `POST /api/v1/clients/push/register/` - Register device token
+    - `DELETE /api/v1/clients/push/unregister/` - Remove device token
+    - `GET /api/v1/clients/push/devices/` - List registered devices
+    - `POST /api/v1/clients/push/test/` - Send test notification to self
+  * Admin endpoints:
+    - `POST /api/v1/admin/push/send/` - Send notification to client or all users
+    - `GET /api/v1/admin/push/stats/` - Push token statistics
+  * Pre-built notification templates: reservation_created, payment_approved, checkin_reminder, points_earned, referral_bonus, welcome_discount
+  * Django admin interface with actions: activate/deactivate tokens, send test notifications
+  * Supports bulk notifications, device type tracking (iOS/Android), and failed attempt monitoring
 
 ### Data and Analytics
 - **Google Sheets API**

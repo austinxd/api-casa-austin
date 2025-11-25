@@ -3,7 +3,8 @@ from rest_framework.routers import DefaultRouter
 
 from . import views
 from . import auth_views
-from . import points_views  # Import the new views
+from . import points_views
+from . import push_views
 from .voucher_views import ClientVoucherUploadView, ClientReservationStatusView
 from .views import (
     MensajeFidelidadApiView, TokenApiClientApiView, ClientsApiView,
@@ -167,4 +168,25 @@ urlpatterns = [
     path('clients/track-search-export/', SearchTrackingExportView.as_view(), name='search-tracking-export'),
     path('clients/debug-sheets/', GoogleSheetsDebugView.as_view(), name='google-sheets-debug'),
     
+    # Push Notifications endpoints
+    path('clients/push/register/',
+         push_views.RegisterPushTokenView.as_view(),
+         name='push-register'),
+    path('clients/push/unregister/',
+         push_views.UnregisterPushTokenView.as_view(),
+         name='push-unregister'),
+    path('clients/push/devices/',
+         push_views.ClientPushTokensView.as_view(),
+         name='push-devices'),
+    path('clients/push/test/',
+         push_views.TestPushNotificationView.as_view(),
+         name='push-test'),
+    
+    # Admin Push Notifications endpoints
+    path('admin/push/send/',
+         push_views.AdminSendNotificationView.as_view(),
+         name='admin-push-send'),
+    path('admin/push/stats/',
+         push_views.AdminPushStatsView.as_view(),
+         name='admin-push-stats'),
 ]
