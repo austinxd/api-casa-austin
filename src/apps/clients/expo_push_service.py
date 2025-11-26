@@ -247,7 +247,10 @@ class ExpoPushService:
                 "sent": 0
             }
         
-        token_list = list(tokens.values_list('expo_token', flat=True))
+        # Obtener lista de tokens con info de dispositivo
+        token_objects = list(tokens)
+        token_list = [t.expo_token for t in token_objects]
+        
         result = ExpoPushService.send_bulk_notifications(
             tokens=token_list,
             title=title,
@@ -256,12 +259,34 @@ class ExpoPushService:
             sound=sound
         )
         
+        # Extraer tipo de notificación del data
+        notification_type = data.get('notification_type', 'unknown') if data else 'unknown'
+        
+        # Registrar logs para cada token enviado
         if result.get("success"):
-            tokens.update(last_used=__import__('django.utils.timezone', fromlist=['timezone']).timezone.now())
+            from django.utils import timezone
+            tokens.update(last_used=timezone.now())
             
-            if result.get("failed_tokens"):
+            failed_tokens = result.get("failed_tokens", [])
+            
+            # Crear logs para cada dispositivo
+            for token_obj in token_objects:
+                is_failed = token_obj.expo_token in failed_tokens
+                ExpoPushService._log_notification(
+                    recipient=client,
+                    title=title,
+                    body=body,
+                    notification_type=notification_type,
+                    data=data,
+                    expo_token=token_obj.expo_token,
+                    device_type=token_obj.device_type,
+                    success=not is_failed,
+                    error_message="Failed to send" if is_failed else None
+                )
+            
+            if failed_tokens:
                 PushToken.objects.filter(
-                    expo_token__in=result["failed_tokens"]
+                    expo_token__in=failed_tokens
                 ).update(failed_attempts=1)
         
         return result
@@ -302,7 +327,9 @@ class ExpoPushService:
                 "sent": 0
             }
         
-        token_list = list(tokens.values_list('expo_token', flat=True))
+        # Obtener lista de tokens con info de dispositivo y usuario
+        token_objects = list(tokens.select_related('user'))
+        token_list = [t.expo_token for t in token_objects]
         logger.info(f"📱 Enviando notificación push a {len(token_list)} administrador(es)")
         
         result = ExpoPushService.send_bulk_notifications(
@@ -313,11 +340,32 @@ class ExpoPushService:
             sound=sound
         )
         
+        # Extraer tipo de notificación del data
+        notification_type = data.get('notification_type', 'admin_notification') if data else 'admin_notification'
+        
+        # Registrar logs para cada token enviado
         if result.get("success"):
-            tokens.update(last_used=__import__('django.utils.timezone', fromlist=['timezone']).timezone.now())
+            from django.utils import timezone
+            tokens.update(last_used=timezone.now())
             
-            if result.get("failed_tokens"):
-                failed_tokens_list = result["failed_tokens"]
+            failed_tokens_list = result.get("failed_tokens", [])
+            
+            # Crear logs para cada administrador que recibió la notificación
+            for token_obj in token_objects:
+                is_failed = token_obj.expo_token in failed_tokens_list
+                ExpoPushService._log_notification(
+                    recipient=token_obj.user,
+                    title=title,
+                    body=body,
+                    notification_type=notification_type,
+                    data=data,
+                    expo_token=token_obj.expo_token,
+                    device_type=token_obj.device_type,
+                    success=not is_failed,
+                    error_message="Failed to send" if is_failed else None
+                )
+            
+            if failed_tokens_list:
                 for token in AdminPushToken.objects.filter(expo_token__in=failed_tokens_list):
                     token.mark_as_failed()
         

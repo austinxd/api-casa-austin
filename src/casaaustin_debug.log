@@ -6682,3 +6682,5 @@ INFO 2025-11-26 18:45:16,773 signals 4030 139818442112192 ✅ Actividad de nueva
 INFO 2025-11-26 18:45:16,775 signals 4030 139818442112192 📱 Nueva reserva 1de5d855-a918-4ce8-a318-aa78fabff533 creada - Enviando notificaciones push
 DEBUG 2025-11-26 18:45:16,778 signals 4030 139818442112192 Cliente sin tokens: Client has no active push tokens
 WARNING 2025-11-26 18:45:16,780 expo_push_service 4030 139818442112192 ⚠️ No hay tokens de administradores activos para enviar notificación
+INFO 2025-11-26 22:39:07,231 expo_push_service 327 140146131143872 Bulk push: 0 sent, 1 failed
+INFO 2025-11-26 22:39:39,985 expo_push_service 378 140585179987136 Bulk push: 0 sent, 2 failed
