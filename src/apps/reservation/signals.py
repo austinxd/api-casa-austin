@@ -1786,120 +1786,84 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
             if result_admin and result_admin.get('success'):
                 logger.info(f"✅ Notificación enviada a {result_admin.get('sent', 0)} admin(s)")
         
-        # 4. CAMBIO DE FECHAS
-        if old.check_in_date != instance.check_in_date or old.check_out_date != instance.check_out_date:
-            logger.info(f"📱 Cambio de fechas en reserva {instance.id}")
-            
+        # 4-6. DETECTAR TODOS LOS CAMBIOS Y CONSOLIDAR EN UNA NOTIFICACIÓN
+        changes = []
+        changes_data = {}
+        
+        # Detectar cambios de fechas
+        dates_changed = old.check_in_date != instance.check_in_date or old.check_out_date != instance.check_out_date
+        if dates_changed:
             check_in = NotificationTypes._format_date(instance.check_in_date)
             check_out = NotificationTypes._format_date(instance.check_out_date)
-            
-            # A) Notificar al CLIENTE
-            if instance.client:
-                notification = NotificationTypes.custom(
-                    title="Fechas de Reserva Actualizadas",
-                    body=f"Las fechas de tu reserva en {instance.property.name} han cambiado.\nNuevas fechas: {check_in} al {check_out}",
-                    data={
-                        "type": "reservation_updated",
-                        "reservation_id": str(instance.id),
-                        "check_in": str(instance.check_in_date),
-                        "check_out": str(instance.check_out_date),
-                        "screen": "ReservationDetail"
-                    }
-                )
-                result = ExpoPushService.send_to_client(
-                    client=instance.client,
-                    title=notification['title'],
-                    body=notification['body'],
-                    data=notification['data']
-                )
-                if result and result.get('success'):
-                    logger.info(f"✅ Notificación enviada al cliente: {result.get('sent', 0)} dispositivo(s)")
-            
-            # B) Notificar a ADMINISTRADORES
-            result_admin = ExpoPushService.send_to_admins(
-                title="Cambio de Fechas",
-                body=f"{client_name} - {instance.property.name}\nNuevas fechas: {check_in} al {check_out}",
-                data={
-                    "type": "admin_dates_changed",
-                    "reservation_id": str(instance.id),
-                    "client_name": client_name,
-                    "property_name": instance.property.name,
-                    "check_in": str(instance.check_in_date),
-                    "check_out": str(instance.check_out_date),
-                    "screen": "AdminReservationDetail"
-                }
-            )
-            if result_admin and result_admin.get('success'):
-                logger.info(f"✅ Notificación enviada a {result_admin.get('sent', 0)} admin(s)")
+            changes.append(f"Fechas: {check_in} al {check_out}")
+            changes_data.update({
+                "dates_changed": True,
+                "check_in": str(instance.check_in_date),
+                "check_out": str(instance.check_out_date)
+            })
         
-        # 5. CAMBIO DE PRECIO
-        if old.price_usd != instance.price_usd or old.price_sol != instance.price_sol:
-            logger.info(f"📱 Cambio de precio en reserva {instance.id}: ${old.price_usd} USD / S/{old.price_sol} PEN → ${instance.price_usd} USD / S/{instance.price_sol} PEN")
-            
+        # Detectar cambios de precio
+        price_changed = old.price_usd != instance.price_usd or old.price_sol != instance.price_sol
+        if price_changed:
             price_usd = NotificationTypes._format_price(instance.price_usd)
             price_pen = NotificationTypes._format_price(instance.price_sol)
-            
-            # A) Notificar al CLIENTE
-            if instance.client:
-                notification = NotificationTypes.custom(
-                    title="Precio Actualizado",
-                    body=f"El precio de tu reserva en {instance.property.name} ha sido actualizado.\nNuevo total: {price_usd} USD / S/{price_pen}",
-                    data={
-                        "type": "reservation_price_changed",
-                        "notification_type": "reservation_price_changed",
-                        "reservation_id": str(instance.id),
-                        "property_name": instance.property.name,
-                        "old_price_usd": str(old.price_usd),
-                        "new_price_usd": str(instance.price_usd),
-                        "old_price_pen": str(old.price_sol),
-                        "new_price_pen": str(instance.price_sol),
-                        "screen": "ReservationDetail"
-                    }
-                )
-                result = ExpoPushService.send_to_client(
-                    client=instance.client,
-                    title=notification['title'],
-                    body=notification['body'],
-                    data=notification['data']
-                )
-                if result and result.get('success'):
-                    logger.info(f"✅ Notificación enviada al cliente: {result.get('sent', 0)} dispositivo(s)")
-            
-            # B) Notificar a ADMINISTRADORES
-            result_admin = ExpoPushService.send_to_admins(
-                title="Cambio de Precio",
-                body=f"{client_name} - {instance.property.name}\nNuevo precio: {price_usd} USD / S/{price_pen}",
-                data={
-                    "type": "admin_price_changed",
-                    "notification_type": "admin_price_changed",
-                    "reservation_id": str(instance.id),
-                    "client_name": client_name,
-                    "property_name": instance.property.name,
-                    "old_price_usd": str(old.price_usd),
-                    "new_price_usd": str(instance.price_usd),
-                    "old_price_pen": str(old.price_sol),
-                    "new_price_pen": str(instance.price_sol),
-                    "screen": "AdminReservationDetail"
-                }
-            )
-            if result_admin and result_admin.get('success'):
-                logger.info(f"✅ Notificación enviada a {result_admin.get('sent', 0)} admin(s)")
+            changes.append(f"Precio: {price_usd} USD / S/{price_pen}")
+            changes_data.update({
+                "price_changed": True,
+                "old_price_usd": str(old.price_usd),
+                "new_price_usd": str(instance.price_usd),
+                "old_price_pen": str(old.price_sol),
+                "new_price_pen": str(instance.price_sol)
+            })
         
-        # 6. CAMBIO DE HUÉSPEDES
-        if old.guests != instance.guests:
+        # Detectar cambios de huéspedes
+        guests_changed = old.guests != instance.guests
+        if guests_changed:
             old_guests = old.guests or 0
             new_guests = instance.guests or 0
-            logger.info(f"📱 Cambio de huéspedes en reserva {instance.id}: {old_guests} → {new_guests}")
+            changes.append(f"Huéspedes: {new_guests} persona{'s' if new_guests != 1 else ''}")
+            changes_data.update({
+                "guests_changed": True,
+                "old_guests": old_guests,
+                "new_guests": new_guests
+            })
+        
+        # Si hay cambios, enviar UNA sola notificación consolidada
+        if changes:
+            logger.info(f"📱 Cambios en reserva {instance.id}: {', '.join(changes)}")
+            
+            # Construir mensaje consolidado
+            changes_text = "\n".join(changes)
+            
+            # Determinar tipo de notificación basado en cambios
+            if len(changes) > 1:
+                notification_type = "reservation_updated"
+                title_client = "Reserva Actualizada"
+                title_admin = "Reserva Modificada"
+            elif dates_changed:
+                notification_type = "reservation_dates_changed"
+                title_client = "Fechas Actualizadas"
+                title_admin = "Cambio de Fechas"
+            elif price_changed:
+                notification_type = "reservation_price_changed"
+                title_client = "Precio Actualizado"
+                title_admin = "Cambio de Precio"
+            else:  # guests_changed
+                notification_type = "reservation_guests_changed"
+                title_client = "Huéspedes Actualizados"
+                title_admin = "Cambio de Huéspedes"
             
             # A) Notificar al CLIENTE
             if instance.client:
                 notification = NotificationTypes.custom(
-                    title="Huéspedes Actualizados",
-                    body=f"La cantidad de huéspedes en tu reserva de {instance.property.name} ha cambiado.\nNuevo número: {new_guests} persona{'s' if new_guests != 1 else ''}",
+                    title=title_client,
+                    body=f"Tu reserva en {instance.property.name} ha sido actualizada:\n{changes_text}",
                     data={
-                        "type": "reservation_updated",
+                        "type": notification_type,
+                        "notification_type": notification_type,
                         "reservation_id": str(instance.id),
-                        "guests": new_guests,
+                        "property_name": instance.property.name,
+                        **changes_data,
                         "screen": "ReservationDetail"
                     }
                 )
@@ -1910,24 +1874,25 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
                     data=notification['data']
                 )
                 if result and result.get('success'):
-                    logger.info(f"✅ Notificación enviada al cliente: {result.get('sent', 0)} dispositivo(s)")
+                    logger.info(f"✅ Notificación consolidada enviada al cliente: {result.get('sent', 0)} dispositivo(s)")
             
             # B) Notificar a ADMINISTRADORES
+            admin_type = f"admin_{notification_type}" if not notification_type.startswith("admin_") else notification_type
             result_admin = ExpoPushService.send_to_admins(
-                title="Cambio de Huéspedes",
-                body=f"{client_name} - {instance.property.name}\nNuevo número: {new_guests} persona{'s' if new_guests != 1 else ''}",
+                title=title_admin,
+                body=f"{client_name} - {instance.property.name}\n{changes_text}",
                 data={
-                    "type": "admin_guests_changed",
+                    "type": admin_type,
+                    "notification_type": admin_type,
                     "reservation_id": str(instance.id),
                     "client_name": client_name,
                     "property_name": instance.property.name,
-                    "old_guests": old_guests,
-                    "new_guests": new_guests,
+                    **changes_data,
                     "screen": "AdminReservationDetail"
                 }
             )
             if result_admin and result_admin.get('success'):
-                logger.info(f"✅ Notificación enviada a {result_admin.get('sent', 0)} admin(s)")
+                logger.info(f"✅ Notificación consolidada enviada a {result_admin.get('sent', 0)} admin(s)")
     
     except ImportError:
         logger.warning("ExpoPushService no disponible - notificaciones push deshabilitadas")

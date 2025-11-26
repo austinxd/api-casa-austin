@@ -208,22 +208,55 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 
 ---
 
-### 10. Cambio de Fechas
-**Trigger:** Cuando se modifican las fechas de una reserva  
+### 10. Cambios Múltiples (Consolidado)
+**Trigger:** Cuando se modifican varias propiedades a la vez (fechas + precio + huéspedes)  
+**Type:** `reservation_updated`
+
+```json
+{
+  "title": "Reserva Actualizada",
+  "body": "Tu reserva en Casa Austin ha sido actualizada:\nFechas: 15 de diciembre del 2025 al 20 de diciembre del 2025\nPrecio: $550.00 USD / S/2,035.00\nHuéspedes: 6 personas",
+  "data": {
+    "type": "reservation_updated",
+    "notification_type": "reservation_updated",
+    "reservation_id": "uuid-123",
+    "property_name": "Casa Austin",
+    "dates_changed": true,
+    "check_in": "2025-12-15",
+    "check_out": "2025-12-20",
+    "price_changed": true,
+    "old_price_usd": "450.00",
+    "new_price_usd": "550.00",
+    "old_price_pen": "1665.00",
+    "new_price_pen": "2035.00",
+    "guests_changed": true,
+    "old_guests": 4,
+    "new_guests": 6,
+    "screen": "ReservationDetail"
+  }
+}
+```
+
+**Nota:** Si solo cambia UNA propiedad, usa el tipo específico (`reservation_dates_changed`, `reservation_price_changed`, o `reservation_guests_changed`)
+
+---
+
+### 11. Cambio de Fechas (Solo)
+**Trigger:** Cuando solo se modifican las fechas de una reserva  
 **Type:** `reservation_dates_changed`
 
 ```json
 {
   "title": "Fechas Actualizadas",
-  "body": "Las fechas de tu reserva en Casa Austin han cambiado.\nNuevas fechas: 15 de diciembre del 2025 al 20 de diciembre del 2025\nTotal: $550.00 USD",
+  "body": "Tu reserva en Casa Austin ha sido actualizada:\nFechas: 15 de diciembre del 2025 al 20 de diciembre del 2025",
   "data": {
     "type": "reservation_dates_changed",
     "notification_type": "reservation_dates_changed",
     "reservation_id": "uuid-123",
     "property_name": "Casa Austin",
+    "dates_changed": true,
     "check_in": "2025-12-15",
     "check_out": "2025-12-20",
-    "price_usd": "550.00",
     "screen": "ReservationDetail"
   }
 }
@@ -231,7 +264,7 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 
 ---
 
-### 11. Cambio de Precio
+### 12. Cambio de Precio (Solo)
 **Trigger:** Cuando se modifica el precio de una reserva  
 **Type:** `reservation_price_changed`
 
@@ -255,19 +288,45 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 
 ---
 
-### 12. Cambio de Huéspedes
-**Trigger:** Cuando cambia el número de huéspedes  
+### 13. Cambio de Precio (Solo)
+**Trigger:** Cuando solo se modifica el precio de una reserva  
+**Type:** `reservation_price_changed`
+
+```json
+{
+  "title": "Precio Actualizado",
+  "body": "Tu reserva en Casa Austin ha sido actualizada:\nPrecio: $500.00 USD / S/1,850.00",
+  "data": {
+    "type": "reservation_price_changed",
+    "notification_type": "reservation_price_changed",
+    "reservation_id": "uuid-123",
+    "property_name": "Casa Austin",
+    "price_changed": true,
+    "old_price_usd": "450.00",
+    "new_price_usd": "500.00",
+    "old_price_pen": "1665.00",
+    "new_price_pen": "1850.00",
+    "screen": "ReservationDetail"
+  }
+}
+```
+
+---
+
+### 14. Cambio de Huéspedes (Solo)
+**Trigger:** Cuando solo cambia el número de huéspedes  
 **Type:** `reservation_guests_changed`
 
 ```json
 {
   "title": "Huéspedes Actualizados",
-  "body": "La cantidad de huéspedes en tu reserva de Casa Austin ha cambiado.\nNuevo número: 6 personas",
+  "body": "Tu reserva en Casa Austin ha sido actualizada:\nHuéspedes: 6 personas",
   "data": {
     "type": "reservation_guests_changed",
     "notification_type": "reservation_guests_changed",
     "reservation_id": "uuid-123",
     "property_name": "Casa Austin",
+    "guests_changed": true,
     "old_guests": 4,
     "new_guests": 6,
     "screen": "ReservationDetail"
@@ -277,7 +336,7 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 
 ---
 
-### 13. Reserva Eliminada
+### 15. Reserva Eliminada
 **Trigger:** Cuando se elimina/cancela una reserva  
 **Type:** `reservation_deleted`
 
@@ -449,7 +508,7 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 
 ## 📊 RESUMEN DE TIPOS
 
-### Clientes (13 tipos)
+### Clientes (14 tipos)
 1. `reservation_created` - Nueva reserva
 2. `payment_approved` - Pago aprobado
 3. `payment_pending` - Pago pendiente
@@ -459,10 +518,11 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 7. `points_earned` - Puntos ganados
 8. `referral_bonus` - Bono por referido
 9. `welcome_discount` - Descuento de bienvenida
-10. `reservation_dates_changed` - Cambio de fechas
-11. `reservation_price_changed` - Cambio de precio
-12. `reservation_guests_changed` - Cambio de huéspedes
-13. `reservation_deleted` - Reserva eliminada
+10. `reservation_updated` - Cambios múltiples consolidados (fechas + precio + huéspedes)
+11. `reservation_dates_changed` - Cambio solo de fechas
+12. `reservation_price_changed` - Cambio solo de precio
+13. `reservation_guests_changed` - Cambio solo de huéspedes
+14. `reservation_deleted` - Reserva eliminada
 
 ### Administradores (6 tipos)
 1. `admin_reservation_created` - Nueva reserva
