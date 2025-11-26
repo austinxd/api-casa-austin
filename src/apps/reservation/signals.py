@@ -1,5 +1,5 @@
 import logging
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save, pre_save, pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
 from .models import Reservation, RentalReceipt
@@ -1924,3 +1924,75 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
         logger.warning("ExpoPushService no disponible - notificaciones push deshabilitadas")
     except Exception as e:
         logger.error(f"❌ Error enviando notificación push para reserva {instance.id}: {str(e)}", exc_info=True)
+
+@receiver(pre_delete, sender=Reservation)
+def reservation_pre_delete_handler(sender, instance, **kwargs):
+    """
+    Maneja notificaciones push cuando se elimina una reserva.
+    Notifica tanto al cliente como a los administradores.
+    """
+    try:
+        from apps.clients.expo_push_service import ExpoPushService, NotificationTypes
+        
+        if not instance or instance.deleted:
+            return
+        
+        logger.info(f"🗑️ Eliminando reserva {instance.id} - Enviando notificaciones")
+        
+        # Información de la reserva
+        client_name = f"{instance.client.first_name} {instance.client.last_name}" if instance.client else "Cliente desconocido"
+        check_in = NotificationTypes._format_date(instance.check_in_date)
+        check_out = NotificationTypes._format_date(instance.check_out_date)
+        price = NotificationTypes._format_price(instance.price_usd)
+        guests = instance.guests or 1
+        
+        # NOTIFICAR AL CLIENTE
+        if instance.client:
+            notification = NotificationTypes.custom(
+                title="Reserva Cancelada",
+                body=f"Tu reserva en {instance.property.name} ha sido cancelada.\nFechas: {check_in} al {check_out}\nSi tienes dudas, contáctanos.",
+                data={
+                    "type": "reservation_deleted",
+                    "notification_type": "reservation_deleted",
+                    "reservation_id": str(instance.id),
+                    "property_name": instance.property.name,
+                    "check_in": str(instance.check_in_date),
+                    "check_out": str(instance.check_out_date),
+                    "price_usd": str(instance.price_usd),
+                    "guests": guests,
+                    "screen": "Reservations"
+                }
+            )
+            result = ExpoPushService.send_to_client(
+                client=instance.client,
+                title=notification['title'],
+                body=notification['body'],
+                data=notification['data']
+            )
+            if result and result.get('success'):
+                logger.info(f"✅ Notificación de eliminación enviada al cliente: {result.get('sent', 0)} dispositivo(s)")
+        
+        # NOTIFICAR A ADMINISTRADORES
+        result_admin = ExpoPushService.send_to_admins(
+            title="Reserva Eliminada",
+            body=f"{client_name} - {instance.property.name}\n{check_in} al {check_out} | {guests} huéspedes | {price} USD",
+            data={
+                "type": "admin_reservation_deleted",
+                "notification_type": "admin_reservation_deleted",
+                "reservation_id": str(instance.id),
+                "property_name": instance.property.name,
+                "client_name": client_name,
+                "check_in": str(instance.check_in_date),
+                "check_out": str(instance.check_out_date),
+                "guests": guests,
+                "price_usd": str(instance.price_usd),
+                "screen": "AdminReservations"
+            }
+        )
+        if result_admin and result_admin.get('success'):
+            logger.info(f"✅ Notificación de eliminación enviada a {result_admin.get('sent', 0)} administrador(es)")
+    
+    except ImportError:
+        logger.warning("ExpoPushService no disponible - notificaciones push de eliminación deshabilitadas")
+    except Exception as e:
+        logger.error(f"❌ Error enviando notificación de eliminación para reserva {instance.id}: {str(e)}", exc_info=True)
