@@ -1795,6 +1795,32 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
             )
             if result.get('success'):
                 logger.info(f"✅ Notificación de cambio de precio enviada a {result.get('sent', 0)} dispositivo(s)")
+        
+        # 6. CAMBIO DE HUÉSPEDES
+        if old.guests != instance.guests:
+            old_guests = old.guests or 0
+            new_guests = instance.guests or 0
+            logger.info(f"📱 Cambio de huéspedes en reserva {instance.id}: {old_guests} → {new_guests}")
+            
+            notification = NotificationTypes.custom(
+                title="Huéspedes Actualizados",
+                body=f"La cantidad de huéspedes en tu reserva de {instance.property.name} ha cambiado.\nNuevo número: {new_guests} persona{'s' if new_guests != 1 else ''}",
+                data={
+                    "type": "reservation_updated",
+                    "reservation_id": str(instance.id),
+                    "guests": new_guests,
+                    "screen": "ReservationDetail"
+                }
+            )
+            
+            result = ExpoPushService.send_to_client(
+                client=instance.client,
+                title=notification['title'],
+                body=notification['body'],
+                data=notification['data']
+            )
+            if result.get('success'):
+                logger.info(f"✅ Notificación de cambio de huéspedes enviada a {result.get('sent', 0)} dispositivo(s)")
     
     except ImportError:
         logger.warning("ExpoPushService no disponible - notificaciones push deshabilitadas")
