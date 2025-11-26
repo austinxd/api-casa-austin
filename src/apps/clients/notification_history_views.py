@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import logging
 
 from .models import NotificationLog
-from .client_auth import ClientJWTAuthentication
+from .authentication import ClientJWTAuthentication
 
 logger = logging.getLogger(__name__)
 
