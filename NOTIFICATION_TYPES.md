@@ -238,14 +238,16 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 ```json
 {
   "title": "Precio Actualizado",
-  "body": "El precio de tu reserva en Casa Austin ha sido actualizado.\nNuevo precio: $500.00 USD",
+  "body": "El precio de tu reserva en Casa Austin ha sido actualizado.\nNuevo total: $500.00 USD / S/1,850.00",
   "data": {
     "type": "reservation_price_changed",
     "notification_type": "reservation_price_changed",
     "reservation_id": "uuid-123",
     "property_name": "Casa Austin",
-    "old_price": "450.00",
-    "new_price": "500.00",
+    "old_price_usd": "450.00",
+    "new_price_usd": "500.00",
+    "old_price_pen": "1665.00",
+    "new_price_pen": "1850.00",
     "screen": "ReservationDetail"
   }
 }
@@ -379,15 +381,17 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 ```json
 {
   "title": "Cambio de Precio",
-  "body": "Juan Pérez - Casa Austin\nNuevo precio: $500.00 USD",
+  "body": "Juan Pérez - Casa Austin\nNuevo precio: $500.00 USD / S/1,850.00",
   "data": {
     "type": "admin_price_changed",
     "notification_type": "admin_price_changed",
     "reservation_id": "uuid-123",
     "client_name": "Juan Pérez",
     "property_name": "Casa Austin",
-    "old_price": "450.00",
-    "new_price": "500.00",
+    "old_price_usd": "450.00",
+    "new_price_usd": "500.00",
+    "old_price_pen": "1665.00",
+    "new_price_pen": "1850.00",
     "screen": "AdminReservationDetail"
   }
 }
@@ -485,6 +489,9 @@ Campos específicos según tipo:
 - `check_out`: Fecha de salida
 - `guests`: Número de huéspedes
 - `price_usd`: Precio en USD
+- `price_pen`: Precio en PEN (soles)
+- `old_price_usd` / `new_price_usd`: Precio anterior y nuevo en USD
+- `old_price_pen` / `new_price_pen`: Precio anterior y nuevo en PEN
 - `old_*` / `new_*`: Valores anteriores y nuevos en cambios
 - `points`: Puntos ganados
 - `balance`: Balance actual de puntos

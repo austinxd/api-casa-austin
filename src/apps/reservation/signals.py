@@ -1833,20 +1833,26 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
                 logger.info(f"✅ Notificación enviada a {result_admin.get('sent', 0)} admin(s)")
         
         # 5. CAMBIO DE PRECIO
-        if old.price_usd != instance.price_usd:
-            logger.info(f"📱 Cambio de precio en reserva {instance.id}: ${old.price_usd} → ${instance.price_usd}")
+        if old.price_usd != instance.price_usd or old.price_sol != instance.price_sol:
+            logger.info(f"📱 Cambio de precio en reserva {instance.id}: ${old.price_usd} USD / S/{old.price_sol} PEN → ${instance.price_usd} USD / S/{instance.price_sol} PEN")
             
-            price = NotificationTypes._format_price(instance.price_usd)
+            price_usd = NotificationTypes._format_price(instance.price_usd)
+            price_pen = NotificationTypes._format_price(instance.price_sol)
             
             # A) Notificar al CLIENTE
             if instance.client:
                 notification = NotificationTypes.custom(
-                    title="Precio de Reserva Actualizado",
-                    body=f"El precio de tu reserva en {instance.property.name} ha sido actualizado.\nNuevo total: {price} USD",
+                    title="Precio Actualizado",
+                    body=f"El precio de tu reserva en {instance.property.name} ha sido actualizado.\nNuevo total: {price_usd} USD / S/{price_pen}",
                     data={
-                        "type": "reservation_updated",
+                        "type": "reservation_price_changed",
+                        "notification_type": "reservation_price_changed",
                         "reservation_id": str(instance.id),
-                        "price_usd": str(instance.price_usd),
+                        "property_name": instance.property.name,
+                        "old_price_usd": str(old.price_usd),
+                        "new_price_usd": str(instance.price_usd),
+                        "old_price_pen": str(old.price_sol),
+                        "new_price_pen": str(instance.price_sol),
                         "screen": "ReservationDetail"
                     }
                 )
@@ -1862,14 +1868,17 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
             # B) Notificar a ADMINISTRADORES
             result_admin = ExpoPushService.send_to_admins(
                 title="Cambio de Precio",
-                body=f"{client_name} - {instance.property.name}\nNuevo precio: {price} USD",
+                body=f"{client_name} - {instance.property.name}\nNuevo precio: {price_usd} USD / S/{price_pen}",
                 data={
                     "type": "admin_price_changed",
+                    "notification_type": "admin_price_changed",
                     "reservation_id": str(instance.id),
                     "client_name": client_name,
                     "property_name": instance.property.name,
-                    "old_price": str(old.price_usd),
-                    "new_price": str(instance.price_usd),
+                    "old_price_usd": str(old.price_usd),
+                    "new_price_usd": str(instance.price_usd),
+                    "old_price_pen": str(old.price_sol),
+                    "new_price_pen": str(instance.price_sol),
                     "screen": "AdminReservationDetail"
                 }
             )
