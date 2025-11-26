@@ -5,6 +5,7 @@ from . import views
 from . import auth_views
 from . import points_views
 from . import push_views
+from . import admin_push_views
 from .voucher_views import ClientVoucherUploadView, ClientReservationStatusView
 from .views import (
     MensajeFidelidadApiView, TokenApiClientApiView, ClientsApiView,
@@ -182,11 +183,28 @@ urlpatterns = [
          push_views.TestPushNotificationView.as_view(),
          name='push-test'),
     
-    # Admin Push Notifications endpoints
+    # Admin Push Notifications endpoints (old client-based - keeping for backwards compatibility)
     path('admin/push/send/',
          push_views.AdminSendNotificationView.as_view(),
          name='admin-push-send'),
     path('admin/push/stats/',
          push_views.AdminPushStatsView.as_view(),
          name='admin-push-stats'),
+    
+    # Admin Push Token Management (new admin-based system)
+    path('admin/push/register/',
+         admin_push_views.register_admin_push_token,
+         name='admin-push-register'),
+    path('admin/push/unregister/',
+         admin_push_views.unregister_admin_push_token,
+         name='admin-push-unregister'),
+    path('admin/push/devices/',
+         admin_push_views.list_admin_push_devices,
+         name='admin-push-devices'),
+    path('admin/push/test/',
+         admin_push_views.test_admin_push_notification,
+         name='admin-push-test'),
+    path('admin/push/statistics/',
+         admin_push_views.admin_push_stats,
+         name='admin-push-statistics'),
 ]

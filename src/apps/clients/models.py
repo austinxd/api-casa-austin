@@ -738,3 +738,103 @@ class PushToken(BaseModel):
         )
         return token, created
 
+
+class AdminPushToken(BaseModel):
+    """Tokens de notificaciones push para administradores"""
+    
+    class DeviceType(models.TextChoices):
+        IOS = "ios", ("iOS")
+        ANDROID = "android", ("Android")
+    
+    user = models.ForeignKey(
+        'accounts.CustomUser',
+        on_delete=models.CASCADE, 
+        related_name='push_tokens',
+        help_text="Usuario administrador propietario del dispositivo"
+    )
+    expo_token = models.CharField(
+        max_length=255, 
+        unique=True,
+        help_text="Token Expo Push (ExponentPushToken[xxx])"
+    )
+    device_type = models.CharField(
+        max_length=10,
+        choices=DeviceType.choices,
+        default=DeviceType.ANDROID,
+        help_text="Tipo de dispositivo"
+    )
+    device_name = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="Nombre del dispositivo (opcional)"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Token activo para recibir notificaciones"
+    )
+    last_used = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Última vez que se envió una notificación"
+    )
+    failed_attempts = models.PositiveIntegerField(
+        default=0,
+        help_text="Intentos fallidos consecutivos"
+    )
+    
+    class Meta:
+        verbose_name = "Token Push Administrador"
+        verbose_name_plural = "Tokens Push Administradores"
+        ordering = ['-created']
+    
+    def __str__(self):
+        return f"{self.user.get_full_name()} - {self.device_type} - {'Activo' if self.is_active else 'Inactivo'}"
+    
+    def mark_as_used(self):
+        """Marca el token como usado y resetea intentos fallidos"""
+        from django.utils import timezone
+        self.last_used = timezone.now()
+        self.failed_attempts = 0
+        self.save(update_fields=['last_used', 'failed_attempts'])
+    
+    def mark_as_failed(self):
+        """Incrementa el contador de fallos"""
+        self.failed_attempts += 1
+        if self.failed_attempts >= 3:
+            self.is_active = False
+        self.save(update_fields=['failed_attempts', 'is_active'])
+    
+    @classmethod
+    def get_active_tokens_for_user(cls, user):
+        """Obtiene todos los tokens activos de un usuario administrador"""
+        return cls.objects.filter(
+            user=user,
+            is_active=True,
+            deleted=False
+        )
+    
+    @classmethod
+    def get_all_active_admin_tokens(cls):
+        """Obtiene TODOS los tokens activos de administradores para broadcast"""
+        return cls.objects.filter(
+            is_active=True,
+            deleted=False
+        )
+    
+    @classmethod
+    def register_token(cls, user, expo_token, device_type='android', device_name=None):
+        """Registra o actualiza un token de dispositivo"""
+        token, created = cls.objects.update_or_create(
+            expo_token=expo_token,
+            defaults={
+                'user': user,
+                'device_type': device_type,
+                'device_name': device_name,
+                'is_active': True,
+                'failed_attempts': 0,
+                'deleted': False
+            }
+        )
+        return token, created
+

@@ -243,6 +243,63 @@ class ExpoPushService:
                 ).update(failed_attempts=1)
         
         return result
+    
+    @staticmethod
+    def send_to_admins(
+        title: str,
+        body: str,
+        data: Optional[Dict[str, Any]] = None,
+        sound: str = "default",
+        user_filter=None
+    ) -> Dict:
+        """
+        Envía notificación a todos los administradores con tokens activos
+        
+        Args:
+            title: Título
+            body: Mensaje
+            data: Datos adicionales
+            sound: Sonido
+            user_filter: Filtrar a un usuario específico (opcional)
+        
+        Returns:
+            Dict con resultados
+        """
+        from .models import AdminPushToken
+        
+        if user_filter:
+            tokens = AdminPushToken.get_active_tokens_for_user(user_filter)
+        else:
+            tokens = AdminPushToken.get_all_active_admin_tokens()
+        
+        if not tokens.exists():
+            logger.warning("⚠️ No hay tokens de administradores activos para enviar notificación")
+            return {
+                "success": False,
+                "error": "No active admin push tokens",
+                "sent": 0
+            }
+        
+        token_list = list(tokens.values_list('expo_token', flat=True))
+        logger.info(f"📱 Enviando notificación push a {len(token_list)} administrador(es)")
+        
+        result = ExpoPushService.send_bulk_notifications(
+            tokens=token_list,
+            title=title,
+            body=body,
+            data=data,
+            sound=sound
+        )
+        
+        if result.get("success"):
+            tokens.update(last_used=__import__('django.utils.timezone', fromlist=['timezone']).timezone.now())
+            
+            if result.get("failed_tokens"):
+                failed_tokens_list = result["failed_tokens"]
+                for token in AdminPushToken.objects.filter(expo_token__in=failed_tokens_list):
+                    token.mark_as_failed()
+        
+        return result
 
 
 class NotificationTypes:

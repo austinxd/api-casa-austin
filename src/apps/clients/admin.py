@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Clients, MensajeFidelidad, TokenApiClients, ReferralPointsConfig, ClientPoints, Achievement, ClientAchievement, ReferralRanking, PushToken
+from .models import Clients, MensajeFidelidad, TokenApiClients, ReferralPointsConfig, ClientPoints, Achievement, ClientAchievement, ReferralRanking, PushToken, AdminPushToken
 from apps.core.utils import ExportCsvMixin, ExportJsonMixin
 
 
@@ -194,6 +194,64 @@ class PushTokenAdmin(admin.ModelAdmin):
                 to=token.expo_token,
                 title="Prueba Admin",
                 body=f"Notificación de prueba para {token.client.first_name}",
+                data={"type": "admin_test"}
+            )
+            if result.get("success"):
+                sent += 1
+                token.mark_as_used()
+            else:
+                failed += 1
+        
+        self.message_user(request, f'Enviadas: {sent}, Fallidas: {failed}')
+    send_test_notification.short_description = "Enviar notificación de prueba"
+
+
+@admin.register(AdminPushToken)
+class AdminPushTokenAdmin(admin.ModelAdmin):
+    list_display = ('user', 'device_type', 'is_active', 'last_used', 'failed_attempts', 'created')
+    list_filter = ('device_type', 'is_active', 'created')
+    search_fields = ('user__first_name', 'user__last_name', 'user__email', 'device_name')
+    readonly_fields = ('expo_token', 'created', 'updated', 'last_used')
+    raw_id_fields = ('user',)
+    
+    fieldsets = (
+        ('Usuario Administrador', {
+            'fields': ('user',)
+        }),
+        ('Dispositivo', {
+            'fields': ('expo_token', 'device_type', 'device_name')
+        }),
+        ('Estado', {
+            'fields': ('is_active', 'failed_attempts', 'last_used')
+        }),
+        ('Fechas', {
+            'fields': ('created', 'updated'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['activate_tokens', 'deactivate_tokens', 'send_test_notification']
+    
+    def activate_tokens(self, request, queryset):
+        updated = queryset.update(is_active=True, failed_attempts=0)
+        self.message_user(request, f'{updated} token(s) de administrador activado(s)')
+    activate_tokens.short_description = "Activar tokens seleccionados"
+    
+    def deactivate_tokens(self, request, queryset):
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f'{updated} token(s) de administrador desactivado(s)')
+    deactivate_tokens.short_description = "Desactivar tokens seleccionados"
+    
+    def send_test_notification(self, request, queryset):
+        from .expo_push_service import ExpoPushService
+        
+        sent = 0
+        failed = 0
+        for token in queryset.filter(is_active=True):
+            result = ExpoPushService.send_push_notification(
+                to=token.expo_token,
+                title="Prueba Admin",
+                body=f"Notificación de prueba para {token.user.get_full_name()}",
                 data={"type": "admin_test"}
             )
             if result.get("success"):
