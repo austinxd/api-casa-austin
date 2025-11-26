@@ -1786,7 +1786,7 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
             if result_admin and result_admin.get('success'):
                 logger.info(f"✅ Notificación enviada a {result_admin.get('sent', 0)} admin(s)")
         
-        # 4-6. DETECTAR TODOS LOS CAMBIOS Y CONSOLIDAR EN UNA NOTIFICACIÓN
+        # 4-7. DETECTAR TODOS LOS CAMBIOS Y CONSOLIDAR EN UNA NOTIFICACIÓN
         changes = []
         changes_data = {}
         
@@ -1807,13 +1807,27 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
         if price_changed:
             price_usd = NotificationTypes._format_price(instance.price_usd)
             price_pen = NotificationTypes._format_price(instance.price_sol)
-            changes.append(f"Precio: {price_usd} USD / S/{price_pen}")
+            changes.append(f"Precio total: {price_usd} USD / S/{price_pen}")
             changes_data.update({
                 "price_changed": True,
                 "old_price_usd": str(old.price_usd),
                 "new_price_usd": str(instance.price_usd),
                 "old_price_pen": str(old.price_sol),
                 "new_price_pen": str(instance.price_sol)
+            })
+        
+        # Detectar cambios de adelanto
+        advance_changed = old.advance_payment != instance.advance_payment or old.advance_payment_currency != instance.advance_payment_currency
+        if advance_changed:
+            advance = NotificationTypes._format_price(instance.advance_payment)
+            currency = instance.advance_payment_currency.upper() if instance.advance_payment_currency else "USD"
+            changes.append(f"Adelanto: {advance} {currency}")
+            changes_data.update({
+                "advance_changed": True,
+                "old_advance": str(old.advance_payment),
+                "new_advance": str(instance.advance_payment),
+                "old_advance_currency": old.advance_payment_currency,
+                "new_advance_currency": instance.advance_payment_currency
             })
         
         # Detectar cambios de huéspedes
@@ -1848,6 +1862,10 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
                 notification_type = "reservation_price_changed"
                 title_client = "Precio Actualizado"
                 title_admin = "Cambio de Precio"
+            elif advance_changed:
+                notification_type = "reservation_advance_changed"
+                title_client = "Adelanto Actualizado"
+                title_admin = "Cambio de Adelanto"
             else:  # guests_changed
                 notification_type = "reservation_guests_changed"
                 title_client = "Huéspedes Actualizados"

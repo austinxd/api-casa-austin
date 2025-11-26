@@ -209,13 +209,13 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 ---
 
 ### 10. Cambios Múltiples (Consolidado)
-**Trigger:** Cuando se modifican varias propiedades a la vez (fechas + precio + huéspedes)  
+**Trigger:** Cuando se modifican varias propiedades a la vez (fechas + precio + adelanto + huéspedes)  
 **Type:** `reservation_updated`
 
 ```json
 {
   "title": "Reserva Actualizada",
-  "body": "Tu reserva en Casa Austin ha sido actualizada:\nFechas: 15 de diciembre del 2025 al 20 de diciembre del 2025\nPrecio: $550.00 USD / S/2,035.00\nHuéspedes: 6 personas",
+  "body": "Tu reserva en Casa Austin ha sido actualizada:\nFechas: 15 de diciembre del 2025 al 20 de diciembre del 2025\nPrecio total: $550.00 USD / S/2,035.00\nAdelanto: $200.00 USD\nHuéspedes: 6 personas",
   "data": {
     "type": "reservation_updated",
     "notification_type": "reservation_updated",
@@ -229,6 +229,11 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
     "new_price_usd": "550.00",
     "old_price_pen": "1665.00",
     "new_price_pen": "2035.00",
+    "advance_changed": true,
+    "old_advance": "150.00",
+    "new_advance": "200.00",
+    "old_advance_currency": "usd",
+    "new_advance_currency": "usd",
     "guests_changed": true,
     "old_guests": 4,
     "new_guests": 6,
@@ -237,7 +242,7 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 }
 ```
 
-**Nota:** Si solo cambia UNA propiedad, usa el tipo específico (`reservation_dates_changed`, `reservation_price_changed`, o `reservation_guests_changed`)
+**Nota:** Si solo cambia UNA propiedad, usa el tipo específico (`reservation_dates_changed`, `reservation_price_changed`, `reservation_advance_changed`, o `reservation_guests_changed`)
 
 ---
 
@@ -313,7 +318,32 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 
 ---
 
-### 14. Cambio de Huéspedes (Solo)
+### 14. Cambio de Adelanto (Solo)
+**Trigger:** Cuando solo se modifica el adelanto  
+**Type:** `reservation_advance_changed`
+
+```json
+{
+  "title": "Adelanto Actualizado",
+  "body": "Tu reserva en Casa Austin ha sido actualizada:\nAdelanto: $200.00 USD",
+  "data": {
+    "type": "reservation_advance_changed",
+    "notification_type": "reservation_advance_changed",
+    "reservation_id": "uuid-123",
+    "property_name": "Casa Austin",
+    "advance_changed": true,
+    "old_advance": "150.00",
+    "new_advance": "200.00",
+    "old_advance_currency": "usd",
+    "new_advance_currency": "usd",
+    "screen": "ReservationDetail"
+  }
+}
+```
+
+---
+
+### 15. Cambio de Huéspedes (Solo)
 **Trigger:** Cuando solo cambia el número de huéspedes  
 **Type:** `reservation_guests_changed`
 
@@ -336,7 +366,7 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 
 ---
 
-### 15. Reserva Eliminada
+### 16. Reserva Eliminada
 **Trigger:** Cuando se elimina/cancela una reserva  
 **Type:** `reservation_deleted`
 
@@ -508,7 +538,7 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 
 ## 📊 RESUMEN DE TIPOS
 
-### Clientes (14 tipos)
+### Clientes (15 tipos)
 1. `reservation_created` - Nueva reserva
 2. `payment_approved` - Pago aprobado
 3. `payment_pending` - Pago pendiente
@@ -518,11 +548,12 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 7. `points_earned` - Puntos ganados
 8. `referral_bonus` - Bono por referido
 9. `welcome_discount` - Descuento de bienvenida
-10. `reservation_updated` - Cambios múltiples consolidados (fechas + precio + huéspedes)
+10. `reservation_updated` - Cambios múltiples consolidados (fechas + precio + adelanto + huéspedes)
 11. `reservation_dates_changed` - Cambio solo de fechas
-12. `reservation_price_changed` - Cambio solo de precio
-13. `reservation_guests_changed` - Cambio solo de huéspedes
-14. `reservation_deleted` - Reserva eliminada
+12. `reservation_price_changed` - Cambio solo de precio total
+13. `reservation_advance_changed` - Cambio solo de adelanto
+14. `reservation_guests_changed` - Cambio solo de huéspedes
+15. `reservation_deleted` - Reserva eliminada
 
 ### Administradores (6 tipos)
 1. `admin_reservation_created` - Nueva reserva
@@ -548,10 +579,12 @@ Campos específicos según tipo:
 - `check_in`: Fecha de entrada
 - `check_out`: Fecha de salida
 - `guests`: Número de huéspedes
-- `price_usd`: Precio en USD
-- `price_pen`: Precio en PEN (soles)
-- `old_price_usd` / `new_price_usd`: Precio anterior y nuevo en USD
-- `old_price_pen` / `new_price_pen`: Precio anterior y nuevo en PEN
+- `price_usd`: Precio total en USD
+- `price_pen`: Precio total en PEN (soles)
+- `old_price_usd` / `new_price_usd`: Precio total anterior y nuevo en USD
+- `old_price_pen` / `new_price_pen`: Precio total anterior y nuevo en PEN
+- `old_advance` / `new_advance`: Adelanto anterior y nuevo
+- `old_advance_currency` / `new_advance_currency`: Moneda del adelanto (usd, sol, pen)
 - `old_*` / `new_*`: Valores anteriores y nuevos en cambios
 - `points`: Puntos ganados
 - `balance`: Balance actual de puntos
