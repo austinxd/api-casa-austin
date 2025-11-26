@@ -110,27 +110,34 @@ Preferred communication style: Simple, everyday language.
 - **WhatsApp Business API**
 - **Expo Push Notifications**
   * **Feature added (Nov 25, 2025)**: Full push notification system for React Native/Expo mobile apps
+  * **DUAL NOTIFICATION SYSTEM**: Supports notifications for both clients (mobile app users) AND administrators (staff/management)
   * `PushToken` model stores device tokens per client with automatic deactivation after 3 failed attempts
+  * `AdminPushToken` model stores device tokens per administrator (CustomUser) for staff notifications
   * `ExpoPushService` for sending notifications via Expo Push API (https://exp.host/--/api/v2/push/send)
-  * Client endpoints (JWT authenticated):
+  * Client endpoints (ClientJWT authenticated):
     - `POST /api/v1/clients/push/register/` - Register device token
     - `DELETE /api/v1/clients/push/unregister/` - Remove device token
     - `GET /api/v1/clients/push/devices/` - List registered devices
     - `POST /api/v1/clients/push/test/` - Send test notification to self
-  * Admin endpoints:
-    - `POST /api/v1/admin/push/send/` - Send notification to client or all users
-    - `GET /api/v1/admin/push/stats/` - Push token statistics
+  * Admin endpoints (Standard JWT authenticated):
+    - `POST /api/v1/admin/push/register/` - Register admin device token
+    - `DELETE /api/v1/admin/push/unregister/` - Remove admin device token
+    - `GET /api/v1/admin/push/devices/` - List registered admin devices
+    - `POST /api/v1/admin/push/test/` - Send test notification to self (admin)
+    - `GET /api/v1/admin/push/stats/` - Push token statistics (both client and admin)
   * Pre-built notification templates with detailed information: reservation_created, payment_approved, payment_pending, checkin_reminder, checkout_reminder, points_earned, referral_bonus, welcome_discount, reservation_cancelled, event_winner
-  * Django admin interface with actions: activate/deactivate tokens, send test notifications
+  * Django admin interface with actions: activate/deactivate tokens, send test notifications (separate admin pages for PushToken and AdminPushToken)
   * Supports bulk notifications, device type tracking (iOS/Android), and failed attempt monitoring
   * **Feature added (Nov 26, 2025)**: Automatic push notifications via Django signals
-    - Reservation created: Sends detailed notification with dates, guests, and total price
-    - Reservation modified: Detects changes in status, dates, and price, sends appropriate notifications
-    - Payment approved/pending/cancelled: Automatic status change notifications
+    - **DUAL NOTIFICATIONS**: Every reservation event sends to BOTH client AND all administrators
+    - Reservation created: Client receives confirmation, admins receive new booking alert with client name
+    - Reservation modified: Client receives update notification, admins receive change alerts (status, dates, price, guests)
+    - Payment approved/pending/cancelled: Both client and admins notified of payment status changes
     - Points earned: Notifies client when points are assigned after checkout with balance update
     - Referral bonus: Notifies referrer when their referral makes a reservation with points earned
     - Management command `send_reservation_reminders` for daily check-in/check-out reminders (run via cron)
   * Notification templates include formatted dates in Spanish, prices in USD, guest counts, and contextual details
+  * Admin notifications include client name, property name, and all reservation details for easy monitoring
 
 ### Data and Analytics
 - **Google Sheets API**
