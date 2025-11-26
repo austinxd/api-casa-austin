@@ -1690,10 +1690,12 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
                 body=notification['body'],
                 data=notification['data']
             )
-            if result.get('success'):
+            if result and result.get('success'):
                 logger.info(f"✅ Notificación de reserva creada enviada a {result.get('sent', 0)} dispositivo(s)")
+            elif result:
+                logger.warning(f"⚠️ No se pudo enviar notificación: {result.get('error', 'Error desconocido')}")
             else:
-                logger.warning(f"⚠️ No se pudo enviar notificación: {result.get('message')}")
+                logger.warning(f"⚠️ Error al enviar notificación: resultado nulo")
             return
         
         # 2. RESERVA MODIFICADA - Detectar cambios importantes

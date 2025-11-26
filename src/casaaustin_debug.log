@@ -6560,3 +6560,43 @@ INFO 2025-11-26 18:22:09,149 signals 2490 140073396468928 🎯 Intentando crear 
 INFO 2025-11-26 18:22:09,181 signals 2490 140073396468928 ✅ Actividad de nueva reserva creada exitosamente: 032a5db2-d7de-4f3b-a535-6ac7e588d129
 INFO 2025-11-26 18:22:09,183 signals 2490 140073396468928 📱 Nueva reserva 9cfcb4f3-cc9d-4358-87ba-c6c09990e0b4 creada - Enviando notificación push
 WARNING 2025-11-26 18:22:09,185 signals 2490 140073396468928 ⚠️ No se pudo enviar notificación: None
+INFO 2025-11-26 18:31:38,415 signals 2887 140293998599360 🔥 SIGNAL EJECUTADO: Nueva reserva creada ID 8a70fd45-c138-487b-8c4f-b6398e2e9d43 - Origen: client - Cliente: Clients object (0226a433-aacb-435b-a7a4-b9f52223c52f)
+DEBUG 2025-11-26 18:31:38,419 signals 2887 140293998599360 Enviando mensaje de Telegram: 💻 **WEB CLIENTE** - Reserva en casa 1
+Cliente: Test Cliente
+Check-in : Sábado 6 de diciembre
+Check-out : Lunes 8 de diciembre
+Invitados : 3
+Temperado : No
+Precio (USD) : 155.00 dólares
+Precio (Soles) : 600.00 soles
+Adelanto : 0.00 SOL
+Teléfono : +999888777 con imagen: None
+DEBUG 2025-11-26 18:31:38,419 telegram_notifier 2887 140293998599360 Preparando para enviar mensaje: ******************************************
+💻 RESERVA DESDE PANEL WEB 💻
+Cliente: Test Cliente
+Propiedad: casa 1
+Check-in : Sábado 6 de diciembre
+Check-out : Lunes 8 de diciembre
+Invitados : 3
+Temperado : No
+💰 Total: 600.00 soles soles
+📱 Teléfono: +999888777
+******************************************
+DEBUG 2025-11-26 18:31:38,421 telegram_notifier 2887 140293998599360 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-11-26 18:31:39,161 telegram_notifier 2887 140293998599360 Mensaje enviado.
+DEBUG 2025-11-26 18:31:39,162 telegram_notifier 2887 140293998599360 Mensaje enviado a través del executor.
+DEBUG 2025-11-26 18:31:39,162 telegram_notifier 2887 140293998599360 Preparando para enviar mensaje: ******Reserva en casa 1******
+Cliente: Test Cliente
+Cumpleaños: No disponible (Cumple No disponible años)
+Check-in : Sábado 6 de diciembre
+Check-out : Lunes 8 de diciembre
+Invitados : 3
+Temperado : No
+Teléfono : https://wa.me/999888777
+DEBUG 2025-11-26 18:31:39,163 telegram_notifier 2887 140293998599360 Enviando mensaje asincrónicamente a Telegram.
+DEBUG 2025-11-26 18:31:39,447 telegram_notifier 2887 140293998599360 Mensaje enviado.
+DEBUG 2025-11-26 18:31:39,448 telegram_notifier 2887 140293998599360 Mensaje enviado a través del executor.
+INFO 2025-11-26 18:31:39,448 signals 2887 140293998599360 🎯 Intentando crear actividad de feed para reserva 8a70fd45-c138-487b-8c4f-b6398e2e9d43
+INFO 2025-11-26 18:31:39,491 signals 2887 140293998599360 ✅ Actividad de nueva reserva creada exitosamente: 94a0e1cb-1ad0-4380-b8fe-f06a0f59f6bb
+INFO 2025-11-26 18:31:39,496 signals 2887 140293998599360 📱 Nueva reserva 8a70fd45-c138-487b-8c4f-b6398e2e9d43 creada - Enviando notificación push
+WARNING 2025-11-26 18:31:39,499 signals 2887 140293998599360 ⚠️ No se pudo enviar notificación: Client has no active push tokens
