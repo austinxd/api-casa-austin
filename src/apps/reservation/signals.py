@@ -1771,10 +1771,10 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
                 logger.info(f"✅ Notificación de cambio de fechas enviada a {result.get('sent', 0)} dispositivo(s)")
         
         # 5. CAMBIO DE PRECIO
-        if old.price_dolar != instance.price_dolar:
-            logger.info(f"📱 Cambio de precio en reserva {instance.id}: ${old.price_dolar} → ${instance.price_dolar}")
+        if old.price_usd != instance.price_usd:
+            logger.info(f"📱 Cambio de precio en reserva {instance.id}: ${old.price_usd} → ${instance.price_usd}")
             
-            price = NotificationTypes._format_price(instance.price_dolar)
+            price = NotificationTypes._format_price(instance.price_usd)
             
             notification = NotificationTypes.custom(
                 title="Precio de Reserva Actualizado",
@@ -1782,7 +1782,7 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
                 data={
                     "type": "reservation_updated",
                     "reservation_id": str(instance.id),
-                    "price_usd": str(instance.price_dolar),
+                    "price_usd": str(instance.price_usd),
                     "screen": "ReservationDetail"
                 }
             )

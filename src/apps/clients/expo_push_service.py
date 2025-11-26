@@ -272,7 +272,7 @@ class NotificationTypes:
         """Notificación detallada de reserva creada"""
         check_in = NotificationTypes._format_date(reservation.check_in_date)
         check_out = NotificationTypes._format_date(reservation.check_out_date)
-        price = NotificationTypes._format_price(reservation.price_dolar)
+        price = NotificationTypes._format_price(reservation.price_usd)
         guests = reservation.guests or 1
         
         body = (
@@ -292,7 +292,7 @@ class NotificationTypes:
                 "check_in": str(reservation.check_in_date),
                 "check_out": str(reservation.check_out_date),
                 "guests": guests,
-                "price_usd": str(reservation.price_dolar),
+                "price_usd": str(reservation.price_usd),
                 "screen": "ReservationDetail"
             }
         }
@@ -301,7 +301,7 @@ class NotificationTypes:
     def payment_approved(reservation) -> Dict:
         """Notificación detallada de pago aprobado"""
         check_in = NotificationTypes._format_date(reservation.check_in_date)
-        price = NotificationTypes._format_price(reservation.price_dolar)
+        price = NotificationTypes._format_price(reservation.price_usd)
         
         body = (
             f"El pago de tu reserva en {reservation.property.name} ha sido aprobado.\n"
@@ -318,7 +318,7 @@ class NotificationTypes:
                 "reservation_id": str(reservation.id),
                 "property_name": reservation.property.name,
                 "check_in": str(reservation.check_in_date),
-                "price_usd": str(reservation.price_dolar),
+                "price_usd": str(reservation.price_usd),
                 "screen": "ReservationDetail"
             }
         }
@@ -471,7 +471,7 @@ class NotificationTypes:
     def payment_pending(reservation) -> Dict:
         """Notificación detallada de pago pendiente"""
         check_in = NotificationTypes._format_date(reservation.check_in_date)
-        price = NotificationTypes._format_price(reservation.price_dolar)
+        price = NotificationTypes._format_price(reservation.price_usd)
         
         body = (
             f"Tu reserva en {reservation.property.name} está pendiente de pago.\n"
@@ -487,7 +487,7 @@ class NotificationTypes:
                 "type": "payment_pending",
                 "reservation_id": str(reservation.id),
                 "property_name": reservation.property.name,
-                "price_usd": str(reservation.price_dolar),
+                "price_usd": str(reservation.price_usd),
                 "screen": "ReservationDetail"
             }
         }
