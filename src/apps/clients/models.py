@@ -838,3 +838,157 @@ class AdminPushToken(BaseModel):
         )
         return token, created
 
+
+class NotificationLog(BaseModel):
+    """
+    Historial de notificaciones push enviadas
+    Almacena todas las notificaciones enviadas tanto a clientes como a administradores
+    """
+    # Receptor - puede ser cliente o administrador
+    client = models.ForeignKey(
+        Clients,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='notification_logs',
+        verbose_name='Cliente'
+    )
+    admin = models.ForeignKey(
+        'accounts.CustomUser',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='notification_logs',
+        verbose_name='Administrador'
+    )
+    
+    # Contenido de la notificación
+    title = models.CharField(
+        max_length=200,
+        verbose_name='Título'
+    )
+    body = models.TextField(
+        verbose_name='Cuerpo'
+    )
+    notification_type = models.CharField(
+        max_length=50,
+        verbose_name='Tipo de Notificación',
+        help_text='Ej: reservation_created, payment_approved, admin_reservation_created, etc.'
+    )
+    
+    # Metadata adicional
+    data = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name='Datos Adicionales',
+        help_text='Datos JSON enviados con la notificación'
+    )
+    
+    # Información del dispositivo
+    expo_token = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        verbose_name='Token Expo'
+    )
+    device_type = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name='Tipo de Dispositivo'
+    )
+    
+    # Estado
+    success = models.BooleanField(
+        default=False,
+        verbose_name='Enviado Exitosamente'
+    )
+    error_message = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Mensaje de Error'
+    )
+    read = models.BooleanField(
+        default=False,
+        verbose_name='Leída'
+    )
+    read_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Leída el'
+    )
+    
+    # Timestamp
+    sent_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Enviada el'
+    )
+
+    class Meta:
+        verbose_name = 'Log de Notificación'
+        verbose_name_plural = 'Logs de Notificaciones'
+        ordering = ['-sent_at']
+        indexes = [
+            models.Index(fields=['client', '-sent_at']),
+            models.Index(fields=['admin', '-sent_at']),
+            models.Index(fields=['notification_type', '-sent_at']),
+            models.Index(fields=['read', '-sent_at']),
+            models.Index(fields=['success', '-sent_at']),
+        ]
+
+    def __str__(self):
+        recipient = self.client or self.admin
+        if hasattr(recipient, 'get_full_name'):
+            recipient_name = recipient.get_full_name()
+        else:
+            recipient_name = str(recipient)
+        status = '✅' if self.success else '❌'
+        read_status = '👁️' if self.read else '📭'
+        return f"{status} {read_status} {self.notification_type} → {recipient_name} ({self.sent_at.strftime('%Y-%m-%d %H:%M')})"
+
+    @classmethod
+    def log_notification(cls, recipient, title, body, notification_type, data=None, 
+                        expo_token=None, device_type=None, success=False, error_message=None):
+        """
+        Crea un registro de notificación enviada
+        
+        Args:
+            recipient: Instancia de Clients o CustomUser
+            title: Título de la notificación
+            body: Cuerpo de la notificación
+            notification_type: Tipo de notificación
+            data: Datos JSON adicionales
+            expo_token: Token Expo usado
+            device_type: Tipo de dispositivo
+            success: Si se envió exitosamente
+            error_message: Mensaje de error si falló
+        """
+        from apps.accounts.models import CustomUser
+        
+        log_data = {
+            'title': title,
+            'body': body,
+            'notification_type': notification_type,
+            'data': data or {},
+            'expo_token': expo_token,
+            'device_type': device_type,
+            'success': success,
+            'error_message': error_message
+        }
+        
+        # Determinar si es cliente o administrador
+        if isinstance(recipient, Clients):
+            log_data['client'] = recipient
+        elif isinstance(recipient, CustomUser):
+            log_data['admin'] = recipient
+        
+        return cls.objects.create(**log_data)
+
+    def mark_as_read(self):
+        """Marca la notificación como leída"""
+        if not self.read:
+            from django.utils import timezone
+            self.read = True
+            self.read_at = timezone.now()
+            self.save(update_fields=['read', 'read_at'])
+

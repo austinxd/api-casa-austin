@@ -11,6 +11,28 @@ class ExpoPushService:
     """Servicio para enviar notificaciones push via Expo Push API"""
     
     @staticmethod
+    def _log_notification(recipient, title, body, notification_type, data, expo_token, device_type, success, error_message=None):
+        """
+        Helper interno para registrar notificaciones en el historial
+        Importa NotificationLog aquí para evitar imports circulares
+        """
+        try:
+            from .models import NotificationLog
+            NotificationLog.log_notification(
+                recipient=recipient,
+                title=title,
+                body=body,
+                notification_type=notification_type,
+                data=data,
+                expo_token=expo_token,
+                device_type=device_type,
+                success=success,
+                error_message=error_message
+            )
+        except Exception as e:
+            logger.error(f"Error al registrar notificación en historial: {str(e)}")
+    
+    @staticmethod
     def is_valid_expo_token(token: str) -> bool:
         """Valida que el token tenga el formato correcto de Expo"""
         if not token:

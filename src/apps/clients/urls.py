@@ -6,6 +6,7 @@ from . import auth_views
 from . import points_views
 from . import push_views
 from . import admin_push_views
+from . import notification_history_views
 from .voucher_views import ClientVoucherUploadView, ClientReservationStatusView
 from .views import (
     MensajeFidelidadApiView, TokenApiClientApiView, ClientsApiView,
@@ -207,4 +208,26 @@ urlpatterns = [
     path('admin/push/statistics/',
          admin_push_views.admin_push_stats,
          name='admin-push-statistics'),
+    
+    # Notification History endpoints (Admin)
+    path('admin/push/history/',
+         notification_history_views.admin_notification_history,
+         name='admin-push-history'),
+    path('admin/push/history/<uuid:notification_id>/read/',
+         notification_history_views.mark_notification_as_read,
+         name='admin-push-mark-read'),
+    path('admin/push/history/mark-all-read/',
+         notification_history_views.mark_all_as_read,
+         name='admin-push-mark-all-read'),
+    
+    # Notification History endpoints (Client)
+    path('clients/push/history/',
+         notification_history_views.client_notification_history,
+         name='client-push-history'),
+    path('clients/push/history/<uuid:notification_id>/read/',
+         notification_history_views.client_mark_notification_as_read,
+         name='client-push-mark-read'),
+    path('clients/push/history/mark-all-read/',
+         notification_history_views.client_mark_all_as_read,
+         name='client-push-mark-all-read'),
 ]

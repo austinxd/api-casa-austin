@@ -138,6 +138,18 @@ Preferred communication style: Simple, everyday language.
     - Management command `send_reservation_reminders` for daily check-in/check-out reminders (run via cron)
   * Notification templates include formatted dates in Spanish, prices in USD, guest counts, and contextual details
   * Admin notifications include client name, property name, and all reservation details for easy monitoring
+  * **Feature added (Nov 26, 2025)**: Historial de notificaciones push con endpoints para consulta y gestión
+    - `NotificationLog` model almacena todas las notificaciones enviadas (clientes y admins)
+    - Admin endpoints:
+      * `GET /api/v1/admin/push/history/` - Listar historial con filtros (tipo, leído, éxito, días, límite)
+      * `POST /api/v1/admin/push/history/<id>/read/` - Marcar notificación como leída
+      * `POST /api/v1/admin/push/history/mark-all-read/` - Marcar todas como leídas
+    - Client endpoints:
+      * `GET /api/v1/clients/push/history/` - Listar historial del cliente
+      * `POST /api/v1/clients/push/history/<id>/read/` - Marcar como leída
+      * `POST /api/v1/clients/push/history/mark-all-read/` - Marcar todas como leídas
+    - Django admin interface para gestión de logs con filtros y acciones masivas
+    - Campos rastreados: título, cuerpo, tipo, datos JSON, token, dispositivo, éxito/error, leído/no leído, timestamps
 
 ### Data and Analytics
 - **Google Sheets API**

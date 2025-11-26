@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Clients, MensajeFidelidad, TokenApiClients, ReferralPointsConfig, ClientPoints, Achievement, ClientAchievement, ReferralRanking, PushToken, AdminPushToken
+from .models import Clients, MensajeFidelidad, TokenApiClients, ReferralPointsConfig, ClientPoints, Achievement, ClientAchievement, ReferralRanking, PushToken, AdminPushToken, NotificationLog
 from apps.core.utils import ExportCsvMixin, ExportJsonMixin
 
 
@@ -262,3 +262,55 @@ class AdminPushTokenAdmin(admin.ModelAdmin):
         
         self.message_user(request, f'Enviadas: {sent}, Fallidas: {failed}')
     send_test_notification.short_description = "Enviar notificación de prueba"
+
+@admin.register(NotificationLog)
+class NotificationLogAdmin(admin.ModelAdmin):
+    list_display = ('custom_str', 'notification_type', 'recipient_info', 'success', 'read', 'sent_at')
+    list_filter = ('notification_type', 'success', 'read', 'device_type', 'sent_at')
+    search_fields = ('title', 'body', 'client__first_name', 'client__last_name', 'admin__first_name', 'admin__last_name')
+    readonly_fields = ('sent_at', 'created', 'updated')
+    date_hierarchy = 'sent_at'
+    
+    fieldsets = (
+        ('Receptor', {
+            'fields': ('client', 'admin')
+        }),
+        ('Contenido', {
+            'fields': ('notification_type', 'title', 'body', 'data')
+        }),
+        ('Dispositivo', {
+            'fields': ('expo_token', 'device_type')
+        }),
+        ('Estado', {
+            'fields': ('success', 'error_message', 'read', 'read_at')
+        }),
+        ('Fechas', {
+            'fields': ('sent_at', 'created', 'updated'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['mark_as_read', 'mark_as_unread']
+    
+    def custom_str(self, obj):
+        return str(obj)
+    custom_str.short_description = 'Notificación'
+    
+    def recipient_info(self, obj):
+        if obj.client:
+            return f"Cliente: {obj.client.first_name} {obj.client.last_name}"
+        elif obj.admin:
+            return f"Admin: {obj.admin.get_full_name()}"
+        return "Sin receptor"
+    recipient_info.short_description = "Receptor"
+    
+    def mark_as_read(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.filter(read=False).update(read=True, read_at=timezone.now())
+        self.message_user(request, f'{updated} notificación(es) marcada(s) como leída(s)')
+    mark_as_read.short_description = "Marcar como leídas"
+    
+    def mark_as_unread(self, request, queryset):
+        updated = queryset.update(read=False, read_at=None)
+        self.message_user(request, f'{updated} notificación(es) marcada(s) como no leída(s)')
+    mark_as_unread.short_description = "Marcar como no leídas"
