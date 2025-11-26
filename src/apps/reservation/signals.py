@@ -1646,3 +1646,157 @@ def determine_gap_reason(scheduled_date, property_obj, reservation):
     except Exception as e:
         logger.error(f"Error determinando razón del gap: {e}")
         return PropertyCleaningGap.GapReason.STAFF_OVERLOAD
+
+
+# ============================================================================
+# SEÑALES PARA NOTIFICACIONES PUSH
+# ============================================================================
+
+@receiver(pre_save, sender=Reservation)
+def track_reservation_push_changes(sender, instance, **kwargs):
+    """
+    Guarda el estado anterior de la reserva para detectar cambios
+    y enviar notificaciones push apropiadas
+    """
+    if instance.pk:
+        try:
+            instance._old_reservation = Reservation.objects.get(pk=instance.pk)
+        except Reservation.DoesNotExist:
+            instance._old_reservation = None
+    else:
+        instance._old_reservation = None
+
+
+@receiver(post_save, sender=Reservation)
+def send_reservation_push_notifications(sender, instance, created, **kwargs):
+    """
+    Envía notificaciones push cuando se crea o modifica una reserva
+    """
+    # Verificar que el cliente existe
+    if not instance.client:
+        logger.debug(f"Reserva {instance.id} sin cliente - no se envía notificación push")
+        return
+    
+    try:
+        from apps.clients.expo_push_service import ExpoPushService, NotificationTypes
+        
+        # 1. RESERVA NUEVA CREADA
+        if created:
+            logger.info(f"📱 Nueva reserva {instance.id} creada - Enviando notificación push")
+            notification = NotificationTypes.reservation_created(instance)
+            result = ExpoPushService.send_to_client(
+                client=instance.client,
+                title=notification['title'],
+                body=notification['body'],
+                data=notification['data']
+            )
+            if result.get('success'):
+                logger.info(f"✅ Notificación de reserva creada enviada a {result.get('sent', 0)} dispositivo(s)")
+            else:
+                logger.warning(f"⚠️ No se pudo enviar notificación: {result.get('message')}")
+            return
+        
+        # 2. RESERVA MODIFICADA - Detectar cambios importantes
+        old = getattr(instance, '_old_reservation', None)
+        if not old:
+            return
+        
+        # 3. CAMBIO DE ESTADO (Pago aprobado, cancelado, etc.)
+        if old.status != instance.status:
+            logger.info(f"📱 Cambio de estado en reserva {instance.id}: {old.status} → {instance.status}")
+            
+            # Estado pagado/confirmado
+            if instance.status in ['pago_confirmado', 'pagado', 'confirmed', 'approved']:
+                notification = NotificationTypes.payment_approved(instance)
+                result = ExpoPushService.send_to_client(
+                    client=instance.client,
+                    title=notification['title'],
+                    body=notification['body'],
+                    data=notification['data']
+                )
+                if result.get('success'):
+                    logger.info(f"✅ Notificación de pago aprobado enviada a {result.get('sent', 0)} dispositivo(s)")
+            
+            # Estado cancelado
+            elif instance.status in ['cancelled', 'cancelado']:
+                reason = getattr(instance, 'cancellation_reason', None) or "Sin motivo especificado"
+                notification = NotificationTypes.reservation_cancelled(instance, reason=reason)
+                result = ExpoPushService.send_to_client(
+                    client=instance.client,
+                    title=notification['title'],
+                    body=notification['body'],
+                    data=notification['data']
+                )
+                if result.get('success'):
+                    logger.info(f"✅ Notificación de cancelación enviada a {result.get('sent', 0)} dispositivo(s)")
+            
+            # Pago pendiente / En revisión
+            elif instance.status in ['pending', 'pendiente', 'under_review']:
+                notification = NotificationTypes.payment_pending(instance)
+                result = ExpoPushService.send_to_client(
+                    client=instance.client,
+                    title=notification['title'],
+                    body=notification['body'],
+                    data=notification['data']
+                )
+                if result.get('success'):
+                    logger.info(f"✅ Notificación de pago pendiente enviada a {result.get('sent', 0)} dispositivo(s)")
+        
+        # 4. CAMBIO DE FECHAS
+        if old.check_in_date != instance.check_in_date or old.check_out_date != instance.check_out_date:
+            logger.info(f"📱 Cambio de fechas en reserva {instance.id}")
+            
+            check_in = NotificationTypes._format_date(instance.check_in_date)
+            check_out = NotificationTypes._format_date(instance.check_out_date)
+            
+            notification = NotificationTypes.custom(
+                title="Fechas de Reserva Actualizadas",
+                body=f"Las fechas de tu reserva en {instance.property.name} han cambiado.\nNuevas fechas: {check_in} al {check_out}",
+                data={
+                    "type": "reservation_updated",
+                    "reservation_id": str(instance.id),
+                    "check_in": str(instance.check_in_date),
+                    "check_out": str(instance.check_out_date),
+                    "screen": "ReservationDetail"
+                }
+            )
+            
+            result = ExpoPushService.send_to_client(
+                client=instance.client,
+                title=notification['title'],
+                body=notification['body'],
+                data=notification['data']
+            )
+            if result.get('success'):
+                logger.info(f"✅ Notificación de cambio de fechas enviada a {result.get('sent', 0)} dispositivo(s)")
+        
+        # 5. CAMBIO DE PRECIO
+        if old.price_dolar != instance.price_dolar:
+            logger.info(f"📱 Cambio de precio en reserva {instance.id}: ${old.price_dolar} → ${instance.price_dolar}")
+            
+            price = NotificationTypes._format_price(instance.price_dolar)
+            
+            notification = NotificationTypes.custom(
+                title="Precio de Reserva Actualizado",
+                body=f"El precio de tu reserva en {instance.property.name} ha sido actualizado.\nNuevo total: {price} USD",
+                data={
+                    "type": "reservation_updated",
+                    "reservation_id": str(instance.id),
+                    "price_usd": str(instance.price_dolar),
+                    "screen": "ReservationDetail"
+                }
+            )
+            
+            result = ExpoPushService.send_to_client(
+                client=instance.client,
+                title=notification['title'],
+                body=notification['body'],
+                data=notification['data']
+            )
+            if result.get('success'):
+                logger.info(f"✅ Notificación de cambio de precio enviada a {result.get('sent', 0)} dispositivo(s)")
+    
+    except ImportError:
+        logger.warning("ExpoPushService no disponible - notificaciones push deshabilitadas")
+    except Exception as e:
+        logger.error(f"❌ Error enviando notificación push para reserva {instance.id}: {str(e)}", exc_info=True)

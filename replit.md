@@ -120,9 +120,17 @@ Preferred communication style: Simple, everyday language.
   * Admin endpoints:
     - `POST /api/v1/admin/push/send/` - Send notification to client or all users
     - `GET /api/v1/admin/push/stats/` - Push token statistics
-  * Pre-built notification templates: reservation_created, payment_approved, checkin_reminder, points_earned, referral_bonus, welcome_discount
+  * Pre-built notification templates with detailed information: reservation_created, payment_approved, payment_pending, checkin_reminder, checkout_reminder, points_earned, referral_bonus, welcome_discount, reservation_cancelled, event_winner
   * Django admin interface with actions: activate/deactivate tokens, send test notifications
   * Supports bulk notifications, device type tracking (iOS/Android), and failed attempt monitoring
+  * **Feature added (Nov 26, 2025)**: Automatic push notifications via Django signals
+    - Reservation created: Sends detailed notification with dates, guests, and total price
+    - Reservation modified: Detects changes in status, dates, and price, sends appropriate notifications
+    - Payment approved/pending/cancelled: Automatic status change notifications
+    - Points earned: Notifies client when points are assigned after checkout with balance update
+    - Referral bonus: Notifies referrer when their referral makes a reservation with points earned
+    - Management command `send_reservation_reminders` for daily check-in/check-out reminders (run via cron)
+  * Notification templates include formatted dates in Spanish, prices in USD, guest counts, and contextual details
 
 ### Data and Analytics
 - **Google Sheets API**

@@ -70,6 +70,28 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
         print(
             f"Puntos asignados: {points_to_add} puntos para cliente {instance.client.first_name} {instance.client.last_name}"
         )
+        
+        # 📱 NOTIFICACIÓN PUSH: Informar sobre puntos ganados
+        try:
+            from apps.clients.expo_push_service import ExpoPushService, NotificationTypes
+            notification = NotificationTypes.points_earned(
+                client=instance.client,
+                points=points_to_add,
+                reservation=instance,
+                reason="reserva"
+            )
+            result = ExpoPushService.send_to_client(
+                client=instance.client,
+                title=notification['title'],
+                body=notification['body'],
+                data=notification['data']
+            )
+            if result.get('success'):
+                logger.info(f"✅ Notificación de puntos ganados enviada a {result.get('sent', 0)} dispositivo(s)")
+        except ImportError:
+            logger.debug("ExpoPushService no disponible - notificaciones push deshabilitadas")
+        except Exception as e:
+            logger.error(f"Error enviando notificación de puntos: {str(e)}")
 
         # 📊 ACTIVITY FEED: Crear actividad para puntos ganados
         try:
@@ -125,6 +147,27 @@ def assign_points_after_checkout(sender, instance, created, **kwargs):
                         )
 
                         logger.debug(f"Puntos por referido procesados: {instance.client.referred_by.first_name} recibió {referral_points} puntos por referir a {instance.client.first_name}")
+                        
+                        # 📱 NOTIFICACIÓN PUSH: Informar sobre bono por referido
+                        try:
+                            from apps.clients.expo_push_service import ExpoPushService, NotificationTypes
+                            notification = NotificationTypes.referral_bonus(
+                                referred_client=instance.client,
+                                points=referral_points,
+                                referrer_client=instance.client.referred_by
+                            )
+                            result = ExpoPushService.send_to_client(
+                                client=instance.client.referred_by,
+                                title=notification['title'],
+                                body=notification['body'],
+                                data=notification['data']
+                            )
+                            if result.get('success'):
+                                logger.info(f"✅ Notificación de bono por referido enviada a {result.get('sent', 0)} dispositivo(s)")
+                        except ImportError:
+                            logger.debug("ExpoPushService no disponible - notificaciones push deshabilitadas")
+                        except Exception as e:
+                            logger.error(f"Error enviando notificación de referido: {str(e)}")
 
                         # 📊 ACTIVITY FEED: Crear actividad para puntos por referido
                         try:
