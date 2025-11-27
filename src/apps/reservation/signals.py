@@ -1716,9 +1716,14 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
             origin_display = instance.get_origin_display() if instance.origin else "No especificado"
             seller_name = f"{instance.seller.first_name} {instance.seller.last_name}" if instance.seller else "No asignado"
             
+            # Identificar quién creó la reserva
+            created_by_client = instance.origin == "client"
+            creator_emoji = "👤" if created_by_client else "👨‍💼"
+            creator_text = "Cliente Web" if created_by_client else "Administrador"
+            
             result_admin = ExpoPushService.send_to_admins(
-                title="Nueva Reserva Creada",
-                body=f"{client_name} - {instance.property.name}\n{check_in} al {check_out} | {guests} huéspedes | {price} USD{advance_text}\nOrigen: {origin_display} | Vendedor: {seller_name}",
+                title=f"{creator_emoji} Nueva Reserva Creada",
+                body=f"{client_name} - {instance.property.name}\n{check_in} al {check_out} | {guests} huéspedes | {price} USD{advance_text}\nOrigen: {origin_display} | Vendedor: {seller_name}\nCreada por: {creator_text}",
                 data={
                     "type": "admin_reservation_created",
                     "reservation_id": str(instance.id),
@@ -1734,6 +1739,8 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
                     "origin_display": origin_display,
                     "seller_id": str(instance.seller.id) if instance.seller else "",
                     "seller_name": seller_name,
+                    "created_by_client": created_by_client,
+                    "creator_type": creator_text,
                     "screen": "AdminReservationDetail"
                 }
             )

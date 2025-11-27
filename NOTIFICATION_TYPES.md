@@ -393,13 +393,14 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 ## 👨‍💼 NOTIFICACIONES PARA ADMINISTRADORES
 
 ### 1. Nueva Reserva Creada
-**Trigger:** Cuando un cliente crea una reserva  
+**Trigger:** Cuando se crea una reserva (por cliente o administrador)  
 **Type:** `admin_reservation_created`
 
+#### **Ejemplo 1: Creada por Cliente Web**
 ```json
 {
-  "title": "Nueva Reserva Creada",
-  "body": "Juan Pérez - Casa Austin\n15 de diciembre del 2025 al 18 de diciembre del 2025 | 4 huéspedes | $450.00 USD | Adelanto: $150.00 USD\nOrigen: Austin | Vendedor: María López",
+  "title": "👤 Nueva Reserva Creada",
+  "body": "Juan Pérez - Casa Austin\n15 de diciembre del 2025 al 18 de diciembre del 2025 | 4 huéspedes | $450.00 USD | Adelanto: $150.00 USD\nOrigen: Cliente Web | Vendedor: María López\nCreada por: Cliente Web",
   "data": {
     "type": "admin_reservation_created",
     "notification_type": "admin_reservation_created",
@@ -412,19 +413,51 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
     "price_usd": "450.00",
     "advance_payment": "150.00",
     "advance_currency": "usd",
-    "origin": "AUS",
+    "origin": "client",
+    "origin_display": "Cliente Web",
+    "seller_id": "uuid-seller-123",
+    "seller_name": "María López",
+    "created_by_client": true,
+    "creator_type": "Cliente Web",
+    "screen": "AdminReservationDetail"
+  }
+}
+```
+
+#### **Ejemplo 2: Creada por Administrador**
+```json
+{
+  "title": "👨‍💼 Nueva Reserva Creada",
+  "body": "Juan Pérez - Casa Austin\n15 de diciembre del 2025 al 18 de diciembre del 2025 | 4 huéspedes | $450.00 USD | Adelanto: $150.00 USD\nOrigen: Austin | Vendedor: María López\nCreada por: Administrador",
+  "data": {
+    "type": "admin_reservation_created",
+    "notification_type": "admin_reservation_created",
+    "reservation_id": "uuid-123",
+    "property_name": "Casa Austin",
+    "client_name": "Juan Pérez",
+    "check_in": "2025-12-15",
+    "check_out": "2025-12-18",
+    "guests": 4,
+    "price_usd": "450.00",
+    "advance_payment": "150.00",
+    "advance_currency": "usd",
+    "origin": "aus",
     "origin_display": "Austin",
     "seller_id": "uuid-seller-123",
     "seller_name": "María López",
+    "created_by_client": false,
+    "creator_type": "Administrador",
     "screen": "AdminReservationDetail"
   }
 }
 ```
 
 **Notas:** 
+- **Diferenciación visual**: Emoji 👤 para cliente, 👨‍💼 para admin
+- **Campo clave**: `created_by_client` (true/false) para identificar quién creó
+- **Lógica**: Si `origin == "client"` → Creada por cliente web
 - Si no hay adelanto, no se muestra el texto "| Adelanto: ..."
 - Si no hay vendedor, muestra "No asignado"
-- `origin_display` es el nombre legible del origen
 
 ---
 
