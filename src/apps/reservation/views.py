@@ -1387,22 +1387,35 @@ class ActiveReservationsView(APIView):
                     is_active = False
                 
                 if is_active:
+                    # Manejar reservas con y sin cliente (Airbnb, Mantenimiento)
                     client = res.client
+                    
+                    if client:
+                        client_name = f"{client.first_name or ''} {client.last_name or ''}".strip() or "Sin nombre"
+                        phone = client.tel_number or ''
+                        referral_code = client.get_referral_code() if hasattr(client, 'get_referral_code') else (client.referral_code or '')
+                    else:
+                        # Reservas sin cliente (Airbnb, Mantenimiento)
+                        origin_display = res.get_origin_display() if res.origin else "Reserva"
+                        client_name = f"Reserva {origin_display}"
+                        phone = res.tel_contact_number or ''
+                        referral_code = ''
                     
                     active_reservations.append({
                         'id': str(res.id),
                         'property': res.property.name if res.property else 'Sin propiedad',
                         'property_id': res.property.player_id if res.property else None,
-                        'client_name': f"{client.first_name or ''} {client.last_name or ''}".strip() or "Sin nombre",
-                        'phone': client.tel_number or '',
-                        'referral_code': client.get_referral_code() if hasattr(client, 'get_referral_code') else client.referral_code,
+                        'client_name': client_name,
+                        'phone': phone,
+                        'referral_code': referral_code,
                         'check_in_date': res.check_in_date.isoformat(),
                         'check_out_date': res.check_out_date.isoformat(),
                         'guests': res.guests,
                         'temperature_pool': res.temperature_pool,
                         'late_checkout': res.late_checkout,
                         'comentarios': res.comentarios_reservas or '',
-                        'is_currently_active': True
+                        'is_currently_active': True,
+                        'origin': res.origin or ''
                     })
             
             # Obtener reservas que hacen check-in hoy
@@ -1415,22 +1428,34 @@ class ActiveReservationsView(APIView):
             checkin_today = []
             
             for res in checkin_today_reservations:
+                # Manejar reservas con y sin cliente
                 client = res.client
+                
+                if client:
+                    client_name = f"{client.first_name or ''} {client.last_name or ''}".strip() or "Sin nombre"
+                    phone = client.tel_number or ''
+                    referral_code = client.get_referral_code() if hasattr(client, 'get_referral_code') else (client.referral_code or '')
+                else:
+                    origin_display = res.get_origin_display() if res.origin else "Reserva"
+                    client_name = f"Reserva {origin_display}"
+                    phone = res.tel_contact_number or ''
+                    referral_code = ''
                 
                 checkin_today.append({
                     'id': str(res.id),
                     'property': res.property.name if res.property else 'Sin propiedad',
                     'property_id': res.property.player_id if res.property else None,
-                    'client_name': f"{client.first_name or ''} {client.last_name or ''}".strip() or "Sin nombre",
-                    'phone': client.tel_number or '',
-                    'referral_code': client.get_referral_code() if hasattr(client, 'get_referral_code') else client.referral_code,
+                    'client_name': client_name,
+                    'phone': phone,
+                    'referral_code': referral_code,
                     'check_in_date': res.check_in_date.isoformat(),
                     'check_out_date': res.check_out_date.isoformat(),
                     'guests': res.guests,
                     'temperature_pool': res.temperature_pool,
                     'late_checkout': res.late_checkout,
                     'comentarios': res.comentarios_reservas or '',
-                    'checkin_time': '12:00 PM'
+                    'checkin_time': '12:00 PM',
+                    'origin': res.origin or ''
                 })
             
             return Response({
