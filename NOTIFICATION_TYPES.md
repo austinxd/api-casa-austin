@@ -399,7 +399,7 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 ```json
 {
   "title": "Nueva Reserva Creada",
-  "body": "Juan Pérez - Casa Austin\n15 de diciembre del 2025 al 18 de diciembre del 2025 | 4 huéspedes | $450.00 USD | Adelanto: $150.00 USD",
+  "body": "Juan Pérez - Casa Austin\n15 de diciembre del 2025 al 18 de diciembre del 2025 | 4 huéspedes | $450.00 USD | Adelanto: $150.00 USD\nOrigen: Austin | Vendedor: María López",
   "data": {
     "type": "admin_reservation_created",
     "notification_type": "admin_reservation_created",
@@ -412,12 +412,19 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
     "price_usd": "450.00",
     "advance_payment": "150.00",
     "advance_currency": "usd",
+    "origin": "AUS",
+    "origin_display": "Austin",
+    "seller_id": "uuid-seller-123",
+    "seller_name": "María López",
     "screen": "AdminReservationDetail"
   }
 }
 ```
 
-**Nota:** Si no hay adelanto, no se muestra el texto "| Adelanto: ..."
+**Notas:** 
+- Si no hay adelanto, no se muestra el texto "| Adelanto: ..."
+- Si no hay vendedor, muestra "No asignado"
+- `origin_display` es el nombre legible del origen
 
 ---
 
@@ -540,6 +547,40 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 
 ---
 
+### 7. Nuevo Cliente Registrado
+**Trigger:** Cuando un nuevo cliente se registra en la plataforma  
+**Type:** `admin_client_registered`
+
+```json
+{
+  "title": "Nuevo Cliente Registrado",
+  "body": "Juan Pérez\nDNI: 12345678 | 📱 +51987654321\nReferido por: María López",
+  "data": {
+    "type": "admin_client_registered",
+    "notification_type": "admin_client_registered",
+    "client_id": "uuid-client-123",
+    "client_name": "Juan Pérez",
+    "document_type": "dni",
+    "number_doc": "12345678",
+    "email": "juan@example.com",
+    "tel_number": "51987654321",
+    "referral_code": "JP123456",
+    "referred_by_id": "uuid-referrer-456",
+    "referred_by_name": "María López",
+    "is_password_set": false,
+    "screen": "AdminClients"
+  }
+}
+```
+
+**Notas:**
+- Si el cliente fue referido por alguien, muestra "Referido por: [nombre]"
+- Si no fue referido, no muestra la línea de referido
+- `is_password_set` indica si ya configuró su contraseña
+- `referral_code` es el código único del nuevo cliente
+
+---
+
 ## 📊 RESUMEN DE TIPOS
 
 ### Clientes (15 tipos)
@@ -559,13 +600,14 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 14. `reservation_guests_changed` - Cambio solo de huéspedes
 15. `reservation_deleted` - Reserva eliminada
 
-### Administradores (6 tipos)
+### Administradores (7 tipos)
 1. `admin_reservation_created` - Nueva reserva
 2. `admin_status_changed` - Cambio de estado
 3. `admin_dates_changed` - Cambio de fechas
 4. `admin_price_changed` - Cambio de precio
 5. `admin_guests_changed` - Cambio de huéspedes
 6. `admin_reservation_deleted` - Reserva eliminada
+7. `admin_client_registered` - Nuevo cliente registrado
 
 ---
 

@@ -48,11 +48,12 @@ def update_meta_audience(client):
         logger.warning(f"Error al actualizar audiencia de cliente {client.id}. Código: {response.status_code} Respuesta: {response.text}")
 
 def notify_new_client_registration(client):
-    """Envía notificación de Telegram cuando se registra un nuevo cliente"""
+    """Envía notificación de Telegram y Push cuando se registra un nuevo cliente"""
     try:
         client_name = f"{client.first_name} {client.last_name}" if client.last_name else client.first_name
         document_info = f"{client.get_document_type_display()}: {client.number_doc}"
         
+        # Telegram notification
         message = (
             f"🆕 **NUEVO CLIENTE REGISTRADO** 🆕\n"
             f"👤 Cliente: {client_name}\n"
@@ -64,7 +65,44 @@ def notify_new_client_registration(client):
         )
         
         send_telegram_message(message, settings.CLIENTS_CHAT_ID)
-        logger.debug(f"Notificación enviada para nuevo cliente: {client.id}")
+        logger.debug(f"Notificación Telegram enviada para nuevo cliente: {client.id}")
+        
+        # Push notification to admins
+        try:
+            from apps.clients.expo_push_service import ExpoPushService
+            
+            referred_by_text = ""
+            if client.referred_by:
+                referrer_name = f"{client.referred_by.first_name} {client.referred_by.last_name}" if client.referred_by.last_name else client.referred_by.first_name
+                referred_by_text = f"\nReferido por: {referrer_name}"
+            
+            result = ExpoPushService.send_to_admins(
+                title="Nuevo Cliente Registrado",
+                body=f"{client_name}\n{document_info} | 📱 +{client.tel_number}{referred_by_text}",
+                data={
+                    "type": "admin_client_registered",
+                    "notification_type": "admin_client_registered",
+                    "client_id": str(client.id),
+                    "client_name": client_name,
+                    "document_type": client.document_type,
+                    "number_doc": client.number_doc,
+                    "email": client.email or "",
+                    "tel_number": client.tel_number,
+                    "referral_code": client.referral_code or "",
+                    "referred_by_id": str(client.referred_by.id) if client.referred_by else "",
+                    "referred_by_name": f"{client.referred_by.first_name} {client.referred_by.last_name}" if client.referred_by and client.referred_by.last_name else (client.referred_by.first_name if client.referred_by else ""),
+                    "is_password_set": client.is_password_set,
+                    "screen": "AdminClients"
+                }
+            )
+            
+            if result and result.get('success'):
+                logger.info(f"✅ Notificación push enviada a {result.get('sent', 0)} administrador(es) para nuevo cliente")
+        except ImportError:
+            logger.warning("ExpoPushService no disponible - notificación push deshabilitada")
+        except Exception as push_error:
+            logger.error(f"Error enviando notificación push para nuevo cliente {client.id}: {str(push_error)}")
+            
     except Exception as e:
         logger.error(f"Error enviando notificación de nuevo cliente {client.id}: {str(e)}")
 

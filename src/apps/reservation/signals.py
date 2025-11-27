@@ -1712,9 +1712,13 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
                 advance_currency = instance.advance_payment_currency.upper() if instance.advance_payment_currency else "USD"
                 advance_text = f" | Adelanto: {advance_amount} {advance_currency}"
             
+            # Formatear origen y vendedor
+            origin_display = instance.get_origin_display() if instance.origin else "No especificado"
+            seller_name = f"{instance.seller.first_name} {instance.seller.last_name}" if instance.seller else "No asignado"
+            
             result_admin = ExpoPushService.send_to_admins(
                 title="Nueva Reserva Creada",
-                body=f"{client_name} - {instance.property.name}\n{check_in} al {check_out} | {guests} huéspedes | {price} USD{advance_text}",
+                body=f"{client_name} - {instance.property.name}\n{check_in} al {check_out} | {guests} huéspedes | {price} USD{advance_text}\nOrigen: {origin_display} | Vendedor: {seller_name}",
                 data={
                     "type": "admin_reservation_created",
                     "reservation_id": str(instance.id),
@@ -1726,6 +1730,10 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
                     "price_usd": str(instance.price_usd),
                     "advance_payment": str(instance.advance_payment) if instance.advance_payment else "0",
                     "advance_currency": instance.advance_payment_currency or "usd",
+                    "origin": instance.origin or "",
+                    "origin_display": origin_display,
+                    "seller_id": str(instance.seller.id) if instance.seller else "",
+                    "seller_name": seller_name,
                     "screen": "AdminReservationDetail"
                 }
             )

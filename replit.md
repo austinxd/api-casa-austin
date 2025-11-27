@@ -86,7 +86,7 @@ Preferred communication style: Simple, everyday language.
 - **Twilio**
 - **Telegram Bot API**
 - **WhatsApp Business API**
-- **Expo Push Notifications**: Dual notification system for clients and administrators with device token management, pre-built templates for various reservation events, and automatic push notifications via Django signals. Includes a notification history with admin and client-facing endpoints.
+- **Expo Push Notifications**: Dual notification system for clients and administrators with device token management, pre-built templates for various events (reservations, client registration), and automatic push notifications via Django signals. Includes smart notification consolidation (multiple changes trigger ONE notification), advance payment tracking with currency support, price changes in both USD and PEN, origin and seller tracking for admin notifications, and comprehensive notification history with admin and client-facing endpoints. Complete 22-notification system: 15 for clients, 7 for admins (including new client registration alerts).
 
 ### Data and Analytics
 - **Google Sheets API**
