@@ -399,7 +399,7 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 ```json
 {
   "title": "Nueva Reserva Creada",
-  "body": "Juan Pérez - Casa Austin\n15 de diciembre del 2025 al 18 de diciembre del 2025 | 4 huéspedes | $450.00 USD",
+  "body": "Juan Pérez - Casa Austin\n15 de diciembre del 2025 al 18 de diciembre del 2025 | 4 huéspedes | $450.00 USD | Adelanto: $150.00 USD",
   "data": {
     "type": "admin_reservation_created",
     "notification_type": "admin_reservation_created",
@@ -410,10 +410,14 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
     "check_out": "2025-12-18",
     "guests": 4,
     "price_usd": "450.00",
+    "advance_payment": "150.00",
+    "advance_currency": "usd",
     "screen": "AdminReservationDetail"
   }
 }
 ```
+
+**Nota:** Si no hay adelanto, no se muestra el texto "| Adelanto: ..."
 
 ---
 

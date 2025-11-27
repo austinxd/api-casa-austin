@@ -1705,9 +1705,16 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
             price = NotificationTypes._format_price(instance.price_usd)
             guests = instance.guests or 1
             
+            # Formatear adelanto si existe
+            advance_text = ""
+            if instance.advance_payment and instance.advance_payment > 0:
+                advance_amount = NotificationTypes._format_price(instance.advance_payment)
+                advance_currency = instance.advance_payment_currency.upper() if instance.advance_payment_currency else "USD"
+                advance_text = f" | Adelanto: {advance_amount} {advance_currency}"
+            
             result_admin = ExpoPushService.send_to_admins(
                 title="Nueva Reserva Creada",
-                body=f"{client_name} - {instance.property.name}\n{check_in} al {check_out} | {guests} huéspedes | {price} USD",
+                body=f"{client_name} - {instance.property.name}\n{check_in} al {check_out} | {guests} huéspedes | {price} USD{advance_text}",
                 data={
                     "type": "admin_reservation_created",
                     "reservation_id": str(instance.id),
@@ -1717,6 +1724,8 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
                     "check_out": str(instance.check_out_date),
                     "guests": guests,
                     "price_usd": str(instance.price_usd),
+                    "advance_payment": str(instance.advance_payment) if instance.advance_payment else "0",
+                    "advance_currency": instance.advance_payment_currency or "usd",
                     "screen": "AdminReservationDetail"
                 }
             )
