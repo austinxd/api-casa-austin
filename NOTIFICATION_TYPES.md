@@ -491,7 +491,39 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 
 ---
 
-### 3. Cambio de Estado
+### 3. Reserva Expirada (Cron Job)
+**Trigger:** Cuando el cron job elimina una reserva por no subir voucher a tiempo  
+**Type:** `admin_reservation_expired`
+
+```json
+{
+  "title": "⏰ Reserva Expirada (Auto)",
+  "body": "Juan Pérez - Casa Austin\n15 de diciembre del 2025 al 18 de diciembre del 2025 | 4 huéspedes | $450.00 USD\n❌ Eliminada: No subió voucher a tiempo",
+  "data": {
+    "type": "admin_reservation_expired",
+    "notification_type": "admin_reservation_expired",
+    "reservation_id": "uuid-123",
+    "property_name": "Casa Austin",
+    "client_name": "Juan Pérez",
+    "check_in": "2025-12-15",
+    "check_out": "2025-12-18",
+    "guests": 4,
+    "price_usd": "450.00",
+    "reason": "voucher_not_uploaded",
+    "deleted_by": "cron_job",
+    "screen": "AdminReservations"
+  }
+}
+```
+
+**Notas:**
+- Se ejecuta automáticamente por el cron job `delete_expired_reservations`
+- `deleted_by: "cron_job"` diferencia de eliminaciones manuales
+- `reason: "voucher_not_uploaded"` indica el motivo
+
+---
+
+### 4. Cambio de Estado
 **Trigger:** Cuando cambia el estado de una reserva  
 **Type:** `admin_status_changed`
 

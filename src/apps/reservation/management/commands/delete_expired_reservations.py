@@ -53,6 +53,9 @@ class Command(BaseCommand):
                 # Enviar WhatsApp al cliente SIEMPRE que se cancele una reserva
                 self._send_whatsapp_notification(reservation)
                 
+                # Enviar notificaciones PUSH al cliente y administradores
+                self._send_push_notifications(reservation)
+                
                 # Enviar Telegram interno solo si la reserva es para hoy o mañana
                 should_notify_telegram = reservation.check_in_date in [today, tomorrow]
                 if should_notify_telegram:
@@ -188,3 +191,70 @@ class Command(BaseCommand):
                 
         except Exception as e:
             logger.error(f"❌ Error registrando actividad en feed para reserva {reservation.id}: {str(e)}")
+
+    def _send_push_notifications(self, reservation):
+        """Envía notificaciones push al cliente y administradores cuando se elimina por expiración"""
+        try:
+            from apps.clients.expo_push_service import ExpoPushService, NotificationTypes
+            
+            # Información de la reserva
+            client_name = f"{reservation.client.first_name} {reservation.client.last_name}" if reservation.client else "Cliente desconocido"
+            check_in = NotificationTypes._format_date(reservation.check_in_date)
+            check_out = NotificationTypes._format_date(reservation.check_out_date)
+            price = NotificationTypes._format_price(reservation.price_usd)
+            guests = reservation.guests or 1
+            property_name = reservation.property.name if reservation.property else "Propiedad no disponible"
+            
+            # A) NOTIFICAR AL CLIENTE
+            if reservation.client:
+                notification = NotificationTypes.custom(
+                    title="⏰ Reserva Expirada",
+                    body=f"Tu reserva en {property_name} ha sido cancelada porque no se recibió el comprobante de pago a tiempo.\nFechas: {check_in} al {check_out}\nSi fue un error, contáctanos para ayudarte.",
+                    data={
+                        "type": "reservation_expired",
+                        "notification_type": "reservation_expired",
+                        "reservation_id": str(reservation.id),
+                        "property_name": property_name,
+                        "check_in": str(reservation.check_in_date),
+                        "check_out": str(reservation.check_out_date),
+                        "price_usd": str(reservation.price_usd),
+                        "guests": guests,
+                        "reason": "voucher_not_uploaded",
+                        "screen": "Reservations"
+                    }
+                )
+                result = ExpoPushService.send_to_client(
+                    client=reservation.client,
+                    title=notification['title'],
+                    body=notification['body'],
+                    data=notification['data']
+                )
+                if result and result.get('success'):
+                    logger.info(f"✅ Push de expiración enviado al cliente: {result.get('sent', 0)} dispositivo(s)")
+            
+            # B) NOTIFICAR A ADMINISTRADORES
+            result_admin = ExpoPushService.send_to_admins(
+                title="⏰ Reserva Expirada (Auto)",
+                body=f"{client_name} - {property_name}\n{check_in} al {check_out} | {guests} huéspedes | {price} USD\n❌ Eliminada: No subió voucher a tiempo",
+                data={
+                    "type": "admin_reservation_expired",
+                    "notification_type": "admin_reservation_expired",
+                    "reservation_id": str(reservation.id),
+                    "property_name": property_name,
+                    "client_name": client_name,
+                    "check_in": str(reservation.check_in_date),
+                    "check_out": str(reservation.check_out_date),
+                    "guests": guests,
+                    "price_usd": str(reservation.price_usd),
+                    "reason": "voucher_not_uploaded",
+                    "deleted_by": "cron_job",
+                    "screen": "AdminReservations"
+                }
+            )
+            if result_admin and result_admin.get('success'):
+                logger.info(f"✅ Push de expiración enviado a {result_admin.get('sent', 0)} administrador(es)")
+                
+        except ImportError:
+            logger.warning("ExpoPushService no disponible - notificaciones push deshabilitadas")
+        except Exception as e:
+            logger.error(f"❌ Error enviando notificaciones push para reserva {reservation.id}: {str(e)}")
