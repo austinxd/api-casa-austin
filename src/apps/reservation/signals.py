@@ -1814,6 +1814,18 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
         changes = []
         changes_data = {}
         
+        # Detectar PAGO COMPLETADO (full_payment cambió a True)
+        full_payment_completed = not old.full_payment and instance.full_payment
+        if full_payment_completed:
+            total_usd = NotificationTypes._format_price(instance.price_usd)
+            total_pen = NotificationTypes._format_price(instance.price_sol)
+            changes.append(f"Pago total completado: {total_usd} USD / S/{total_pen}")
+            changes_data.update({
+                "full_payment_completed": True,
+                "total_usd": str(instance.price_usd),
+                "total_pen": str(instance.price_sol)
+            })
+        
         # Detectar cambios de fechas
         dates_changed = old.check_in_date != instance.check_in_date or old.check_out_date != instance.check_out_date
         if dates_changed:
@@ -1840,9 +1852,9 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
                 "new_price_pen": str(instance.price_sol)
             })
         
-        # Detectar cambios de adelanto
+        # Detectar cambios de adelanto (solo si NO es pago completado)
         advance_changed = old.advance_payment != instance.advance_payment or old.advance_payment_currency != instance.advance_payment_currency
-        if advance_changed:
+        if advance_changed and not full_payment_completed:
             advance = NotificationTypes._format_price(instance.advance_payment)
             currency = instance.advance_payment_currency.upper() if instance.advance_payment_currency else "USD"
             changes.append(f"Adelanto: {advance} {currency}")
@@ -1874,7 +1886,12 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
             changes_text = "\n".join(changes)
             
             # Determinar tipo de notificación basado en cambios
-            if len(changes) > 1:
+            # PRIORIDAD: Pago Completado > Múltiples cambios > Cambios individuales
+            if full_payment_completed:
+                notification_type = "reservation_payment_completed"
+                title_client = "💰 Pago Completado"
+                title_admin = "💰 Pago Completado"
+            elif len(changes) > 1:
                 notification_type = "reservation_updated"
                 title_client = "Reserva Actualizada"
                 title_admin = "Reserva Modificada"

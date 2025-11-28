@@ -461,7 +461,37 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 
 ---
 
-### 2. Cambio de Estado
+### 2. Pago Completado
+**Trigger:** Cuando `full_payment` cambia de `false` a `true`  
+**Type:** `admin_reservation_payment_completed`
+
+```json
+{
+  "title": "💰 Pago Completado",
+  "body": "Juan Pérez - Casa Austin\nPago total completado: $450.00 USD / S/1,687.50",
+  "data": {
+    "type": "admin_reservation_payment_completed",
+    "notification_type": "admin_reservation_payment_completed",
+    "reservation_id": "uuid-123",
+    "client_name": "Juan Pérez",
+    "property_name": "Casa Austin",
+    "full_payment_completed": true,
+    "total_usd": "450.00",
+    "total_pen": "1687.50",
+    "screen": "AdminReservationDetail"
+  }
+}
+```
+
+**Notas:**
+- Este tipo tiene **prioridad** sobre "Cambio de Adelanto"
+- Se activa cuando `full_payment` pasa de `False` a `True`
+- Muestra el monto total en USD y PEN
+- El emoji 💰 indica visualmente que el pago está completo
+
+---
+
+### 3. Cambio de Estado
 **Trigger:** Cuando cambia el estado de una reserva  
 **Type:** `admin_status_changed`
 
