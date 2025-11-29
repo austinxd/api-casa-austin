@@ -1917,9 +1917,19 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
             
             # A) Notificar al CLIENTE
             if instance.client:
+                # Mensaje específico para PAGO COMPLETADO (sin decir "Adelanto")
+                if full_payment_completed:
+                    total_usd = NotificationTypes._format_price(instance.price_usd)
+                    total_pen = NotificationTypes._format_price_pen(instance.price_sol)
+                    check_in = NotificationTypes._format_date(instance.check_in_date)
+                    check_out = NotificationTypes._format_date(instance.check_out_date)
+                    client_body = f"El pago de tu reserva en {instance.property.name} ha sido completado.\nTotal: {total_usd} USD / {total_pen}\nFechas: {check_in} al {check_out}"
+                else:
+                    client_body = f"Tu reserva en {instance.property.name} ha sido actualizada:\n{changes_text}"
+                
                 notification = NotificationTypes.custom(
                     title=title_client,
-                    body=f"Tu reserva en {instance.property.name} ha sido actualizada:\n{changes_text}",
+                    body=client_body,
                     data={
                         "type": notification_type,
                         "notification_type": notification_type,
@@ -1940,9 +1950,18 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
             
             # B) Notificar a ADMINISTRADORES
             admin_type = f"admin_{notification_type}" if not notification_type.startswith("admin_") else notification_type
+            
+            # Mensaje específico para PAGO COMPLETADO (sin decir "Adelanto")
+            if full_payment_completed:
+                total_usd = NotificationTypes._format_price(instance.price_usd)
+                total_pen = NotificationTypes._format_price_pen(instance.price_sol)
+                admin_body = f"{client_name} - {instance.property.name}\nPago Completo: {total_usd} USD / {total_pen}"
+            else:
+                admin_body = f"{client_name} - {instance.property.name}\n{changes_text}"
+            
             result_admin = ExpoPushService.send_to_admins(
                 title=title_admin,
-                body=f"{client_name} - {instance.property.name}\n{changes_text}",
+                body=admin_body,
                 data={
                     "type": admin_type,
                     "notification_type": admin_type,
