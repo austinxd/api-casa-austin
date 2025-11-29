@@ -343,34 +343,32 @@ class ReservationListSerializer(ReservationSerializer):
 
 
 class CalendarReservationSerializer(serializers.ModelSerializer):
-    """Serializer ultra-ligero para el calendario - solo campos esenciales aplanados"""
-    client_name = serializers.SerializerMethodField()
-    property_name = serializers.SerializerMethodField()
-    property_color = serializers.SerializerMethodField()
-    check_in = serializers.DateField(source='check_in_date')
-    check_out = serializers.DateField(source='check_out_date')
+    """Serializer ultra-ligero para el calendario - estructura anidada mínima"""
+    client = serializers.SerializerMethodField()
+    property = serializers.SerializerMethodField()
 
     class Meta:
         model = Reservation
         fields = [
-            'id', 'client_name', 'guests', 'check_in', 'check_out',
+            'id', 'guests', 'check_in_date', 'check_out_date',
             'late_checkout', 'late_check_out_date', 'origin',
-            'property_color', 'property_name', 'status'
+            'status', 'client', 'property'
         ]
 
-    @extend_schema_field(serializers.CharField())
-    def get_client_name(self, instance):
+    @extend_schema_field(serializers.DictField())
+    def get_client(self, instance):
         if instance.client:
-            return instance.client.first_name
-        return "Sin cliente"
+            return {"first_name": instance.client.first_name}
+        return {"first_name": "Sin cliente"}
 
-    @extend_schema_field(serializers.CharField())
-    def get_property_name(self, instance):
-        return instance.property.name if instance.property else ""
-
-    @extend_schema_field(serializers.CharField())
-    def get_property_color(self, instance):
-        return instance.property.background_color if instance.property else "#808080"
+    @extend_schema_field(serializers.DictField())
+    def get_property(self, instance):
+        if instance.property:
+            return {
+                "name": instance.property.name,
+                "background_color": instance.property.background_color
+            }
+        return {"name": "", "background_color": "#808080"}
 
 
 class ClientReservationSerializer(serializers.ModelSerializer):
