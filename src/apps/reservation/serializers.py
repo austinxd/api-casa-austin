@@ -342,32 +342,35 @@ class ReservationListSerializer(ReservationSerializer):
         return instance.get_status_display() if hasattr(instance, 'get_status_display') else 'Aprobada'
 
 
-class CalendarReservationSerializer(ReservationSerializer):
-    """Serializer ligero para el calendario - solo información esencial"""
-    client = serializers.SerializerMethodField()
-    seller = serializers.SerializerMethodField()
-    property = serializers.SerializerMethodField()
+class CalendarReservationSerializer(serializers.ModelSerializer):
+    """Serializer ultra-ligero para el calendario - solo campos esenciales aplanados"""
+    client_name = serializers.SerializerMethodField()
+    property_name = serializers.SerializerMethodField()
+    property_color = serializers.SerializerMethodField()
+    check_in = serializers.DateField(source='check_in_date')
+    check_out = serializers.DateField(source='check_out_date')
 
     class Meta:
         model = Reservation
         fields = [
-            'id', 'check_in_date', 'check_out_date', 'guests',
-            'price_sol', 'price_usd', 'advance_payment_currency',
-            'adelanto_normalizado', 'status', 'client', 'seller', 'property', 'origin', 'late_checkout', 'late_check_out_date'
+            'id', 'client_name', 'guests', 'check_in', 'check_out',
+            'late_checkout', 'late_check_out_date', 'origin',
+            'property_color', 'property_name', 'status'
         ]
 
-    @extend_schema_field(ClientShortSerializer)
-    def get_client(self, instance):
-        return ClientShortSerializer(instance.client).data
+    @extend_schema_field(serializers.CharField())
+    def get_client_name(self, instance):
+        if instance.client:
+            return f"{instance.client.first_name} {instance.client.last_name}".strip()
+        return "Sin cliente"
 
-    @extend_schema_field(SellerSerializer)
-    def get_seller(self, instance):
-        return SellerSerializer(instance.seller).data
+    @extend_schema_field(serializers.CharField())
+    def get_property_name(self, instance):
+        return instance.property.name if instance.property else ""
 
-    @extend_schema_field(PropertyCalendarSerializer)
-    def get_property(self, instance):
-        # Usar el serializer ultra ligero que solo incluye información básica
-        return PropertyCalendarSerializer(instance.property).data
+    @extend_schema_field(serializers.CharField())
+    def get_property_color(self, instance):
+        return instance.property.background_color if instance.property else "#808080"
 
 
 class ClientReservationSerializer(serializers.ModelSerializer):
