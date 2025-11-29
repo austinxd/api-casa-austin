@@ -361,7 +361,7 @@ class CalendarReservationSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.CharField())
     def get_client_name(self, instance):
         if instance.client:
-            return f"{instance.client.first_name} {instance.client.last_name}".strip()
+            return instance.client.first_name
         return "Sin cliente"
 
     @extend_schema_field(serializers.CharField())
