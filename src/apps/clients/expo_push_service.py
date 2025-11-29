@@ -389,10 +389,24 @@ class NotificationTypes:
     
     @staticmethod
     def _format_price(price) -> str:
-        """Formatea precio en dólares"""
+        """Formatea precio en dólares con símbolo $"""
         if price:
             return f"${float(price):,.2f}"
         return "$0.00"
+    
+    @staticmethod
+    def _format_price_pen(price) -> str:
+        """Formatea precio en soles con símbolo S/"""
+        if price:
+            return f"S/{float(price):,.2f}"
+        return "S/0.00"
+    
+    @staticmethod
+    def _format_price_raw(price) -> str:
+        """Formatea precio sin símbolo de moneda (solo número)"""
+        if price:
+            return f"{float(price):,.2f}"
+        return "0.00"
     
     @staticmethod
     def reservation_created(reservation) -> Dict:

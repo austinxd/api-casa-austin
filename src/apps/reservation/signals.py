@@ -1818,8 +1818,8 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
         full_payment_completed = not old.full_payment and instance.full_payment
         if full_payment_completed:
             total_usd = NotificationTypes._format_price(instance.price_usd)
-            total_pen = NotificationTypes._format_price(instance.price_sol)
-            changes.append(f"Pago total completado: {total_usd} USD / S/{total_pen}")
+            total_pen = NotificationTypes._format_price_pen(instance.price_sol)
+            changes.append(f"Pago total completado: {total_usd} USD / {total_pen}")
             changes_data.update({
                 "full_payment_completed": True,
                 "total_usd": str(instance.price_usd),
@@ -1842,8 +1842,8 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
         price_changed = old.price_usd != instance.price_usd or old.price_sol != instance.price_sol
         if price_changed:
             price_usd = NotificationTypes._format_price(instance.price_usd)
-            price_pen = NotificationTypes._format_price(instance.price_sol)
-            changes.append(f"Precio total: {price_usd} USD / S/{price_pen}")
+            price_pen = NotificationTypes._format_price_pen(instance.price_sol)
+            changes.append(f"Precio total: {price_usd} USD / {price_pen}")
             changes_data.update({
                 "price_changed": True,
                 "old_price_usd": str(old.price_usd),
@@ -1855,9 +1855,12 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
         # Detectar cambios de adelanto (solo si NO es pago completado)
         advance_changed = old.advance_payment != instance.advance_payment or old.advance_payment_currency != instance.advance_payment_currency
         if advance_changed and not full_payment_completed:
-            advance = NotificationTypes._format_price(instance.advance_payment)
-            currency = instance.advance_payment_currency.upper() if instance.advance_payment_currency else "USD"
-            changes.append(f"Adelanto: {advance} {currency}")
+            currency = instance.advance_payment_currency.lower() if instance.advance_payment_currency else "usd"
+            if currency == "sol":
+                advance = NotificationTypes._format_price_pen(instance.advance_payment)
+            else:
+                advance = NotificationTypes._format_price(instance.advance_payment)
+            changes.append(f"Adelanto: {advance}")
             changes_data.update({
                 "advance_changed": True,
                 "old_advance": str(old.advance_payment),
