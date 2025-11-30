@@ -1705,12 +1705,16 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
             price = NotificationTypes._format_price(instance.price_usd)
             guests = instance.guests or 1
             
-            # Formatear adelanto si existe
-            advance_text = ""
-            if instance.advance_payment and instance.advance_payment > 0:
+            # Formatear pago: Completo o Adelanto
+            payment_text = ""
+            if instance.full_payment:
+                total_usd = NotificationTypes._format_price(instance.price_usd)
+                total_pen = NotificationTypes._format_price_pen(instance.price_sol)
+                payment_text = f" | 💰 Pago Completo: {total_usd} USD / {total_pen}"
+            elif instance.advance_payment and instance.advance_payment > 0:
                 advance_amount = NotificationTypes._format_price(instance.advance_payment)
                 advance_currency = instance.advance_payment_currency.upper() if instance.advance_payment_currency else "USD"
-                advance_text = f" | Adelanto: {advance_amount} {advance_currency}"
+                payment_text = f" | Adelanto: {advance_amount} {advance_currency}"
             
             # Formatear origen y vendedor
             origin_display = instance.get_origin_display() if instance.origin else "No especificado"
@@ -1723,7 +1727,7 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
             
             result_admin = ExpoPushService.send_to_admins(
                 title=f"{creator_emoji} Nueva Reserva Creada",
-                body=f"{client_name} - {instance.property.name}\n{check_in} al {check_out} | {guests} huéspedes | {price} USD{advance_text}\nOrigen: {origin_display} | Vendedor: {seller_name}\nCreada por: {creator_text}",
+                body=f"{client_name} - {instance.property.name}\n{check_in} al {check_out} | {guests} huéspedes | {price} USD{payment_text}\nOrigen: {origin_display} | Vendedor: {seller_name}\nCreada por: {creator_text}",
                 data={
                     "type": "admin_reservation_created",
                     "reservation_id": str(instance.id),
@@ -1733,6 +1737,8 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
                     "check_out": str(instance.check_out_date),
                     "guests": guests,
                     "price_usd": str(instance.price_usd),
+                    "price_sol": str(instance.price_sol),
+                    "full_payment": instance.full_payment,
                     "advance_payment": str(instance.advance_payment) if instance.advance_payment else "0",
                     "advance_currency": instance.advance_payment_currency or "usd",
                     "origin": instance.origin or "",
