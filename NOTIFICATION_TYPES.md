@@ -366,7 +366,35 @@ Documentación completa de todos los tipos de notificaciones push enviadas a cli
 
 ---
 
-### 16. Reserva Eliminada
+### 16. Pago Completado
+**Trigger:** Cuando `full_payment` cambia de `false` a `true`  
+**Type:** `reservation_payment_completed`
+
+```json
+{
+  "title": "💰 Pago Completado",
+  "body": "El pago de tu reserva en Casa Austin ha sido completado.\nTotal: $450.00 USD / S/1,687.50\nFechas: 15 de diciembre del 2025 al 18 de diciembre del 2025",
+  "data": {
+    "type": "reservation_payment_completed",
+    "notification_type": "reservation_payment_completed",
+    "reservation_id": "uuid-123",
+    "property_name": "Casa Austin",
+    "full_payment_completed": true,
+    "total_usd": "450.00",
+    "total_pen": "1687.50",
+    "screen": "ReservationDetail"
+  }
+}
+```
+
+**Notas:**
+- Este tipo tiene **prioridad máxima** sobre otros cambios
+- NO envía notificación de "Adelanto Actualizado" cuando es pago completo
+- Se activa tanto en cambio de `false → true` como al crear reserva con `full_payment: true`
+
+---
+
+### 17. Reserva Eliminada
 **Trigger:** Cuando se elimina/cancela una reserva  
 **Type:** `reservation_deleted`
 
