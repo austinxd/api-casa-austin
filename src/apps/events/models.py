@@ -966,3 +966,58 @@ class ActivityFeedConfig(BaseModel):
         except cls.DoesNotExist:
             # Si no hay configuración, sin reason específico
             return ""
+
+
+class MonthlyRevenueMeta(BaseModel):
+    """
+    Metas mensuales de ingresos configurables desde el admin panel.
+    Permite establecer objetivos de facturación por mes/año y compararlos con ingresos reales.
+    """
+
+    class Month(models.IntegerChoices):
+        JANUARY = 1, "Enero"
+        FEBRUARY = 2, "Febrero"
+        MARCH = 3, "Marzo"
+        APRIL = 4, "Abril"
+        MAY = 5, "Mayo"
+        JUNE = 6, "Junio"
+        JULY = 7, "Julio"
+        AUGUST = 8, "Agosto"
+        SEPTEMBER = 9, "Septiembre"
+        OCTOBER = 10, "Octubre"
+        NOVEMBER = 11, "Noviembre"
+        DECEMBER = 12, "Diciembre"
+
+    month = models.IntegerField(
+        choices=Month.choices,
+        help_text="Mes de la meta"
+    )
+    year = models.IntegerField(
+        help_text="Año de la meta (ej: 2025)"
+    )
+    target_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        help_text="Meta de ingresos en soles para este mes"
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text="Notas opcionales sobre esta meta (ej: temporada alta, evento especial)"
+    )
+
+    class Meta:
+        verbose_name = "Meta de Ingresos Mensual"
+        verbose_name_plural = "Metas de Ingresos Mensuales"
+        unique_together = ('month', 'year')
+        ordering = ['-year', 'month']
+
+    def __str__(self):
+        return f"{self.get_month_display()} {self.year} - S/. {self.target_amount:,.2f}"
+
+    @classmethod
+    def get_meta_for_month(cls, month, year):
+        """Obtiene la meta para un mes/año específico"""
+        try:
+            return cls.objects.get(month=month, year=year, deleted=False)
+        except cls.DoesNotExist:
+            return None

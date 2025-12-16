@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
-from .models import EventCategory, Event, EventRegistration, ActivityFeed, ActivityFeedConfig
+from .models import EventCategory, Event, EventRegistration, ActivityFeed, ActivityFeedConfig, MonthlyRevenueMeta
 
 
 @admin.register(EventCategory)
@@ -509,3 +509,111 @@ class ActivityFeedConfigAdmin(admin.ModelAdmin):
         updated = queryset.update(is_public_by_default=False)
         self.message_user(request, f'{updated} tipos configurados como privados por defecto.')
     make_all_private.short_description = '🔒 Privado por defecto'
+
+
+@admin.register(MonthlyRevenueMeta)
+class MonthlyRevenueMetaAdmin(admin.ModelAdmin):
+    """
+    Administración de Metas de Ingresos Mensuales
+    Permite configurar objetivos de facturación por mes
+    """
+
+    list_display = [
+        'month_year_display',
+        'target_amount_display',
+        'progress_display',
+        'notes_short',
+        'created'
+    ]
+
+    list_filter = ['year', 'month']
+    search_fields = ['notes']
+    ordering = ['-year', 'month']
+    list_per_page = 24  # 2 años de metas
+
+    fieldsets = (
+        ('📅 Período', {
+            'fields': ('month', 'year'),
+            'description': 'Selecciona el mes y año para la meta'
+        }),
+        ('💰 Meta de Ingresos', {
+            'fields': ('target_amount',),
+            'description': 'Define el objetivo de ingresos en soles para este período'
+        }),
+        ('📝 Información Adicional', {
+            'fields': ('notes',),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def month_year_display(self, obj):
+        """Mostrar mes y año formateado"""
+        return format_html(
+            '<strong>{}</strong> <span style="color: #666;">{}</span>',
+            obj.get_month_display(),
+            obj.year
+        )
+    month_year_display.short_description = 'Período'
+    month_year_display.admin_order_field = 'year'
+
+    def target_amount_display(self, obj):
+        """Mostrar monto formateado"""
+        return format_html(
+            '<span style="font-weight: bold; color: #28a745;">S/. {:,.2f}</span>',
+            obj.target_amount
+        )
+    target_amount_display.short_description = 'Meta'
+    target_amount_display.admin_order_field = 'target_amount'
+
+    def progress_display(self, obj):
+        """Mostrar progreso actual vs meta"""
+        from apps.reservation.models import Reservation
+        from django.db.models import Sum
+        from datetime import date
+        import calendar
+
+        # Calcular primer y último día del mes
+        first_day = date(obj.year, obj.month, 1)
+        last_day = date(obj.year, obj.month, calendar.monthrange(obj.year, obj.month)[1])
+
+        # Obtener ingresos reales del mes
+        actual_revenue = Reservation.objects.filter(
+            check_in_date__gte=first_day,
+            check_in_date__lte=last_day,
+            status='approved',
+            deleted=False
+        ).aggregate(total=Sum('price_sol'))['total'] or 0
+
+        # Calcular porcentaje
+        if obj.target_amount > 0:
+            percentage = (float(actual_revenue) / float(obj.target_amount)) * 100
+        else:
+            percentage = 0
+
+        # Color según progreso
+        if percentage >= 100:
+            color = '#28a745'  # Verde
+            icon = '✅'
+        elif percentage >= 75:
+            color = '#17a2b8'  # Azul
+            icon = '📈'
+        elif percentage >= 50:
+            color = '#ffc107'  # Amarillo
+            icon = '⚠️'
+        else:
+            color = '#dc3545'  # Rojo
+            icon = '📉'
+
+        return format_html(
+            '{} <span style="color: {}; font-weight: bold;">{:.1f}%</span>'
+            '<br><small style="color: #666;">S/. {:,.2f} de S/. {:,.2f}</small>',
+            icon, color, percentage, actual_revenue, obj.target_amount
+        )
+    progress_display.short_description = 'Progreso'
+
+    def notes_short(self, obj):
+        """Notas cortas"""
+        if obj.notes:
+            return obj.notes[:30] + "..." if len(obj.notes) > 30 else obj.notes
+        return format_html('<span style="color: #ccc;">-</span>')
+    notes_short.short_description = 'Notas'

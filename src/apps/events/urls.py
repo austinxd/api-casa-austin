@@ -8,7 +8,7 @@ from .views import (
     PublicEventDetailView,
     EventParticipantsView,
     EventWinnersView,
-    
+
     # Endpoints con autenticación
     EventRegistrationView,
     EventUploadEvidenceView,
@@ -16,17 +16,18 @@ from .views import (
     EventContestLeaderboardView,
     ClientEventRegistrationsView,
     check_event_eligibility,
-    
+
     # Activity Feed endpoints
     ActivityFeedView,
     RecentActivitiesView,
     ActivityFeedStatsView,
     ActivityFeedCreateView,
-    
+
     # Analytics endpoints
     UpcomingCheckinsView,
     SearchTrackingStatsView,
     IngresosStatsView,
+    MetasIngresosView,
 )
 
 app_name = 'events'
@@ -59,4 +60,5 @@ urlpatterns = [
     path('upcoming-checkins/', UpcomingCheckinsView.as_view(), name='upcoming-checkins'),
     path('stats/search-tracking/', SearchTrackingStatsView.as_view(), name='stats-search-tracking'),
     path('stats/ingresos/', IngresosStatsView.as_view(), name='stats-ingresos'),
+    path('stats/ingresos/metas/', MetasIngresosView.as_view(), name='stats-ingresos-metas'),
 ]

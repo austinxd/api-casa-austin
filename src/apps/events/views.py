@@ -2638,3 +2638,139 @@ class IngresosStatsView(APIView):
             'current_period_reservations': current_count,
             'previous_period_reservations': previous_count
         }
+
+
+class MetasIngresosView(APIView):
+    """
+    Endpoint para comparar metas de ingresos vs ingresos reales por mes.
+
+    Parámetros:
+    - year: año a consultar (default: año actual)
+
+    Retorna:
+    - Lista de meses con meta, ingreso real y variación porcentual
+    - Resumen anual con totales y variación general
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    MONTH_NAMES = {
+        1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+        5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+        9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+    }
+
+    def get(self, request):
+        """Obtener comparación de metas vs ingresos reales"""
+        from django.db.models import Sum
+        from datetime import date
+        import calendar
+
+        from apps.reservation.models import Reservation
+        from .models import MonthlyRevenueMeta
+
+        # Obtener año del parámetro o usar el actual
+        try:
+            year = int(request.GET.get('year', timezone.now().year))
+        except ValueError:
+            year = timezone.now().year
+
+        # Mes actual para saber hasta dónde calcular
+        current_date = timezone.now().date()
+        current_month = current_date.month if current_date.year == year else 12
+        current_year = current_date.year
+
+        monthly_data = []
+        total_meta = 0
+        total_actual = 0
+
+        for month in range(1, 13):
+            # Obtener meta del mes
+            meta = MonthlyRevenueMeta.get_meta_for_month(month, year)
+            target_amount = float(meta.target_amount) if meta else 0
+
+            # Calcular primer y último día del mes
+            first_day = date(year, month, 1)
+            last_day = date(year, month, calendar.monthrange(year, month)[1])
+
+            # Obtener ingresos reales del mes (solo si el mes ya pasó o es el actual)
+            if year < current_year or (year == current_year and month <= current_month):
+                actual_revenue = Reservation.objects.filter(
+                    check_in_date__gte=first_day,
+                    check_in_date__lte=last_day,
+                    status='approved',
+                    deleted=False
+                ).aggregate(total=Sum('price_sol'))['total'] or 0
+                actual_revenue = float(actual_revenue)
+            else:
+                # Meses futuros no tienen ingresos aún
+                actual_revenue = None
+
+            # Calcular variación porcentual
+            if target_amount > 0 and actual_revenue is not None:
+                variation_percentage = ((actual_revenue - target_amount) / target_amount) * 100
+                achievement_percentage = (actual_revenue / target_amount) * 100
+            else:
+                variation_percentage = None
+                achievement_percentage = None
+
+            # Determinar estado
+            if actual_revenue is None:
+                status = 'pending'  # Mes futuro
+            elif target_amount == 0:
+                status = 'no_target'  # Sin meta definida
+            elif achievement_percentage >= 100:
+                status = 'achieved'  # Meta cumplida
+            elif achievement_percentage >= 75:
+                status = 'on_track'  # En camino
+            elif achievement_percentage >= 50:
+                status = 'at_risk'  # En riesgo
+            else:
+                status = 'behind'  # Rezagado
+
+            # Acumular totales (solo meses con datos)
+            if actual_revenue is not None:
+                total_actual += actual_revenue
+            total_meta += target_amount
+
+            monthly_data.append({
+                'month': month,
+                'month_name': self.MONTH_NAMES[month],
+                'target_amount': round(target_amount, 2),
+                'actual_revenue': round(actual_revenue, 2) if actual_revenue is not None else None,
+                'variation_percentage': round(variation_percentage, 2) if variation_percentage is not None else None,
+                'achievement_percentage': round(achievement_percentage, 2) if achievement_percentage is not None else None,
+                'difference': round(actual_revenue - target_amount, 2) if actual_revenue is not None else None,
+                'status': status,
+                'has_target': target_amount > 0,
+                'notes': meta.notes if meta else None
+            })
+
+        # Calcular resumen anual
+        if total_meta > 0:
+            annual_variation = ((total_actual - total_meta) / total_meta) * 100
+            annual_achievement = (total_actual / total_meta) * 100
+        else:
+            annual_variation = 0
+            annual_achievement = 0
+
+        return Response({
+            'success': True,
+            'data': {
+                'year': year,
+                'monthly_breakdown': monthly_data,
+                'annual_summary': {
+                    'total_target': round(total_meta, 2),
+                    'total_actual': round(total_actual, 2),
+                    'total_difference': round(total_actual - total_meta, 2),
+                    'variation_percentage': round(annual_variation, 2),
+                    'achievement_percentage': round(annual_achievement, 2),
+                    'months_with_target': sum(1 for m in monthly_data if m['has_target']),
+                    'months_achieved': sum(1 for m in monthly_data if m['status'] == 'achieved'),
+                    'months_on_track': sum(1 for m in monthly_data if m['status'] == 'on_track'),
+                    'months_at_risk': sum(1 for m in monthly_data if m['status'] == 'at_risk'),
+                    'months_behind': sum(1 for m in monthly_data if m['status'] == 'behind'),
+                }
+            },
+            'generated_at': timezone.now().isoformat()
+        })

@@ -329,7 +329,8 @@ class AdminHADeviceListView(APIView):
                 "guest_accessible": device.guest_accessible,
                 "is_active": device.is_active,
                 "display_order": device.display_order,
-                "current_state": current_state
+                "current_state": current_state,
+                "location": device.location,
             })
         
         return Response({
