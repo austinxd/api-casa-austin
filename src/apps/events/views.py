@@ -2693,18 +2693,17 @@ class MetasIngresosView(APIView):
             first_day = date(year, month, 1)
             last_day = date(year, month, calendar.monthrange(year, month)[1])
 
-            # Obtener ingresos reales del mes (solo si el mes ya pasó o es el actual)
-            if year < current_year or (year == current_year and month <= current_month):
-                actual_revenue = Reservation.objects.filter(
-                    check_in_date__gte=first_day,
-                    check_in_date__lte=last_day,
-                    status='approved',
-                    deleted=False
-                ).aggregate(total=Sum('price_sol'))['total'] or 0
-                actual_revenue = float(actual_revenue)
-            else:
-                # Meses futuros no tienen ingresos aún
-                actual_revenue = None
+            # Obtener ingresos reales del mes (siempre, incluyendo reservas futuras)
+            actual_revenue = Reservation.objects.filter(
+                check_in_date__gte=first_day,
+                check_in_date__lte=last_day,
+                status='approved',
+                deleted=False
+            ).aggregate(total=Sum('price_sol'))['total'] or 0
+            actual_revenue = float(actual_revenue)
+
+            # Determinar si es mes futuro (aún no ha terminado)
+            is_future_month = year > current_year or (year == current_year and month > current_month)
 
             # Calcular variación porcentual
             if target_amount > 0 and actual_revenue is not None:
@@ -2715,10 +2714,16 @@ class MetasIngresosView(APIView):
                 achievement_percentage = None
 
             # Determinar estado
-            if actual_revenue is None:
-                status = 'pending'  # Mes futuro
-            elif target_amount == 0:
+            if target_amount == 0:
                 status = 'no_target'  # Sin meta definida
+            elif is_future_month:
+                # Para meses futuros, evaluar basado en lo que ya tienen reservado
+                if achievement_percentage >= 100:
+                    status = 'achieved'
+                elif achievement_percentage >= 75:
+                    status = 'on_track'
+                else:
+                    status = 'pending'  # Aún pendiente de completar
             elif achievement_percentage >= 100:
                 status = 'achieved'  # Meta cumplida
             elif achievement_percentage >= 75:
@@ -2731,19 +2736,19 @@ class MetasIngresosView(APIView):
             # Acumular totales (solo meses con meta definida)
             if target_amount > 0:
                 total_meta += target_amount
-                if actual_revenue is not None:
-                    total_actual += actual_revenue
+                total_actual += actual_revenue
 
             monthly_data.append({
                 'month': month,
                 'month_name': self.MONTH_NAMES[month],
                 'target_amount': round(target_amount, 2),
-                'actual_revenue': round(actual_revenue, 2) if actual_revenue is not None else None,
+                'actual_revenue': round(actual_revenue, 2),
                 'variation_percentage': round(variation_percentage, 2) if variation_percentage is not None else None,
                 'achievement_percentage': round(achievement_percentage, 2) if achievement_percentage is not None else None,
-                'difference': round(actual_revenue - target_amount, 2) if actual_revenue is not None else None,
+                'difference': round(actual_revenue - target_amount, 2),
                 'status': status,
                 'has_target': target_amount > 0,
+                'is_future': is_future_month,
                 'notes': meta.notes if meta else None
             })
 
