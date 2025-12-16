@@ -558,9 +558,10 @@ class MonthlyRevenueMetaAdmin(admin.ModelAdmin):
 
     def target_amount_display(self, obj):
         """Mostrar monto formateado"""
+        formatted_amount = f"{obj.target_amount:,.2f}"
         return format_html(
-            '<span style="font-weight: bold; color: #28a745;">S/. {:,.2f}</span>',
-            obj.target_amount
+            '<span style="font-weight: bold; color: #28a745;">S/. {}</span>',
+            formatted_amount
         )
     target_amount_display.short_description = 'Meta'
     target_amount_display.admin_order_field = 'target_amount'
@@ -604,10 +605,15 @@ class MonthlyRevenueMetaAdmin(admin.ModelAdmin):
             color = '#dc3545'  # Rojo
             icon = '📉'
 
+        # Formatear números antes de pasarlos a format_html
+        formatted_percentage = f"{percentage:.1f}"
+        formatted_actual = f"{float(actual_revenue):,.2f}"
+        formatted_target = f"{float(obj.target_amount):,.2f}"
+
         return format_html(
-            '{} <span style="color: {}; font-weight: bold;">{:.1f}%</span>'
-            '<br><small style="color: #666;">S/. {:,.2f} de S/. {:,.2f}</small>',
-            icon, color, percentage, actual_revenue, obj.target_amount
+            '{} <span style="color: {}; font-weight: bold;">{}%</span>'
+            '<br><small style="color: #666;">S/. {} de S/. {}</small>',
+            icon, color, formatted_percentage, formatted_actual, formatted_target
         )
     progress_display.short_description = 'Progreso'
 
