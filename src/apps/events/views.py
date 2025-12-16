@@ -2728,10 +2728,11 @@ class MetasIngresosView(APIView):
             else:
                 status = 'behind'  # Rezagado
 
-            # Acumular totales (solo meses con datos)
-            if actual_revenue is not None:
-                total_actual += actual_revenue
-            total_meta += target_amount
+            # Acumular totales (solo meses con meta definida)
+            if target_amount > 0:
+                total_meta += target_amount
+                if actual_revenue is not None:
+                    total_actual += actual_revenue
 
             monthly_data.append({
                 'month': month,
