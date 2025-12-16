@@ -34,7 +34,7 @@ urlpatterns = [
     path('api/v1/stats/', ComprehensiveStatsView.as_view(), name='comprehensive-stats'),
     path('api/v1/stats/search-tracking/', SearchTrackingStatsView.as_view(), name='stats-search-tracking'),
     path('api/v1/stats/ingresos/', IngresosStatsView.as_view(), name='stats-ingresos'),
-    path('api/v1/stats/ingresos/metas/', MetasIngresosView.as_view(), name='stats-ingresos-metas'),
+    path('api/v1/metas/', MetasIngresosView.as_view(), name='stats-ingresos-metas'),
     path('api/v1/upcoming-checkins/', UpcomingCheckinsView.as_view(), name='upcoming-checkins'),
 ]
 
