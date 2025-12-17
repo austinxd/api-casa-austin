@@ -926,6 +926,9 @@ class GenerateDynamicDiscountAPIView(APIView):
                             'type': 'object',
                             'properties': {
                                 'name': {'type': 'string'},
+                                'display_name': {'type': 'string'},
+                                'description': {'type': 'string'},
+                                'icon': {'type': 'string'},
                                 'prefix': {'type': 'string'},
                                 'discount_percentage': {'type': 'number'},
                                 'validity_days': {'type': 'integer'},
@@ -943,10 +946,11 @@ class GenerateDynamicDiscountAPIView(APIView):
     def get(self, request):
         """Lista las configuraciones disponibles"""
         configs = DynamicDiscountConfig.objects.filter(
-            is_active=True, 
+            is_active=True,
             deleted=False
         ).values(
-            'name', 'prefix', 'discount_percentage', 
+            'name', 'display_name', 'description', 'icon',
+            'prefix', 'discount_percentage',
             'validity_days', 'min_amount_usd', 'usage_limit'
         )
 

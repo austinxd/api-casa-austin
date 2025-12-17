@@ -978,7 +978,22 @@ class AutomaticDiscount(BaseModel):
 class DynamicDiscountConfig(BaseModel):
     """Configuración para generar códigos de descuento dinámicos"""
 
-    name = models.CharField(max_length=100, help_text="Nombre de la configuración")
+    name = models.CharField(max_length=100, help_text="Nombre de la configuración (identificador técnico)")
+    display_name = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Nombre para mostrar en la app (ej: 'Bot WhatsApp')"
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Descripción del descuento para mostrar en la app"
+    )
+    icon = models.CharField(
+        max_length=50,
+        blank=True,
+        default='pricetag-outline',
+        help_text="Nombre del icono de Ionicons (ej: 'logo-whatsapp', 'gift-outline', 'flash-outline')"
+    )
     prefix = models.CharField(max_length=10, help_text="Prefijo para los códigos generados (ej: PROMO)")
     discount_percentage = models.DecimalField(
         max_digits=5,
