@@ -242,10 +242,62 @@ class HomeAssistantReservationView(APIView):
 class AdminHADeviceListView(APIView):
     """
     Endpoint administrativo para listar dispositivos de Home Assistant
-    Puede filtrar por propiedad o tipo de dispositivo
+    Puede filtrar por propiedad o tipo de dispositivo.
+
+    Los dispositivos marcados con requires_temperature_pool=True solo se muestran
+    si hay una reserva activa con temperature_pool=True para la propiedad.
     """
     permission_classes = [IsAdminUser]
-    
+
+    def _get_active_reservation(self, property_id):
+        """
+        Obtiene la reserva activa para una propiedad, si existe.
+        Retorna la reserva o None.
+        """
+        from datetime import datetime, time
+
+        now = datetime.now()
+        today = now.date()
+        current_time = now.time()
+
+        check_in_time = time(15, 0)  # 3:00 PM
+        check_out_time = time(11, 0)  # 11:00 AM
+
+        # Buscar reservas potencialmente activas
+        from django.db.models import Case, When, IntegerField
+
+        potential_reservations = Reservation.objects.filter(
+            property_id=property_id,
+            deleted=False,
+            status='approved',
+            check_out_date__gte=today
+        ).filter(
+            Q(check_in_date=today, check_out_date__gt=today) |
+            Q(check_in_date__lt=today, check_out_date__gt=today) |
+            Q(check_out_date=today, check_in_date__lt=today)
+        ).annotate(
+            priority=Case(
+                When(check_in_date=today, check_out_date__gt=today, then=1),
+                When(check_in_date__lt=today, check_out_date__gt=today, then=2),
+                When(check_out_date=today, check_in_date__lt=today, then=3),
+                default=4,
+                output_field=IntegerField()
+            )
+        ).order_by('priority', 'check_in_date').first()
+
+        if not potential_reservations:
+            return None
+
+        active_reservation = potential_reservations
+
+        # Validar horarios
+        if active_reservation.check_in_date == today and current_time < check_in_time:
+            return None
+        if active_reservation.check_out_date == today and active_reservation.check_in_date < today and current_time >= check_out_time:
+            return None
+
+        return active_reservation
+
     @extend_schema(
         parameters=[
             OpenApiParameter(
@@ -267,6 +319,8 @@ class AdminHADeviceListView(APIView):
             "type": "object",
             "properties": {
                 "count": {"type": "integer"},
+                "has_active_reservation": {"type": "boolean"},
+                "temperature_pool_active": {"type": "boolean"},
                 "devices": {
                     "type": "array",
                     "items": {
@@ -281,6 +335,7 @@ class AdminHADeviceListView(APIView):
                             "property_name": {"type": "string"},
                             "guest_accessible": {"type": "boolean"},
                             "is_active": {"type": "boolean"},
+                            "requires_temperature_pool": {"type": "boolean"},
                             "current_state": {"type": "string"}
                         }
                     }
@@ -292,15 +347,30 @@ class AdminHADeviceListView(APIView):
         """Lista todos los dispositivos configurados"""
         property_id = request.query_params.get('property_id')
         device_type = request.query_params.get('device_type')
-        
+
         queryset = HomeAssistantDevice.objects.filter(deleted=False).select_related('property')
-        
+
         if property_id:
             queryset = queryset.filter(property_id=property_id)
-        
+
         if device_type:
             queryset = queryset.filter(device_type=device_type)
-        
+
+        # Verificar si hay reserva activa con temperature_pool para filtrar dispositivos
+        has_active_reservation = False
+        temperature_pool_active = False
+
+        if property_id:
+            active_reservation = self._get_active_reservation(property_id)
+            if active_reservation:
+                has_active_reservation = True
+                temperature_pool_active = active_reservation.temperature_pool
+
+        # Filtrar dispositivos que requieren temperature_pool si no está activo
+        if property_id and not temperature_pool_active:
+            # Excluir dispositivos que requieren temperature_pool
+            queryset = queryset.filter(requires_temperature_pool=False)
+
         try:
             ha_service = HomeAssistantService()
         except ValueError as e:
@@ -308,16 +378,16 @@ class AdminHADeviceListView(APIView):
                 {"error": f"Error de configuración de Home Assistant: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-        
+
         devices_data = []
-        
+
         for device in queryset:
             try:
                 state_info = ha_service.get_entity_state(device.entity_id)
                 current_state = state_info.get('state', 'unknown')
             except Exception:
                 current_state = 'unavailable'
-            
+
             devices_data.append({
                 "id": str(device.id),
                 "entity_id": device.entity_id,
@@ -330,11 +400,13 @@ class AdminHADeviceListView(APIView):
                 "is_active": device.is_active,
                 "display_order": device.display_order,
                 "current_state": current_state,
-                "location": device.location,
+                "requires_temperature_pool": device.requires_temperature_pool,
             })
-        
+
         return Response({
             "count": len(devices_data),
+            "has_active_reservation": has_active_reservation,
+            "temperature_pool_active": temperature_pool_active,
             "devices": devices_data
         })
 
@@ -686,7 +758,13 @@ class ClientDeviceListView(HasActiveReservationMixin, APIView):
             guest_accessible=True,
             is_active=True,
             deleted=False
-        ).order_by('display_order', 'friendly_name')
+        )
+
+        # Filtrar dispositivos que requieren temperature_pool si la reserva no lo tiene
+        if not active_reservation.temperature_pool:
+            devices = devices.filter(requires_temperature_pool=False)
+
+        devices = devices.order_by('display_order', 'friendly_name')
         
         # Inicializar servicio de Home Assistant
         try:

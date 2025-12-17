@@ -60,7 +60,7 @@ class HomeAssistantDeviceInline(admin.StackedInline):
             'fields': ('entity_id', 'friendly_name', 'location', 'device_type', 'icon')
         }),
         ('Configuración', {
-            'fields': ('display_order', 'guest_accessible', 'is_active')
+            'fields': ('display_order', 'guest_accessible', 'is_active', 'requires_temperature_pool')
         }),
         ('Descripción', {
             'fields': ('description',),
@@ -598,9 +598,10 @@ class HomeAssistantDeviceAdmin(admin.ModelAdmin):
         'get_control_buttons',
         'display_order',
         'guest_accessible',
-        'is_active'
+        'is_active',
+        'requires_temperature_pool'
     )
-    list_filter = ('property', 'device_type', 'guest_accessible', 'is_active', 'deleted')
+    list_filter = ('property', 'device_type', 'guest_accessible', 'is_active', 'requires_temperature_pool', 'deleted')
     search_fields = ('friendly_name', 'entity_id', 'property__name', 'description')
     ordering = ['property', 'display_order', 'friendly_name']
     list_editable = ()  # Temporalmente desactivado para mostrar las acciones
@@ -613,7 +614,7 @@ class HomeAssistantDeviceAdmin(admin.ModelAdmin):
             'fields': ('icon', 'display_order', 'description')
         }),
         ('Permisos y Estado', {
-            'fields': ('guest_accessible', 'is_active')
+            'fields': ('guest_accessible', 'is_active', 'requires_temperature_pool')
         }),
         ('Configuración Adicional', {
             'fields': ('device_config',),

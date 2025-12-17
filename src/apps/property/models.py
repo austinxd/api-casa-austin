@@ -341,7 +341,11 @@ class HomeAssistantDevice(BaseModel):
         blank=True,
         help_text="Descripción o instrucciones para el huésped"
     )
-    
+    requires_temperature_pool = models.BooleanField(
+        default=False,
+        help_text="Solo mostrar este dispositivo si la reserva activa tiene temperature_pool=True (ej: calefacción de piscina)"
+    )
+
     class Meta:
         ordering = ['property', 'display_order', 'friendly_name']
         verbose_name = "Dispositivo de Home Assistant"
