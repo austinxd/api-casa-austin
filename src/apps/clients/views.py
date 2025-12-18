@@ -185,6 +185,34 @@ class ClientCreateReservationView(APIView):
                     "ClientCreateReservationView: Authentication failed")
                 return Response({'message': 'Token inválido'}, status=401)
 
+            # Verificar si el cliente tiene reservas pendientes de completar
+            from apps.reservation.models import Reservation
+            pending_statuses = ['incomplete', 'pending', 'under_review']
+            existing_pending = Reservation.objects.filter(
+                client=client,
+                status__in=pending_statuses,
+                deleted=False
+            ).first()
+
+            if existing_pending:
+                # Determinar mensaje según el estado
+                status_messages = {
+                    'incomplete': 'pendiente de subir comprobante de pago',
+                    'pending': 'pendiente de aprobación',
+                    'under_review': 'en revisión'
+                }
+                status_text = status_messages.get(existing_pending.status, 'en proceso')
+
+                logger.warning(
+                    f"ClientCreateReservationView: Client {client.id} already has a {existing_pending.status} reservation (ID: {existing_pending.id})"
+                )
+                return Response({
+                    'success': False,
+                    'message': f'Ya tienes una reserva {status_text}. Debes completarla o esperar su resolución antes de crear otra.',
+                    'existing_reservation_id': str(existing_pending.id),
+                    'existing_reservation_status': existing_pending.status
+                }, status=400)
+
             # Crear serializer con contexto
             serializer = ClientReservationSerializer(
                 data=request.data, context={'request': request})
