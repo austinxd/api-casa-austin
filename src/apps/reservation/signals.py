@@ -1672,6 +1672,8 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
     """
     Envía notificaciones push a CLIENTES y ADMINISTRADORES cuando se crea o modifica una reserva
     """
+    logger.info(f"🔔 PUSH SIGNAL: Ejecutando send_reservation_push_notifications - Reserva {instance.id}, created={created}, status={instance.status}")
+
     # Verificar que la reserva tiene datos mínimos
     if not instance.property:
         logger.debug(f"Reserva {instance.id} sin propiedad - no se envía notificación push")
@@ -1754,14 +1756,17 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
                 logger.info(f"✅ Notificación enviada a {result_admin.get('sent', 0)} administrador(es)")
             return
         
-        # 2. RESERVA MODIFICADA - Detectar cambios importantes  
+        # 2. RESERVA MODIFICADA - Detectar cambios importantes
         old = getattr(instance, '_old_reservation', None)
+        logger.info(f"🔍 DEBUG PUSH: _old_reservation existe: {old is not None}, instance.pk={instance.pk}")
         if not old:
+            logger.warning(f"⚠️ DEBUG PUSH: No hay _old_reservation para reserva {instance.id} - no se enviarán notificaciones de cambio")
             return
         
         client_name = f"{instance.client.first_name} {instance.client.last_name}" if instance.client else "Cliente"
         
         # 3. CAMBIO DE ESTADO (Pago aprobado, cancelado, etc.)
+        logger.info(f"🔍 DEBUG PUSH: Verificando cambio de estado - old.status={old.status}, new.status={instance.status}")
         if old.status != instance.status:
             logger.info(f"📱 Cambio de estado en reserva {instance.id}: {old.status} → {instance.status}")
             
@@ -1788,6 +1793,7 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
                         logger.info(f"✅ Notificación enviada al cliente: {result.get('sent', 0)} dispositivo(s)")
             
             # B) Notificar a ADMINISTRADORES
+            logger.info(f"🔔 DEBUG PUSH: Preparando notificación para admins - {old.status} → {instance.status}")
             status_display = {
                 'pago_confirmado': 'Pago Confirmado',
                 'pagado': 'Pagado',
@@ -1799,7 +1805,8 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
                 'pendiente': 'Pendiente',
                 'under_review': 'En Revisión'
             }.get(instance.status, instance.status.title())
-            
+
+            logger.info(f"🔔 DEBUG PUSH: Llamando send_to_admins con título 'Cambio de Estado: {status_display}'")
             result_admin = ExpoPushService.send_to_admins(
                 title=f"Cambio de Estado: {status_display}",
                 body=f"{client_name} - {instance.property.name}\nNuevo estado: {status_display}",
@@ -1813,8 +1820,11 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
                     "screen": "AdminReservationDetail"
                 }
             )
+            logger.info(f"🔔 DEBUG PUSH: Resultado de send_to_admins: {result_admin}")
             if result_admin and result_admin.get('success'):
                 logger.info(f"✅ Notificación enviada a {result_admin.get('sent', 0)} admin(s)")
+            else:
+                logger.warning(f"⚠️ send_to_admins no tuvo éxito: {result_admin}")
         
         # 4-7. DETECTAR TODOS LOS CAMBIOS Y CONSOLIDAR EN UNA NOTIFICACIÓN
         changes = []
