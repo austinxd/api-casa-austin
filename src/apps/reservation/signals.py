@@ -1658,6 +1658,11 @@ def track_reservation_push_changes(sender, instance, **kwargs):
     Guarda el estado anterior de la reserva para detectar cambios
     y enviar notificaciones push apropiadas
     """
+    # Si ya tenemos el estado anterior guardado, no volver a consultarlo
+    # (evita problemas cuando hay múltiples saves en la misma transacción)
+    if hasattr(instance, '_old_reservation') and instance._old_reservation is not None:
+        return
+
     if instance.pk:
         try:
             instance._old_reservation = Reservation.objects.get(pk=instance.pk)
@@ -1672,6 +1677,11 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
     """
     Envía notificaciones push a CLIENTES y ADMINISTRADORES cuando se crea o modifica una reserva
     """
+    # Evitar doble procesamiento si ya se procesó en esta transacción
+    if hasattr(instance, '_push_notifications_sent') and instance._push_notifications_sent:
+        logger.debug(f"🔔 PUSH SIGNAL: Saltando - ya se procesó para reserva {instance.id}")
+        return
+
     logger.info(f"🔔 PUSH SIGNAL: Ejecutando send_reservation_push_notifications - Reserva {instance.id}, created={created}, status={instance.status}")
 
     # Verificar que la reserva tiene datos mínimos
@@ -1990,7 +2000,10 @@ def send_reservation_push_notifications(sender, instance, created, **kwargs):
             )
             if result_admin and result_admin.get('success'):
                 logger.info(f"✅ Notificación consolidada enviada a {result_admin.get('sent', 0)} admin(s)")
-    
+
+        # Marcar como procesado para evitar doble envío
+        instance._push_notifications_sent = True
+
     except ImportError:
         logger.warning("ExpoPushService no disponible - notificaciones push deshabilitadas")
     except Exception as e:
