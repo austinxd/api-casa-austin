@@ -3203,14 +3203,12 @@ class SearchesByCheckInDateView(APIView):
                     }
                 return None
 
-            # Helper para calcular precio (de una propiedad específica o todas)
+            # Helper para calcular precio y disponibilidad
             def calculate_search_price(check_in, check_out, guests, property_obj=None):
                 if not check_out:
                     return None
 
                 try:
-                    # Si hay propiedad específica, calcular solo para esa
-                    # Si no hay, calcular para todas las propiedades
                     result = pricing_service.calculate_pricing(
                         check_in_date=check_in,
                         check_out_date=check_out,
@@ -3219,43 +3217,37 @@ class SearchesByCheckInDateView(APIView):
                     )
 
                     if result and result.get('properties'):
-                        # Si hay propiedad específica, devolver su pricing
+                        # Si hay propiedad específica
                         if property_obj:
                             prop_pricing = result['properties'][0]
-                            final_usd = prop_pricing.get('final_price_usd')
-                            final_sol = prop_pricing.get('final_price_sol')
+                            if not prop_pricing.get('available', False):
+                                return None  # No mostrar si no está disponible
                             return {
                                 'total_nights': prop_pricing.get('total_nights'),
-                                'price_usd': float(final_usd) if final_usd else None,
-                                'price_sol': float(final_sol) if final_sol else None,
-                                'available': prop_pricing.get('available', False),
+                                'price_usd': float(prop_pricing.get('final_price_usd', 0)),
+                                'price_sol': float(prop_pricing.get('final_price_sol', 0)),
+                                'available': True,
+                                'property_name': prop_pricing.get('property_name'),
                             }
                         else:
-                            # Devolver resumen de todas las propiedades disponibles
+                            # Sin propiedad específica: devolver lista de casas disponibles
                             available_properties = [p for p in result['properties'] if p.get('available', False)]
-                            all_properties = result['properties']
 
-                            # Calcular precio mínimo y máximo de las disponibles
-                            if available_properties:
-                                prices_usd = [float(p.get('final_price_usd', 0)) for p in available_properties]
-                                prices_sol = [float(p.get('final_price_sol', 0)) for p in available_properties]
-                                return {
-                                    'total_nights': result.get('total_nights', (check_out - check_in).days),
-                                    'available_count': len(available_properties),
-                                    'total_properties': len(all_properties),
-                                    'min_price_usd': min(prices_usd),
-                                    'max_price_usd': max(prices_usd),
-                                    'min_price_sol': min(prices_sol),
-                                    'max_price_sol': max(prices_sol),
-                                    'available': True,
-                                }
-                            else:
-                                return {
-                                    'total_nights': result.get('total_nights', (check_out - check_in).days),
-                                    'available_count': 0,
-                                    'total_properties': len(all_properties),
-                                    'available': False,
-                                }
+                            if not available_properties:
+                                return None  # No mostrar si no hay disponibilidad
+
+                            return {
+                                'total_nights': result.get('total_nights', (check_out - check_in).days),
+                                'available': True,
+                                'properties': [
+                                    {
+                                        'name': p.get('property_name'),
+                                        'price_usd': float(p.get('final_price_usd', 0)),
+                                        'price_sol': float(p.get('final_price_sol', 0)),
+                                    }
+                                    for p in available_properties
+                                ]
+                            }
                 except Exception as e:
                     prop_name = property_obj.name if property_obj else 'todas'
                     logger.warning(f"Error calculando precio para {prop_name} ({check_in} - {check_out}): {e}")
@@ -3314,7 +3306,7 @@ class SearchesByCheckInDateView(APIView):
                         'searches': []
                     }
 
-                # Calcular precio para esta búsqueda
+                # Calcular precio para esta búsqueda (solo si hay disponibilidad)
                 pricing = calculate_search_price(
                     search.check_in_date,
                     search.check_out_date,
@@ -3322,22 +3314,24 @@ class SearchesByCheckInDateView(APIView):
                     search.property
                 )
 
-                searches_by_client[client_id]['search_count'] += 1
-                searches_by_client[client_id]['searches'].append({
-                    'id': str(search.id),
-                    'check_in_date': str(search.check_in_date),
-                    'check_out_date': str(search.check_out_date),
-                    'guests': search.guests,
-                    'property': {
-                        'id': str(search.property.id) if search.property else None,
-                        'name': search.property.name if search.property else None
-                    } if search.property else None,
-                    'pricing': pricing,
-                    'search_timestamp': search.search_timestamp.isoformat() if search.search_timestamp else None,
-                    'ip_address': search.ip_address,
-                })
+                # Solo agregar búsquedas con disponibilidad
+                if pricing:
+                    searches_by_client[client_id]['search_count'] += 1
+                    searches_by_client[client_id]['searches'].append({
+                        'id': str(search.id),
+                        'check_in_date': str(search.check_in_date),
+                        'check_out_date': str(search.check_out_date),
+                        'guests': search.guests,
+                        'property': {
+                            'id': str(search.property.id) if search.property else None,
+                            'name': search.property.name if search.property else None
+                        } if search.property else None,
+                        'pricing': pricing,
+                        'search_timestamp': search.search_timestamp.isoformat() if search.search_timestamp else None,
+                        'ip_address': search.ip_address,
+                    })
 
-            # Formatear búsquedas anónimas
+            # Formatear búsquedas anónimas (solo con disponibilidad)
             anonymous_searches_detail = []
             for search in anonymous_searches:
                 pricing = calculate_search_price(
@@ -3346,32 +3340,39 @@ class SearchesByCheckInDateView(APIView):
                     search.guests,
                     search.property
                 )
-                anonymous_searches_detail.append({
-                    'id': str(search.id),
-                    'check_in_date': str(search.check_in_date),
-                    'check_out_date': str(search.check_out_date),
-                    'guests': search.guests,
-                    'property': {
-                        'id': str(search.property.id) if search.property else None,
-                        'name': search.property.name if search.property else None
-                    } if search.property else None,
-                    'pricing': pricing,
-                    'search_timestamp': search.search_timestamp.isoformat() if search.search_timestamp else None,
-                    'ip_address': search.ip_address,
-                    'session_key': search.session_key,
-                })
+                # Solo agregar si hay disponibilidad
+                if pricing:
+                    anonymous_searches_detail.append({
+                        'id': str(search.id),
+                        'check_in_date': str(search.check_in_date),
+                        'check_out_date': str(search.check_out_date),
+                        'guests': search.guests,
+                        'property': {
+                            'id': str(search.property.id) if search.property else None,
+                            'name': search.property.name if search.property else None
+                        } if search.property else None,
+                        'pricing': pricing,
+                        'search_timestamp': search.search_timestamp.isoformat() if search.search_timestamp else None,
+                        'ip_address': search.ip_address,
+                        'session_key': search.session_key,
+                    })
 
-            # Estadísticas
-            total_searches = client_searches.count() + anonymous_searches.count()
-            unique_clients = len(searches_by_client)
+            # Filtrar clientes sin búsquedas disponibles
+            searches_by_client_filtered = {
+                k: v for k, v in searches_by_client.items() if v['search_count'] > 0
+            }
+
+            # Estadísticas (solo búsquedas con disponibilidad)
+            total_available_searches = sum(c['search_count'] for c in searches_by_client_filtered.values()) + len(anonymous_searches_detail)
+            unique_clients = len(searches_by_client_filtered)
 
             return Response({
                 'success': True,
                 'check_in_date': str(check_in_date),
-                'total_searches': total_searches,
+                'total_searches': total_available_searches,
                 'unique_clients': unique_clients,
-                'anonymous_searches_count': anonymous_searches.count(),
-                'searches_by_client': list(searches_by_client.values()),
+                'anonymous_searches_count': len(anonymous_searches_detail),
+                'searches_by_client': list(searches_by_client_filtered.values()),
                 'anonymous_searches_detail': anonymous_searches_detail if include_anonymous else []
             })
 
