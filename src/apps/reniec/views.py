@@ -247,14 +247,14 @@ class DNILookupPublicView(APIView):
         if not dni or len(dni) != 8 or not dni.isdigit():
             return Response({'error': 'DNI inválido o no enviado'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Consultar DNI (toda la información, sin foto)
+        # Consultar DNI (toda la información incluyendo foto)
         success, result = ReniecService.lookup(
             dni=dni,
             source_app='public_web',
             source_ip=source_ip,
             user_agent=request.headers.get('User-Agent'),
-            include_photo=False,
-            include_full_data=True  # Toda la información
+            include_photo=True,
+            include_full_data=True
         )
 
         if success:
