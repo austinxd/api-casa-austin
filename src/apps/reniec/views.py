@@ -234,10 +234,14 @@ class DNILookupPublicView(APIView):
     def _handle_lookup(self, request, dni):
         source_ip = get_client_ip(request)
 
-        # Rate limit estricto para endpoint público: 5 consultas por minuto por IP
-        queries_last_minute = DNIQueryLog.count_queries_last_minute(source_ip)
-        if queries_last_minute >= 5:
-            return Response({'error': 'Demasiadas consultas. Intente en un minuto.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+        # Rate limit estricto para endpoint público: 5 consultas por cada 10 minutos por IP
+        ten_minutes_ago = timezone.now() - timezone.timedelta(minutes=10)
+        queries_last_10_min = DNIQueryLog.objects.filter(
+            source_ip=source_ip,
+            created__gte=ten_minutes_ago
+        ).count()
+        if queries_last_10_min >= 5:
+            return Response({'error': 'Demasiadas consultas. Intente en 10 minutos.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
         # Validar DNI
         if not dni or len(dni) != 8 or not dni.isdigit():
