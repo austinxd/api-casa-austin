@@ -3191,8 +3191,27 @@ class SearchesByCheckInDateView(APIView):
 
             # Helper para calcular precio
             def calculate_search_price(check_in, check_out, guests, property_obj):
-                if not property_obj or not check_out:
+                from datetime import date
+                today = date.today()
+
+                if not property_obj:
+                    logger.debug(f"calculate_search_price: No property_obj")
                     return None
+                if not check_out:
+                    logger.debug(f"calculate_search_price: No check_out")
+                    return None
+
+                # Si la fecha de check-in ya pasó, no podemos calcular pricing
+                if check_in < today:
+                    logger.debug(f"calculate_search_price: check_in {check_in} es pasado, no se calcula pricing")
+                    return {
+                        'total_nights': (check_out - check_in).days,
+                        'price_usd': None,
+                        'price_sol': None,
+                        'available': False,
+                        'reason': 'Fecha pasada'
+                    }
+
                 try:
                     result = pricing_service.calculate_pricing(
                         check_in_date=check_in,
@@ -3200,20 +3219,28 @@ class SearchesByCheckInDateView(APIView):
                         guests=guests,
                         property_id=str(property_obj.id)
                     )
+                    logger.debug(f"calculate_search_price: Resultado pricing service: {result is not None}")
+
                     if result and result.get('properties'):
                         prop_pricing = result['properties'][0]
+                        final_usd = prop_pricing.get('final_price_usd')
+                        final_sol = prop_pricing.get('final_price_sol')
                         return {
                             'total_nights': prop_pricing.get('total_nights'),
-                            'price_usd': prop_pricing.get('final_price_usd'),
-                            'price_sol': prop_pricing.get('final_price_sol'),
+                            'price_usd': float(final_usd) if final_usd else None,
+                            'price_sol': float(final_sol) if final_sol else None,
                             'available': prop_pricing.get('available', False),
                         }
+                    else:
+                        logger.warning(f"calculate_search_price: Resultado vacío o sin properties")
                 except Exception as e:
-                    logger.warning(f"Error calculando precio: {e}")
+                    logger.warning(f"Error calculando precio para {property_obj.name} ({check_in} - {check_out}): {e}")
                 return None
 
-            # Obtener IDs de clientes con reservas activas (para excluirlos)
-            # Reservas activas = estado PENDING, UNDER_REVIEW o APPROVED y no eliminadas
+            # Obtener IDs de clientes con reservas activas FUTURAS (para excluirlos)
+            # Reservas activas = estado PENDING, UNDER_REVIEW o APPROVED, no eliminadas, y con fecha futura
+            from datetime import date
+            today = date.today()
             active_statuses = [
                 Reservation.ReservationStatusChoice.PENDING,
                 Reservation.ReservationStatusChoice.UNDER_REVIEW,
@@ -3221,7 +3248,8 @@ class SearchesByCheckInDateView(APIView):
             ]
             clients_with_active_reservations = Reservation.objects.filter(
                 status__in=active_statuses,
-                deleted=False
+                deleted=False,
+                check_in_date__gte=today  # Solo reservas futuras
             ).values_list('client_id', flat=True).distinct()
 
             # Construir query base
