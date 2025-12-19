@@ -3203,31 +3203,62 @@ class SearchesByCheckInDateView(APIView):
                     }
                 return None
 
-            # Helper para calcular precio
-            def calculate_search_price(check_in, check_out, guests, property_obj):
-                if not property_obj or not check_out:
+            # Helper para calcular precio (de una propiedad específica o todas)
+            def calculate_search_price(check_in, check_out, guests, property_obj=None):
+                if not check_out:
                     return None
 
                 try:
+                    # Si hay propiedad específica, calcular solo para esa
+                    # Si no hay, calcular para todas las propiedades
                     result = pricing_service.calculate_pricing(
                         check_in_date=check_in,
                         check_out_date=check_out,
                         guests=guests,
-                        property_id=str(property_obj.id)
+                        property_id=str(property_obj.id) if property_obj else None
                     )
 
                     if result and result.get('properties'):
-                        prop_pricing = result['properties'][0]
-                        final_usd = prop_pricing.get('final_price_usd')
-                        final_sol = prop_pricing.get('final_price_sol')
-                        return {
-                            'total_nights': prop_pricing.get('total_nights'),
-                            'price_usd': float(final_usd) if final_usd else None,
-                            'price_sol': float(final_sol) if final_sol else None,
-                            'available': prop_pricing.get('available', False),
-                        }
+                        # Si hay propiedad específica, devolver su pricing
+                        if property_obj:
+                            prop_pricing = result['properties'][0]
+                            final_usd = prop_pricing.get('final_price_usd')
+                            final_sol = prop_pricing.get('final_price_sol')
+                            return {
+                                'total_nights': prop_pricing.get('total_nights'),
+                                'price_usd': float(final_usd) if final_usd else None,
+                                'price_sol': float(final_sol) if final_sol else None,
+                                'available': prop_pricing.get('available', False),
+                            }
+                        else:
+                            # Devolver resumen de todas las propiedades disponibles
+                            available_properties = [p for p in result['properties'] if p.get('available', False)]
+                            all_properties = result['properties']
+
+                            # Calcular precio mínimo y máximo de las disponibles
+                            if available_properties:
+                                prices_usd = [float(p.get('final_price_usd', 0)) for p in available_properties]
+                                prices_sol = [float(p.get('final_price_sol', 0)) for p in available_properties]
+                                return {
+                                    'total_nights': result.get('total_nights', (check_out - check_in).days),
+                                    'available_count': len(available_properties),
+                                    'total_properties': len(all_properties),
+                                    'min_price_usd': min(prices_usd),
+                                    'max_price_usd': max(prices_usd),
+                                    'min_price_sol': min(prices_sol),
+                                    'max_price_sol': max(prices_sol),
+                                    'available': True,
+                                }
+                            else:
+                                return {
+                                    'total_nights': result.get('total_nights', (check_out - check_in).days),
+                                    'available_count': 0,
+                                    'total_properties': len(all_properties),
+                                    'available': False,
+                                }
                 except Exception as e:
-                    logger.warning(f"Error calculando precio para {property_obj.name} ({check_in} - {check_out}): {e}")
+                    prop_name = property_obj.name if property_obj else 'todas'
+                    logger.warning(f"Error calculando precio para {prop_name} ({check_in} - {check_out}): {e}")
                 return None
 
             # Obtener IDs de clientes con reservas activas FUTURAS (para excluirlos)
