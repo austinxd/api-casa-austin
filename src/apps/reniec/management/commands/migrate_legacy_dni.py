@@ -92,7 +92,7 @@ class Command(BaseCommand):
                     continue
 
                 try:
-                    # Convertir fechas
+                    # Funciones auxiliares
                     def parse_date(date_val):
                         if date_val and hasattr(date_val, 'strftime'):
                             return date_val
@@ -101,32 +101,89 @@ class Command(BaseCommand):
                     def capitalize_name(name):
                         if not name:
                             return ''
-                        return ' '.join(word.capitalize() for word in name.lower().split())
+                        return ' '.join(word.capitalize() for word in str(name).lower().split())
+
+                    def get_int(val):
+                        if val and str(val).isdigit():
+                            return int(val)
+                        return None
 
                     DNICache.objects.create(
                         dni=dni,
+                        # Datos del documento
+                        nu_dni=row.get('nuDni'),
+                        nu_ficha=row.get('nuFicha'),
+                        nu_imagen=row.get('nuImagen'),
+                        digito_verificacion=row.get('digitoVerificacion'),
+                        # Datos personales
                         nombres=capitalize_name(row.get('preNombres')),
                         apellido_paterno=capitalize_name(row.get('apePaterno')),
                         apellido_materno=capitalize_name(row.get('apeMaterno')),
                         apellido_casada=capitalize_name(row.get('apCasada')),
+                        # Datos adicionales
                         fecha_nacimiento=parse_date(row.get('feNacimiento')),
+                        estatura=get_int(row.get('estatura')),
                         sexo=(row.get('sexo') or '')[:1].upper(),
                         estado_civil=row.get('estadoCivil'),
+                        grado_instruccion=row.get('gradoInstruccion'),
+                        # Fechas del documento
+                        fecha_emision=parse_date(row.get('feEmision')),
+                        fecha_inscripcion=parse_date(row.get('feInscripcion')),
+                        fecha_caducidad=parse_date(row.get('feCaducidad')),
+                        # Padres
+                        nom_padre=row.get('nomPadre'),
+                        nom_madre=row.get('nomMadre'),
+                        # Ubicación de nacimiento
+                        pais=row.get('pais'),
                         departamento=row.get('departamento'),
                         provincia=row.get('provincia'),
                         distrito=row.get('distrito'),
+                        # Dirección actual
+                        pais_direccion=row.get('paisDireccion'),
                         departamento_direccion=row.get('depaDireccion'),
                         provincia_direccion=row.get('provDireccion'),
                         distrito_direccion=row.get('distDireccion'),
                         direccion=row.get('desDireccion'),
-                        fecha_emision=parse_date(row.get('feEmision')),
-                        fecha_caducidad=parse_date(row.get('feCaducidad')),
-                        digito_verificacion=row.get('digitoVerificacion'),
+                        # Contacto
+                        telefono=row.get('telefono'),
+                        email=row.get('email'),
+                        # Otros datos
+                        dona_organos=row.get('donaOrganos'),
+                        observacion=row.get('observacion'),
+                        # Restricciones
+                        fecha_restriccion=row.get('feRestriccion'),
+                        de_restriccion=row.get('deRestriccion'),
+                        # Datos electorales
+                        gp_votacion=row.get('gpVotacion'),
+                        multas_electorales=row.get('multasElectorales'),
+                        multa_admin=row.get('multaAdmin'),
+                        # Actualización
+                        fecha_actualizacion=parse_date(row.get('feActualizacion')),
+                        # Documentos sustento
+                        doc_sustento=row.get('docSustento'),
+                        nu_doc_sustento=row.get('nuDocSustento'),
+                        nu_doc_declarante=row.get('nuDocDeclarante'),
+                        vinculo_declarante=row.get('vinculoDeclarante'),
+                        # Cancelación
+                        cancelacion=row.get('cancelacion'),
+                        # Fallecimiento
+                        fecha_fallecimiento=parse_date(row.get('feFallecimiento')),
+                        depa_fallecimiento=row.get('depaFallecimiento'),
+                        prov_fallecimiento=row.get('provFallecimiento'),
+                        dist_fallecimiento=row.get('distFallecimiento'),
+                        # Ubigeo
+                        codigo_postal=row.get('codigo_postal'),
                         ubigeo_reniec=row.get('ubigeo_reniec'),
                         ubigeo_inei=row.get('ubigeo_inei'),
+                        ubigeo_sunat=row.get('ubigeo_sunat'),
+                        # Imágenes
                         foto=row.get('imagen_foto'),
-                        raw_data=None,  # No guardamos raw_data para registros legacy
-                        source='manual'  # Marcamos como migrado
+                        huella_izquierda=row.get('huella_izquierda'),
+                        huella_derecha=row.get('huella_derecha'),
+                        firma=row.get('firma'),
+                        # Metadatos
+                        raw_data=None,
+                        source='legacy'
                     )
                     migrated += 1
 

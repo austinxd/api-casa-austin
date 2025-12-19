@@ -7,43 +7,98 @@ class DNICache(models.Model):
     """
     Cache de consultas de DNI a RENIEC.
     Almacena los datos para evitar consultas repetidas a la API externa.
+    Replica exactamente la estructura de la tabla dni_info del PHP.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     dni = models.CharField(max_length=8, unique=True, db_index=True)
 
-    # Datos personales básicos
-    nombres = models.CharField(max_length=200, null=True, blank=True)
-    apellido_paterno = models.CharField(max_length=100, null=True, blank=True)
-    apellido_materno = models.CharField(max_length=100, null=True, blank=True)
-    apellido_casada = models.CharField(max_length=100, null=True, blank=True)
+    # Datos del documento
+    nu_dni = models.CharField(max_length=20, null=True, blank=True)
+    nu_ficha = models.CharField(max_length=50, null=True, blank=True)
+    nu_imagen = models.CharField(max_length=50, null=True, blank=True)
+    digito_verificacion = models.CharField(max_length=1, null=True, blank=True)
 
-    # Datos adicionales
-    fecha_nacimiento = models.DateField(null=True, blank=True)
+    # Datos personales básicos
+    nombres = models.CharField(max_length=200, null=True, blank=True, db_column='preNombres')
+    apellido_paterno = models.CharField(max_length=100, null=True, blank=True, db_column='apePaterno')
+    apellido_materno = models.CharField(max_length=100, null=True, blank=True, db_column='apeMaterno')
+    apellido_casada = models.CharField(max_length=100, null=True, blank=True, db_column='apCasada')
+
+    # Datos adicionales personales
+    fecha_nacimiento = models.DateField(null=True, blank=True, db_column='feNacimiento')
+    estatura = models.IntegerField(null=True, blank=True)
     sexo = models.CharField(max_length=1, null=True, blank=True)  # M/F
-    estado_civil = models.CharField(max_length=50, null=True, blank=True)
+    estado_civil = models.CharField(max_length=50, null=True, blank=True, db_column='estadoCivil')
+    grado_instruccion = models.CharField(max_length=100, null=True, blank=True, db_column='gradoInstruccion')
+
+    # Fechas del documento
+    fecha_emision = models.DateField(null=True, blank=True, db_column='feEmision')
+    fecha_inscripcion = models.DateField(null=True, blank=True, db_column='feInscripcion')
+    fecha_caducidad = models.DateField(null=True, blank=True, db_column='feCaducidad')
+
+    # Datos de los padres
+    nom_padre = models.CharField(max_length=200, null=True, blank=True, db_column='nomPadre')
+    nom_madre = models.CharField(max_length=200, null=True, blank=True, db_column='nomMadre')
 
     # Ubicación de nacimiento
+    pais = models.CharField(max_length=100, null=True, blank=True)
     departamento = models.CharField(max_length=100, null=True, blank=True)
     provincia = models.CharField(max_length=100, null=True, blank=True)
     distrito = models.CharField(max_length=100, null=True, blank=True)
 
     # Dirección actual
-    departamento_direccion = models.CharField(max_length=100, null=True, blank=True)
-    provincia_direccion = models.CharField(max_length=100, null=True, blank=True)
-    distrito_direccion = models.CharField(max_length=100, null=True, blank=True)
-    direccion = models.TextField(null=True, blank=True)
+    pais_direccion = models.CharField(max_length=100, null=True, blank=True, db_column='paisDireccion')
+    departamento_direccion = models.CharField(max_length=100, null=True, blank=True, db_column='depaDireccion')
+    provincia_direccion = models.CharField(max_length=100, null=True, blank=True, db_column='provDireccion')
+    distrito_direccion = models.CharField(max_length=100, null=True, blank=True, db_column='distDireccion')
+    direccion = models.TextField(null=True, blank=True, db_column='desDireccion')
 
-    # Datos del documento
-    fecha_emision = models.DateField(null=True, blank=True)
-    fecha_caducidad = models.DateField(null=True, blank=True)
-    digito_verificacion = models.CharField(max_length=1, null=True, blank=True)
+    # Contacto
+    telefono = models.CharField(max_length=50, null=True, blank=True)
+    email = models.CharField(max_length=200, null=True, blank=True)
+
+    # Otros datos
+    dona_organos = models.CharField(max_length=10, null=True, blank=True, db_column='donaOrganos')
+    observacion = models.TextField(null=True, blank=True)
+
+    # Restricciones
+    fecha_restriccion = models.CharField(max_length=50, null=True, blank=True, db_column='feRestriccion')
+    de_restriccion = models.TextField(null=True, blank=True, db_column='deRestriccion')
+
+    # Datos electorales
+    gp_votacion = models.CharField(max_length=100, null=True, blank=True, db_column='gpVotacion')
+    multas_electorales = models.TextField(null=True, blank=True, db_column='multasElectorales')
+    multa_admin = models.TextField(null=True, blank=True, db_column='multaAdmin')
+
+    # Actualización
+    fecha_actualizacion = models.DateField(null=True, blank=True, db_column='feActualizacion')
+
+    # Documentos sustento
+    doc_sustento = models.CharField(max_length=100, null=True, blank=True, db_column='docSustento')
+    nu_doc_sustento = models.CharField(max_length=100, null=True, blank=True, db_column='nuDocSustento')
+    nu_doc_declarante = models.CharField(max_length=100, null=True, blank=True, db_column='nuDocDeclarante')
+    vinculo_declarante = models.CharField(max_length=100, null=True, blank=True, db_column='vinculoDeclarante')
+
+    # Cancelación
+    cancelacion = models.TextField(null=True, blank=True)
+
+    # Fallecimiento
+    fecha_fallecimiento = models.DateField(null=True, blank=True, db_column='feFallecimiento')
+    depa_fallecimiento = models.CharField(max_length=100, null=True, blank=True, db_column='depaFallecimiento')
+    prov_fallecimiento = models.CharField(max_length=100, null=True, blank=True, db_column='provFallecimiento')
+    dist_fallecimiento = models.CharField(max_length=100, null=True, blank=True, db_column='distFallecimiento')
 
     # Ubigeo
+    codigo_postal = models.CharField(max_length=10, null=True, blank=True)
     ubigeo_reniec = models.CharField(max_length=10, null=True, blank=True)
     ubigeo_inei = models.CharField(max_length=10, null=True, blank=True)
+    ubigeo_sunat = models.CharField(max_length=10, null=True, blank=True)
 
-    # Imagen (base64 o URL)
-    foto = models.TextField(null=True, blank=True)
+    # Imágenes (base64)
+    foto = models.TextField(null=True, blank=True, db_column='imagen_foto')
+    huella_izquierda = models.TextField(null=True, blank=True)
+    huella_derecha = models.TextField(null=True, blank=True)
+    firma = models.TextField(null=True, blank=True)
 
     # Datos completos de la API (JSON para campos adicionales)
     raw_data = models.JSONField(null=True, blank=True, help_text="Datos completos de la API")
@@ -56,6 +111,7 @@ class DNICache(models.Model):
         choices=[
             ('api', 'API Externa'),
             ('manual', 'Ingreso Manual'),
+            ('legacy', 'Migrado de BD Legacy'),
         ],
         default='api'
     )

@@ -190,30 +190,65 @@ class ReniecService:
                     return str(date_val)
                 return None
 
+            # Mapear TODOS los campos de la BD legacy al formato de la API
             legacy_data = {
+                'nuDni': result.get('nuDni'),
+                'nuFicha': result.get('nuFicha'),
+                'nuImagen': result.get('nuImagen'),
+                'digitoVerificacion': result.get('digitoVerificacion'),
                 'preNombres': result.get('preNombres'),
                 'apePaterno': result.get('apePaterno'),
                 'apeMaterno': result.get('apeMaterno'),
                 'apCasada': result.get('apCasada'),
                 'feNacimiento': format_date(result.get('feNacimiento')),
+                'estatura': result.get('estatura'),
                 'sexo': result.get('sexo'),
                 'estadoCivil': result.get('estadoCivil'),
+                'gradoInstruccion': result.get('gradoInstruccion'),
+                'feEmision': format_date(result.get('feEmision')),
+                'feInscripcion': format_date(result.get('feInscripcion')),
+                'feCaducidad': format_date(result.get('feCaducidad')),
+                'nomPadre': result.get('nomPadre'),
+                'nomMadre': result.get('nomMadre'),
+                'pais': result.get('pais'),
                 'departamento': result.get('departamento'),
                 'provincia': result.get('provincia'),
                 'distrito': result.get('distrito'),
+                'paisDireccion': result.get('paisDireccion'),
                 'depaDireccion': result.get('depaDireccion'),
                 'provDireccion': result.get('provDireccion'),
                 'distDireccion': result.get('distDireccion'),
                 'desDireccion': result.get('desDireccion'),
-                'feEmision': format_date(result.get('feEmision')),
-                'feCaducidad': format_date(result.get('feCaducidad')),
-                'digitoVerificacion': result.get('digitoVerificacion'),
+                'telefono': result.get('telefono'),
+                'email': result.get('email'),
+                'donaOrganos': result.get('donaOrganos'),
+                'observacion': result.get('observacion'),
+                'feRestriccion': result.get('feRestriccion'),
+                'deRestriccion': result.get('deRestriccion'),
+                'gpVotacion': result.get('gpVotacion'),
+                'multasElectorales': result.get('multasElectorales'),
+                'multaAdmin': result.get('multaAdmin'),
+                'feActualizacion': format_date(result.get('feActualizacion')),
+                'docSustento': result.get('docSustento'),
+                'nuDocSustento': result.get('nuDocSustento'),
+                'nuDocDeclarante': result.get('nuDocDeclarante'),
+                'vinculoDeclarante': result.get('vinculoDeclarante'),
+                'cancelacion': result.get('cancelacion'),
+                'feFallecimiento': format_date(result.get('feFallecimiento')),
+                'depaFallecimiento': result.get('depaFallecimiento'),
+                'provFallecimiento': result.get('provFallecimiento'),
+                'distFallecimiento': result.get('distFallecimiento'),
                 'ubicacion': {
+                    'codigo_postal': result.get('codigo_postal'),
                     'ubigeo_reniec': result.get('ubigeo_reniec'),
                     'ubigeo_inei': result.get('ubigeo_inei'),
+                    'ubigeo_sunat': result.get('ubigeo_sunat'),
                 },
                 'imagenes': {
                     'foto': result.get('imagen_foto'),
+                    'huella_izquierda': result.get('huella_izquierda'),
+                    'huella_derecha': result.get('huella_derecha'),
+                    'firma': result.get('firma'),
                 },
             }
 
@@ -303,35 +338,94 @@ class ReniecService:
         return ' '.join(word.capitalize() for word in name.lower().split())
 
     @classmethod
-    def _save_to_cache(cls, dni: str, api_data: Dict[str, Any]) -> DNICache:
-        """Guarda los datos de la API en cache"""
-        ubicacion = api_data.get('ubicacion', {})
-        imagenes = api_data.get('imagenes', {})
+    def _save_to_cache(cls, dni: str, api_data: Dict[str, Any], source: str = 'api') -> DNICache:
+        """Guarda los datos de la API en cache - Replica exactamente la estructura del PHP"""
+        ubicacion = api_data.get('ubicacion', {}) or {}
+        imagenes = api_data.get('imagenes', {}) or {}
+
+        # Convertir estatura a int si existe
+        estatura = api_data.get('estatura')
+        if estatura and str(estatura).isdigit():
+            estatura = int(estatura)
+        else:
+            estatura = None
 
         cache_data = {
             'dni': dni,
+            # Datos del documento
+            'nu_dni': api_data.get('nuDni'),
+            'nu_ficha': api_data.get('nuFicha'),
+            'nu_imagen': api_data.get('nuImagen'),
+            'digito_verificacion': api_data.get('digitoVerificacion'),
+            # Datos personales
             'nombres': cls._capitalize_name(api_data.get('preNombres', '')),
             'apellido_paterno': cls._capitalize_name(api_data.get('apePaterno', '')),
             'apellido_materno': cls._capitalize_name(api_data.get('apeMaterno', '')),
             'apellido_casada': cls._capitalize_name(api_data.get('apCasada', '')),
+            # Datos adicionales
             'fecha_nacimiento': cls._parse_date(api_data.get('feNacimiento')),
+            'estatura': estatura,
             'sexo': (api_data.get('sexo', '') or '').upper()[:1],
             'estado_civil': api_data.get('estadoCivil'),
+            'grado_instruccion': api_data.get('gradoInstruccion'),
+            # Fechas del documento
+            'fecha_emision': cls._parse_date(api_data.get('feEmision')),
+            'fecha_inscripcion': cls._parse_date(api_data.get('feInscripcion')),
+            'fecha_caducidad': cls._parse_date(api_data.get('feCaducidad')),
+            # Datos de los padres
+            'nom_padre': api_data.get('nomPadre'),
+            'nom_madre': api_data.get('nomMadre'),
+            # Ubicación de nacimiento
+            'pais': api_data.get('pais'),
             'departamento': api_data.get('departamento'),
             'provincia': api_data.get('provincia'),
             'distrito': api_data.get('distrito'),
+            # Dirección actual
+            'pais_direccion': api_data.get('paisDireccion'),
             'departamento_direccion': api_data.get('depaDireccion'),
             'provincia_direccion': api_data.get('provDireccion'),
             'distrito_direccion': api_data.get('distDireccion'),
             'direccion': api_data.get('desDireccion'),
-            'fecha_emision': cls._parse_date(api_data.get('feEmision')),
-            'fecha_caducidad': cls._parse_date(api_data.get('feCaducidad')),
-            'digito_verificacion': api_data.get('digitoVerificacion'),
+            # Contacto
+            'telefono': api_data.get('telefono'),
+            'email': api_data.get('email'),
+            # Otros datos
+            'dona_organos': api_data.get('donaOrganos'),
+            'observacion': api_data.get('observacion'),
+            # Restricciones
+            'fecha_restriccion': api_data.get('feRestriccion'),
+            'de_restriccion': api_data.get('deRestriccion'),
+            # Datos electorales
+            'gp_votacion': api_data.get('gpVotacion'),
+            'multas_electorales': api_data.get('multasElectorales'),
+            'multa_admin': api_data.get('multaAdmin'),
+            # Actualización
+            'fecha_actualizacion': cls._parse_date(api_data.get('feActualizacion')),
+            # Documentos sustento
+            'doc_sustento': api_data.get('docSustento'),
+            'nu_doc_sustento': api_data.get('nuDocSustento'),
+            'nu_doc_declarante': api_data.get('nuDocDeclarante'),
+            'vinculo_declarante': api_data.get('vinculoDeclarante'),
+            # Cancelación
+            'cancelacion': api_data.get('cancelacion'),
+            # Fallecimiento
+            'fecha_fallecimiento': cls._parse_date(api_data.get('feFallecimiento')),
+            'depa_fallecimiento': api_data.get('depaFallecimiento'),
+            'prov_fallecimiento': api_data.get('provFallecimiento'),
+            'dist_fallecimiento': api_data.get('distFallecimiento'),
+            # Ubigeo
+            'codigo_postal': ubicacion.get('codigo_postal'),
             'ubigeo_reniec': ubicacion.get('ubigeo_reniec'),
             'ubigeo_inei': ubicacion.get('ubigeo_inei'),
+            'ubigeo_sunat': ubicacion.get('ubigeo_sunat'),
+            # Imágenes
             'foto': imagenes.get('foto'),
+            'huella_izquierda': imagenes.get('huella_izquierda'),
+            'huella_derecha': imagenes.get('huella_derecha'),
+            'firma': imagenes.get('firma'),
+            # Metadatos
             'raw_data': api_data,
-            'source': 'api'
+            'source': source
         }
 
         # Crear o actualizar
@@ -351,6 +445,7 @@ class ReniecService:
         include_full_data: bool = False
     ) -> Dict[str, Any]:
         """Formatea la respuesta según los permisos"""
+        # Datos básicos siempre incluidos
         data = {
             'dni': cache.dni,
             'nombres': cache.nombres,
@@ -364,23 +459,72 @@ class ReniecService:
 
         if include_full_data:
             data.update({
+                # Datos del documento
+                'nu_dni': cache.nu_dni,
+                'nu_ficha': cache.nu_ficha,
+                'nu_imagen': cache.nu_imagen,
+                # Datos personales adicionales
                 'apellido_casada': cache.apellido_casada,
+                'estatura': cache.estatura,
                 'estado_civil': cache.estado_civil,
+                'grado_instruccion': cache.grado_instruccion,
+                # Fechas del documento
+                'fecha_emision': cache.fecha_emision.isoformat() if cache.fecha_emision else None,
+                'fecha_inscripcion': cache.fecha_inscripcion.isoformat() if cache.fecha_inscripcion else None,
+                'fecha_caducidad': cache.fecha_caducidad.isoformat() if cache.fecha_caducidad else None,
+                # Padres
+                'nom_padre': cache.nom_padre,
+                'nom_madre': cache.nom_madre,
+                # Ubicación de nacimiento
+                'pais': cache.pais,
                 'departamento': cache.departamento,
                 'provincia': cache.provincia,
                 'distrito': cache.distrito,
+                # Dirección actual
+                'pais_direccion': cache.pais_direccion,
                 'departamento_direccion': cache.departamento_direccion,
                 'provincia_direccion': cache.provincia_direccion,
                 'distrito_direccion': cache.distrito_direccion,
                 'direccion': cache.direccion,
-                'fecha_emision': cache.fecha_emision.isoformat() if cache.fecha_emision else None,
-                'fecha_caducidad': cache.fecha_caducidad.isoformat() if cache.fecha_caducidad else None,
+                # Contacto
+                'telefono': cache.telefono,
+                'email': cache.email,
+                # Otros datos
+                'dona_organos': cache.dona_organos,
+                'observacion': cache.observacion,
+                # Restricciones
+                'fecha_restriccion': cache.fecha_restriccion,
+                'de_restriccion': cache.de_restriccion,
+                # Datos electorales
+                'gp_votacion': cache.gp_votacion,
+                'multas_electorales': cache.multas_electorales,
+                'multa_admin': cache.multa_admin,
+                # Actualización
+                'fecha_actualizacion': cache.fecha_actualizacion.isoformat() if cache.fecha_actualizacion else None,
+                # Documentos sustento
+                'doc_sustento': cache.doc_sustento,
+                'nu_doc_sustento': cache.nu_doc_sustento,
+                'nu_doc_declarante': cache.nu_doc_declarante,
+                'vinculo_declarante': cache.vinculo_declarante,
+                # Cancelación
+                'cancelacion': cache.cancelacion,
+                # Fallecimiento
+                'fecha_fallecimiento': cache.fecha_fallecimiento.isoformat() if cache.fecha_fallecimiento else None,
+                'depa_fallecimiento': cache.depa_fallecimiento,
+                'prov_fallecimiento': cache.prov_fallecimiento,
+                'dist_fallecimiento': cache.dist_fallecimiento,
+                # Ubigeo
+                'codigo_postal': cache.codigo_postal,
                 'ubigeo_reniec': cache.ubigeo_reniec,
                 'ubigeo_inei': cache.ubigeo_inei,
+                'ubigeo_sunat': cache.ubigeo_sunat,
             })
 
-        if include_photo and cache.foto:
+        if include_photo:
             data['foto'] = cache.foto
+            data['huella_izquierda'] = cache.huella_izquierda
+            data['huella_derecha'] = cache.huella_derecha
+            data['firma'] = cache.firma
 
         return {'data': data}
 

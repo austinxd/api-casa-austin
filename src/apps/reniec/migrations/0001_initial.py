@@ -1,4 +1,4 @@
-# Generated manually for reniec app
+# Generated for reniec app - Complete DNI structure
 
 import uuid
 from django.conf import settings
@@ -21,30 +21,83 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
                 ('dni', models.CharField(db_index=True, max_length=8, unique=True)),
-                ('nombres', models.CharField(blank=True, max_length=200, null=True)),
-                ('apellido_paterno', models.CharField(blank=True, max_length=100, null=True)),
-                ('apellido_materno', models.CharField(blank=True, max_length=100, null=True)),
-                ('apellido_casada', models.CharField(blank=True, max_length=100, null=True)),
-                ('fecha_nacimiento', models.DateField(blank=True, null=True)),
+                # Datos del documento
+                ('nu_dni', models.CharField(blank=True, max_length=20, null=True)),
+                ('nu_ficha', models.CharField(blank=True, max_length=50, null=True)),
+                ('nu_imagen', models.CharField(blank=True, max_length=50, null=True)),
+                ('digito_verificacion', models.CharField(blank=True, max_length=1, null=True)),
+                # Datos personales
+                ('nombres', models.CharField(blank=True, db_column='preNombres', max_length=200, null=True)),
+                ('apellido_paterno', models.CharField(blank=True, db_column='apePaterno', max_length=100, null=True)),
+                ('apellido_materno', models.CharField(blank=True, db_column='apeMaterno', max_length=100, null=True)),
+                ('apellido_casada', models.CharField(blank=True, db_column='apCasada', max_length=100, null=True)),
+                # Datos adicionales
+                ('fecha_nacimiento', models.DateField(blank=True, db_column='feNacimiento', null=True)),
+                ('estatura', models.IntegerField(blank=True, null=True)),
                 ('sexo', models.CharField(blank=True, max_length=1, null=True)),
-                ('estado_civil', models.CharField(blank=True, max_length=50, null=True)),
+                ('estado_civil', models.CharField(blank=True, db_column='estadoCivil', max_length=50, null=True)),
+                ('grado_instruccion', models.CharField(blank=True, db_column='gradoInstruccion', max_length=100, null=True)),
+                # Fechas del documento
+                ('fecha_emision', models.DateField(blank=True, db_column='feEmision', null=True)),
+                ('fecha_inscripcion', models.DateField(blank=True, db_column='feInscripcion', null=True)),
+                ('fecha_caducidad', models.DateField(blank=True, db_column='feCaducidad', null=True)),
+                # Padres
+                ('nom_padre', models.CharField(blank=True, db_column='nomPadre', max_length=200, null=True)),
+                ('nom_madre', models.CharField(blank=True, db_column='nomMadre', max_length=200, null=True)),
+                # Ubicación de nacimiento
+                ('pais', models.CharField(blank=True, max_length=100, null=True)),
                 ('departamento', models.CharField(blank=True, max_length=100, null=True)),
                 ('provincia', models.CharField(blank=True, max_length=100, null=True)),
                 ('distrito', models.CharField(blank=True, max_length=100, null=True)),
-                ('departamento_direccion', models.CharField(blank=True, max_length=100, null=True)),
-                ('provincia_direccion', models.CharField(blank=True, max_length=100, null=True)),
-                ('distrito_direccion', models.CharField(blank=True, max_length=100, null=True)),
-                ('direccion', models.TextField(blank=True, null=True)),
-                ('fecha_emision', models.DateField(blank=True, null=True)),
-                ('fecha_caducidad', models.DateField(blank=True, null=True)),
-                ('digito_verificacion', models.CharField(blank=True, max_length=1, null=True)),
+                # Dirección actual
+                ('pais_direccion', models.CharField(blank=True, db_column='paisDireccion', max_length=100, null=True)),
+                ('departamento_direccion', models.CharField(blank=True, db_column='depaDireccion', max_length=100, null=True)),
+                ('provincia_direccion', models.CharField(blank=True, db_column='provDireccion', max_length=100, null=True)),
+                ('distrito_direccion', models.CharField(blank=True, db_column='distDireccion', max_length=100, null=True)),
+                ('direccion', models.TextField(blank=True, db_column='desDireccion', null=True)),
+                # Contacto
+                ('telefono', models.CharField(blank=True, max_length=50, null=True)),
+                ('email', models.CharField(blank=True, max_length=200, null=True)),
+                # Otros datos
+                ('dona_organos', models.CharField(blank=True, db_column='donaOrganos', max_length=10, null=True)),
+                ('observacion', models.TextField(blank=True, null=True)),
+                # Restricciones
+                ('fecha_restriccion', models.CharField(blank=True, db_column='feRestriccion', max_length=50, null=True)),
+                ('de_restriccion', models.TextField(blank=True, db_column='deRestriccion', null=True)),
+                # Datos electorales
+                ('gp_votacion', models.CharField(blank=True, db_column='gpVotacion', max_length=100, null=True)),
+                ('multas_electorales', models.TextField(blank=True, db_column='multasElectorales', null=True)),
+                ('multa_admin', models.TextField(blank=True, db_column='multaAdmin', null=True)),
+                # Actualización
+                ('fecha_actualizacion', models.DateField(blank=True, db_column='feActualizacion', null=True)),
+                # Documentos sustento
+                ('doc_sustento', models.CharField(blank=True, db_column='docSustento', max_length=100, null=True)),
+                ('nu_doc_sustento', models.CharField(blank=True, db_column='nuDocSustento', max_length=100, null=True)),
+                ('nu_doc_declarante', models.CharField(blank=True, db_column='nuDocDeclarante', max_length=100, null=True)),
+                ('vinculo_declarante', models.CharField(blank=True, db_column='vinculoDeclarante', max_length=100, null=True)),
+                # Cancelación
+                ('cancelacion', models.TextField(blank=True, null=True)),
+                # Fallecimiento
+                ('fecha_fallecimiento', models.DateField(blank=True, db_column='feFallecimiento', null=True)),
+                ('depa_fallecimiento', models.CharField(blank=True, db_column='depaFallecimiento', max_length=100, null=True)),
+                ('prov_fallecimiento', models.CharField(blank=True, db_column='provFallecimiento', max_length=100, null=True)),
+                ('dist_fallecimiento', models.CharField(blank=True, db_column='distFallecimiento', max_length=100, null=True)),
+                # Ubigeo
+                ('codigo_postal', models.CharField(blank=True, max_length=10, null=True)),
                 ('ubigeo_reniec', models.CharField(blank=True, max_length=10, null=True)),
                 ('ubigeo_inei', models.CharField(blank=True, max_length=10, null=True)),
-                ('foto', models.TextField(blank=True, null=True)),
+                ('ubigeo_sunat', models.CharField(blank=True, max_length=10, null=True)),
+                # Imágenes
+                ('foto', models.TextField(blank=True, db_column='imagen_foto', null=True)),
+                ('huella_izquierda', models.TextField(blank=True, null=True)),
+                ('huella_derecha', models.TextField(blank=True, null=True)),
+                ('firma', models.TextField(blank=True, null=True)),
+                # Datos completos
                 ('raw_data', models.JSONField(blank=True, help_text='Datos completos de la API', null=True)),
+                # Metadatos
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('updated', models.DateTimeField(auto_now=True)),
-                ('source', models.CharField(choices=[('api', 'API Externa'), ('manual', 'Ingreso Manual')], default='api', max_length=20)),
+                ('source', models.CharField(choices=[('api', 'API Externa'), ('manual', 'Ingreso Manual'), ('legacy', 'Migrado de BD Legacy')], default='api', max_length=20)),
             ],
             options={
                 'verbose_name': 'DNI Cache',
