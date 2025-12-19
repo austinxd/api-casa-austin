@@ -3212,6 +3212,18 @@ class SearchesByCheckInDateView(APIView):
                     logger.warning(f"Error calculando precio: {e}")
                 return None
 
+            # Obtener IDs de clientes con reservas activas (para excluirlos)
+            # Reservas activas = estado PENDING, UNDER_REVIEW o APPROVED y no eliminadas
+            active_statuses = [
+                Reservation.ReservationStatusChoice.PENDING,
+                Reservation.ReservationStatusChoice.UNDER_REVIEW,
+                Reservation.ReservationStatusChoice.APPROVED,
+            ]
+            clients_with_active_reservations = Reservation.objects.filter(
+                status__in=active_statuses,
+                deleted=False
+            ).values_list('client_id', flat=True).distinct()
+
             # Construir query base
             base_query = SearchTracking.objects.filter(
                 check_in_date=check_in_date,
@@ -3222,10 +3234,12 @@ class SearchesByCheckInDateView(APIView):
             if property_id:
                 base_query = base_query.filter(property_id=property_id)
 
-            # Separar búsquedas de clientes registrados (no eliminados) y anónimos
+            # Separar búsquedas de clientes registrados (no eliminados, sin reservas activas) y anónimos
             client_searches = base_query.filter(
                 client__isnull=False,
                 client__deleted=False  # Solo clientes no eliminados
+            ).exclude(
+                client_id__in=clients_with_active_reservations  # Excluir clientes con reservas activas
             )
             anonymous_searches = base_query.filter(client__isnull=True) if include_anonymous else SearchTracking.objects.none()
 
