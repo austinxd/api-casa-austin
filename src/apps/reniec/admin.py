@@ -41,7 +41,7 @@ class DNICacheAdmin(admin.ModelAdmin):
 
 @admin.register(DNIQueryLog)
 class DNIQueryLogAdmin(admin.ModelAdmin):
-    list_display = ['dni', 'source_app', 'success_badge', 'from_cache_badge', 'response_time_ms', 'created']
+    list_display = ['dni', 'source_app', 'source_ip', 'success_badge', 'from_cache_badge', 'response_time_ms', 'created']
     list_filter = ['source_app', 'success', 'from_cache', 'created']
     search_fields = ['dni', 'source_app', 'source_ip']
     readonly_fields = ['id', 'created']
