@@ -3168,6 +3168,50 @@ class SearchesByCheckInDateView(APIView):
         property_id = request.query_params.get('property_id')
 
         try:
+            # Importar servicio de pricing
+            from apps.property.pricing_service import PricingCalculationService
+            pricing_service = PricingCalculationService()
+
+            # Helper para obtener level_info del cliente
+            def get_client_level_info(client):
+                from .models import ClientAchievement
+                earned = ClientAchievement.objects.filter(
+                    client=client,
+                    deleted=False
+                ).select_related('achievement').order_by(
+                    '-achievement__required_reservations',
+                    '-achievement__required_referrals'
+                ).first()
+                if earned:
+                    return {
+                        'name': earned.achievement.name,
+                        'icon': earned.achievement.icon,
+                    }
+                return None
+
+            # Helper para calcular precio
+            def calculate_search_price(check_in, check_out, guests, property_obj):
+                if not property_obj or not check_out:
+                    return None
+                try:
+                    result = pricing_service.calculate_pricing(
+                        check_in_date=check_in,
+                        check_out_date=check_out,
+                        guests=guests,
+                        property_id=str(property_obj.id)
+                    )
+                    if result and result.get('properties'):
+                        prop_pricing = result['properties'][0]
+                        return {
+                            'total_nights': prop_pricing.get('total_nights'),
+                            'price_usd': prop_pricing.get('final_price_usd'),
+                            'price_sol': prop_pricing.get('final_price_sol'),
+                            'available': prop_pricing.get('available', False),
+                        }
+                except Exception as e:
+                    logger.warning(f"Error calculando precio: {e}")
+                return None
+
             # Construir query base
             base_query = SearchTracking.objects.filter(
                 check_in_date=check_in_date,
@@ -3178,8 +3222,11 @@ class SearchesByCheckInDateView(APIView):
             if property_id:
                 base_query = base_query.filter(property_id=property_id)
 
-            # Separar búsquedas de clientes registrados y anónimos
-            client_searches = base_query.filter(client__isnull=False)
+            # Separar búsquedas de clientes registrados (no eliminados) y anónimos
+            client_searches = base_query.filter(
+                client__isnull=False,
+                client__deleted=False  # Solo clientes no eliminados
+            )
             anonymous_searches = base_query.filter(client__isnull=True) if include_anonymous else SearchTracking.objects.none()
 
             # Agrupar búsquedas por cliente
@@ -3195,10 +3242,19 @@ class SearchesByCheckInDateView(APIView):
                             'email': search.client.email,
                             'tel_number': search.client.tel_number,
                             'number_doc': search.client.number_doc,
+                            'level_info': get_client_level_info(search.client),
                         },
                         'search_count': 0,
                         'searches': []
                     }
+
+                # Calcular precio para esta búsqueda
+                pricing = calculate_search_price(
+                    search.check_in_date,
+                    search.check_out_date,
+                    search.guests,
+                    search.property
+                )
 
                 searches_by_client[client_id]['search_count'] += 1
                 searches_by_client[client_id]['searches'].append({
@@ -3210,14 +3266,20 @@ class SearchesByCheckInDateView(APIView):
                         'id': str(search.property.id) if search.property else None,
                         'name': search.property.name if search.property else None
                     } if search.property else None,
+                    'pricing': pricing,
                     'search_timestamp': search.search_timestamp.isoformat() if search.search_timestamp else None,
                     'ip_address': search.ip_address,
-                    'user_agent': search.user_agent[:100] if search.user_agent else None,  # Truncar para legibilidad
                 })
 
             # Formatear búsquedas anónimas
             anonymous_searches_detail = []
             for search in anonymous_searches:
+                pricing = calculate_search_price(
+                    search.check_in_date,
+                    search.check_out_date,
+                    search.guests,
+                    search.property
+                )
                 anonymous_searches_detail.append({
                     'id': str(search.id),
                     'check_in_date': str(search.check_in_date),
@@ -3227,11 +3289,10 @@ class SearchesByCheckInDateView(APIView):
                         'id': str(search.property.id) if search.property else None,
                         'name': search.property.name if search.property else None
                     } if search.property else None,
+                    'pricing': pricing,
                     'search_timestamp': search.search_timestamp.isoformat() if search.search_timestamp else None,
                     'ip_address': search.ip_address,
                     'session_key': search.session_key,
-                    'user_agent': search.user_agent[:100] if search.user_agent else None,
-                    'referrer': search.referrer,
                 })
 
             # Estadísticas
