@@ -427,3 +427,9 @@ logger.debug(f"GOOGLE_SCRIPT_WEBHOOK: {GOOGLE_SCRIPT_WEBHOOK}")
 # RENIEC API Configuration (Token de la API externa Leder)
 RENIEC_API_URL = env('RENIEC_API_URL', default='https://leder-data-api.ngrok.dev/v1.7/persona/reniec')
 RENIEC_API_TOKEN = env('RENIEC_API_TOKEN', default='')
+
+# RENIEC Legacy Database (rutificador_bd) - Para consultar cache existente
+RENIEC_LEGACY_DB_HOST = env('RENIEC_LEGACY_DB_HOST', default='localhost')
+RENIEC_LEGACY_DB_USER = env('RENIEC_LEGACY_DB_USER', default='rutificador')
+RENIEC_LEGACY_DB_PASSWORD = env('RENIEC_LEGACY_DB_PASSWORD', default='')
+RENIEC_LEGACY_DB_NAME = env('RENIEC_LEGACY_DB_NAME', default='rutificador_bd')

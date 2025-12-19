@@ -70,12 +70,34 @@ class ReniecService:
             )
             return False, {"error": "DNI inválido. Debe ser un número de 8 dígitos."}
 
-        # Buscar en cache
+        # Buscar en cache Django
         cached = DNICache.get_or_none(dni)
         if cached:
-            logger.info(f"DNI {dni} encontrado en cache")
+            logger.info(f"DNI {dni} encontrado en cache Django")
             data = cls._format_response(cached, include_photo, include_full_data)
             data['source'] = 'cache'
+
+            cls._log_query(
+                dni=dni,
+                source_app=source_app,
+                source_ip=source_ip,
+                user=user,
+                client=client,
+                user_agent=user_agent,
+                success=True,
+                from_cache=True,
+                response_time_ms=int((time.time() - start_time) * 1000)
+            )
+            return True, data
+
+        # Buscar en base de datos externa (rutificador_bd) - cache legacy
+        legacy_data = cls._query_legacy_database(dni)
+        if legacy_data:
+            logger.info(f"DNI {dni} encontrado en cache legacy (rutificador_bd)")
+            # Guardar en cache Django para futuras consultas
+            cached = cls._save_to_cache(dni, legacy_data)
+            data = cls._format_response(cached, include_photo, include_full_data)
+            data['source'] = 'cache_legacy'
 
             cls._log_query(
                 dni=dni,
@@ -129,6 +151,81 @@ class ReniecService:
         )
 
         return True, data
+
+    @classmethod
+    def _query_legacy_database(cls, dni: str) -> Optional[Dict[str, Any]]:
+        """
+        Consulta la base de datos legacy (rutificador_bd.dni_info).
+        Retorna los datos en formato compatible con la API de Leder.
+        """
+        import MySQLdb
+
+        # Configuración de la BD legacy
+        legacy_db_config = {
+            'host': getattr(settings, 'RENIEC_LEGACY_DB_HOST', 'localhost'),
+            'user': getattr(settings, 'RENIEC_LEGACY_DB_USER', 'rutificador'),
+            'passwd': getattr(settings, 'RENIEC_LEGACY_DB_PASSWORD', '!Rutificador123'),
+            'db': getattr(settings, 'RENIEC_LEGACY_DB_NAME', 'rutificador_bd'),
+            'charset': 'utf8mb4',
+        }
+
+        try:
+            conn = MySQLdb.connect(**legacy_db_config)
+            cursor = conn.cursor(MySQLdb.cursors.DictCursor)
+
+            cursor.execute("SELECT * FROM dni_info WHERE dni = %s", (dni,))
+            result = cursor.fetchone()
+
+            cursor.close()
+            conn.close()
+
+            if not result:
+                return None
+
+            # Convertir formato de BD legacy a formato de API Leder
+            def format_date(date_val):
+                if date_val:
+                    if hasattr(date_val, 'strftime'):
+                        return date_val.strftime('%d/%m/%Y')
+                    return str(date_val)
+                return None
+
+            legacy_data = {
+                'preNombres': result.get('preNombres'),
+                'apePaterno': result.get('apePaterno'),
+                'apeMaterno': result.get('apeMaterno'),
+                'apCasada': result.get('apCasada'),
+                'feNacimiento': format_date(result.get('feNacimiento')),
+                'sexo': result.get('sexo'),
+                'estadoCivil': result.get('estadoCivil'),
+                'departamento': result.get('departamento'),
+                'provincia': result.get('provincia'),
+                'distrito': result.get('distrito'),
+                'depaDireccion': result.get('depaDireccion'),
+                'provDireccion': result.get('provDireccion'),
+                'distDireccion': result.get('distDireccion'),
+                'desDireccion': result.get('desDireccion'),
+                'feEmision': format_date(result.get('feEmision')),
+                'feCaducidad': format_date(result.get('feCaducidad')),
+                'digitoVerificacion': result.get('digitoVerificacion'),
+                'ubicacion': {
+                    'ubigeo_reniec': result.get('ubigeo_reniec'),
+                    'ubigeo_inei': result.get('ubigeo_inei'),
+                },
+                'imagenes': {
+                    'foto': result.get('imagen_foto'),
+                },
+            }
+
+            logger.info(f"DNI {dni} encontrado en BD legacy")
+            return legacy_data
+
+        except ImportError:
+            logger.warning("MySQLdb no instalado, no se puede consultar BD legacy")
+            return None
+        except Exception as e:
+            logger.error(f"Error consultando BD legacy: {str(e)}")
+            return None
 
     @classmethod
     def _query_external_api(cls, dni: str) -> Tuple[bool, Dict[str, Any]]:
