@@ -3287,7 +3287,7 @@ class SearchesByCheckInDateView(APIView):
             )
             anonymous_searches = base_query.filter(client__isnull=True) if include_anonymous else SearchTracking.objects.none()
 
-            # Agrupar búsquedas por cliente
+            # Agrupar búsquedas por cliente, deduplicando por (check_in, check_out, guests)
             searches_by_client = {}
             for search in client_searches:
                 client_id = str(search.client.id)
@@ -3303,8 +3303,16 @@ class SearchesByCheckInDateView(APIView):
                             'level_info': get_client_level_info(search.client),
                         },
                         'search_count': 0,
-                        'searches': []
+                        'searches': [],
+                        '_seen_searches': set()  # Para deduplicar
                     }
+
+                # Clave única: fechas + guests (ignorar property para agrupar)
+                search_key = f"{search.check_in_date}_{search.check_out_date}_{search.guests}"
+
+                # Saltar si ya vimos esta combinación (la primera es la más reciente)
+                if search_key in searches_by_client[client_id]['_seen_searches']:
+                    continue
 
                 # Calcular precio para esta búsqueda (solo si hay disponibilidad)
                 pricing = calculate_search_price(
@@ -3316,6 +3324,7 @@ class SearchesByCheckInDateView(APIView):
 
                 # Solo agregar búsquedas con disponibilidad
                 if pricing:
+                    searches_by_client[client_id]['_seen_searches'].add(search_key)
                     searches_by_client[client_id]['search_count'] += 1
                     searches_by_client[client_id]['searches'].append({
                         'id': str(search.id),
@@ -3357,10 +3366,13 @@ class SearchesByCheckInDateView(APIView):
                         'session_key': search.session_key,
                     })
 
-            # Filtrar clientes sin búsquedas disponibles
-            searches_by_client_filtered = {
-                k: v for k, v in searches_by_client.items() if v['search_count'] > 0
-            }
+            # Filtrar clientes sin búsquedas disponibles y remover campo interno
+            searches_by_client_filtered = {}
+            for k, v in searches_by_client.items():
+                if v['search_count'] > 0:
+                    # Remover campo interno antes de retornar
+                    del v['_seen_searches']
+                    searches_by_client_filtered[k] = v
 
             # Estadísticas (solo búsquedas con disponibilidad)
             total_available_searches = sum(c['search_count'] for c in searches_by_client_filtered.values()) + len(anonymous_searches_detail)
