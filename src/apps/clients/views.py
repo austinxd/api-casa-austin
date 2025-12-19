@@ -3090,3 +3090,167 @@ class ClientInfoByReferralCodeView(APIView):
                 'success': False,
                 'error': 'Error interno del servidor'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class SearchesByCheckInDateView(APIView):
+    """
+    Vista para ver qué usuarios han buscado disponibilidad para una fecha de check-in específica.
+    Solo accesible para admin/staff.
+
+    GET /api/v1/clients/searches-by-checkin/?date=2025-12-19
+
+    Parámetros opcionales:
+    - date: Fecha de check-in (YYYY-MM-DD) - Requerido
+    - include_anonymous: true/false - Incluir búsquedas anónimas (default: true)
+    - property_id: ID de propiedad para filtrar
+
+    Response:
+    {
+        "success": true,
+        "check_in_date": "2025-12-19",
+        "total_searches": 15,
+        "unique_clients": 8,
+        "anonymous_searches": 3,
+        "searches_by_client": [
+            {
+                "client": {
+                    "id": "uuid",
+                    "first_name": "Juan",
+                    "last_name": "Pérez",
+                    "email": "juan@example.com",
+                    "tel_number": "+51987654321"
+                },
+                "search_count": 3,
+                "searches": [
+                    {
+                        "id": "uuid",
+                        "check_in_date": "2025-12-19",
+                        "check_out_date": "2025-12-22",
+                        "guests": 4,
+                        "property": {"id": 1, "name": "Villa Paradise"},
+                        "search_timestamp": "2025-12-18T14:30:00Z",
+                        "ip_address": "192.168.1.1"
+                    }
+                ]
+            }
+        ],
+        "anonymous_searches_detail": [...]
+    }
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Verificar que es admin o staff
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response({
+                'success': False,
+                'error': 'No tiene permisos para esta operación'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # Obtener fecha de check-in del query param
+        date_str = request.query_params.get('date')
+        if not date_str:
+            return Response({
+                'success': False,
+                'error': 'El parámetro "date" es requerido (formato: YYYY-MM-DD)'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            check_in_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({
+                'success': False,
+                'error': 'Formato de fecha inválido. Use YYYY-MM-DD'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Parámetros opcionales
+        include_anonymous = request.query_params.get('include_anonymous', 'true').lower() == 'true'
+        property_id = request.query_params.get('property_id')
+
+        try:
+            # Construir query base
+            base_query = SearchTracking.objects.filter(
+                check_in_date=check_in_date,
+                deleted=False
+            ).select_related('client', 'property').order_by('-search_timestamp')
+
+            # Filtrar por propiedad si se especifica
+            if property_id:
+                base_query = base_query.filter(property_id=property_id)
+
+            # Separar búsquedas de clientes registrados y anónimos
+            client_searches = base_query.filter(client__isnull=False)
+            anonymous_searches = base_query.filter(client__isnull=True) if include_anonymous else SearchTracking.objects.none()
+
+            # Agrupar búsquedas por cliente
+            searches_by_client = {}
+            for search in client_searches:
+                client_id = str(search.client.id)
+                if client_id not in searches_by_client:
+                    searches_by_client[client_id] = {
+                        'client': {
+                            'id': str(search.client.id),
+                            'first_name': search.client.first_name,
+                            'last_name': search.client.last_name,
+                            'email': search.client.email,
+                            'tel_number': search.client.tel_number,
+                            'document_number': search.client.document_number,
+                        },
+                        'search_count': 0,
+                        'searches': []
+                    }
+
+                searches_by_client[client_id]['search_count'] += 1
+                searches_by_client[client_id]['searches'].append({
+                    'id': str(search.id),
+                    'check_in_date': str(search.check_in_date),
+                    'check_out_date': str(search.check_out_date),
+                    'guests': search.guests,
+                    'property': {
+                        'id': str(search.property.id) if search.property else None,
+                        'name': search.property.name if search.property else None
+                    } if search.property else None,
+                    'search_timestamp': search.search_timestamp.isoformat() if search.search_timestamp else None,
+                    'ip_address': search.ip_address,
+                    'user_agent': search.user_agent[:100] if search.user_agent else None,  # Truncar para legibilidad
+                })
+
+            # Formatear búsquedas anónimas
+            anonymous_searches_detail = []
+            for search in anonymous_searches:
+                anonymous_searches_detail.append({
+                    'id': str(search.id),
+                    'check_in_date': str(search.check_in_date),
+                    'check_out_date': str(search.check_out_date),
+                    'guests': search.guests,
+                    'property': {
+                        'id': str(search.property.id) if search.property else None,
+                        'name': search.property.name if search.property else None
+                    } if search.property else None,
+                    'search_timestamp': search.search_timestamp.isoformat() if search.search_timestamp else None,
+                    'ip_address': search.ip_address,
+                    'session_key': search.session_key,
+                    'user_agent': search.user_agent[:100] if search.user_agent else None,
+                    'referrer': search.referrer,
+                })
+
+            # Estadísticas
+            total_searches = client_searches.count() + anonymous_searches.count()
+            unique_clients = len(searches_by_client)
+
+            return Response({
+                'success': True,
+                'check_in_date': str(check_in_date),
+                'total_searches': total_searches,
+                'unique_clients': unique_clients,
+                'anonymous_searches_count': anonymous_searches.count(),
+                'searches_by_client': list(searches_by_client.values()),
+                'anonymous_searches_detail': anonymous_searches_detail if include_anonymous else []
+            })
+
+        except Exception as e:
+            logger.error(f"SearchesByCheckInDateView: Error: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f'Error interno del servidor: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

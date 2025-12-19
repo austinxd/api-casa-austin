@@ -11,10 +11,10 @@ from .voucher_views import ClientVoucherUploadView, ClientReservationStatusView
 from .views import (
     MensajeFidelidadApiView, TokenApiClientApiView, ClientsApiView,
     ReferralConfigView, ReferralStatsView, SearchTrackingView, SearchTrackingTestView,
-    SearchTrackingExportView, ClientCreateReservationView, ClientReservationsListView, 
+    SearchTrackingExportView, ClientCreateReservationView, ClientReservationsListView,
     ClientReservationDetailView, GoogleSheetsDebugView, ReferralRankingView,
     CurrentReferralRankingView, ClientReferralStatsView, PublicReferralStatsView,
-    ClientInfoByReferralCodeView
+    ClientInfoByReferralCodeView, SearchesByCheckInDateView
 )
 
 router = DefaultRouter()
@@ -45,6 +45,11 @@ urlpatterns = [
          SearchTrackingExportView.as_view(),
          name='client-track-search-export'),
     path('clients/track-search-test/', SearchTrackingTestView.as_view(), name='track-search-test'),
+
+    # Endpoint para consultar búsquedas por fecha de check-in (admin only)
+    path('clients/searches-by-checkin/',
+         SearchesByCheckInDateView.as_view(),
+         name='searches-by-checkin'),
 
     # Referral ranking endpoints (must be before router to avoid conflicts)
     path('clients/referral-ranking/', ReferralRankingView.as_view(), name='referral-ranking'),
