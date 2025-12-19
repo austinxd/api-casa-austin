@@ -75,7 +75,7 @@ def get_client_ip(request):
 
 class DNILookupView(APIView):
     """
-    Endpoint para consultar DNI.
+    Endpoint para consultar DNI - Compatible con el formato del PHP original.
 
     POST /api/v1/reniec/lookup/
 
@@ -87,32 +87,37 @@ class DNILookupView(APIView):
             "dni": "12345678"
         }
 
-    Response:
+    Response (éxito):
         {
-            "success": true,
+            "source": "database",
             "data": {
                 "dni": "12345678",
-                "nombres": "Juan Carlos",
-                "apellido_paterno": "Perez",
-                "apellido_materno": "Garcia",
-                "nombre_completo": "Juan Carlos Perez Garcia",
-                "fecha_nacimiento": "1990-01-15",
-                "sexo": "M",
-                "digito_verificacion": "5"
-            },
-            "source": "cache"
+                "preNombres": "Juan Carlos",
+                "apePaterno": "Perez",
+                ...
+            }
+        }
+
+    Response (error):
+        {
+            "error": "DNI inválido o no enviado"
         }
     """
     permission_classes = [AllowAny]  # Usamos autenticación por API Key
 
+    def get(self, request):
+        """Soporte para GET (como el PHP original)"""
+        return self._handle_lookup(request, request.GET.get('dni', '').strip())
+
     def post(self, request):
+        """Soporte para POST"""
+        return self._handle_lookup(request, request.data.get('dni', '').strip())
+
+    def _handle_lookup(self, request, dni):
         # Autenticar con API Key
         api_key, error = APIKeyAuthentication.authenticate(request)
         if error:
-            return Response({
-                'success': False,
-                'error': error
-            }, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'error': error}, status=status.HTTP_401_UNAUTHORIZED)
 
         # Obtener IP del cliente
         source_ip = get_client_ip(request)
@@ -120,19 +125,11 @@ class DNILookupView(APIView):
         # Verificar rate limit
         allowed, error = RateLimiter.check_rate_limit(api_key, source_ip)
         if not allowed:
-            return Response({
-                'success': False,
-                'error': error
-            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+            return Response({'error': error}, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
-        # Obtener DNI del body
-        dni = request.data.get('dni', '').strip()
-
-        if not dni:
-            return Response({
-                'success': False,
-                'error': 'DNI requerido'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # Validar DNI (igual que PHP)
+        if not dni or len(dni) != 8 or not dni.isdigit():
+            return Response({'error': 'DNI inválido o no enviado'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Actualizar último uso del API Key
         api_key.update_last_used()
@@ -148,20 +145,22 @@ class DNILookupView(APIView):
         )
 
         if success:
+            # Formato igual al PHP: {"source": "database|api", "data": {...}}
             return Response({
-                'success': True,
-                **result
+                'source': result.get('source', 'database'),
+                'data': result.get('data', {})
             })
         else:
+            # Formato de error igual al PHP: {"error": "mensaje"}
             return Response({
-                'success': False,
-                **result
+                'error': result.get('error', 'Error en la consulta')
             }, status=status.HTTP_404_NOT_FOUND)
 
 
 class DNILookupAuthenticatedView(APIView):
     """
     Endpoint para consultar DNI con autenticación JWT (para admin/staff).
+    Mismo formato de respuesta que el PHP.
 
     POST /api/v1/reniec/lookup/auth/
 
@@ -178,10 +177,7 @@ class DNILookupAuthenticatedView(APIView):
     def post(self, request):
         # Verificar que es admin o staff
         if not (request.user.is_staff or request.user.is_superuser):
-            return Response({
-                'success': False,
-                'error': 'No tiene permisos para esta operación'
-            }, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': 'No tiene permisos para esta operación'}, status=status.HTTP_403_FORBIDDEN)
 
         # Obtener IP del cliente
         source_ip = get_client_ip(request)
@@ -189,11 +185,9 @@ class DNILookupAuthenticatedView(APIView):
         # Obtener DNI del body
         dni = request.data.get('dni', '').strip()
 
-        if not dni:
-            return Response({
-                'success': False,
-                'error': 'DNI requerido'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # Validar DNI
+        if not dni or len(dni) != 8 or not dni.isdigit():
+            return Response({'error': 'DNI inválido o no enviado'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Consultar DNI (staff siempre tiene acceso completo)
         success, result = ReniecService.lookup(
@@ -208,13 +202,12 @@ class DNILookupAuthenticatedView(APIView):
 
         if success:
             return Response({
-                'success': True,
-                **result
+                'source': result.get('source', 'database'),
+                'data': result.get('data', {})
             })
         else:
             return Response({
-                'success': False,
-                **result
+                'error': result.get('error', 'Error en la consulta')
             }, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -228,10 +221,7 @@ class DNIStatsView(APIView):
 
     def get(self, request):
         if not (request.user.is_staff or request.user.is_superuser):
-            return Response({
-                'success': False,
-                'error': 'No tiene permisos para esta operación'
-            }, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': 'No tiene permisos para esta operación'}, status=status.HTTP_403_FORBIDDEN)
 
         today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -254,7 +244,4 @@ class DNIStatsView(APIView):
 
         stats['by_app'] = list(by_app)
 
-        return Response({
-            'success': True,
-            'stats': stats
-        })
+        return Response(stats)

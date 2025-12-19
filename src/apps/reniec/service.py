@@ -444,84 +444,74 @@ class ReniecService:
         include_photo: bool = False,
         include_full_data: bool = False
     ) -> Dict[str, Any]:
-        """Formatea la respuesta según los permisos"""
-        # Datos básicos siempre incluidos
+        """
+        Formatea la respuesta en el mismo formato que el PHP original.
+        Mantiene compatibilidad con clientes existentes.
+        """
+        # Formato de fecha igual al PHP (Y-m-d)
+        def format_date(date_val):
+            if date_val:
+                return date_val.strftime('%Y-%m-%d') if hasattr(date_val, 'strftime') else str(date_val)
+            return None
+
+        # Respuesta con los mismos nombres de campo que el PHP
         data = {
             'dni': cache.dni,
-            'nombres': cache.nombres,
-            'apellido_paterno': cache.apellido_paterno,
-            'apellido_materno': cache.apellido_materno,
-            'nombre_completo': cache.nombre_completo,
-            'fecha_nacimiento': cache.fecha_nacimiento.isoformat() if cache.fecha_nacimiento else None,
-            'sexo': cache.sexo,
-            'digito_verificacion': cache.digito_verificacion,
+            'nuDni': cache.nu_dni,
+            'preNombres': cache.nombres,
+            'apePaterno': cache.apellido_paterno,
+            'apeMaterno': cache.apellido_materno,
+            'apCasada': cache.apellido_casada,
+            'nuFicha': cache.nu_ficha,
+            'nuImagen': cache.nu_imagen,
+            'feNacimiento': format_date(cache.fecha_nacimiento),
+            'estatura': cache.estatura,
+            'sexo': cache.sexo.lower() if cache.sexo else None,  # PHP usa minúscula
+            'estadoCivil': cache.estado_civil,
+            'gradoInstruccion': cache.grado_instruccion,
+            'feEmision': format_date(cache.fecha_emision),
+            'feInscripcion': format_date(cache.fecha_inscripcion),
+            'feCaducidad': format_date(cache.fecha_caducidad),
+            'nomPadre': cache.nom_padre,
+            'nomMadre': cache.nom_madre,
+            'pais': cache.pais,
+            'departamento': cache.departamento,
+            'provincia': cache.provincia,
+            'distrito': cache.distrito,
+            'paisDireccion': cache.pais_direccion,
+            'depaDireccion': cache.departamento_direccion,
+            'provDireccion': cache.provincia_direccion,
+            'distDireccion': cache.distrito_direccion,
+            'desDireccion': cache.direccion,
+            'telefono': cache.telefono,
+            'email': cache.email,
+            'donaOrganos': cache.dona_organos,
+            'observacion': cache.observacion,
+            'feRestriccion': cache.fecha_restriccion,
+            'deRestriccion': cache.de_restriccion,
+            'gpVotacion': cache.gp_votacion,
+            'multasElectorales': cache.multas_electorales,
+            'multaAdmin': cache.multa_admin,
+            'feActualizacion': format_date(cache.fecha_actualizacion),
+            'docSustento': cache.doc_sustento,
+            'nuDocSustento': cache.nu_doc_sustento,
+            'nuDocDeclarante': cache.nu_doc_declarante,
+            'vinculoDeclarante': cache.vinculo_declarante,
+            'cancelacion': cache.cancelacion,
+            'digitoVerificacion': cache.digito_verificacion,
+            'feFallecimiento': format_date(cache.fecha_fallecimiento),
+            'depaFallecimiento': cache.depa_fallecimiento,
+            'provFallecimiento': cache.prov_fallecimiento,
+            'distFallecimiento': cache.dist_fallecimiento,
+            'codigo_postal': cache.codigo_postal,
+            'ubigeo_reniec': cache.ubigeo_reniec,
+            'ubigeo_inei': cache.ubigeo_inei,
+            'ubigeo_sunat': cache.ubigeo_sunat,
         }
 
-        if include_full_data:
-            data.update({
-                # Datos del documento
-                'nu_dni': cache.nu_dni,
-                'nu_ficha': cache.nu_ficha,
-                'nu_imagen': cache.nu_imagen,
-                # Datos personales adicionales
-                'apellido_casada': cache.apellido_casada,
-                'estatura': cache.estatura,
-                'estado_civil': cache.estado_civil,
-                'grado_instruccion': cache.grado_instruccion,
-                # Fechas del documento
-                'fecha_emision': cache.fecha_emision.isoformat() if cache.fecha_emision else None,
-                'fecha_inscripcion': cache.fecha_inscripcion.isoformat() if cache.fecha_inscripcion else None,
-                'fecha_caducidad': cache.fecha_caducidad.isoformat() if cache.fecha_caducidad else None,
-                # Padres
-                'nom_padre': cache.nom_padre,
-                'nom_madre': cache.nom_madre,
-                # Ubicación de nacimiento
-                'pais': cache.pais,
-                'departamento': cache.departamento,
-                'provincia': cache.provincia,
-                'distrito': cache.distrito,
-                # Dirección actual
-                'pais_direccion': cache.pais_direccion,
-                'departamento_direccion': cache.departamento_direccion,
-                'provincia_direccion': cache.provincia_direccion,
-                'distrito_direccion': cache.distrito_direccion,
-                'direccion': cache.direccion,
-                # Contacto
-                'telefono': cache.telefono,
-                'email': cache.email,
-                # Otros datos
-                'dona_organos': cache.dona_organos,
-                'observacion': cache.observacion,
-                # Restricciones
-                'fecha_restriccion': cache.fecha_restriccion,
-                'de_restriccion': cache.de_restriccion,
-                # Datos electorales
-                'gp_votacion': cache.gp_votacion,
-                'multas_electorales': cache.multas_electorales,
-                'multa_admin': cache.multa_admin,
-                # Actualización
-                'fecha_actualizacion': cache.fecha_actualizacion.isoformat() if cache.fecha_actualizacion else None,
-                # Documentos sustento
-                'doc_sustento': cache.doc_sustento,
-                'nu_doc_sustento': cache.nu_doc_sustento,
-                'nu_doc_declarante': cache.nu_doc_declarante,
-                'vinculo_declarante': cache.vinculo_declarante,
-                # Cancelación
-                'cancelacion': cache.cancelacion,
-                # Fallecimiento
-                'fecha_fallecimiento': cache.fecha_fallecimiento.isoformat() if cache.fecha_fallecimiento else None,
-                'depa_fallecimiento': cache.depa_fallecimiento,
-                'prov_fallecimiento': cache.prov_fallecimiento,
-                'dist_fallecimiento': cache.dist_fallecimiento,
-                # Ubigeo
-                'codigo_postal': cache.codigo_postal,
-                'ubigeo_reniec': cache.ubigeo_reniec,
-                'ubigeo_inei': cache.ubigeo_inei,
-                'ubigeo_sunat': cache.ubigeo_sunat,
-            })
-
+        # Incluir imágenes solo si tiene permiso
         if include_photo:
-            data['foto'] = cache.foto
+            data['imagen_foto'] = cache.foto
             data['huella_izquierda'] = cache.huella_izquierda
             data['huella_derecha'] = cache.huella_derecha
             data['firma'] = cache.firma
