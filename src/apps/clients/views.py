@@ -3180,6 +3180,7 @@ class SearchesByCheckInDateView(APIView):
         # Parámetros opcionales
         include_anonymous = request.query_params.get('include_anonymous', 'true').lower() == 'true'
         property_id = request.query_params.get('property_id')
+        level_id = request.query_params.get('level')  # ID del achievement/nivel para filtrar
 
         try:
             # Importar servicio de pricing
@@ -3268,6 +3269,14 @@ class SearchesByCheckInDateView(APIView):
                 check_in_date__gte=today  # Solo reservas futuras
             ).values_list('client_id', flat=True).distinct()
 
+            # Si se especifica nivel, obtener clientes con ese achievement
+            clients_with_level = None
+            if level_id:
+                clients_with_level = ClientAchievement.objects.filter(
+                    achievement_id=level_id,
+                    deleted=False
+                ).values_list('client_id', flat=True).distinct()
+
             # Construir query base
             base_query = SearchTracking.objects.filter(
                 check_in_date=check_in_date,
@@ -3285,6 +3294,11 @@ class SearchesByCheckInDateView(APIView):
             ).exclude(
                 client_id__in=clients_with_active_reservations  # Excluir clientes con reservas activas
             )
+
+            # Filtrar por nivel si se especifica
+            if clients_with_level is not None:
+                client_searches = client_searches.filter(client_id__in=clients_with_level)
+
             anonymous_searches = base_query.filter(client__isnull=True) if include_anonymous else SearchTracking.objects.none()
 
             # Agrupar búsquedas por cliente, deduplicando por (check_in, check_out, guests)
