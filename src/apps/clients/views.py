@@ -3194,7 +3194,7 @@ class SearchesByCheckInDateView(APIView):
                             'last_name': search.client.last_name,
                             'email': search.client.email,
                             'tel_number': search.client.tel_number,
-                            'document_number': search.client.document_number,
+                            'number_doc': search.client.number_doc,
                         },
                         'search_count': 0,
                         'searches': []
