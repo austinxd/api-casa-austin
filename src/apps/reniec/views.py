@@ -211,6 +211,59 @@ class DNILookupAuthenticatedView(APIView):
             }, status=status.HTTP_404_NOT_FOUND)
 
 
+class DNILookupPublicView(APIView):
+    """
+    Endpoint PÚBLICO para consultar DNI - Para registro de clientes.
+    NO requiere autenticación pero tiene rate limit estricto por IP.
+
+    GET /api/v1/reniec/lookup/public/?dni=12345678
+
+    Respuesta igual al PHP original.
+    Solo devuelve datos básicos (sin foto, sin datos sensibles).
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        dni = request.GET.get('dni', '').strip()
+        return self._handle_lookup(request, dni)
+
+    def post(self, request):
+        dni = request.data.get('dni', '').strip()
+        return self._handle_lookup(request, dni)
+
+    def _handle_lookup(self, request, dni):
+        source_ip = get_client_ip(request)
+
+        # Rate limit estricto para endpoint público: 5 consultas por minuto por IP
+        queries_last_minute = DNIQueryLog.count_queries_last_minute(source_ip)
+        if queries_last_minute >= 5:
+            return Response({'error': 'Demasiadas consultas. Intente en un minuto.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # Validar DNI
+        if not dni or len(dni) != 8 or not dni.isdigit():
+            return Response({'error': 'DNI inválido o no enviado'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Consultar DNI (sin foto ni datos completos)
+        success, result = ReniecService.lookup(
+            dni=dni,
+            source_app='public_web',
+            source_ip=source_ip,
+            user_agent=request.headers.get('User-Agent'),
+            include_photo=False,
+            include_full_data=False  # Solo datos básicos
+        )
+
+        if success:
+            return Response({
+                'source': result.get('source', 'database'),
+                'data': result.get('data', {})
+            })
+        else:
+            return Response({
+                'error': result.get('error', 'Error en la consulta')
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
 class DNIStatsView(APIView):
     """
     Endpoint para ver estadísticas de consultas (solo admin).
