@@ -3163,6 +3163,20 @@ class SearchesByCheckInDateView(APIView):
                 'error': 'Formato de fecha inválido. Use YYYY-MM-DD'
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        # Solo mostrar búsquedas para fechas futuras o de hoy
+        from datetime import date
+        if check_in_date < date.today():
+            return Response({
+                'success': True,
+                'check_in_date': str(check_in_date),
+                'total_searches': 0,
+                'unique_clients': 0,
+                'anonymous_searches_count': 0,
+                'searches_by_client': [],
+                'anonymous_searches_detail': [],
+                'message': 'Solo se muestran búsquedas para fechas futuras'
+            })
+
         # Parámetros opcionales
         include_anonymous = request.query_params.get('include_anonymous', 'true').lower() == 'true'
         property_id = request.query_params.get('property_id')
@@ -3191,26 +3205,8 @@ class SearchesByCheckInDateView(APIView):
 
             # Helper para calcular precio
             def calculate_search_price(check_in, check_out, guests, property_obj):
-                from datetime import date
-                today = date.today()
-
-                if not property_obj:
-                    logger.debug(f"calculate_search_price: No property_obj")
+                if not property_obj or not check_out:
                     return None
-                if not check_out:
-                    logger.debug(f"calculate_search_price: No check_out")
-                    return None
-
-                # Si la fecha de check-in ya pasó, no podemos calcular pricing
-                if check_in < today:
-                    logger.debug(f"calculate_search_price: check_in {check_in} es pasado, no se calcula pricing")
-                    return {
-                        'total_nights': (check_out - check_in).days,
-                        'price_usd': None,
-                        'price_sol': None,
-                        'available': False,
-                        'reason': 'Fecha pasada'
-                    }
 
                 try:
                     result = pricing_service.calculate_pricing(
@@ -3219,7 +3215,6 @@ class SearchesByCheckInDateView(APIView):
                         guests=guests,
                         property_id=str(property_obj.id)
                     )
-                    logger.debug(f"calculate_search_price: Resultado pricing service: {result is not None}")
 
                     if result and result.get('properties'):
                         prop_pricing = result['properties'][0]
@@ -3231,8 +3226,6 @@ class SearchesByCheckInDateView(APIView):
                             'price_sol': float(final_sol) if final_sol else None,
                             'available': prop_pricing.get('available', False),
                         }
-                    else:
-                        logger.warning(f"calculate_search_price: Resultado vacío o sin properties")
                 except Exception as e:
                     logger.warning(f"Error calculando precio para {property_obj.name} ({check_in} - {check_out}): {e}")
                 return None
