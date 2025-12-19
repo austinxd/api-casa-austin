@@ -41,9 +41,9 @@ class DNICacheAdmin(admin.ModelAdmin):
 
 @admin.register(DNIQueryLog)
 class DNIQueryLogAdmin(admin.ModelAdmin):
-    list_display = ['dni', 'source_app', 'source_ip', 'success_badge', 'from_cache_badge', 'response_time_ms', 'created']
+    list_display = ['dni', 'source_app', 'source_ip', 'referrer_short', 'success_badge', 'from_cache_badge', 'response_time_ms', 'created']
     list_filter = ['source_app', 'success', 'from_cache', 'created']
-    search_fields = ['dni', 'source_app', 'source_ip']
+    search_fields = ['dni', 'source_app', 'source_ip', 'referrer']
     readonly_fields = ['id', 'created']
     ordering = ['-created']
     date_hierarchy = 'created'
@@ -59,6 +59,15 @@ class DNIQueryLogAdmin(admin.ModelAdmin):
             return format_html('<span style="color: blue;">📦 Cache</span>')
         return format_html('<span style="color: orange;">🌐 API</span>')
     from_cache_badge.short_description = 'Fuente'
+
+    def referrer_short(self, obj):
+        if obj.referrer:
+            # Mostrar solo los primeros 50 caracteres
+            if len(obj.referrer) > 50:
+                return f"{obj.referrer[:50]}..."
+            return obj.referrer
+        return '-'
+    referrer_short.short_description = 'Referrer'
 
 
 @admin.register(APIKey)

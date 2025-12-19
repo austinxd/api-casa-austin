@@ -157,6 +157,7 @@ class DNIQueryLog(models.Model):
     )
     source_ip = models.GenericIPAddressField(null=True, blank=True)
     user_agent = models.CharField(max_length=500, null=True, blank=True)
+    referrer = models.CharField(max_length=500, null=True, blank=True, help_text="URL de origen de la consulta")
 
     # Usuario que hizo la consulta (si está autenticado)
     user = models.ForeignKey(

@@ -73,6 +73,11 @@ def get_client_ip(request):
     return ip
 
 
+def get_referrer(request):
+    """Obtiene el referrer de la consulta"""
+    return request.META.get('HTTP_REFERER') or request.headers.get('Referer')
+
+
 class DNILookupView(APIView):
     """
     Endpoint para consultar DNI - Compatible con el formato del PHP original.
@@ -140,6 +145,7 @@ class DNILookupView(APIView):
             source_app=api_key.name,
             source_ip=source_ip,
             user_agent=request.headers.get('User-Agent'),
+            referrer=get_referrer(request),
             include_photo=api_key.can_view_photo,
             include_full_data=api_key.can_view_full_data
         )
@@ -196,6 +202,7 @@ class DNILookupAuthenticatedView(APIView):
             source_ip=source_ip,
             user=request.user,
             user_agent=request.headers.get('User-Agent'),
+            referrer=get_referrer(request),
             include_photo=True,
             include_full_data=True
         )
@@ -253,6 +260,7 @@ class DNILookupPublicView(APIView):
             source_app='public_web',
             source_ip=source_ip,
             user_agent=request.headers.get('User-Agent'),
+            referrer=get_referrer(request),
             include_photo=True,
             include_full_data=True
         )

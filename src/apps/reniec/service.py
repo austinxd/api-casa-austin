@@ -33,6 +33,7 @@ class ReniecService:
         user=None,
         client=None,
         user_agent: str = None,
+        referrer: str = None,
         include_photo: bool = False,
         include_full_data: bool = False
     ) -> Tuple[bool, Dict[str, Any]]:
@@ -63,6 +64,7 @@ class ReniecService:
                 user=user,
                 client=client,
                 user_agent=user_agent,
+                referrer=referrer,
                 success=False,
                 from_cache=False,
                 error_message="DNI inválido",
@@ -84,6 +86,7 @@ class ReniecService:
                 user=user,
                 client=client,
                 user_agent=user_agent,
+                referrer=referrer,
                 success=True,
                 from_cache=True,
                 response_time_ms=int((time.time() - start_time) * 1000)
@@ -106,6 +109,7 @@ class ReniecService:
                 user=user,
                 client=client,
                 user_agent=user_agent,
+                referrer=referrer,
                 success=True,
                 from_cache=True,
                 response_time_ms=int((time.time() - start_time) * 1000)
@@ -124,6 +128,7 @@ class ReniecService:
                 user=user,
                 client=client,
                 user_agent=user_agent,
+                referrer=referrer,
                 success=False,
                 from_cache=False,
                 error_message=api_result.get('error', 'Error desconocido'),
@@ -145,6 +150,7 @@ class ReniecService:
             user=user,
             client=client,
             user_agent=user_agent,
+            referrer=referrer,
             success=True,
             from_cache=False,
             response_time_ms=int((time.time() - start_time) * 1000)
@@ -527,6 +533,7 @@ class ReniecService:
         user=None,
         client=None,
         user_agent: str = None,
+        referrer: str = None,
         success: bool = False,
         from_cache: bool = False,
         error_message: str = None,
@@ -541,6 +548,7 @@ class ReniecService:
                 user=user,
                 client=client,
                 user_agent=user_agent,
+                referrer=referrer,
                 success=success,
                 from_cache=from_cache,
                 error_message=error_message,
