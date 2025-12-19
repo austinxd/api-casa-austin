@@ -75,6 +75,7 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+    'x-api-key',  # Para autenticación de API RENIEC
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -132,7 +133,8 @@ LOCAL_APPS = [
     'apps.reservation',
     'apps.dashboard',
     'apps.staff',
-    'apps.events'
+    'apps.events',
+    'apps.reniec',
 ]
 
 THIRD_APPS = [
@@ -421,3 +423,7 @@ logger.debug(f"CLIENTS_CHAT_ID: {CLIENTS_CHAT_ID}")
 logger.debug(f"TWILIO_ACCOUNT_SID: {TWILIO_ACCOUNT_SID}")
 logger.debug(f"TWILIO_VERIFY_SID: {TWILIO_VERIFY_SID}")
 logger.debug(f"GOOGLE_SCRIPT_WEBHOOK: {GOOGLE_SCRIPT_WEBHOOK}")
+
+# RENIEC API Configuration (Token de la API externa Leder)
+RENIEC_API_URL = env('RENIEC_API_URL', default='https://leder-data-api.ngrok.dev/v1.7/persona/reniec')
+RENIEC_API_TOKEN = env('RENIEC_API_TOKEN', default='')

@@ -29,7 +29,8 @@ urlpatterns = [
     path("api/v1/events/", include("apps.events.urls")),
     path("api/v1/bot/", include("apps.property.bot_urls")),
     path("api/v1/music/", include("apps.reservation.music_urls")),
-    
+    path("api/v1/reniec/", include("apps.reniec.urls")),
+
     # === ANALYTICS ENDPOINTS ===
     path('api/v1/stats/', ComprehensiveStatsView.as_view(), name='comprehensive-stats'),
     path('api/v1/stats/search-tracking/', SearchTrackingStatsView.as_view(), name='stats-search-tracking'),
