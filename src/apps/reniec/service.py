@@ -133,27 +133,41 @@ class ReniecService:
     @classmethod
     def _query_external_api(cls, dni: str) -> Tuple[bool, Dict[str, Any]]:
         """Consulta la API externa de Leder"""
-        if not cls.API_TOKEN:
+        # Re-leer configuración desde settings (por si cambió)
+        api_token = getattr(settings, 'RENIEC_API_TOKEN', '') or cls.API_TOKEN
+        api_url = getattr(settings, 'RENIEC_API_URL', cls.API_URL)
+
+        if not api_token:
             logger.error("RENIEC_API_TOKEN no configurado")
-            return False, {"error": "Servicio no configurado"}
+            return False, {"error": "Servicio no configurado. Falta RENIEC_API_TOKEN"}
+
+        logger.info(f"🔍 Consultando API RENIEC: {api_url} para DNI {dni}")
 
         try:
             payload = {
                 "dni": dni,
                 "source": "database",
-                "token": cls.API_TOKEN
+                "token": api_token
             }
 
             response = requests.post(
-                cls.API_URL,
+                api_url,
                 json=payload,
                 headers={'Content-Type': 'application/json'},
                 timeout=30
             )
 
+            logger.info(f"📡 API RENIEC respuesta: status={response.status_code}")
+
             if response.status_code != 200:
-                logger.error(f"API RENIEC error: {response.status_code} - {response.text}")
-                return False, {"error": "Error en la consulta a RENIEC"}
+                logger.error(f"API RENIEC error: {response.status_code} - {response.text[:500]}")
+                # Intentar obtener mensaje de error de la respuesta
+                try:
+                    error_data = response.json()
+                    error_msg = error_data.get('message') or error_data.get('error') or f"Error {response.status_code}"
+                except:
+                    error_msg = f"Error {response.status_code} en la consulta a RENIEC"
+                return False, {"error": error_msg, "status_code": response.status_code}
 
             data = response.json()
 
@@ -161,17 +175,18 @@ class ReniecService:
                 logger.error(f"API RENIEC respuesta inválida: {data}")
                 return False, {"error": "No se encontró información para este DNI"}
 
+            logger.info(f"✅ API RENIEC consulta exitosa para DNI {dni}")
             return True, data['result']
 
         except requests.Timeout:
             logger.error("API RENIEC timeout")
             return False, {"error": "Tiempo de espera agotado"}
         except requests.RequestException as e:
-            logger.error(f"API RENIEC error: {str(e)}")
-            return False, {"error": "Error de conexión con RENIEC"}
+            logger.error(f"API RENIEC error de conexión: {str(e)}")
+            return False, {"error": f"Error de conexión: {str(e)}"}
         except Exception as e:
             logger.error(f"API RENIEC error inesperado: {str(e)}")
-            return False, {"error": "Error interno"}
+            return False, {"error": f"Error interno: {str(e)}"}
 
     @classmethod
     def _parse_date(cls, date_str: str) -> Optional[datetime]:
