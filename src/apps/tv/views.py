@@ -79,12 +79,13 @@ class TVSessionView(APIView):
 
         if active_reservation and active_reservation.client:
             # Active session with guest
+            serializer_context = {'request': request}
             response_data = {
                 'active': True,
                 'guest': TVGuestSerializer(active_reservation.client).data,
                 'check_in_date': active_reservation.check_in_date,
                 'check_out_date': active_reservation.check_out_date,
-                'property': TVPropertySerializer(active_reservation.property).data,
+                'property': TVPropertySerializer(active_reservation.property, context=serializer_context).data,
                 'message': None
             }
 
@@ -97,12 +98,13 @@ class TVSessionView(APIView):
                 )
         else:
             # No active session - standby mode
+            serializer_context = {'request': request}
             response_data = {
                 'active': False,
                 'guest': None,
                 'check_in_date': None,
                 'check_out_date': None,
-                'property': TVPropertySerializer(property_for_search).data if property_for_search else None,
+                'property': TVPropertySerializer(property_for_search, context=serializer_context).data if property_for_search else None,
                 'message': 'No active session'
             }
 

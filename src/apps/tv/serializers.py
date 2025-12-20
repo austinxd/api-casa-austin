@@ -28,7 +28,7 @@ class TVPropertySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'location', 'image_url', 'welcome_message']
 
     def get_image_url(self, obj):
-        """Get the main photo URL for the property."""
+        """Get the main photo URL for the property (absolute URL)."""
         from apps.property.models import PropertyPhoto
 
         main_photo = PropertyPhoto.objects.filter(
@@ -37,19 +37,32 @@ class TVPropertySerializer(serializers.ModelSerializer):
             deleted=False
         ).first()
 
-        if main_photo:
-            return main_photo.get_image_url()
+        photo = main_photo
+        if not photo:
+            # Fallback to first photo if no main photo
+            photo = PropertyPhoto.objects.filter(
+                property=obj,
+                deleted=False
+            ).order_by('order').first()
 
-        # Fallback to first photo if no main photo
-        first_photo = PropertyPhoto.objects.filter(
-            property=obj,
-            deleted=False
-        ).order_by('order').first()
+        if not photo:
+            return None
 
-        if first_photo:
-            return first_photo.get_image_url()
+        image_url = photo.get_image_url()
+        if not image_url:
+            return None
 
-        return None
+        # If it's already an absolute URL, return as is
+        if image_url.startswith('http'):
+            return image_url
+
+        # Build absolute URL from relative path
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(image_url)
+
+        # Fallback: prepend base URL
+        return f"https://api.casaaustin.pe{image_url}"
 
     def get_welcome_message(self, obj):
         """Get welcome message for the property."""
