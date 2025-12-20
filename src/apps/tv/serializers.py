@@ -20,10 +20,42 @@ class TVGuestSerializer(serializers.ModelSerializer):
 
 class TVPropertySerializer(serializers.ModelSerializer):
     """Serializer for property information displayed on TV."""
+    image_url = serializers.SerializerMethodField()
+    welcome_message = serializers.SerializerMethodField()
 
     class Meta:
         model = Property
-        fields = ['id', 'name', 'location']
+        fields = ['id', 'name', 'location', 'image_url', 'welcome_message']
+
+    def get_image_url(self, obj):
+        """Get the main photo URL for the property."""
+        from apps.property.models import PropertyPhoto
+
+        main_photo = PropertyPhoto.objects.filter(
+            property=obj,
+            is_main=True,
+            deleted=False
+        ).first()
+
+        if main_photo:
+            return main_photo.get_image_url()
+
+        # Fallback to first photo if no main photo
+        first_photo = PropertyPhoto.objects.filter(
+            property=obj,
+            deleted=False
+        ).order_by('order').first()
+
+        if first_photo:
+            return first_photo.get_image_url()
+
+        return None
+
+    def get_welcome_message(self, obj):
+        """Get welcome message for the property."""
+        if obj.descripcion:
+            return obj.descripcion[:200]  # Limit length
+        return f"Bienvenido a {obj.name}"
 
 
 class TVSessionResponseSerializer(serializers.Serializer):
