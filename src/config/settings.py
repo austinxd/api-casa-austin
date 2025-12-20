@@ -137,6 +137,7 @@ LOCAL_APPS = [
     'apps.staff',
     'apps.events',
     'apps.reniec',
+    'apps.tv',
 ]
 
 THIRD_APPS = [
