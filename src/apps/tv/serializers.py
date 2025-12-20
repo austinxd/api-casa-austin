@@ -52,14 +52,16 @@ class TVPropertySerializer(serializers.ModelSerializer):
         if not image_url:
             return None
 
-        # If it's already an absolute URL, return as is
+        # If it's already an absolute URL, ensure HTTPS
         if image_url.startswith('http'):
-            return image_url
+            return image_url.replace("http://", "https://")
 
         # Build absolute URL from relative path
         request = self.context.get('request')
         if request:
-            return request.build_absolute_uri(image_url)
+            absolute_url = request.build_absolute_uri(image_url)
+            # Ensure HTTPS
+            return absolute_url.replace("http://", "https://")
 
         # Fallback: prepend base URL
         return f"https://api.casaaustin.pe{image_url}"
