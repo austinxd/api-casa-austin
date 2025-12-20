@@ -13,6 +13,10 @@ class TVDeviceAdmin(admin.ModelAdmin):
         (None, {
             'fields': ('property', 'room_id', 'room_name', 'is_active')
         }),
+        ('📺 Mensaje de Bienvenida', {
+            'fields': ('welcome_message',),
+            'description': 'Mensaje que se muestra en la TV cuando hay un huésped. Si está vacío, se usa la descripción de la propiedad.'
+        }),
         ('Status', {
             'fields': ('last_heartbeat',),
             'classes': ('collapse',)

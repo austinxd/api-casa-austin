@@ -45,14 +45,6 @@ class Property(BaseModel):
         help_text="Escribe el ID de la casa (ej: ca1, ca2, ca3, ca4)"
     )
 
-    # TV App fields
-    tv_welcome_message = models.TextField(
-        null=True,
-        blank=True,
-        verbose_name="Mensaje de bienvenida TV",
-        help_text="Mensaje que se muestra en la app de TV cuando hay un huésped. Si está vacío, se usa la descripción."
-    )
-
     def __str__(self):
         return self.name
 

@@ -80,12 +80,21 @@ class TVSessionView(APIView):
         if active_reservation and active_reservation.client:
             # Active session with guest
             serializer_context = {'request': request}
+
+            # Get welcome message: prioritize TV device, fallback to property description
+            welcome_message = None
+            if tv_device and tv_device.welcome_message:
+                welcome_message = tv_device.welcome_message
+            elif active_reservation.property.descripcion:
+                welcome_message = active_reservation.property.descripcion[:200]
+
             response_data = {
                 'active': True,
                 'guest': TVGuestSerializer(active_reservation.client).data,
                 'check_in_date': active_reservation.check_in_date,
                 'check_out_date': active_reservation.check_out_date,
                 'property': TVPropertySerializer(active_reservation.property, context=serializer_context).data,
+                'welcome_message': welcome_message,
                 'message': None
             }
 
@@ -99,12 +108,17 @@ class TVSessionView(APIView):
         else:
             # No active session - standby mode
             serializer_context = {'request': request}
+
+            # Get welcome message from TV device if available
+            welcome_message = tv_device.welcome_message if tv_device and tv_device.welcome_message else None
+
             response_data = {
                 'active': False,
                 'guest': None,
                 'check_in_date': None,
                 'check_out_date': None,
                 'property': TVPropertySerializer(property_for_search, context=serializer_context).data if property_for_search else None,
+                'welcome_message': welcome_message,
                 'message': 'No active session'
             }
 

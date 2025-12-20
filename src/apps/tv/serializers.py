@@ -21,11 +21,10 @@ class TVGuestSerializer(serializers.ModelSerializer):
 class TVPropertySerializer(serializers.ModelSerializer):
     """Serializer for property information displayed on TV."""
     image_url = serializers.SerializerMethodField()
-    welcome_message = serializers.SerializerMethodField()
 
     class Meta:
         model = Property
-        fields = ['id', 'name', 'location', 'image_url', 'welcome_message']
+        fields = ['id', 'name', 'location', 'image_url']
 
     def get_image_url(self, obj):
         """Get the main photo URL for the property (absolute URL)."""
@@ -66,16 +65,6 @@ class TVPropertySerializer(serializers.ModelSerializer):
         # Fallback: prepend base URL
         return f"https://api.casaaustin.pe{image_url}"
 
-    def get_welcome_message(self, obj):
-        """Get welcome message for the property."""
-        # Prioritize TV-specific message
-        if obj.tv_welcome_message:
-            return obj.tv_welcome_message
-        # Fallback to description
-        if obj.descripcion:
-            return obj.descripcion[:200]
-        return None
-
 
 class TVSessionResponseSerializer(serializers.Serializer):
     """Response serializer for TV session endpoint."""
@@ -85,6 +74,7 @@ class TVSessionResponseSerializer(serializers.Serializer):
     check_in_date = serializers.DateField(required=False, allow_null=True)
     check_out_date = serializers.DateField(required=False, allow_null=True)
     property = TVPropertySerializer(required=False, allow_null=True)
+    welcome_message = serializers.CharField(required=False, allow_null=True)
     message = serializers.CharField(required=False, allow_null=True)
 
 

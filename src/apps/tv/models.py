@@ -25,6 +25,12 @@ class TVDevice(BaseModel):
     )
     is_active = models.BooleanField(default=True)
     last_heartbeat = models.DateTimeField(null=True, blank=True)
+    welcome_message = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name="Mensaje de bienvenida",
+        help_text="Mensaje que se muestra en la TV cuando hay un huésped activo"
+    )
 
     class Meta:
         verbose_name = "TV Device"
