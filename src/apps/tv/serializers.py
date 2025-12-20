@@ -6,16 +6,21 @@ from apps.reservation.models import Reservation
 
 class TVGuestSerializer(serializers.ModelSerializer):
     """Serializer for guest information displayed on TV."""
+    wifi_password = serializers.SerializerMethodField()
 
     class Meta:
         model = Clients
-        fields = ['first_name', 'last_name', 'email']
+        fields = ['first_name', 'last_name', 'email', 'wifi_password']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         # Add language preference (default to Spanish if not set)
         data['language'] = getattr(instance, 'preferred_language', 'es') or 'es'
         return data
+
+    def get_wifi_password(self, obj):
+        """Get referral code as WiFi password."""
+        return obj.get_referral_code() if obj else None
 
 
 class TVPropertySerializer(serializers.ModelSerializer):
