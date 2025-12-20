@@ -68,9 +68,13 @@ class TVPropertySerializer(serializers.ModelSerializer):
 
     def get_welcome_message(self, obj):
         """Get welcome message for the property."""
+        # Prioritize TV-specific message
+        if obj.tv_welcome_message:
+            return obj.tv_welcome_message
+        # Fallback to description
         if obj.descripcion:
-            return obj.descripcion[:200]  # Limit length
-        return f"Bienvenido a {obj.name}"
+            return obj.descripcion[:200]
+        return None
 
 
 class TVSessionResponseSerializer(serializers.Serializer):

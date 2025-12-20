@@ -38,11 +38,19 @@ class Property(BaseModel):
     caracteristicas = models.JSONField(default=list, blank=True, verbose_name="Características", help_text="Lista de características de la propiedad")
     slug = models.SlugField(max_length=200, unique=True, blank=True, verbose_name="Slug", help_text="URL amigable generada automáticamente")
     player_id = models.CharField(
-        max_length=50, 
-        null=True, 
-        blank=True, 
-        verbose_name="ID de Casa", 
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name="ID de Casa",
         help_text="Escribe el ID de la casa (ej: ca1, ca2, ca3, ca4)"
+    )
+
+    # TV App fields
+    tv_welcome_message = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name="Mensaje de bienvenida TV",
+        help_text="Mensaje que se muestra en la app de TV cuando hay un huésped. Si está vacío, se usa la descripción."
     )
 
     def __str__(self):

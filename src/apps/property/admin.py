@@ -144,6 +144,11 @@ class PropertyAdmin(admin.ModelAdmin):
             "fields": ("player_id",),
             "classes": ("collapse",),
             "description": "ID del reproductor de Music Assistant vinculado a esta propiedad. Obtén el player_id desde el endpoint /api/v1/music/players/"
+        }),
+        ("📺 TV App", {
+            "fields": ("tv_welcome_message",),
+            "classes": ("collapse",),
+            "description": "Configuración para la aplicación de TV. El mensaje de bienvenida se muestra cuando hay un huésped activo."
         })
     )
 
