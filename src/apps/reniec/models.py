@@ -281,3 +281,104 @@ class APIKey(models.Model):
         """Actualiza el timestamp de último uso"""
         self.last_used = timezone.now()
         self.save(update_fields=['last_used'])
+
+
+class RateLimitConfig(models.Model):
+    """
+    Configuración de rate limiting para el endpoint público de RENIEC.
+    Modelo singleton - solo debe existir un registro.
+    """
+    # Límite por IP
+    ip_limit = models.IntegerField(
+        default=3,
+        help_text="Máximo de consultas por IP en la ventana de tiempo"
+    )
+    ip_window_seconds = models.IntegerField(
+        default=600,
+        help_text="Ventana de tiempo para límite por IP (segundos). 600 = 10 minutos"
+    )
+
+    # Límite por DNI
+    dni_limit = models.IntegerField(
+        default=2,
+        help_text="Máximo de consultas por DNI en la ventana de tiempo"
+    )
+    dni_window_seconds = models.IntegerField(
+        default=3600,
+        help_text="Ventana de tiempo para límite por DNI (segundos). 3600 = 1 hora"
+    )
+
+    # Límite global
+    global_limit = models.IntegerField(
+        default=10,
+        help_text="Máximo de consultas TOTALES en la ventana de tiempo"
+    )
+    global_window_seconds = models.IntegerField(
+        default=3600,
+        help_text="Ventana de tiempo para límite global (segundos). 3600 = 1 hora"
+    )
+
+    # Control de activación
+    is_enabled = models.BooleanField(
+        default=True,
+        help_text="Si está desactivado, el endpoint público queda deshabilitado"
+    )
+
+    # Metadatos
+    updated = models.DateTimeField(auto_now=True)
+    updated_by = models.CharField(max_length=100, null=True, blank=True)
+
+    class Meta:
+        db_table = 'reniec_rate_limit_config'
+        verbose_name = 'Rate Limit Config'
+        verbose_name_plural = 'Rate Limit Config'
+
+    def __str__(self):
+        return f"Rate Limit: Global {self.global_limit}/{self.global_window_seconds}s"
+
+    def save(self, *args, **kwargs):
+        # Singleton: solo puede haber un registro
+        self.pk = 1
+        super().save(*args, **kwargs)
+        # Limpiar cache al guardar
+        from django.core.cache import cache
+        cache.delete('reniec_rate_limit_config')
+
+    @classmethod
+    def get_config(cls):
+        """
+        Obtiene la configuración con cache.
+        Retorna valores por defecto si no existe.
+        """
+        from django.core.cache import cache
+
+        config = cache.get('reniec_rate_limit_config')
+        if config:
+            return config
+
+        try:
+            obj = cls.objects.get(pk=1)
+            config = {
+                'ip_limit': obj.ip_limit,
+                'ip_window': obj.ip_window_seconds,
+                'dni_limit': obj.dni_limit,
+                'dni_window': obj.dni_window_seconds,
+                'global_limit': obj.global_limit,
+                'global_window': obj.global_window_seconds,
+                'is_enabled': obj.is_enabled,
+            }
+        except cls.DoesNotExist:
+            # Valores por defecto
+            config = {
+                'ip_limit': 3,
+                'ip_window': 600,
+                'dni_limit': 2,
+                'dni_window': 3600,
+                'global_limit': 10,
+                'global_window': 3600,
+                'is_enabled': True,
+            }
+
+        # Cache por 60 segundos
+        cache.set('reniec_rate_limit_config', config, 60)
+        return config

@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
 from django.core.cache import cache
 
-from .models import APIKey, DNIQueryLog
+from .models import APIKey, DNIQueryLog, RateLimitConfig
 from .service import ReniecService
 
 logger = logging.getLogger(__name__)
@@ -19,15 +19,8 @@ class PublicRateLimiter:
     """
     Rate limiter basado en cache para endpoints públicos.
     Usa operaciones atómicas (incr) para evitar race conditions.
+    Los límites se leen desde RateLimitConfig (configurable en admin).
     """
-
-    # Límites (muy estrictos - solo ~5 registros/día reales)
-    IP_LIMIT = 3  # máximo 3 consultas por IP
-    IP_WINDOW = 600  # cada 10 minutos
-    DNI_LIMIT = 2  # máximo 2 consultas por DNI
-    DNI_WINDOW = 3600  # cada hora
-    GLOBAL_LIMIT = 10  # máximo 10 consultas totales
-    GLOBAL_WINDOW = 3600  # cada hora
 
     @classmethod
     def _atomic_increment(cls, key: str, window: int) -> int:
@@ -47,34 +40,48 @@ class PublicRateLimiter:
         return count
 
     @classmethod
+    def is_enabled(cls) -> bool:
+        """Verifica si el endpoint público está habilitado."""
+        config = RateLimitConfig.get_config()
+        return config['is_enabled']
+
+    @classmethod
     def check_and_increment(cls, ip: str, dni: str) -> tuple:
         """
         Verifica rate limits e incrementa atómicamente ANTES de verificar.
         Esto previene race conditions en requests concurrentes.
         Returns: (allowed: bool, error_message: str)
         """
+        # Obtener configuración desde el admin (con cache de 60s)
+        config = RateLimitConfig.get_config()
+
+        # Si está deshabilitado, bloquear todo
+        if not config['is_enabled']:
+            logger.warning(f"RENIEC endpoint público DESHABILITADO - bloqueando request desde {ip}")
+            return False, "Servicio temporalmente no disponible."
+
         ip_key = f"reniec_rate_ip_{ip}"
         dni_key = f"reniec_rate_dni_{dni}"
         global_key = "reniec_rate_global"
 
         # Incrementar PRIMERO (atómico), luego verificar
         # Esto evita que múltiples requests pasen el límite al mismo tiempo
-        ip_count = cls._atomic_increment(ip_key, cls.IP_WINDOW)
-        if ip_count > cls.IP_LIMIT:
-            logger.warning(f"RENIEC rate limit por IP excedido: {ip} ({ip_count}/{cls.IP_LIMIT})")
-            return False, "Demasiadas consultas desde tu ubicación. Intenta en 10 minutos."
+        ip_count = cls._atomic_increment(ip_key, config['ip_window'])
+        if ip_count > config['ip_limit']:
+            logger.warning(f"RENIEC rate limit por IP excedido: {ip} ({ip_count}/{config['ip_limit']})")
+            return False, "Demasiadas consultas desde tu ubicación. Intenta en unos minutos."
 
-        dni_count = cls._atomic_increment(dni_key, cls.DNI_WINDOW)
-        if dni_count > cls.DNI_LIMIT:
-            logger.warning(f"RENIEC rate limit por DNI excedido: ***{dni[-4:]} ({dni_count}/{cls.DNI_LIMIT})")
+        dni_count = cls._atomic_increment(dni_key, config['dni_window'])
+        if dni_count > config['dni_limit']:
+            logger.warning(f"RENIEC rate limit por DNI excedido: ***{dni[-4:]} ({dni_count}/{config['dni_limit']})")
             return False, "Este DNI ya fue consultado recientemente. Intenta más tarde."
 
-        global_count = cls._atomic_increment(global_key, cls.GLOBAL_WINDOW)
-        if global_count > cls.GLOBAL_LIMIT:
-            logger.warning(f"RENIEC rate limit GLOBAL excedido: {global_count}/{cls.GLOBAL_LIMIT}")
+        global_count = cls._atomic_increment(global_key, config['global_window'])
+        if global_count > config['global_limit']:
+            logger.warning(f"RENIEC rate limit GLOBAL excedido: {global_count}/{config['global_limit']}")
             return False, "Servicio temporalmente no disponible. Intenta más tarde."
 
-        logger.info(f"RENIEC rate limit OK - IP: {ip_count}/{cls.IP_LIMIT}, DNI: {dni_count}/{cls.DNI_LIMIT}, Global: {global_count}/{cls.GLOBAL_LIMIT}")
+        logger.info(f"RENIEC rate limit OK - IP: {ip_count}/{config['ip_limit']}, DNI: {dni_count}/{config['dni_limit']}, Global: {global_count}/{config['global_limit']}")
 
         return True, ""
 
@@ -316,12 +323,6 @@ class DNILookupPublicView(APIView):
         # Validar DNI primero (antes del rate limit para no consumir límites)
         if not dni or len(dni) != 8 or not dni.isdigit():
             return Response({'error': 'DNI inválido o no enviado'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Rechazar DNIs claramente falsos (empiezan con 000 - no existen en Perú)
-        # Los DNIs peruanos válidos no empiezan con 3+ ceros
-        if dni.startswith('000'):
-            logger.warning(f"RENIEC: DNI falso detectado: {dni} desde IP {source_ip}")
-            return Response({'error': 'DNI no válido'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Rate limit con cache (más robusto que DB)
         allowed, error_message = PublicRateLimiter.check_and_increment(source_ip, dni)

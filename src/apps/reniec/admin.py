@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import DNICache, DNIQueryLog, APIKey
+from .models import DNICache, DNIQueryLog, APIKey, RateLimitConfig
 
 
 @admin.register(DNICache)
@@ -131,3 +131,72 @@ class APIKeyAdmin(admin.ModelAdmin):
     def deactivate_keys(self, request, queryset):
         queryset.update(is_active=False)
         self.message_user(request, f'Se desactivaron {queryset.count()} API Keys.')
+
+
+@admin.register(RateLimitConfig)
+class RateLimitConfigAdmin(admin.ModelAdmin):
+    list_display = ['__str__', 'is_enabled_badge', 'ip_limit_display', 'dni_limit_display', 'global_limit_display', 'updated']
+
+    fieldsets = (
+        ('Estado', {
+            'fields': ('is_enabled',),
+            'description': 'Desactiva para bloquear TODAS las consultas públicas'
+        }),
+        ('Límite por IP', {
+            'fields': ('ip_limit', 'ip_window_seconds'),
+            'description': 'Controla cuántas consultas puede hacer una misma IP'
+        }),
+        ('Límite por DNI', {
+            'fields': ('dni_limit', 'dni_window_seconds'),
+            'description': 'Controla cuántas veces se puede consultar un mismo DNI'
+        }),
+        ('Límite Global', {
+            'fields': ('global_limit', 'global_window_seconds'),
+            'description': '⚠️ IMPORTANTE: Límite total de consultas. Protege contra ataques con IPs rotativas.'
+        }),
+        ('Información', {
+            'fields': ('updated',),
+            'classes': ('collapse',)
+        }),
+    )
+
+    readonly_fields = ['updated']
+
+    def is_enabled_badge(self, obj):
+        if obj.is_enabled:
+            return format_html('<span style="color: green; font-weight: bold;">✓ ACTIVO</span>')
+        return format_html('<span style="color: red; font-weight: bold;">✗ BLOQUEADO</span>')
+    is_enabled_badge.short_description = 'Estado'
+
+    def ip_limit_display(self, obj):
+        minutes = obj.ip_window_seconds // 60
+        return f"{obj.ip_limit} / {minutes} min"
+    ip_limit_display.short_description = 'Límite IP'
+
+    def dni_limit_display(self, obj):
+        if obj.dni_window_seconds >= 3600:
+            hours = obj.dni_window_seconds // 3600
+            return f"{obj.dni_limit} / {hours} hora(s)"
+        minutes = obj.dni_window_seconds // 60
+        return f"{obj.dni_limit} / {minutes} min"
+    dni_limit_display.short_description = 'Límite DNI'
+
+    def global_limit_display(self, obj):
+        if obj.global_window_seconds >= 3600:
+            hours = obj.global_window_seconds // 3600
+            return f"{obj.global_limit} / {hours} hora(s)"
+        minutes = obj.global_window_seconds // 60
+        return f"{obj.global_limit} / {minutes} min"
+    global_limit_display.short_description = 'Límite GLOBAL'
+
+    def has_add_permission(self, request):
+        # Solo permitir agregar si no existe ningún registro
+        return not RateLimitConfig.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        # No permitir eliminar
+        return False
+
+    def save_model(self, request, obj, form, change):
+        obj.updated_by = request.user.username
+        super().save_model(request, obj, form, change)
