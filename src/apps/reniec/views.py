@@ -21,13 +21,13 @@ class PublicRateLimiter:
     Usa operaciones atómicas (incr) para evitar race conditions.
     """
 
-    # Límites (ajustados para prevenir ataques)
+    # Límites (muy estrictos - solo ~5 registros/día reales)
     IP_LIMIT = 3  # máximo 3 consultas por IP
     IP_WINDOW = 600  # cada 10 minutos
     DNI_LIMIT = 2  # máximo 2 consultas por DNI
     DNI_WINDOW = 3600  # cada hora
-    GLOBAL_LIMIT = 30  # máximo 30 consultas totales (bajo para prevenir ataques con IPs rotativas)
-    GLOBAL_WINDOW = 600  # cada 10 minutos
+    GLOBAL_LIMIT = 10  # máximo 10 consultas totales
+    GLOBAL_WINDOW = 3600  # cada hora
 
     @classmethod
     def _atomic_increment(cls, key: str, window: int) -> int:
