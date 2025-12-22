@@ -13,7 +13,7 @@ from rest_framework.decorators import action
 from rest_framework import generics, viewsets, serializers
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from .serializers import ReservationSerializer, ReservationListSerializer, ReservationRetrieveSerializer, ClientReservationSerializer, CalendarReservationSerializer, ReciptSerializer
@@ -42,6 +42,7 @@ from django.http import JsonResponse, HttpResponseBadRequest
 class ReservationsApiView(viewsets.ModelViewSet):
     serializer_class = ReservationSerializer
     queryset = Reservation.objects.exclude(deleted=True).order_by("check_in_date")
+    permission_classes = [IsAuthenticated]  # Requiere autenticación
     search_fields = [
         "client__email",
         "client__first_name",
@@ -814,7 +815,7 @@ class MonthlyReservationsExportAPIView(APIView):
     """
     Endpoint para exportar datos de reservas por mes
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]  # Requiere autenticación
 
     @extend_schema(
         parameters=[
