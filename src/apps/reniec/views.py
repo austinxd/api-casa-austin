@@ -317,8 +317,9 @@ class DNILookupPublicView(APIView):
         if not dni or len(dni) != 8 or not dni.isdigit():
             return Response({'error': 'DNI inválido o no enviado'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Rechazar DNIs claramente falsos (empiezan con 0000 - no existen en Perú)
-        if dni.startswith('0000'):
+        # Rechazar DNIs claramente falsos (empiezan con 000 - no existen en Perú)
+        # Los DNIs peruanos válidos no empiezan con 3+ ceros
+        if dni.startswith('000'):
             logger.warning(f"RENIEC: DNI falso detectado: {dni} desde IP {source_ip}")
             return Response({'error': 'DNI no válido'}, status=status.HTTP_400_BAD_REQUEST)
 
