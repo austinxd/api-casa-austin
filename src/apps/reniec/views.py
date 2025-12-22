@@ -21,13 +21,13 @@ class PublicRateLimiter:
     Usa operaciones atómicas (incr) para evitar race conditions.
     """
 
-    # Límites
-    IP_LIMIT = 5  # máximo 5 consultas por IP
+    # Límites (ajustados para prevenir ataques)
+    IP_LIMIT = 3  # máximo 3 consultas por IP
     IP_WINDOW = 600  # cada 10 minutos
-    DNI_LIMIT = 3  # máximo 3 consultas por DNI
+    DNI_LIMIT = 2  # máximo 2 consultas por DNI
     DNI_WINDOW = 3600  # cada hora
-    GLOBAL_LIMIT = 100  # máximo 100 consultas totales
-    GLOBAL_WINDOW = 3600  # cada hora
+    GLOBAL_LIMIT = 30  # máximo 30 consultas totales (bajo para prevenir ataques con IPs rotativas)
+    GLOBAL_WINDOW = 600  # cada 10 minutos
 
     @classmethod
     def _atomic_increment(cls, key: str, window: int) -> int:
@@ -316,6 +316,11 @@ class DNILookupPublicView(APIView):
         # Validar DNI primero (antes del rate limit para no consumir límites)
         if not dni or len(dni) != 8 or not dni.isdigit():
             return Response({'error': 'DNI inválido o no enviado'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Rechazar DNIs claramente falsos (empiezan con 0000 - no existen en Perú)
+        if dni.startswith('0000'):
+            logger.warning(f"RENIEC: DNI falso detectado: {dni} desde IP {source_ip}")
+            return Response({'error': 'DNI no válido'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Rate limit con cache (más robusto que DB)
         allowed, error_message = PublicRateLimiter.check_and_increment(source_ip, dni)

@@ -796,6 +796,28 @@ class ClientRequestOTPView(APIView):
             return Response({'message': 'Cliente no encontrado'}, status=404)
 
 
+def is_suspicious_phone(phone: str) -> bool:
+    """
+    Detecta números de teléfono sospechosos/falsos.
+    Patrones comunes de ataque: 519000XXXXX, números secuenciales, etc.
+    """
+    clean = ''.join(filter(str.isdigit, phone))
+
+    # Patrón de ataque detectado: 519000XXXXX (fake sequential)
+    if clean.startswith('519000') or clean.startswith('9000'):
+        return True
+
+    # Números con demasiados ceros consecutivos
+    if '00000' in clean:
+        return True
+
+    # Números con patrón repetitivo (111111, 999999, etc.)
+    if len(set(clean[-6:])) <= 2:  # últimos 6 dígitos tienen solo 1-2 números únicos
+        return True
+
+    return False
+
+
 class ClientRequestOTPForRegistrationView(APIView):
     """
     Endpoint para solicitar OTP durante el registro de nuevos clientes
@@ -819,6 +841,12 @@ class ClientRequestOTPForRegistrationView(APIView):
                     'El número de teléfono debe tener al menos 9 dígitos'
                 },
                 status=400)
+
+        # Detectar números sospechosos/falsos (ataque)
+        if is_suspicious_phone(tel_number):
+            client_ip = get_client_ip(request)
+            logger.warning(f"OTP: Teléfono sospechoso detectado: {tel_number[-4:]} desde IP {client_ip}")
+            return Response({'message': 'Número de teléfono no válido'}, status=400)
 
         # Rate limiting
         client_ip = get_client_ip(request)
