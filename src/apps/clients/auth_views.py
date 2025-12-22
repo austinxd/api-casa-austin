@@ -22,8 +22,84 @@ from .twilio_service import TwilioOTPService
 from .whatsapp_service import WhatsAppOTPService
 import os
 import logging
+from django.core.cache import cache
 
 logger = logging.getLogger('apps')
+
+
+# ============================================================================
+# OTP Rate Limiting
+# ============================================================================
+def check_otp_rate_limit(phone_number: str, ip_address: str) -> tuple[bool, str]:
+    """
+    Verifica rate limiting para solicitudes de OTP.
+
+    Límites:
+    - Por teléfono: máximo 3 solicitudes cada 10 minutos
+    - Por IP: máximo 10 solicitudes cada hora
+
+    Returns:
+        tuple: (is_allowed: bool, error_message: str)
+    """
+    # Limpiar el número de teléfono para la clave
+    clean_phone = ''.join(filter(str.isdigit, phone_number))
+
+    # Claves de cache
+    phone_key = f"otp_rate_phone_{clean_phone}"
+    ip_key = f"otp_rate_ip_{ip_address}"
+
+    # Límites
+    PHONE_LIMIT = 3  # máximo 3 por teléfono
+    PHONE_WINDOW = 600  # 10 minutos
+    IP_LIMIT = 10  # máximo 10 por IP
+    IP_WINDOW = 3600  # 1 hora
+
+    # Verificar límite por teléfono
+    phone_count = cache.get(phone_key, 0)
+    if phone_count >= PHONE_LIMIT:
+        remaining_time = cache.ttl(phone_key) if hasattr(cache, 'ttl') else PHONE_WINDOW
+        minutes = max(1, remaining_time // 60)
+        logger.warning(f"OTP rate limit exceeded for phone {clean_phone[-4:]}: {phone_count}/{PHONE_LIMIT}")
+        return False, f"Demasiados intentos. Espera {minutes} minutos antes de solicitar otro código."
+
+    # Verificar límite por IP
+    ip_count = cache.get(ip_key, 0)
+    if ip_count >= IP_LIMIT:
+        logger.warning(f"OTP rate limit exceeded for IP {ip_address}: {ip_count}/{IP_LIMIT}")
+        return False, "Demasiadas solicitudes desde tu ubicación. Intenta más tarde."
+
+    return True, ""
+
+
+def increment_otp_rate_limit(phone_number: str, ip_address: str):
+    """
+    Incrementa los contadores de rate limiting después de enviar un OTP exitosamente.
+    """
+    clean_phone = ''.join(filter(str.isdigit, phone_number))
+
+    phone_key = f"otp_rate_phone_{clean_phone}"
+    ip_key = f"otp_rate_ip_{ip_address}"
+
+    PHONE_WINDOW = 600  # 10 minutos
+    IP_WINDOW = 3600  # 1 hora
+
+    # Incrementar contador de teléfono
+    phone_count = cache.get(phone_key, 0)
+    cache.set(phone_key, phone_count + 1, PHONE_WINDOW)
+
+    # Incrementar contador de IP
+    ip_count = cache.get(ip_key, 0)
+    cache.set(ip_key, ip_count + 1, IP_WINDOW)
+
+    logger.info(f"OTP rate limit incremented - phone: {phone_count + 1}/3, IP: {ip_count + 1}/10")
+
+
+def get_client_ip(request) -> str:
+    """Obtiene la IP real del cliente, considerando proxies."""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        return x_forwarded_for.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', '0.0.0.0')
 
 
 class ClientPublicRegisterView(APIView):
@@ -674,6 +750,12 @@ class ClientRequestOTPView(APIView):
                     },
                     status=400)
 
+            # Rate limiting
+            client_ip = get_client_ip(request)
+            is_allowed, error_message = check_otp_rate_limit(client.tel_number, client_ip)
+            if not is_allowed:
+                return Response({'message': error_message}, status=429)
+
             # Verificar qué servicio usar
             otp_service_provider = os.getenv('OTP_SERVICE_PROVIDER', 'twilio').lower()
 
@@ -682,11 +764,11 @@ class ClientRequestOTPView(APIView):
                 otp_code = whatsapp_service.generate_otp_code()
 
                 # Almacenar el código OTP temporalmente
-                from django.core.cache import cache
                 cache_key = f"whatsapp_otp_{client.tel_number}"
                 cache.set(cache_key, otp_code, 600)  # 10 minutos
 
                 if whatsapp_service.send_otp_template(client.tel_number, otp_code):
+                    increment_otp_rate_limit(client.tel_number, client_ip)
                     return Response({
                         'message': 'Código de verificación enviado por WhatsApp',
                         'phone_masked': f"***{client.tel_number[-4:]}"
@@ -700,6 +782,7 @@ class ClientRequestOTPView(APIView):
                 twilio_service = TwilioOTPService()
 
                 if twilio_service.send_otp_with_verify(client.tel_number):
+                    increment_otp_rate_limit(client.tel_number, client_ip)
                     return Response({
                         'message': 'Código de verificación enviado',
                         'phone_masked': f"***{client.tel_number[-4:]}"
@@ -737,6 +820,12 @@ class ClientRequestOTPForRegistrationView(APIView):
                 },
                 status=400)
 
+        # Rate limiting
+        client_ip = get_client_ip(request)
+        is_allowed, error_message = check_otp_rate_limit(tel_number, client_ip)
+        if not is_allowed:
+            return Response({'message': error_message}, status=429)
+
         # Verificar qué servicio usar
         otp_service_provider = os.getenv('OTP_SERVICE_PROVIDER', 'twilio').lower()
 
@@ -751,11 +840,11 @@ class ClientRequestOTPForRegistrationView(APIView):
             otp_code = whatsapp_service.generate_otp_code()
 
             # Almacenar el código OTP temporalmente
-            from django.core.cache import cache
             cache_key = f"whatsapp_otp_{tel_number}"
             cache.set(cache_key, otp_code, 600)  # 10 minutos
 
             if whatsapp_service.send_otp_template(tel_number, otp_code):
+                increment_otp_rate_limit(tel_number, client_ip)
                 # Enmascarar el número para mostrar en la respuesta
                 masked_number = f"***{tel_number[-4:]}" if len(tel_number) > 4 else tel_number
 
@@ -775,6 +864,7 @@ class ClientRequestOTPForRegistrationView(APIView):
             twilio_service = TwilioOTPService()
 
             if twilio_service.send_otp_with_verify(tel_number):
+                increment_otp_rate_limit(tel_number, client_ip)
                 # Enmascarar el número para mostrar en la respuesta
                 masked_number = f"***{tel_number[-4:]}" if len(
                     tel_number) > 4 else tel_number
@@ -866,6 +956,12 @@ class ClientForgotPasswordView(APIView):
                     },
                     status=400)
 
+            # Rate limiting
+            client_ip = get_client_ip(request)
+            is_allowed, error_message = check_otp_rate_limit(client.tel_number, client_ip)
+            if not is_allowed:
+                return Response({'message': error_message}, status=429)
+
             # Generar y enviar OTP
             otp_service_provider = os.getenv('OTP_SERVICE_PROVIDER', 'twilio').lower()
 
@@ -873,17 +969,18 @@ class ClientForgotPasswordView(APIView):
                 whatsapp_service = WhatsAppOTPService()
                 # Generate OTP code for WhatsApp
                 otp_code = whatsapp_service.generate_otp_code()
-                
+
                 # Almacenar el código OTP temporalmente
-                from django.core.cache import cache
                 cache_key = f"whatsapp_otp_{client.tel_number}"
                 cache.set(cache_key, otp_code, 600)  # 10 minutos
-                
+
                 # Enviar usando el método correcto
                 if not whatsapp_service.send_otp_template(client.tel_number, otp_code):
                     return Response({
                         'message': 'Error al enviar código de verificación por WhatsApp'
                     }, status=500)
+
+                increment_otp_rate_limit(client.tel_number, client_ip)
             else:
                 # Usar Twilio SMS
                 twilio_service = TwilioOTPService()
@@ -891,6 +988,8 @@ class ClientForgotPasswordView(APIView):
                     return Response({
                         'message': 'Error al enviar código de verificación SMS. Verifique que el número sea válido'
                     }, status=500)
+
+                increment_otp_rate_limit(client.tel_number, client_ip)
 
             return Response({
                 'message': f'Código de verificación enviado a {client.tel_number} para recuperar contraseña'
