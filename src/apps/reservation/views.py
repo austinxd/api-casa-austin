@@ -493,7 +493,7 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
         "client__last_name",
         "property__name"
     ]
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]  # Requiere autenticación
     pagination_class = None  # Desactiva la paginación
 
     def get_queryset(self):
