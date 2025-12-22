@@ -1356,7 +1356,7 @@ class ActiveReservationsView(APIView):
     def get(self, request):
         # Verificar autenticación: JWT o Portal Key
         portal_key = request.headers.get('X-Portal-Key')
-        secret_key = os.environ.get('WIFI_PORTAL_SECRET_KEY', 'ca_portal_wifi_2024_s3cr3t_k3y')
+        secret_key = os.environ.get('WIFI_PORTAL_SECRET_KEY', '564y5r4564gergRTHRthdrghdFH')
 
         if not request.user.is_authenticated:
             # Si no hay JWT, verificar Portal Key
