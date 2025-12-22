@@ -4,11 +4,79 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
+from django.core.cache import cache
 
 from .models import APIKey, DNIQueryLog
 from .service import ReniecService
 
 logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# Rate Limiting con Cache para endpoint público
+# ============================================================================
+class PublicRateLimiter:
+    """
+    Rate limiter basado en cache para endpoints públicos.
+    Usa operaciones atómicas (incr) para evitar race conditions.
+    """
+
+    # Límites
+    IP_LIMIT = 5  # máximo 5 consultas por IP
+    IP_WINDOW = 600  # cada 10 minutos
+    DNI_LIMIT = 3  # máximo 3 consultas por DNI
+    DNI_WINDOW = 3600  # cada hora
+    GLOBAL_LIMIT = 100  # máximo 100 consultas totales
+    GLOBAL_WINDOW = 3600  # cada hora
+
+    @classmethod
+    def _atomic_increment(cls, key: str, window: int) -> int:
+        """
+        Incrementa un contador de forma atómica.
+        Si la clave no existe, la crea con valor 1.
+        Returns: el nuevo valor del contador
+        """
+        try:
+            # Intentar incrementar atómicamente (funciona con Redis)
+            count = cache.incr(key)
+        except ValueError:
+            # Si la clave no existe, cache.incr falla
+            # Crear la clave con valor 1
+            cache.set(key, 1, window)
+            count = 1
+        return count
+
+    @classmethod
+    def check_and_increment(cls, ip: str, dni: str) -> tuple:
+        """
+        Verifica rate limits e incrementa atómicamente ANTES de verificar.
+        Esto previene race conditions en requests concurrentes.
+        Returns: (allowed: bool, error_message: str)
+        """
+        ip_key = f"reniec_rate_ip_{ip}"
+        dni_key = f"reniec_rate_dni_{dni}"
+        global_key = "reniec_rate_global"
+
+        # Incrementar PRIMERO (atómico), luego verificar
+        # Esto evita que múltiples requests pasen el límite al mismo tiempo
+        ip_count = cls._atomic_increment(ip_key, cls.IP_WINDOW)
+        if ip_count > cls.IP_LIMIT:
+            logger.warning(f"RENIEC rate limit por IP excedido: {ip} ({ip_count}/{cls.IP_LIMIT})")
+            return False, "Demasiadas consultas desde tu ubicación. Intenta en 10 minutos."
+
+        dni_count = cls._atomic_increment(dni_key, cls.DNI_WINDOW)
+        if dni_count > cls.DNI_LIMIT:
+            logger.warning(f"RENIEC rate limit por DNI excedido: ***{dni[-4:]} ({dni_count}/{cls.DNI_LIMIT})")
+            return False, "Este DNI ya fue consultado recientemente. Intenta más tarde."
+
+        global_count = cls._atomic_increment(global_key, cls.GLOBAL_WINDOW)
+        if global_count > cls.GLOBAL_LIMIT:
+            logger.warning(f"RENIEC rate limit GLOBAL excedido: {global_count}/{cls.GLOBAL_LIMIT}")
+            return False, "Servicio temporalmente no disponible. Intenta más tarde."
+
+        logger.info(f"RENIEC rate limit OK - IP: {ip_count}/{cls.IP_LIMIT}, DNI: {dni_count}/{cls.DNI_LIMIT}, Global: {global_count}/{cls.GLOBAL_LIMIT}")
+
+        return True, ""
 
 
 class APIKeyAuthentication:
@@ -221,12 +289,16 @@ class DNILookupAuthenticatedView(APIView):
 class DNILookupPublicView(APIView):
     """
     Endpoint PÚBLICO para consultar DNI - Para registro de clientes.
-    NO requiere autenticación pero tiene rate limit estricto por IP.
+    NO requiere autenticación pero tiene rate limit estricto.
 
     GET /api/v1/reniec/lookup/public/?dni=12345678
 
+    Rate limits (basados en cache, no DB):
+    - Por IP: 5 consultas cada 10 minutos
+    - Por DNI: 3 consultas cada hora
+    - Global: 100 consultas cada hora
+
     Respuesta igual al PHP original.
-    Solo devuelve datos básicos (sin foto, sin datos sensibles).
     """
     permission_classes = [AllowAny]
 
@@ -241,18 +313,14 @@ class DNILookupPublicView(APIView):
     def _handle_lookup(self, request, dni):
         source_ip = get_client_ip(request)
 
-        # Rate limit estricto para endpoint público: 5 consultas por cada 10 minutos por IP
-        ten_minutes_ago = timezone.now() - timezone.timedelta(minutes=10)
-        queries_last_10_min = DNIQueryLog.objects.filter(
-            source_ip=source_ip,
-            created__gte=ten_minutes_ago
-        ).count()
-        if queries_last_10_min >= 5:
-            return Response({'error': 'Demasiadas consultas. Intente en 10 minutos.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
-
-        # Validar DNI
+        # Validar DNI primero (antes del rate limit para no consumir límites)
         if not dni or len(dni) != 8 or not dni.isdigit():
             return Response({'error': 'DNI inválido o no enviado'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Rate limit con cache (más robusto que DB)
+        allowed, error_message = PublicRateLimiter.check_and_increment(source_ip, dni)
+        if not allowed:
+            return Response({'error': error_message}, status=status.HTTP_429_TOO_MANY_REQUESTS)
 
         # Consultar DNI (toda la información incluyendo foto)
         success, result = ReniecService.lookup(
