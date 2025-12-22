@@ -1,6 +1,7 @@
 import os
 from django.http import HttpResponse
 from pathlib import Path
+from django.conf import settings
 
 import calendar
 from datetime import datetime, time, timedelta
@@ -1348,19 +1349,18 @@ class ActiveReservationsView(APIView):
     Valida horarios de check-in (12 PM) y check-out (11 AM) en horario de Perú.
 
     Requiere autenticación JWT o token de portal (X-Portal-Key header).
+    Variable de entorno: WIFI_PORTAL_SECRET_KEY
     """
     permission_classes = [AllowAny]  # Validación manual para soportar ambos métodos
-
-    # Token secreto para el portal cautivo WiFi
-    PORTAL_SECRET_KEY = "ca_portal_wifi_2024_s3cr3t_k3y"
 
     def get(self, request):
         # Verificar autenticación: JWT o Portal Key
         portal_key = request.headers.get('X-Portal-Key')
+        secret_key = os.environ.get('WIFI_PORTAL_SECRET_KEY', 'ca_portal_wifi_2024_s3cr3t_k3y')
 
         if not request.user.is_authenticated:
             # Si no hay JWT, verificar Portal Key
-            if portal_key != self.PORTAL_SECRET_KEY:
+            if portal_key != secret_key:
                 return Response(
                     {'error': 'Autenticación requerida'},
                     status=status.HTTP_401_UNAUTHORIZED
