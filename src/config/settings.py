@@ -78,6 +78,7 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
     'x-api-key',  # Para autenticación de API RENIEC
+    'x-portal-key',  # Para autenticación del portal cautivo WiFi
 ]
 
 CORS_ALLOW_CREDENTIALS = True
