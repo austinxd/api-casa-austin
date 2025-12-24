@@ -1,7 +1,8 @@
 from django.conf import settings
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf.urls.static import static
+from django.views.static import serve
 
 from . import apiviews
 
@@ -40,9 +41,11 @@ urlpatterns = [
     path('api/v1/upcoming-checkins/', UpcomingCheckinsView.as_view(), name='upcoming-checkins'),
 ]
 
-# Serve media files (including production for now)
-# TODO: In production, consider using Nginx or S3 for better performance
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve media files in production (using re_path + serve instead of static())
+# The static() helper doesn't work when DEBUG=False, so we use serve directly
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+]
 
 
 if settings.DEBUG:
