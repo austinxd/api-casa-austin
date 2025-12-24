@@ -40,9 +40,9 @@ urlpatterns = [
     path('api/v1/upcoming-checkins/', UpcomingCheckinsView.as_view(), name='upcoming-checkins'),
 ]
 
-# Serve media files in development
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve media files (including production for now)
+# TODO: In production, consider using Nginx or S3 for better performance
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 
 if settings.DEBUG:
