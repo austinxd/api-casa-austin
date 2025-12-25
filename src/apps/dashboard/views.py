@@ -3,6 +3,8 @@ from datetime import datetime
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from apps.accounts.models import CustomUser
 from apps.reservation.models import Reservation
@@ -15,7 +17,9 @@ from .utils import get_stadistics_period
 
 class DashboardApiView(APIView):
     serializer_class = DashboardSerializer
-    
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         content = {}
         
