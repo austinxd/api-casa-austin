@@ -137,23 +137,7 @@ class Reservation(BaseModel):
         verbose_name="Histórico",
         verbose_name_plural="Histórico de cambios",
         excluded_fields=['updated'],  # No rastrear el campo 'updated' ya que cambia siempre
-        user_model='accounts.CustomUser',  # Solo usuarios admin, no clientes
     )
-
-    @property
-    def _history_user(self):
-        """Retorna el usuario para el histórico, o None si no es CustomUser"""
-        return getattr(self, '__history_user', None)
-
-    @_history_user.setter
-    def _history_user(self, value):
-        """Solo asigna si es CustomUser, ignora Clients"""
-        from apps.accounts.models import CustomUser
-        if value is None or isinstance(value, CustomUser):
-            self.__history_user = value
-        else:
-            # Si es un Client u otro tipo, no asignar (dejará history_user como NULL)
-            self.__history_user = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

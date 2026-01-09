@@ -145,11 +145,16 @@ class Command(BaseCommand):
                 logger.info(f"⚠️ ActivityFeed deshabilitado para tipo RESERVATION_AUTO_DELETED_CRON - no se registra actividad para reserva {reservation.id}")
                 return
             
-            # Preparar datos de la actividad  
+            # Preparar datos de la actividad
             from apps.reservation.signals import format_date_range_es
             dates = format_date_range_es(reservation.check_in_date, reservation.check_out_date)
             property_name = reservation.property.name if reservation.property else "Propiedad no disponible"
-            
+
+            # Usar configuración por defecto para visibilidad, importancia y reason
+            is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.RESERVATION_AUTO_DELETED_CRON)
+            importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.RESERVATION_AUTO_DELETED_CRON)
+            default_reason = ActivityFeedConfig.get_default_reason(ActivityFeed.ActivityType.RESERVATION_AUTO_DELETED_CRON)
+
             activity_data = {
                 'property_name': property_name,
                 'dates': dates,
@@ -159,14 +164,6 @@ class Command(BaseCommand):
                 'origin': 'cron_delete_expired',
                 'reason': default_reason or 'voucher no subido en el plazo indicado'
             }
-            
-            # Importar configuración para respetar configuración global
-            from apps.events.models import ActivityFeedConfig
-            
-            # Usar configuración por defecto para visibilidad, importancia y reason
-            is_public = ActivityFeedConfig.should_be_public(ActivityFeed.ActivityType.RESERVATION_AUTO_DELETED_CRON)
-            importance = ActivityFeedConfig.get_default_importance(ActivityFeed.ActivityType.RESERVATION_AUTO_DELETED_CRON)
-            default_reason = ActivityFeedConfig.get_default_reason(ActivityFeed.ActivityType.RESERVATION_AUTO_DELETED_CRON)
             
             # Crear actividad usando get_or_create para evitar duplicados
             activity, created = ActivityFeed.objects.get_or_create(
