@@ -1,8 +1,9 @@
 from django.contrib import admin
+from simple_history.admin import SimpleHistoryAdmin
 from .models import Reservation, RentalReceipt
 
 
-class ReservationAdmin(admin.ModelAdmin):
+class ReservationAdmin(SimpleHistoryAdmin):
     search_fields = ['property__name', 'origin', 'client__first_name', 'client__last_name']
     list_filter = ("deleted", "origin", "status", "property")
     list_display = (
@@ -16,6 +17,7 @@ class ReservationAdmin(admin.ModelAdmin):
         "deleted"
     )
     readonly_fields = ('created', 'updated')
+    history_list_display = ['status', 'deleted', 'full_payment']  # Campos a mostrar en el historial
 
     fieldsets = (
         ('Información de la Reserva', {

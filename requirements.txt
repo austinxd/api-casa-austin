@@ -44,3 +44,4 @@ pandas
 # music-assistant-models
 mysql-connector-python
 homeassistant-api==5.0.2.post1
+django-simple-history==3.7.0

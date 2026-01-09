@@ -18,6 +18,8 @@ from apps.property.models import Property
 from apps.core.functions import recipt_directory_path
 from datetime import timedelta
 
+from simple_history.models import HistoricalRecords
+
 class Reservation(BaseModel):
     ManychatFecha = models.IntegerField(default=0)
     late_checkout = models.BooleanField(default=False)
@@ -128,6 +130,13 @@ class Reservation(BaseModel):
     payment_approved_notification_sent = models.BooleanField(
         default=False,
         help_text="Indica si ya se envió la notificación de pago aprobado por WhatsApp"
+    )
+
+    # Histórico de cambios - Auditoría completa
+    history = HistoricalRecords(
+        verbose_name="Histórico",
+        verbose_name_plural="Histórico de cambios",
+        excluded_fields=['updated'],  # No rastrear el campo 'updated' ya que cambia siempre
     )
 
     def __init__(self, *args, **kwargs):

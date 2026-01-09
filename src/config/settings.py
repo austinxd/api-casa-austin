@@ -143,7 +143,8 @@ LOCAL_APPS = [
 
 THIRD_APPS = [
     'rest_framework', 'rest_framework_simplejwt', 'drf_spectacular',
-    'corsheaders'
+    'corsheaders',
+    'simple_history',  # Auditoría de cambios en modelos
 ]
 
 INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS + THIRD_APPS
@@ -157,6 +158,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "simple_history.middleware.HistoryRequestMiddleware",  # Rastrear usuario que hace cambios
 ]
 
 ROOT_URLCONF = "config.urls"
