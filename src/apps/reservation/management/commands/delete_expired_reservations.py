@@ -62,7 +62,7 @@ class Command(BaseCommand):
                     self._send_telegram_notification(reservation)
                 
                 logger.info(f"Eliminando reserva expirada ID: {reservation.id}")
-                reservation.delete()
+                reservation.delete(reason="Cron: voucher no subido en tiempo límite")
                 count += 1
             else:
                 count += 1

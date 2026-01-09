@@ -157,7 +157,16 @@ class Reservation(BaseModel):
         else:
             return f"Reserva desde API Airbnb (sin datos del cliente)"
 
-    def delete(self, *args, **kwargs):
+    def delete(self, *args, reason=None, **kwargs):
+        """
+        Soft delete de la reserva.
+
+        Args:
+            reason: Motivo de la eliminación para auditoría. Ejemplos:
+                - "Cron: voucher no subido en tiempo"
+                - "Admin: eliminación manual"
+                - "API: solicitud del usuario"
+        """
         # Guardar información antes de eliminar para el activity feed
         reservation_info = {
             'id': self.id,
@@ -243,7 +252,15 @@ class Reservation(BaseModel):
                 check_and_assign_achievements(self.client.referred_by)
 
         self.deleted = True
-        self.save()
+
+        # Guardar el motivo en el histórico si se proporciona
+        if reason:
+            from simple_history.utils import update_change_reason
+            self.save()
+            update_change_reason(self, reason)
+        else:
+            self._change_reason = "Eliminación sin motivo especificado"
+            self.save()
 
 def recipt_directory_path(instance, filename):
     return f'rental_recipt/{instance.reservation.id}/{filename}'

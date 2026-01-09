@@ -339,7 +339,9 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        self.perform_destroy(instance)
+        # Pasar el motivo de eliminación para auditoría con simple_history
+        user_info = f"{request.user.email}" if request.user and hasattr(request.user, 'email') else "Usuario API"
+        instance.delete(reason=f"API: eliminado por {user_info}")
 
         confeccion_ics()
 
@@ -740,7 +742,9 @@ class VistaCalendarioApiView(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        self.perform_destroy(instance)
+        # Pasar el motivo de eliminación para auditoría con simple_history
+        user_info = f"{request.user.email}" if request.user and hasattr(request.user, 'email') else "Usuario API"
+        instance.delete(reason=f"API Calendario: eliminado por {user_info}")
 
         confeccion_ics()
 
