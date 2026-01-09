@@ -59,6 +59,10 @@ class HomeAssistantDeviceInline(admin.StackedInline):
         ('Información del Dispositivo', {
             'fields': ('entity_id', 'friendly_name', 'location', 'device_type', 'icon')
         }),
+        ('Sensor de Estado (opcional)', {
+            'fields': ('status_sensor_entity_id',),
+            'description': 'Sensor para mostrar el estado real del dispositivo (ej: binary_sensor.garage_door_contact)'
+        }),
         ('Configuración', {
             'fields': ('display_order', 'guest_accessible', 'is_active', 'requires_temperature_pool')
         }),
@@ -67,7 +71,7 @@ class HomeAssistantDeviceInline(admin.StackedInline):
             'classes': ('collapse',)
         }),
     )
-    
+
     def get_queryset(self, request):
         """Solo mostrar dispositivos no eliminados"""
         return HomeAssistantDevice.objects.filter(deleted=False)
@@ -609,6 +613,10 @@ class HomeAssistantDeviceAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Información Básica', {
             'fields': ('property', 'entity_id', 'friendly_name', 'location', 'device_type')
+        }),
+        ('Sensor de Estado (opcional)', {
+            'fields': ('status_sensor_entity_id',),
+            'description': '📡 Sensor para mostrar el estado real del dispositivo. Útil para garajes, puertas, etc. donde el switch controla la acción pero el sensor muestra el estado real (abierto/cerrado).'
         }),
         ('Visualización', {
             'fields': ('icon', 'display_order', 'description')

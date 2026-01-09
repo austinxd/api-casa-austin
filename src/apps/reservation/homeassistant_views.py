@@ -388,6 +388,16 @@ class AdminHADeviceListView(APIView):
             except Exception:
                 current_state = 'unavailable'
 
+            # Obtener estado del sensor asociado si existe
+            sensor_state = None
+            sensor_state_info = None
+            if device.status_sensor_entity_id:
+                try:
+                    sensor_state_info = ha_service.get_entity_state(device.status_sensor_entity_id)
+                    sensor_state = sensor_state_info.get('state', 'unknown')
+                except Exception:
+                    sensor_state = 'unavailable'
+
             devices_data.append({
                 "id": str(device.id),
                 "entity_id": device.entity_id,
@@ -401,6 +411,9 @@ class AdminHADeviceListView(APIView):
                 "display_order": device.display_order,
                 "current_state": current_state,
                 "requires_temperature_pool": device.requires_temperature_pool,
+                "status_sensor_entity_id": device.status_sensor_entity_id,
+                "sensor_state": sensor_state,
+                "sensor_attributes": sensor_state_info.get('attributes', {}) if sensor_state_info else None,
             })
 
         return Response({
@@ -516,14 +529,27 @@ class AdminHADeviceControlView(APIView):
                 result = ha_service.toggle(device.entity_id)
             
             new_state = ha_service.get_entity_state(device.entity_id)
-            
+
+            # Obtener estado del sensor asociado si existe
+            sensor_state = None
+            sensor_state_info = None
+            if device.status_sensor_entity_id:
+                try:
+                    sensor_state_info = ha_service.get_entity_state(device.status_sensor_entity_id)
+                    sensor_state = sensor_state_info.get('state', 'unknown')
+                except Exception:
+                    sensor_state = 'unavailable'
+
             return Response({
                 "success": True,
                 "message": f"Dispositivo {device.friendly_name} controlado exitosamente",
                 "action": action,
-                "new_state": new_state
+                "new_state": new_state,
+                "status_sensor_entity_id": device.status_sensor_entity_id,
+                "sensor_state": sensor_state,
+                "sensor_attributes": sensor_state_info.get('attributes', {}) if sensor_state_info else None,
             })
-            
+
         except Exception as e:
             return Response(
                 {"error": f"Error al controlar dispositivo: {str(e)}"},
@@ -786,14 +812,25 @@ class ClientDeviceListView(HasActiveReservationMixin, APIView):
             except Exception:
                 current_state = 'unavailable'
                 attributes = {}
-            
+
+            # Obtener estado del sensor asociado si existe
+            sensor_state = None
+            sensor_attributes = None
+            if device.status_sensor_entity_id:
+                try:
+                    sensor_state_info = ha_service.get_entity_state(device.status_sensor_entity_id)
+                    sensor_state = sensor_state_info.get('state', 'unknown')
+                    sensor_attributes = sensor_state_info.get('attributes', {})
+                except Exception:
+                    sensor_state = 'unavailable'
+
             # Determinar capacidades del dispositivo
             supports_brightness = (
                 device.device_type == 'light' and
                 'brightness' in attributes
             )
             supports_temperature = device.device_type == 'climate'
-            
+
             devices_data.append({
                 "id": str(device.id),
                 "entity_id": device.entity_id,
@@ -806,7 +843,10 @@ class ClientDeviceListView(HasActiveReservationMixin, APIView):
                 "current_state": current_state,
                 "supports_brightness": supports_brightness,
                 "supports_temperature": supports_temperature,
-                "attributes": attributes
+                "attributes": attributes,
+                "status_sensor_entity_id": device.status_sensor_entity_id,
+                "sensor_state": sensor_state,
+                "sensor_attributes": sensor_attributes,
             })
         
         # Obtener información del cliente
@@ -992,9 +1032,20 @@ class ClientDeviceActionView(HasActiveReservationMixin, APIView):
             except Exception:
                 entity_state = {"state": "unknown", "entity_id": device.entity_id}
             
+            # Obtener estado del sensor asociado si existe
+            sensor_state = None
+            sensor_attributes = None
+            if device.status_sensor_entity_id:
+                try:
+                    sensor_state_info = ha_service.get_entity_state(device.status_sensor_entity_id)
+                    sensor_state = sensor_state_info.get('state', 'unknown')
+                    sensor_attributes = sensor_state_info.get('attributes', {})
+                except Exception:
+                    sensor_state = 'unavailable'
+
             # TODO: Registrar la acción en logs de auditoría
             # Almacenar: client_id, reservation_id, device_id, action, timestamp
-            
+
             return Response({
                 "status": "success",
                 "message": message,
@@ -1002,9 +1053,12 @@ class ClientDeviceActionView(HasActiveReservationMixin, APIView):
                 "device_name": device.friendly_name,
                 "action": action,
                 "value": value,
-                "entity_state": entity_state
+                "entity_state": entity_state,
+                "status_sensor_entity_id": device.status_sensor_entity_id,
+                "sensor_state": sensor_state,
+                "sensor_attributes": sensor_attributes,
             })
-            
+
         except Exception as e:
             return Response(
                 {"error": f"Error al controlar dispositivo: {str(e)}"},

@@ -345,6 +345,12 @@ class HomeAssistantDevice(BaseModel):
         default=False,
         help_text="Solo mostrar este dispositivo si la reserva activa tiene temperature_pool=True (ej: calefacción de piscina)"
     )
+    status_sensor_entity_id = models.CharField(
+        max_length=200,
+        null=True,
+        blank=True,
+        help_text="Entity ID de un sensor opcional para mostrar el estado real del dispositivo (ej: binary_sensor.garage_door_contact)"
+    )
 
     class Meta:
         ordering = ['property', 'display_order', 'friendly_name']
