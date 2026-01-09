@@ -2,7 +2,6 @@
 Custom middleware for Casa Austin API.
 """
 
-from simple_history.middleware import HistoryRequestMiddleware
 from simple_history.signals import pre_create_historical_record
 
 
@@ -31,11 +30,19 @@ def filter_history_user(sender, **kwargs):
 pre_create_historical_record.connect(filter_history_user)
 
 
-class CustomHistoryRequestMiddleware(HistoryRequestMiddleware):
+def CustomHistoryRequestMiddleware(get_response):
     """
     Middleware personalizado para django-simple-history.
 
-    Extiende el middleware original y usa el signal handler para filtrar
-    usuarios que no son CustomUser antes de guardar el registro histórico.
+    Es un wrapper del middleware original que también conecta el signal handler
+    para filtrar usuarios que no son CustomUser antes de guardar el registro histórico.
     """
-    pass  # El filtrado se hace en el signal handler filter_history_user
+    from simple_history.middleware import HistoryRequestMiddleware
+
+    # Obtener el middleware original
+    original_middleware = HistoryRequestMiddleware(get_response)
+
+    def middleware(request):
+        return original_middleware(request)
+
+    return middleware
