@@ -143,6 +143,7 @@ LOCAL_APPS = [
 
 THIRD_APPS = [
     'rest_framework', 'rest_framework_simplejwt', 'drf_spectacular',
+    'rest_framework_simplejwt.token_blacklist',  # Blacklist de tokens JWT
     'corsheaders',
     'simple_history',  # Auditoría de cambios en modelos
 ]
@@ -300,6 +301,9 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=1460),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1460),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,  # Blacklist el refresh token antiguo al rotar
+    'UPDATE_LAST_LOGIN': True,  # Actualizar último login del usuario
 }
 
 # Dinamic Django Admin URL
