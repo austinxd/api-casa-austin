@@ -2,47 +2,63 @@
 Custom middleware for Casa Austin API.
 """
 
-from simple_history.signals import pre_create_historical_record
 
-
-def filter_history_user(sender, **kwargs):
+class HistoryUserWrapper:
     """
-    Signal handler para filtrar el history_user antes de crear el registro histórico.
+    Wrapper para el request que filtra el usuario para simple_history.
 
-    simple_history espera que history_user sea una instancia de AUTH_USER_MODEL
-    (CustomUser), pero cuando los clientes se autentican via ClientJWTAuthentication,
-    request.user es una instancia de Clients, lo que causa un error:
-    "HistoricalReservation.history_user must be a CustomUser instance"
-
-    Esta función verifica el tipo de usuario y lo establece a None si no es CustomUser.
+    Si el usuario no es CustomUser, retorna None para history_user.
     """
-    from apps.accounts.models import CustomUser
+    def __init__(self, request):
+        self._request = request
+        self._history_user_checked = False
+        self._history_user_value = None
 
-    history_instance = kwargs.get('history_instance')
-    if history_instance:
-        history_user = getattr(history_instance, 'history_user', None)
-        if history_user is not None and not isinstance(history_user, CustomUser):
-            # Si el usuario no es CustomUser (ej: Clients), limpiar el campo
-            history_instance.history_user = None
+    def __getattr__(self, name):
+        if name == 'user':
+            return self._get_filtered_user()
+        return getattr(self._request, name)
 
+    def _get_filtered_user(self):
+        """Retorna el usuario solo si es CustomUser, sino None."""
+        from apps.accounts.models import CustomUser
 
-# Conectar el signal handler
-pre_create_historical_record.connect(filter_history_user)
+        original_user = getattr(self._request, 'user', None)
+        if original_user and isinstance(original_user, CustomUser):
+            return original_user
+        # Retornar un objeto que simula un usuario anónimo para simple_history
+        return None
 
 
 def CustomHistoryRequestMiddleware(get_response):
     """
     Middleware personalizado para django-simple-history.
 
-    Es un wrapper del middleware original que también conecta el signal handler
-    para filtrar usuarios que no son CustomUser antes de guardar el registro histórico.
+    Intercepta el request y filtra el usuario para que simple_history
+    solo registre cambios con usuarios que son CustomUser.
+    Cuando el usuario es Clients (u otro tipo), history_user será NULL.
     """
-    from simple_history.middleware import HistoryRequestMiddleware
-
-    # Obtener el middleware original
-    original_middleware = HistoryRequestMiddleware(get_response)
+    from simple_history.models import HistoricalRecords
 
     def middleware(request):
-        return original_middleware(request)
+        # Procesar la respuesta primero
+        response = get_response(request)
+        return response
 
-    return middleware
+    def set_history_context(request):
+        """Configura el contexto de simple_history con el request filtrado."""
+        from apps.accounts.models import CustomUser
+
+        # Solo establecer el contexto si el usuario es CustomUser
+        if hasattr(request, 'user') and isinstance(request.user, CustomUser):
+            HistoricalRecords.context.request = request
+        else:
+            # Crear un request wrapper que retorna None para user
+            HistoricalRecords.context.request = HistoryUserWrapper(request)
+
+    def middleware_with_history(request):
+        set_history_context(request)
+        response = get_response(request)
+        return response
+
+    return middleware_with_history
