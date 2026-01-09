@@ -1362,6 +1362,11 @@ class ActiveReservationsView(APIView):
         portal_key = request.headers.get('X-Portal-Key')
         secret_key = os.environ.get('WIFI_PORTAL_SECRET_KEY', '564y5r4564gergRTHRthdrghdFH')
 
+        # DEBUG: Log para diagnosticar problema de autenticación
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"ActiveReservationsView: portal_key={portal_key}, secret_key={secret_key}, user={request.user}, is_auth={getattr(request.user, 'is_authenticated', 'NO_ATTR')}")
+
         if not request.user.is_authenticated:
             # Si no hay JWT, verificar Portal Key
             if portal_key != secret_key:
