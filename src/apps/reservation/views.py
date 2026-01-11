@@ -303,17 +303,6 @@ class ReservationsApiView(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
 
-        # DEBUG: Log de datos recibidos
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info("=" * 50)
-        logger.info("DEBUG PARTIAL_UPDATE - LATE CHECKOUT")
-        logger.info(f"Request data keys: {list(request.data.keys())}")
-        logger.info(f"late_checkout en request: {request.data.get('late_checkout')} (type: {type(request.data.get('late_checkout'))})")
-        logger.info(f"check_out_date en request: {request.data.get('check_out_date')}")
-        logger.info(f"Estado actual en BD - late_checkout: {instance.late_checkout}, check_out_date: {instance.check_out_date}, late_check_out_date: {instance.late_check_out_date}")
-        logger.info("=" * 50)
-
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
@@ -321,30 +310,19 @@ class ReservationsApiView(viewsets.ModelViewSet):
             original_late_checkout = instance.late_checkout
             original_check_out_date = instance.check_out_date
 
-            logger.info(f"ANTES del save - original_late_checkout: {original_late_checkout}, original_check_out_date: {original_check_out_date}")
-
             instance = serializer.save()
 
-            logger.info(f"DESPUÉS del save - instance.late_checkout: {instance.late_checkout}, instance.check_out_date: {instance.check_out_date}")
-            logger.info(f"Condición (late_checkout AND NOT original): {instance.late_checkout and not original_late_checkout}")
-
-            # Solo guardar si realmente hay cambios en late checkout
+            # Manejar cambios en late_checkout
             if instance.late_checkout and not original_late_checkout:
-                logger.info(f">>> ENTRANDO AL IF - Extendiendo check_out_date")
-                logger.info(f">>> original_check_out_date: {original_check_out_date}")
-                logger.info(f">>> Nuevo check_out_date será: {original_check_out_date + timedelta(days=1)}")
+                # Activando late_checkout: extender check_out_date +1 día
                 instance.late_check_out_date = original_check_out_date
                 instance.check_out_date = original_check_out_date + timedelta(days=1)
                 instance.save(update_fields=['late_check_out_date', 'check_out_date'])
-                logger.info(f">>> GUARDADO - check_out_date: {instance.check_out_date}, late_check_out_date: {instance.late_check_out_date}")
             elif not instance.late_checkout and original_late_checkout:
-                logger.info(f">>> ENTRANDO AL ELIF - Revirtiendo check_out_date")
+                # Desactivando late_checkout: revertir check_out_date
                 instance.check_out_date = instance.late_check_out_date
                 instance.late_check_out_date = None
                 instance.save(update_fields=['check_out_date', 'late_check_out_date'])
-                logger.info(f">>> GUARDADO - check_out_date: {instance.check_out_date}")
-            else:
-                logger.info(f">>> NO ENTRÓ A NINGÚN IF/ELIF")
 
             for file in request.FILES.getlist('file'):
                 RentalReceipt.objects.create(

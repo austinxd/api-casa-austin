@@ -1,6 +1,6 @@
 from decimal import Decimal
 from datetime import date, timedelta
-from django.db.models import Q
+from django.db.models import Q, Case, When, F, ExpressionWrapper, DateField
 from django.utils import timezone
 
 from .models import Property
@@ -259,17 +259,29 @@ class PricingCalculationService:
         return response
 
     def _check_availability(self, property, check_in_date, check_out_date):
-        """Verifica disponibilidad de la propiedad"""
-        conflicting_reservations = Reservation.objects.filter(
+        """Verifica disponibilidad de la propiedad considerando late_checkout"""
+        # Obtener reservas que podrían conflictuar (ampliando el rango por +1 día para late_checkout)
+        potential_reservations = Reservation.objects.filter(
             property=property,
             deleted=False,
             status__in=['approved', 'pending', 'incomplete', 'under_review']
         ).filter(
-            Q(check_in_date__lt=check_out_date) & Q(check_out_date__gt=check_in_date)
+            Q(check_in_date__lt=check_out_date) & Q(check_out_date__gt=check_in_date - timedelta(days=1))
         )
 
-        if conflicting_reservations.exists():
-            return False, "Propiedad no disponible para las fechas seleccionadas"
+        for res in potential_reservations:
+            # Calcular effective_checkout_date defensivamente
+            effective_checkout = res.check_out_date
+
+            # Si hay late_checkout pero datos inconsistentes (check_out_date == late_check_out_date)
+            if res.late_checkout and res.late_check_out_date:
+                if res.check_out_date == res.late_check_out_date:
+                    # Datos inconsistentes: calcular la fecha correcta
+                    effective_checkout = res.late_check_out_date + timedelta(days=1)
+
+            # Verificar conflicto con la fecha efectiva
+            if res.check_in_date < check_out_date and effective_checkout > check_in_date:
+                return False, "Propiedad no disponible para las fechas seleccionadas"
 
         return True, "Propiedad disponible"
 

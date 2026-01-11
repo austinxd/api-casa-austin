@@ -131,8 +131,18 @@ def update_air_bnb_api(property):
                 if reservations_obj.check_in_date != date_start:
                     reservations_obj.check_in_date = date_start
 
-                if reservations_obj.check_out_date != date_end:
-                    reservations_obj.check_out_date = date_end
+                # Para check_out_date: si hay late_checkout, no sobrescribir
+                # porque check_out_date ya está extendida (+1 día)
+                if reservations_obj.late_checkout and reservations_obj.late_check_out_date:
+                    # Si hay late_checkout, verificar que la fecha original coincida
+                    if reservations_obj.late_check_out_date != date_end:
+                        # Actualizar la fecha original y recalcular la extendida
+                        reservations_obj.late_check_out_date = date_end
+                        reservations_obj.check_out_date = date_end + timedelta(days=1)
+                else:
+                    # Sin late_checkout, comportamiento normal
+                    if reservations_obj.check_out_date != date_end:
+                        reservations_obj.check_out_date = date_end
                 reservations_obj.save()
             else:
                 data = {
@@ -173,11 +183,18 @@ def confeccion_ics():
             # print('Procesando reserva ', res)
             # Creating icalendar/event
             event = Event()
-            
+
+            # Calcular effective_checkout_date defensivamente para late_checkout
+            effective_checkout = res.check_out_date
+            if res.late_checkout and res.late_check_out_date:
+                if res.check_out_date == res.late_check_out_date:
+                    # Datos inconsistentes: calcular la fecha correcta
+                    effective_checkout = res.late_check_out_date + timedelta(days=1)
+
             event.add('uid', str(res.id))
             event.add('description', f"Reserva de Casa Austin - {res.id} ({res.origin})")
             event.add('dtstart',  datetime.combine(res.check_in_date, datetime.min.time()))
-            event.add('dtend', datetime.combine(res.check_out_date, datetime.min.time()))
+            event.add('dtend', datetime.combine(effective_checkout, datetime.min.time()))
             event.add('dtstamp', res.created)
 
             # Adding events to calendar
