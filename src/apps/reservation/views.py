@@ -330,13 +330,21 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
             # Solo guardar si realmente hay cambios en late checkout
             if instance.late_checkout and not original_late_checkout:
+                logger.info(f">>> ENTRANDO AL IF - Extendiendo check_out_date")
+                logger.info(f">>> original_check_out_date: {original_check_out_date}")
+                logger.info(f">>> Nuevo check_out_date será: {original_check_out_date + timedelta(days=1)}")
                 instance.late_check_out_date = original_check_out_date
                 instance.check_out_date = original_check_out_date + timedelta(days=1)
                 instance.save(update_fields=['late_check_out_date', 'check_out_date'])
+                logger.info(f">>> GUARDADO - check_out_date: {instance.check_out_date}, late_check_out_date: {instance.late_check_out_date}")
             elif not instance.late_checkout and original_late_checkout:
+                logger.info(f">>> ENTRANDO AL ELIF - Revirtiendo check_out_date")
                 instance.check_out_date = instance.late_check_out_date
                 instance.late_check_out_date = None
                 instance.save(update_fields=['check_out_date', 'late_check_out_date'])
+                logger.info(f">>> GUARDADO - check_out_date: {instance.check_out_date}")
+            else:
+                logger.info(f">>> NO ENTRÓ A NINGÚN IF/ELIF")
 
             for file in request.FILES.getlist('file'):
                 RentalReceipt.objects.create(
