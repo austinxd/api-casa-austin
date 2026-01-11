@@ -302,13 +302,31 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
+
+        # DEBUG: Log de datos recibidos
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("=" * 50)
+        logger.info("DEBUG PARTIAL_UPDATE - LATE CHECKOUT")
+        logger.info(f"Request data keys: {list(request.data.keys())}")
+        logger.info(f"late_checkout en request: {request.data.get('late_checkout')} (type: {type(request.data.get('late_checkout'))})")
+        logger.info(f"check_out_date en request: {request.data.get('check_out_date')}")
+        logger.info(f"Estado actual en BD - late_checkout: {instance.late_checkout}, check_out_date: {instance.check_out_date}, late_check_out_date: {instance.late_check_out_date}")
+        logger.info("=" * 50)
+
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
 
         with transaction.atomic():
             original_late_checkout = instance.late_checkout
             original_check_out_date = instance.check_out_date
+
+            logger.info(f"ANTES del save - original_late_checkout: {original_late_checkout}, original_check_out_date: {original_check_out_date}")
+
             instance = serializer.save()
+
+            logger.info(f"DESPUÉS del save - instance.late_checkout: {instance.late_checkout}, instance.check_out_date: {instance.check_out_date}")
+            logger.info(f"Condición (late_checkout AND NOT original): {instance.late_checkout and not original_late_checkout}")
 
             # Solo guardar si realmente hay cambios en late checkout
             if instance.late_checkout and not original_late_checkout:
