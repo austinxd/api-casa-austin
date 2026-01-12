@@ -170,8 +170,9 @@ class CheckAvaiblePorperty(APIView):
 
         try:
             property_object = Property.objects.get(id=property_field)
-
-            update_air_bnb_api(property_object)
+            # Nota: update_air_bnb_api removido de aquí porque sobrescribía
+            # cambios manuales a las fechas. La sincronización con Airbnb
+            # solo debe hacerse por el cron (02_script_airbnb_reservations.py)
         except:
             print('No puedo obtener propiedad solicitada')
 
