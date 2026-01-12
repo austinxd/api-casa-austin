@@ -103,6 +103,10 @@ def user_directory_path(instance, filename):
     return upload_to
 
 def update_air_bnb_api(property):
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"🔄 update_air_bnb_api iniciado para propiedad: {property.name}")
+
     from apps.reservation import serializers as reservation_serializer
 
     reservations_uid = reservation_serializer.Reservation.objects.exclude(origin='aus').values_list("uuid_external", flat=True)
@@ -128,20 +132,25 @@ def update_air_bnb_api(property):
                         code="Error_reservation",
                     )
 
+                logger.info(f"📋 Procesando reserva existente {reservations_obj.id}: late_checkout={reservations_obj.late_checkout}, late_check_out_date={reservations_obj.late_check_out_date}, check_out_date={reservations_obj.check_out_date}, date_end_airbnb={date_end}")
+
                 if reservations_obj.check_in_date != date_start:
                     reservations_obj.check_in_date = date_start
 
                 # Para check_out_date: si hay late_checkout, no sobrescribir
                 # porque check_out_date ya está extendida (+1 día)
                 if reservations_obj.late_checkout and reservations_obj.late_check_out_date:
+                    logger.info(f"✅ Reserva {reservations_obj.id} tiene late_checkout - respetando fecha extendida")
                     # Si hay late_checkout, verificar que la fecha original coincida
                     if reservations_obj.late_check_out_date != date_end:
                         # Actualizar la fecha original y recalcular la extendida
+                        logger.info(f"🔄 Actualizando late_check_out_date de {reservations_obj.late_check_out_date} a {date_end}")
                         reservations_obj.late_check_out_date = date_end
                         reservations_obj.check_out_date = date_end + timedelta(days=1)
                 else:
                     # Sin late_checkout, comportamiento normal
                     if reservations_obj.check_out_date != date_end:
+                        logger.info(f"📝 Actualizando check_out_date de {reservations_obj.check_out_date} a {date_end}")
                         reservations_obj.check_out_date = date_end
                 reservations_obj.save()
             else:
