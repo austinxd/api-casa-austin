@@ -310,19 +310,20 @@ class ReservationsApiView(viewsets.ModelViewSet):
             original_late_checkout = instance.late_checkout
             original_check_out_date = instance.check_out_date
 
-            instance = serializer.save()
+            # Determinar si hay cambio en late_checkout ANTES del save
+            new_late_checkout = serializer.validated_data.get('late_checkout', instance.late_checkout)
 
-            # Manejar cambios en late_checkout
-            if instance.late_checkout and not original_late_checkout:
+            # Manejar cambios en late_checkout ANTES del save para evitar race conditions
+            if new_late_checkout and not original_late_checkout:
                 # Activando late_checkout: extender check_out_date +1 día
-                instance.late_check_out_date = original_check_out_date
-                instance.check_out_date = original_check_out_date + timedelta(days=1)
-                instance.save(update_fields=['late_check_out_date', 'check_out_date'])
-            elif not instance.late_checkout and original_late_checkout:
+                serializer.validated_data['late_check_out_date'] = original_check_out_date
+                serializer.validated_data['check_out_date'] = original_check_out_date + timedelta(days=1)
+            elif not new_late_checkout and original_late_checkout:
                 # Desactivando late_checkout: revertir check_out_date
-                instance.check_out_date = instance.late_check_out_date
-                instance.late_check_out_date = None
-                instance.save(update_fields=['check_out_date', 'late_check_out_date'])
+                serializer.validated_data['check_out_date'] = instance.late_check_out_date
+                serializer.validated_data['late_check_out_date'] = None
+
+            instance = serializer.save()
 
             for file in request.FILES.getlist('file'):
                 RentalReceipt.objects.create(
