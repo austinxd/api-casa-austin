@@ -122,37 +122,9 @@ def update_air_bnb_api(property):
             date_start = datetime.strptime(r["start_date"], "%Y%m%d").date()
             date_end = datetime.strptime(r["end_date"], "%Y%m%d").date()
             if r["uid"] in reservations_uid:
-                try:
-                    reservations_obj = reservation_serializer.Reservation.objects.get(
-                        uuid_external=r["uid"]
-                    )
-                except reservation_serializer.Reservation.DoesNotExist:
-                    raise serializers.ValidationError(
-                        {"detail": "Reservation not found"},
-                        code="Error_reservation",
-                    )
-
-                logger.info(f"📋 Procesando reserva existente {reservations_obj.id}: late_checkout={reservations_obj.late_checkout}, late_check_out_date={reservations_obj.late_check_out_date}, check_out_date={reservations_obj.check_out_date}, date_end_airbnb={date_end}")
-
-                if reservations_obj.check_in_date != date_start:
-                    reservations_obj.check_in_date = date_start
-
-                # Para check_out_date: si hay late_checkout, no sobrescribir
-                # porque check_out_date ya está extendida (+1 día)
-                if reservations_obj.late_checkout and reservations_obj.late_check_out_date:
-                    logger.info(f"✅ Reserva {reservations_obj.id} tiene late_checkout - respetando fecha extendida")
-                    # Si hay late_checkout, verificar que la fecha original coincida
-                    if reservations_obj.late_check_out_date != date_end:
-                        # Actualizar la fecha original y recalcular la extendida
-                        logger.info(f"🔄 Actualizando late_check_out_date de {reservations_obj.late_check_out_date} a {date_end}")
-                        reservations_obj.late_check_out_date = date_end
-                        reservations_obj.check_out_date = date_end + timedelta(days=1)
-                else:
-                    # Sin late_checkout, comportamiento normal
-                    if reservations_obj.check_out_date != date_end:
-                        logger.info(f"📝 Actualizando check_out_date de {reservations_obj.check_out_date} a {date_end}")
-                        reservations_obj.check_out_date = date_end
-                reservations_obj.save()
+                # Reserva ya existe - NO modificar para respetar cambios manuales
+                # (extensiones de fecha, late_checkout, etc.)
+                logger.info(f"⏭️ Reserva con uid {r['uid']} ya existe - saltando para respetar cambios manuales")
             else:
                 data = {
                     "uuid_external": r["uid"],
