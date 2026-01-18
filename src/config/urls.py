@@ -32,6 +32,7 @@ urlpatterns = [
     path("api/v1/music/", include("apps.reservation.music_urls")),
     path("api/v1/reniec/", include("apps.reniec.urls")),
     path("api/v1/tv/", include("apps.tv.urls")),
+    path("api/v1/app-tv/", include("apps.tv.app_urls")),
 
     # === ANALYTICS ENDPOINTS ===
     path('api/v1/stats/', ComprehensiveStatsView.as_view(), name='comprehensive-stats'),

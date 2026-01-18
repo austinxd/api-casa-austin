@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import TVDevice, TVSession
+from django.utils.html import format_html
+from .models import TVDevice, TVSession, TVAppVersion
 
 
 @admin.register(TVDevice)
@@ -41,3 +42,58 @@ class TVSessionAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False  # Sessions should not be edited
+
+
+@admin.register(TVAppVersion)
+class TVAppVersionAdmin(admin.ModelAdmin):
+    list_display = ['version_display', 'version_code', 'is_current_display', 'force_update', 'apk_link', 'created']
+    list_filter = ['is_current', 'force_update']
+    search_fields = ['version_name', 'release_notes']
+    readonly_fields = ['created', 'updated', 'apk_preview']
+    ordering = ['-version_code']
+
+    fieldsets = (
+        ('📱 Versión', {
+            'fields': ('version_code', 'version_name', 'is_current', 'force_update')
+        }),
+        ('📦 APK', {
+            'fields': ('apk_file', 'apk_preview', 'min_version_code'),
+        }),
+        ('📝 Notas', {
+            'fields': ('release_notes',),
+        }),
+        ('Timestamps', {
+            'fields': ('created', 'updated'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def version_display(self, obj):
+        return f"v{obj.version_name}"
+    version_display.short_description = 'Versión'
+
+    def is_current_display(self, obj):
+        if obj.is_current:
+            return format_html('<span style="color: #28a745; font-weight: bold;">✓ ACTUAL</span>')
+        return format_html('<span style="color: #6c757d;">-</span>')
+    is_current_display.short_description = 'Estado'
+
+    def apk_link(self, obj):
+        if obj.apk_file:
+            return format_html('<a href="{}" target="_blank">📥 Descargar</a>', obj.apk_file.url)
+        return '-'
+    apk_link.short_description = 'APK'
+
+    def apk_preview(self, obj):
+        if obj.apk_file:
+            size_mb = obj.apk_file.size / (1024 * 1024)
+            return format_html(
+                '<strong>Archivo:</strong> {}<br>'
+                '<strong>Tamaño:</strong> {:.2f} MB<br>'
+                '<a href="{}" target="_blank">📥 Descargar APK</a>',
+                obj.apk_file.name,
+                size_mb,
+                obj.apk_file.url
+            )
+        return 'No hay archivo APK'
+    apk_preview.short_description = 'Vista previa'

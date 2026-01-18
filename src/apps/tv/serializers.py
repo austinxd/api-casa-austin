@@ -94,3 +94,13 @@ class TVCheckoutSerializer(serializers.Serializer):
     """Serializer for checkout requests."""
 
     reason = serializers.CharField(required=False, allow_null=True)
+
+
+class TVAppVersionSerializer(serializers.Serializer):
+    """Serializer for TV app version check response."""
+
+    version_code = serializers.IntegerField()
+    version_name = serializers.CharField()
+    apk_url = serializers.URLField()
+    force_update = serializers.BooleanField()
+    release_notes = serializers.CharField(allow_blank=True)

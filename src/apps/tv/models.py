@@ -81,3 +81,58 @@ class TVSession(BaseModel):
 
     def __str__(self):
         return f"{self.tv_device} - {self.event_type} - {self.created}"
+
+
+class TVAppVersion(BaseModel):
+    """
+    Tracks TV app versions for OTA updates.
+    Only one version should be marked as current at a time.
+    """
+    version_code = models.PositiveIntegerField(
+        help_text="Numeric version code (e.g., 1, 2, 3). Must be higher than previous for updates."
+    )
+    version_name = models.CharField(
+        max_length=20,
+        help_text="Human-readable version (e.g., '1.0.0', '1.1.0')"
+    )
+    apk_file = models.FileField(
+        upload_to='tv-app/apks/',
+        help_text="APK file for this version"
+    )
+    release_notes = models.TextField(
+        blank=True,
+        help_text="What's new in this version (shown to admins)"
+    )
+    is_current = models.BooleanField(
+        default=False,
+        help_text="Mark as current version to push updates to all TVs"
+    )
+    force_update = models.BooleanField(
+        default=False,
+        help_text="Force update even if user is watching content"
+    )
+    min_version_code = models.PositiveIntegerField(
+        default=1,
+        help_text="Minimum version code required to update (for compatibility)"
+    )
+
+    class Meta:
+        verbose_name = "TV App Version"
+        verbose_name_plural = "TV App Versions"
+        ordering = ['-version_code']
+
+    def __str__(self):
+        current = " (CURRENT)" if self.is_current else ""
+        return f"v{self.version_name} (code: {self.version_code}){current}"
+
+    def save(self, *args, **kwargs):
+        # Ensure only one version is marked as current
+        if self.is_current:
+            TVAppVersion.objects.filter(is_current=True).exclude(pk=self.pk).update(is_current=False)
+        super().save(*args, **kwargs)
+
+    def get_apk_url(self):
+        """Get the full URL for the APK file."""
+        if self.apk_file:
+            return self.apk_file.url
+        return None

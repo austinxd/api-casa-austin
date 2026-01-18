@@ -8,13 +8,14 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from apps.reservation.models import Reservation
 from apps.property.models import Property
-from .models import TVDevice, TVSession
+from .models import TVDevice, TVSession, TVAppVersion
 from .serializers import (
     TVSessionResponseSerializer,
     TVHeartbeatSerializer,
     TVCheckoutSerializer,
     TVGuestSerializer,
-    TVPropertySerializer
+    TVPropertySerializer,
+    TVAppVersionSerializer
 )
 
 
@@ -241,3 +242,91 @@ class TVAppLaunchView(APIView):
         )
 
         return Response({'status': 'ok'}, status=status.HTTP_200_OK)
+
+
+class TVAppVersionView(APIView):
+    """
+    Check for TV app updates.
+
+    Returns the current version info if an update is available,
+    or indicates no update needed.
+    """
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='current_version',
+                type=int,
+                location=OpenApiParameter.QUERY,
+                description='Current version code installed on the TV',
+                required=False
+            )
+        ],
+        responses={200: TVAppVersionSerializer}
+    )
+    def get(self, request):
+        """
+        Check if there's a newer version available.
+
+        Query params:
+            current_version: The version_code currently installed (optional)
+
+        Returns:
+            - If update available: version info with APK URL
+            - If no update: update_available = false
+        """
+        current_version = request.query_params.get('current_version', 0)
+
+        try:
+            current_version = int(current_version)
+        except (ValueError, TypeError):
+            current_version = 0
+
+        # Get the current (latest) version marked as active
+        latest_version = TVAppVersion.objects.filter(
+            is_current=True,
+            deleted=False
+        ).first()
+
+        if not latest_version:
+            return Response({
+                'update_available': False,
+                'message': 'No version available'
+            }, status=status.HTTP_200_OK)
+
+        # Check if update is needed
+        if current_version >= latest_version.version_code:
+            return Response({
+                'update_available': False,
+                'version_code': latest_version.version_code,
+                'version_name': latest_version.version_name,
+                'message': 'Already up to date'
+            }, status=status.HTTP_200_OK)
+
+        # Check minimum version compatibility
+        if current_version < latest_version.min_version_code and current_version > 0:
+            return Response({
+                'update_available': True,
+                'version_code': latest_version.version_code,
+                'version_name': latest_version.version_name,
+                'apk_url': request.build_absolute_uri(latest_version.get_apk_url()),
+                'force_update': True,  # Force update for incompatible versions
+                'release_notes': latest_version.release_notes,
+                'message': 'Critical update required'
+            }, status=status.HTTP_200_OK)
+
+        # Normal update available
+        apk_url = latest_version.get_apk_url()
+        if apk_url:
+            apk_url = request.build_absolute_uri(apk_url)
+
+        return Response({
+            'update_available': True,
+            'version_code': latest_version.version_code,
+            'version_name': latest_version.version_name,
+            'apk_url': apk_url,
+            'force_update': latest_version.force_update,
+            'release_notes': latest_version.release_notes,
+            'message': 'Update available'
+        }, status=status.HTTP_200_OK)
