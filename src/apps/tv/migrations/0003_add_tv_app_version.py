@@ -5,21 +5,10 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('tv', '0001_initial'),
+        ('tv', '0002_add_welcome_message'),
     ]
 
     operations = [
-        # Add welcome_message to TVDevice if not exists
-        migrations.AddField(
-            model_name='tvdevice',
-            name='welcome_message',
-            field=models.TextField(
-                blank=True,
-                help_text='Mensaje que se muestra en la TV cuando hay un huésped activo',
-                null=True,
-                verbose_name='Mensaje de bienvenida'
-            ),
-        ),
         # Create TVAppVersion model
         migrations.CreateModel(
             name='TVAppVersion',
