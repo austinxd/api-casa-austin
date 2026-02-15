@@ -359,18 +359,32 @@ class ToolExecutor:
 
     def _get_property_info(self, property_name=None):
         """Obtiene información de propiedades"""
+        from django.db.models import Q
         from apps.property.models import Property
 
         if property_name:
             properties = Property.objects.filter(
-                name__icontains=property_name, deleted=False
+                Q(name__icontains=property_name) |
+                Q(descripcion__icontains=property_name),
+                deleted=False,
             )
+            # Si no encuentra, retornar todas con nota
+            if not properties.exists():
+                properties = Property.objects.filter(deleted=False)
+                if properties.exists():
+                    prefix = f"No se encontró propiedad con '{property_name}'. Estas son todas las propiedades disponibles:\n\n"
+                    return prefix + self._format_properties(properties)
+                return "No hay propiedades registradas."
         else:
             properties = Property.objects.filter(deleted=False)
 
         if not properties.exists():
             return "No se encontraron propiedades."
 
+        return self._format_properties(properties)
+
+    def _format_properties(self, properties):
+        """Formatea lista de propiedades como texto legible"""
         lines = []
         for prop in properties:
             info = f"🏠 {prop.name}\n"
