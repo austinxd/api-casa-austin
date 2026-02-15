@@ -89,16 +89,38 @@ class Command(BaseCommand):
             intent = msg.intent_detected
             intents[intent] = intents.get(intent, 0) + 1
 
-        # Clientes identificados (tool identify_client ejecutada)
-        clients_identified = 0
-        for msg in ai_messages:
-            if isinstance(msg.tool_calls, list):
-                for tc in msg.tool_calls:
-                    if isinstance(tc, dict) and tc.get('name') == 'identify_client':
-                        clients_identified += 1
+        # Teléfonos de sesiones de chat activas en últimos 3 días
+        # Normalizamos wa_id (formato 51XXXXXXXXX) para cruzar con tel_number
+        recent_chat_phones = set(
+            ChatSession.objects.filter(
+                deleted=False,
+                last_message_at__date__gte=target_date - timedelta(days=3),
+                last_message_at__date__lte=target_date,
+            ).values_list('wa_id', flat=True)
+        )
+
+        # Clientes nuevos atribuibles al chatbot:
+        # Registrados hoy cuyo teléfono coincide con un wa_id de chat reciente
+        from apps.clients.models import Clients
+        if recent_chat_phones:
+            # Variantes de teléfono: 51XXX, +51XXX, XXX
+            phone_variants = set()
+            for wa_id in recent_chat_phones:
+                phone_variants.add(wa_id)              # 51999888777
+                phone_variants.add(f'+{wa_id}')        # +51999888777
+                if wa_id.startswith('51') and len(wa_id) == 11:
+                    phone_variants.add(wa_id[2:])      # 999888777
+
+            clients_identified = Clients.objects.filter(
+                created__date=target_date,
+                deleted=False,
+                tel_number__in=list(phone_variants),
+            ).count()
+        else:
+            clients_identified = 0
 
         # Reservas atribuibles al chatbot:
-        # Clientes que chatearon en los últimos 3 días y crearon una reserva hoy
+        # Reservas creadas hoy por clientes vinculados a sesiones de chat recientes
         from apps.reservation.models import Reservation
         recent_chat_clients = ChatSession.objects.filter(
             deleted=False,
