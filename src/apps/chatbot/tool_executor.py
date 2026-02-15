@@ -1,6 +1,5 @@
 import logging
 from datetime import date, datetime
-from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
@@ -101,43 +100,6 @@ TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
-            "name": "create_reservation",
-            "description": "Crea una reserva para un cliente identificado. Solo usar cuando el cliente confirma que quiere reservar.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "client_id": {
-                        "type": "string",
-                        "description": "ID del cliente"
-                    },
-                    "property_name": {
-                        "type": "string",
-                        "description": "Nombre de la propiedad"
-                    },
-                    "check_in": {
-                        "type": "string",
-                        "description": "Fecha de check-in YYYY-MM-DD"
-                    },
-                    "check_out": {
-                        "type": "string",
-                        "description": "Fecha de check-out YYYY-MM-DD"
-                    },
-                    "guests": {
-                        "type": "integer",
-                        "description": "Número de huéspedes"
-                    },
-                    "discount_code": {
-                        "type": "string",
-                        "description": "Código de descuento (opcional)"
-                    }
-                },
-                "required": ["client_id", "property_name", "check_in", "check_out", "guests"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
             "name": "get_property_info",
             "description": "Obtiene información detallada de una propiedad: nombre, capacidad, descripción, dormitorios, baños, características.",
             "parameters": {
@@ -148,6 +110,43 @@ TOOL_DEFINITIONS = [
                         "description": "Nombre de la propiedad (opcional, si no se indica retorna todas)"
                     }
                 }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "schedule_visit",
+            "description": "Agenda una visita a una propiedad. Primero verifica que la propiedad esté disponible (no ocupada) en la fecha solicitada. Requiere nombre de propiedad, fecha de visita y datos del visitante.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "property_name": {
+                        "type": "string",
+                        "description": "Nombre de la propiedad a visitar"
+                    },
+                    "visit_date": {
+                        "type": "string",
+                        "description": "Fecha de la visita en formato YYYY-MM-DD"
+                    },
+                    "visit_time": {
+                        "type": "string",
+                        "description": "Hora preferida de la visita en formato HH:MM (opcional, por defecto 10:00)"
+                    },
+                    "visitor_name": {
+                        "type": "string",
+                        "description": "Nombre completo del visitante"
+                    },
+                    "guests_count": {
+                        "type": "integer",
+                        "description": "Cantidad de personas que asistirán (opcional, por defecto 1)"
+                    },
+                    "notes": {
+                        "type": "string",
+                        "description": "Notas o comentarios adicionales del visitante (opcional)"
+                    }
+                },
+                "required": ["property_name", "visit_date", "visitor_name"]
             }
         }
     },
@@ -184,8 +183,8 @@ class ToolExecutor:
             'identify_client': self._identify_client,
             'check_client_points': self._check_client_points,
             'validate_discount_code': self._validate_discount_code,
-            'create_reservation': self._create_reservation,
             'get_property_info': self._get_property_info,
+            'schedule_visit': self._schedule_visit,
             'escalate_to_human': self._escalate_to_human,
         }
 
@@ -358,84 +357,6 @@ class ToolExecutor:
 
         return f"Código '{code}' NO VÁLIDO: {message}"
 
-    def _create_reservation(self, client_id, property_name, check_in, check_out, guests, discount_code=None):
-        """Crea una reserva incompleta"""
-        from apps.clients.models import Clients
-        from apps.property.models import Property
-        from apps.reservation.models import Reservation
-        from apps.property.pricing_service import PricingCalculationService
-
-        try:
-            client = Clients.objects.get(id=client_id, deleted=False)
-        except Clients.DoesNotExist:
-            return "Error: cliente no encontrado. Primero identifica al cliente."
-
-        prop = Property.objects.filter(
-            name__icontains=property_name, deleted=False
-        ).first()
-        if not prop:
-            return f"Error: propiedad '{property_name}' no encontrada."
-
-        try:
-            check_in_date = datetime.strptime(check_in, '%Y-%m-%d').date()
-            check_out_date = datetime.strptime(check_out, '%Y-%m-%d').date()
-        except ValueError:
-            return "Error: formato de fecha inválido."
-
-        # Calcular precio
-        try:
-            service = PricingCalculationService()
-            pricing = service.calculate_pricing(
-                check_in_date=check_in_date,
-                check_out_date=check_out_date,
-                guests=int(guests),
-                property_id=prop.id,
-                client_id=client_id,
-                discount_code=discount_code,
-            )
-        except ValueError as e:
-            return str(e)
-
-        # Extraer precio del resultado
-        price_usd = Decimal('0')
-        price_sol = Decimal('0')
-        if isinstance(pricing, dict):
-            props = pricing.get('properties', [pricing])
-            for p in props:
-                if p.get('available', p.get('is_available', False)):
-                    price_usd = Decimal(str(p.get('total_price_usd', p.get('price_usd', 0))))
-                    price_sol = Decimal(str(p.get('total_price_sol', p.get('price_sol', 0))))
-                    break
-
-        if price_usd <= 0:
-            return "La propiedad no está disponible para esas fechas."
-
-        # Crear reserva
-        reservation = Reservation.objects.create(
-            client=client,
-            property=prop,
-            check_in_date=check_in_date,
-            check_out_date=check_out_date,
-            guests=int(guests),
-            price_usd=price_usd,
-            price_sol=price_sol,
-            origin=Reservation.OriginReservationTypeChoice.AUS,
-            status=Reservation.ReservationStatusChoice.INCOMPLETE,
-            comentarios_reservas="Reserva creada vía chatbot WhatsApp",
-        )
-
-        nights = (check_out_date - check_in_date).days
-        return (
-            f"Reserva creada exitosamente:\n"
-            f"- Propiedad: {prop.name}\n"
-            f"- Fechas: {check_in} al {check_out} ({nights} noches)\n"
-            f"- Huéspedes: {guests}\n"
-            f"- Precio: ${price_usd} USD / S/{price_sol} PEN\n"
-            f"- Estado: Incompleta (pendiente de pago)\n"
-            f"- ID: {reservation.id}\n"
-            f"El equipo de Casa Austin te contactará para coordinar el pago."
-        )
-
     def _get_property_info(self, property_name=None):
         """Obtiene información de propiedades"""
         from apps.property.models import Property
@@ -474,6 +395,89 @@ class ToolExecutor:
             lines.append(info)
 
         return '\n'.join(lines)
+
+    def _schedule_visit(self, property_name, visit_date, visitor_name, visit_time=None, guests_count=1, notes=''):
+        """Agenda una visita a una propiedad, verificando disponibilidad"""
+        from apps.property.models import Property
+        from apps.reservation.models import Reservation
+        from apps.chatbot.models import PropertyVisit
+
+        # Buscar propiedad
+        prop = Property.objects.filter(
+            name__icontains=property_name, deleted=False
+        ).first()
+        if not prop:
+            return f"No se encontró propiedad con nombre '{property_name}'."
+
+        # Parsear fecha
+        try:
+            visit_dt = datetime.strptime(visit_date, '%Y-%m-%d').date()
+        except ValueError:
+            return "Error: formato de fecha inválido. Usar YYYY-MM-DD."
+
+        # Validar que no sea fecha pasada
+        if visit_dt < date.today():
+            return "No se puede agendar una visita en una fecha pasada."
+
+        # Verificar que la propiedad no esté ocupada ese día
+        occupied = Reservation.objects.filter(
+            property=prop,
+            deleted=False,
+            check_in_date__lte=visit_dt,
+            check_out_date__gt=visit_dt,
+            status__in=['confirmed', 'checked_in'],
+        ).exists()
+
+        if occupied:
+            return (
+                f"La propiedad {prop.name} está ocupada el {visit_date} "
+                f"(hay una reserva activa). Por favor elige otra fecha."
+            )
+
+        # Parsear hora
+        visit_time_obj = None
+        if visit_time:
+            try:
+                visit_time_obj = datetime.strptime(visit_time, '%H:%M').time()
+            except ValueError:
+                visit_time_obj = None
+
+        # Crear la visita
+        visit = PropertyVisit.objects.create(
+            session=self.session,
+            property=prop,
+            client=self.session.client,
+            visit_date=visit_dt,
+            visit_time=visit_time_obj,
+            visitor_name=visitor_name,
+            visitor_phone=self.session.wa_id,
+            guests_count=int(guests_count),
+            notes=notes,
+        )
+
+        # Notificar admins
+        from apps.clients.expo_push_service import ExpoPushService
+        time_str = visit_time_obj.strftime('%I:%M %p') if visit_time_obj else 'por confirmar'
+        ExpoPushService.send_to_admins(
+            title=f"🏠 Nueva visita: {prop.name}",
+            body=f"{visitor_name} - {visit_date} a las {time_str}",
+            data={
+                'type': 'chatbot_visit',
+                'visit_id': str(visit.id),
+                'session_id': str(self.session.id),
+                'screen': 'ChatBot',
+            }
+        )
+
+        return (
+            f"Visita agendada exitosamente:\n"
+            f"- Propiedad: {prop.name}\n"
+            f"- Fecha: {visit_date}\n"
+            f"- Hora: {time_str}\n"
+            f"- Visitante: {visitor_name}\n"
+            f"- Personas: {guests_count}\n"
+            f"El equipo de Casa Austin confirmará tu visita pronto."
+        )
 
     def _escalate_to_human(self, reason):
         """Escala la conversación a un agente humano"""

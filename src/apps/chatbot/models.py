@@ -176,6 +176,64 @@ class ChatbotConfiguration(BaseModel):
         return config
 
 
+class PropertyVisit(BaseModel):
+    """Visita programada a una propiedad vía chatbot"""
+
+    class StatusChoices(models.TextChoices):
+        SCHEDULED = 'scheduled', 'Programada'
+        COMPLETED = 'completed', 'Realizada'
+        CANCELLED = 'cancelled', 'Cancelada'
+        NO_SHOW = 'no_show', 'No asistió'
+
+    session = models.ForeignKey(
+        ChatSession, on_delete=models.CASCADE,
+        related_name='visits',
+        help_text="Sesión de chat donde se agendó"
+    )
+    property = models.ForeignKey(
+        'property.Property', on_delete=models.CASCADE,
+        related_name='chat_visits'
+    )
+    client = models.ForeignKey(
+        'clients.Clients', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='chat_visits',
+        help_text="Cliente vinculado (si fue identificado)"
+    )
+    visit_date = models.DateField(help_text="Fecha de la visita")
+    visit_time = models.TimeField(
+        null=True, blank=True,
+        help_text="Hora preferida de la visita"
+    )
+    visitor_name = models.CharField(
+        max_length=150,
+        help_text="Nombre del visitante (del perfil WA o proporcionado)"
+    )
+    visitor_phone = models.CharField(
+        max_length=20,
+        help_text="Teléfono del visitante"
+    )
+    guests_count = models.PositiveIntegerField(
+        default=1,
+        help_text="Cantidad de personas que asistirán a la visita"
+    )
+    notes = models.TextField(
+        blank=True, default='',
+        help_text="Notas adicionales del cliente"
+    )
+    status = models.CharField(
+        max_length=15, choices=StatusChoices.choices,
+        default=StatusChoices.SCHEDULED
+    )
+
+    class Meta:
+        verbose_name = '🏠 Visita Programada'
+        verbose_name_plural = '🏠 Visitas Programadas'
+        ordering = ['-visit_date', '-visit_time']
+
+    def __str__(self):
+        return f"Visita a {self.property} - {self.visit_date} - {self.visitor_name}"
+
+
 class ChatAnalytics(BaseModel):
     """Métricas diarias del chatbot"""
 

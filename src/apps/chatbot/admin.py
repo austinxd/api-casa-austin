@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics
+from .models import ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics, PropertyVisit
 
 
 @admin.register(ChatSession)
@@ -25,6 +25,15 @@ class ChatMessageAdmin(admin.ModelAdmin):
 @admin.register(ChatbotConfiguration)
 class ChatbotConfigurationAdmin(admin.ModelAdmin):
     list_display = ['is_active', 'primary_model', 'temperature', 'ai_auto_resume_minutes']
+
+
+@admin.register(PropertyVisit)
+class PropertyVisitAdmin(admin.ModelAdmin):
+    list_display = ['visitor_name', 'property', 'visit_date', 'visit_time', 'status', 'visitor_phone', 'guests_count']
+    list_filter = ['status', 'property', 'visit_date']
+    search_fields = ['visitor_name', 'visitor_phone']
+    readonly_fields = ['created', 'updated']
+    date_hierarchy = 'visit_date'
 
 
 @admin.register(ChatAnalytics)

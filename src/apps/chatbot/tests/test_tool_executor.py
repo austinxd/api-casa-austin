@@ -25,8 +25,8 @@ class ToolDefinitionsTest(TestCase):
         names = [t['function']['name'] for t in TOOL_DEFINITIONS]
         expected = [
             'check_availability', 'identify_client', 'check_client_points',
-            'validate_discount_code', 'create_reservation',
-            'get_property_info', 'escalate_to_human',
+            'validate_discount_code',
+            'get_property_info', 'schedule_visit', 'escalate_to_human',
         ]
         self.assertEqual(names, expected)
 
@@ -85,13 +85,22 @@ class ToolExecutorTest(TestCase):
         self.assertEqual(self.session.status, 'escalated')
         self.assertIn('escalada', result.lower())
 
-    def test_create_reservation_without_client(self):
-        """create_reservation sin cliente identificado retorna error"""
-        result = self.executor.execute('create_reservation', {
-            'client_id': '00000000-0000-0000-0000-000000000000',
-            'property_name': 'Casa Test',
-            'check_in': '2025-03-15',
-            'check_out': '2025-03-17',
-            'guests': 2,
+    def test_schedule_visit_no_property(self):
+        """schedule_visit con propiedad inexistente retorna error"""
+        result = self.executor.execute('schedule_visit', {
+            'property_name': 'Casa Inexistente',
+            'visit_date': '2026-03-15',
+            'visitor_name': 'Juan Test',
         })
-        self.assertIn('no encontrad', result.lower())
+        self.assertIn('No se encontró', result)
+
+    def test_schedule_visit_past_date(self):
+        """schedule_visit con fecha pasada retorna error"""
+        from apps.property.models import Property
+        Property.objects.create(name='Casa Test Visita', deleted=False)
+        result = self.executor.execute('schedule_visit', {
+            'property_name': 'Casa Test Visita',
+            'visit_date': '2020-01-01',
+            'visitor_name': 'Juan Test',
+        })
+        self.assertIn('fecha pasada', result)
