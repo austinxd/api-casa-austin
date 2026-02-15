@@ -185,15 +185,23 @@ class AIOrchestrator:
 
         context_parts = [base_prompt]
 
-        # Fecha actual con día de la semana
+        # Fecha actual con calendario de próximos 7 días
+        from datetime import timedelta
         days_es = {
-            'Monday': 'lunes', 'Tuesday': 'martes', 'Wednesday': 'miércoles',
-            'Thursday': 'jueves', 'Friday': 'viernes', 'Saturday': 'sábado',
-            'Sunday': 'domingo',
+            0: 'lunes', 1: 'martes', 2: 'miércoles',
+            3: 'jueves', 4: 'viernes', 5: 'sábado', 6: 'domingo',
         }
         today = date.today()
-        day_name = days_es.get(today.strftime('%A'), today.strftime('%A'))
-        context_parts.append(f"\nHoy es {day_name} {today.strftime('%d/%m/%Y')}")
+        day_name = days_es[today.weekday()]
+        calendar_lines = []
+        for i in range(7):
+            d = today + timedelta(days=i)
+            calendar_lines.append(f"  {days_es[d.weekday()]} {d.strftime('%d/%m/%Y')} = {d.strftime('%Y-%m-%d')}")
+        context_parts.append(
+            f"\nHoy es {day_name} {today.strftime('%d/%m/%Y')}."
+            f"\nCalendario próximos días (usa estas fechas EXACTAS):\n"
+            + '\n'.join(calendar_lines)
+        )
 
         # Información del cliente vinculado
         if session.client:
@@ -218,15 +226,13 @@ class AIOrchestrator:
         context_parts.append(
             "\n\nInstrucciones CRÍTICAS:"
             "\n- Responde SIEMPRE en español, amigable y conciso."
-            "\n- NUNCA inventes datos (fechas, precios, ubicaciones). Si no tienes info, PREGUNTA."
-            "\n- Para check_availability NECESITAS: fecha check-in, fecha check-out, cantidad de huéspedes. Si falta alguno, pregúntale."
-            "\n- Cuando tengas fechas + personas, ejecuta check_availability INMEDIATAMENTE sin preguntar nada más."
-            "\n- Presenta los resultados como COTIZACIÓN estructurada con precios claros."
-            "\n- Si NO hay disponibilidad, sugiere fechas alternativas o pregunta si pueden ser flexibles."
+            "\n- NUNCA inventes precios, fechas ni datos. SIEMPRE usa check_availability para obtener precios reales."
+            "\n- Cuando tengas fechas, ejecuta check_availability INMEDIATAMENTE. Si no sabes cuántos huéspedes, usa 1 como default."
+            "\n- NO preguntes cantidad de huéspedes para mostrar opciones. Cotiza con 1 persona y menciona que el precio puede variar según huéspedes."
+            "\n- Presenta los resultados como COTIZACIÓN con los precios EXACTOS que devuelve la herramienta."
+            "\n- Si NO hay disponibilidad, sugiere fechas alternativas cercanas."
             "\n- SIEMPRE termina con una pregunta que avance hacia la reserva."
-            "\n- Para reservar, dirige a https://casaaustin.pe (50% adelanto)."
-            "\n- Soporte: 📲 https://wa.me/51999902992 | 📞 +51 935 900 900"
-            "\n- Si el cliente pide fullday u horarios especiales, deriva a soporte sin cotizar."
+            "\n- Para reservar: https://casaaustin.pe | Soporte: 📲 https://wa.me/51999902992 | 📞 +51 935 900 900"
         )
 
         return '\n'.join(context_parts)

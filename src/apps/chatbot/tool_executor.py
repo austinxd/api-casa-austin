@@ -10,28 +10,28 @@ TOOL_DEFINITIONS = [
         "type": "function",
         "function": {
             "name": "check_availability",
-            "description": "Consulta disponibilidad y precios de propiedades para fechas específicas. IMPORTANTE: NO inventes fechas ni número de huéspedes. Si el cliente no proporcionó estos datos, NO llames esta herramienta; primero pregúntale las fechas de check-in, check-out y cantidad de huéspedes.",
+            "description": "Consulta disponibilidad y precios de propiedades para fechas específicas. IMPORTANTE: NO inventes fechas. Usa el calendario del sistema para calcular fechas relativas ('este sábado', 'mañana', etc.). Si el cliente no dijo cuántos huéspedes, usa 1 como default y cotiza igualmente.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "check_in": {
                         "type": "string",
-                        "description": "Fecha de check-in en formato YYYY-MM-DD"
+                        "description": "Fecha de check-in en formato YYYY-MM-DD. Usa el calendario del sistema."
                     },
                     "check_out": {
                         "type": "string",
-                        "description": "Fecha de check-out en formato YYYY-MM-DD"
+                        "description": "Fecha de check-out en formato YYYY-MM-DD. Si no se indica, asumir 1 noche (check-in + 1 día)."
                     },
                     "guests": {
                         "type": "integer",
-                        "description": "Número de huéspedes"
+                        "description": "Número de huéspedes. Si no se indica, usar 1."
                     },
                     "property_name": {
                         "type": "string",
                         "description": "Nombre de la propiedad específica (opcional, si no se indica se buscan todas)"
                     }
                 },
-                "required": ["check_in", "check_out", "guests"]
+                "required": ["check_in", "check_out"]
             }
         }
     },
@@ -198,7 +198,7 @@ class ToolExecutor:
             logger.error(f"Error ejecutando {tool_name}: {e}", exc_info=True)
             return f"Error al ejecutar {tool_name}: {str(e)}"
 
-    def _check_availability(self, check_in, check_out, guests, property_name=None):
+    def _check_availability(self, check_in, check_out, guests=1, property_name=None):
         """Consulta disponibilidad usando PricingCalculationService"""
         from apps.property.pricing_service import PricingCalculationService
         from apps.property.models import Property
