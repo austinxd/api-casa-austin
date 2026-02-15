@@ -10,7 +10,7 @@ TOOL_DEFINITIONS = [
         "type": "function",
         "function": {
             "name": "check_availability",
-            "description": "Consulta disponibilidad y precios de propiedades para fechas específicas. Retorna precios por propiedad, disponibilidad, y desglose por noche.",
+            "description": "Consulta disponibilidad y precios de propiedades para fechas específicas. IMPORTANTE: NO inventes fechas ni número de huéspedes. Si el cliente no proporcionó estos datos, NO llames esta herramienta; primero pregúntale las fechas de check-in, check-out y cantidad de huéspedes.",
             "parameters": {
                 "type": "object",
                 "properties": {

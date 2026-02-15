@@ -209,13 +209,14 @@ class AIOrchestrator:
 
         # Instrucciones de comportamiento
         context_parts.append(
-            "\n\nInstrucciones:"
+            "\n\nInstrucciones CRÍTICAS:"
             "\n- Responde siempre en español, de forma amigable y concisa."
-            "\n- Usa las herramientas disponibles para consultar información real."
-            "\n- Los precios incluyen impuestos."
+            "\n- NUNCA inventes datos. Si el cliente no te dio fechas, huéspedes u otra info, PREGÚNTALE antes de usar cualquier herramienta."
+            "\n- Para consultar disponibilidad NECESITAS que el cliente te diga: fecha check-in, fecha check-out y cantidad de huéspedes. Si no los tiene, pregúntale."
+            "\n- Usa las herramientas SOLO cuando tengas los datos necesarios del cliente."
             "\n- Si el cliente quiere reservar, consulta disponibilidad y precios, y luego indícale que reserve por la web: https://casaaustin.pe"
             "\n- Si no puedes resolver algo o el cliente está insatisfecho, escala a un agente humano."
-            "\n- No inventes información sobre propiedades o precios; usa las herramientas."
+            "\n- NUNCA inventes información sobre propiedades, ubicaciones o precios; usa las herramientas."
             "\n- Mantén las respuestas cortas (máximo 3-4 párrafos)."
         )
 
