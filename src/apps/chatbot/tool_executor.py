@@ -289,11 +289,17 @@ class ToolExecutor:
         available_count = result.get('totalCasasDisponibles', 0)
 
         lines = [
-            f"COTIZACIÓN - {available_count} casa(s) disponible(s)",
-            f"Fechas: {check_in} al {check_out} ({total_nights} noches)",
-            f"Huéspedes: {guests}",
-            "",
+            f"🏖️ COTIZACIÓN CASA AUSTIN",
+            f"📅 Fechas: {check_in} al {check_out} ({total_nights} noches)",
+            f"👥 Huéspedes: {guests}",
+            f"📊 Casas disponibles: {available_count}",
         ]
+        if guests <= 1:
+            lines.append(
+                "⚠️ COTIZACIÓN BASE PARA 1 PERSONA. "
+                "Pregunta al cliente cuántas personas serán para recotizar con check_availability."
+            )
+        lines.append("")
 
         available_props = []
         unavailable_props = []
@@ -390,6 +396,14 @@ class ToolExecutor:
         recs = result.get('general_recommendations', [])
         if recs:
             lines.append("Recomendaciones: " + '; '.join(recs))
+
+        # Instrucción para la IA
+        lines.append("")
+        lines.append(
+            "INSTRUCCIÓN: Presenta esta cotización al cliente con EXACTAMENTE estos precios. "
+            "NO modifiques los montos. Si el cliente cambia fechas o número de personas, "
+            "llama a check_availability de nuevo."
+        )
 
         return '\n'.join(lines)
 

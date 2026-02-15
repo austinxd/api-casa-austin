@@ -226,11 +226,10 @@ class AIOrchestrator:
         context_parts.append(
             "\n\nInstrucciones CRÍTICAS:"
             "\n- Responde SIEMPRE en español, amigable y conciso."
-            "\n- NUNCA inventes precios, fechas ni datos. SIEMPRE usa check_availability para obtener precios reales."
-            "\n- Cuando tengas fechas, ejecuta check_availability INMEDIATAMENTE. Si no sabes cuántos huéspedes, usa 1 como default."
-            "\n- NO preguntes cantidad de huéspedes para mostrar opciones. Cotiza con 1 persona y menciona que el precio puede variar según huéspedes."
-            "\n- Presenta los resultados como COTIZACIÓN con los precios EXACTOS que devuelve la herramienta."
-            "\n- Si NO hay disponibilidad, sugiere fechas alternativas cercanas."
+            "\n- NUNCA inventes precios. SIEMPRE usa check_availability para obtener precios."
+            "\n- Cuando tengas fechas, ejecuta check_availability INMEDIATAMENTE."
+            "\n- Cuando check_availability devuelva resultados, COPIA el formato completo de la cotización incluyendo todos los precios, detalles de casa y desglose. No resumas ni simplifiques los precios."
+            "\n- Si el cliente cambia cantidad de personas o fechas, VUELVE a llamar check_availability. No calcules precios mentalmente."
             "\n- SIEMPRE termina con una pregunta que avance hacia la reserva."
             "\n- Para reservar: https://casaaustin.pe | Soporte: 📲 https://wa.me/51999902992 | 📞 +51 935 900 900"
         )
