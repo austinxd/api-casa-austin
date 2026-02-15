@@ -89,17 +89,28 @@ class Command(BaseCommand):
             intent = msg.intent_detected
             intents[intent] = intents.get(intent, 0) + 1
 
-        # Reservas creadas vía chatbot (buscar en tool_calls)
-        reservations_created = 0
+        # Clientes identificados (tool identify_client ejecutada)
         clients_identified = 0
         for msg in ai_messages:
             if isinstance(msg.tool_calls, list):
                 for tc in msg.tool_calls:
-                    if isinstance(tc, dict):
-                        if tc.get('name') == 'create_reservation':
-                            reservations_created += 1
-                        elif tc.get('name') == 'identify_client':
-                            clients_identified += 1
+                    if isinstance(tc, dict) and tc.get('name') == 'identify_client':
+                        clients_identified += 1
+
+        # Reservas atribuibles al chatbot:
+        # Clientes que chatearon en los últimos 3 días y crearon una reserva hoy
+        from apps.reservation.models import Reservation
+        recent_chat_clients = ChatSession.objects.filter(
+            deleted=False,
+            client__isnull=False,
+            last_message_at__date__gte=target_date - timedelta(days=3),
+            last_message_at__date__lte=target_date,
+        ).values_list('client_id', flat=True).distinct()
+
+        reservations_created = Reservation.objects.filter(
+            created__date=target_date,
+            client_id__in=list(recent_chat_clients),
+        ).count() if recent_chat_clients else 0
 
         # Guardar o actualizar
         analytics, created = ChatAnalytics.objects.update_or_create(
