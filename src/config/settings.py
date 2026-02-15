@@ -139,6 +139,7 @@ LOCAL_APPS = [
     'apps.events',
     'apps.reniec',
     'apps.tv',
+    'apps.chatbot',
 ]
 
 THIRD_APPS = [
@@ -443,3 +444,7 @@ RENIEC_LEGACY_DB_HOST = env('RENIEC_LEGACY_DB_HOST', default='localhost')
 RENIEC_LEGACY_DB_USER = env('RENIEC_LEGACY_DB_USER', default='rutificador')
 RENIEC_LEGACY_DB_PASSWORD = env('RENIEC_LEGACY_DB_PASSWORD', default='')
 RENIEC_LEGACY_DB_NAME = env('RENIEC_LEGACY_DB_NAME', default='rutificador_bd')
+
+# OpenAI Configuration (Chatbot IA)
+OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
+WHATSAPP_WEBHOOK_VERIFY_TOKEN = env('WHATSAPP_WEBHOOK_VERIFY_TOKEN', default='casa_austin_webhook_2024')

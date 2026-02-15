@@ -1,0 +1,28 @@
+from django.urls import path
+
+from .webhook_views import WhatsAppWebhookView
+from .admin_views import (
+    ChatSessionListView,
+    ChatSessionDetailView,
+    ChatMessagesView,
+    SendManualMessageView,
+    ToggleAIView,
+    ChatSessionPollView,
+    ChatAnalyticsView,
+)
+
+urlpatterns = [
+    # Webhook de WhatsApp (público, sin auth)
+    path('webhook/', WhatsAppWebhookView.as_view(), name='chatbot-webhook'),
+
+    # API Admin (requiere auth)
+    path('sessions/', ChatSessionListView.as_view(), name='chatbot-sessions'),
+    path('sessions/poll/', ChatSessionPollView.as_view(), name='chatbot-poll'),
+    path('sessions/<uuid:pk>/', ChatSessionDetailView.as_view(), name='chatbot-session-detail'),
+    path('sessions/<uuid:session_id>/messages/', ChatMessagesView.as_view(), name='chatbot-messages'),
+    path('sessions/<uuid:session_id>/send/', SendManualMessageView.as_view(), name='chatbot-send'),
+    path('sessions/<uuid:session_id>/toggle-ai/', ToggleAIView.as_view(), name='chatbot-toggle-ai'),
+
+    # Analytics
+    path('analytics/', ChatAnalyticsView.as_view(), name='chatbot-analytics'),
+]
