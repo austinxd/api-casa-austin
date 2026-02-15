@@ -185,8 +185,15 @@ class AIOrchestrator:
 
         context_parts = [base_prompt]
 
-        # Fecha actual
-        context_parts.append(f"\nFecha actual: {date.today().strftime('%d/%m/%Y')}")
+        # Fecha actual con día de la semana
+        days_es = {
+            'Monday': 'lunes', 'Tuesday': 'martes', 'Wednesday': 'miércoles',
+            'Thursday': 'jueves', 'Friday': 'viernes', 'Saturday': 'sábado',
+            'Sunday': 'domingo',
+        }
+        today = date.today()
+        day_name = days_es.get(today.strftime('%A'), today.strftime('%A'))
+        context_parts.append(f"\nHoy es {day_name} {today.strftime('%d/%m/%Y')}")
 
         # Información del cliente vinculado
         if session.client:

@@ -3,7 +3,10 @@ Prueba el chatbot IA directamente desde la terminal, sin WhatsApp.
 
 Uso: python manage.py test_chat
      python manage.py test_chat --session-id <uuid>  (retomar sesión)
+     python manage.py test_chat --verbose              (mostrar logs internos)
 """
+import logging
+
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
@@ -18,8 +21,20 @@ class Command(BaseCommand):
             '--session-id', type=str, default=None,
             help='ID de sesión existente para retomar conversación'
         )
+        parser.add_argument(
+            '--verbose', action='store_true',
+            help='Mostrar logs internos (herramientas, OpenAI, etc.)'
+        )
 
     def handle(self, *args, **options):
+        # Silenciar logs internos salvo que pidan --verbose
+        if not options['verbose']:
+            for logger_name in [
+                'apps.chatbot', 'apps.property.pricing_service',
+                'apps.property.pricing_models', 'openai', 'httpx', 'httpcore',
+            ]:
+                logging.getLogger(logger_name).setLevel(logging.WARNING)
+
         # Verificar config
         config = ChatbotConfiguration.get_config()
         if not config.is_active:
@@ -79,7 +94,7 @@ class Command(BaseCommand):
             session.save(update_fields=['total_messages', 'last_message_at', 'last_customer_message_at'])
 
             # Procesar con IA
-            self.stdout.write(self.style.WARNING('\n⏳ Procesando...'))
+            self.stdout.write(self.style.WARNING('⏳ Procesando...'))
 
             try:
                 from apps.chatbot.ai_orchestrator import AIOrchestrator
@@ -93,7 +108,5 @@ class Command(BaseCommand):
 
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f'\n❌ Error: {e}'))
-
-                # Mostrar detalle si es error de OpenAI
                 import traceback
                 traceback.print_exc()
