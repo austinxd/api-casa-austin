@@ -2,6 +2,23 @@ from rest_framework import serializers
 from .models import ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics, PropertyVisit
 
 
+def _get_client_level(client):
+    """Retorna el nivel más alto del cliente basado en sus achievements."""
+    from apps.clients.models import ClientAchievement
+    earned = ClientAchievement.objects.filter(
+        client=client, deleted=False
+    ).select_related('achievement').order_by(
+        '-achievement__required_reservations',
+        '-achievement__required_referrals',
+    ).first()
+    if earned:
+        return {
+            'name': earned.achievement.name,
+            'icon': earned.achievement.icon,
+        }
+    return None
+
+
 class ChatMessageSerializer(serializers.ModelSerializer):
     sent_by_name = serializers.SerializerMethodField()
 
@@ -24,12 +41,13 @@ class ChatSessionListSerializer(serializers.ModelSerializer):
     last_message_preview = serializers.SerializerMethodField()
     unread_count = serializers.IntegerField(read_only=True, default=0)
     client_name = serializers.SerializerMethodField()
+    client_level = serializers.SerializerMethodField()
 
     class Meta:
         model = ChatSession
         fields = [
             'id', 'wa_id', 'wa_profile_name', 'client', 'client_name',
-            'status', 'ai_enabled', 'current_intent',
+            'client_level', 'status', 'ai_enabled', 'current_intent',
             'total_messages', 'ai_messages', 'human_messages',
             'last_message_at', 'last_customer_message_at',
             'last_message_preview', 'unread_count', 'created',
@@ -52,6 +70,11 @@ class ChatSessionListSerializer(serializers.ModelSerializer):
         if obj.client:
             return f"{obj.client.first_name} {obj.client.last_name or ''}".strip()
         return obj.wa_profile_name
+
+    def get_client_level(self, obj):
+        if not obj.client:
+            return None
+        return _get_client_level(obj.client)
 
 
 class ChatSessionDetailSerializer(serializers.ModelSerializer):
@@ -83,6 +106,8 @@ class ChatSessionDetailSerializer(serializers.ModelSerializer):
                 'tel_number': obj.client.tel_number,
                 'email': obj.client.email,
                 'number_doc': obj.client.number_doc,
+                'points_balance': float(obj.client.points_balance),
+                'level': _get_client_level(obj.client),
             }
         return None
 
