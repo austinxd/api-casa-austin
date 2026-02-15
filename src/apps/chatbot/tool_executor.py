@@ -199,15 +199,19 @@ class ToolExecutor:
             return f"Error al ejecutar {tool_name}: {str(e)}"
 
     def _check_availability(self, check_in, check_out, guests=1, property_name=None):
-        """Consulta disponibilidad usando PricingCalculationService"""
+        """Consulta disponibilidad usando PricingCalculationService.
+        Si no hay disponibilidad, busca automáticamente fechas alternativas."""
         from apps.property.pricing_service import PricingCalculationService
         from apps.property.models import Property
+        from datetime import timedelta
 
         try:
             check_in_date = datetime.strptime(check_in, '%Y-%m-%d').date()
             check_out_date = datetime.strptime(check_out, '%Y-%m-%d').date()
         except ValueError:
             return "Error: formato de fecha inválido. Usar YYYY-MM-DD"
+
+        nights = (check_out_date - check_in_date).days
 
         property_id = None
         if property_name:
@@ -219,9 +223,10 @@ class ToolExecutor:
             else:
                 return f"No se encontró propiedad con nombre '{property_name}'"
 
+        service = PricingCalculationService()
+        client_id = str(self.session.client.id) if self.session.client else None
+
         try:
-            service = PricingCalculationService()
-            client_id = str(self.session.client.id) if self.session.client else None
             result = service.calculate_pricing(
                 check_in_date=check_in_date,
                 check_out_date=check_out_date,
@@ -229,12 +234,44 @@ class ToolExecutor:
                 property_id=property_id,
                 client_id=client_id,
             )
-            return self._format_pricing_result(result)
         except ValueError as e:
             return str(e)
         except Exception as e:
             logger.error(f"Error en check_availability: {e}", exc_info=True)
             return f"Error consultando disponibilidad: {str(e)}"
+
+        formatted = self._format_pricing_result(result)
+
+        # Si ninguna propiedad está disponible, buscar alternativas
+        available_count = result.get('totalCasasDisponibles', 0)
+        if available_count == 0:
+            alternatives = []
+            today = date.today()
+            offsets = [-1, 1, 2, 7]  # día antes, después, +2, próxima semana
+            for offset in offsets:
+                alt_in = check_in_date + timedelta(days=offset)
+                alt_out = alt_in + timedelta(days=nights)
+                if alt_in <= today:
+                    continue
+                try:
+                    alt_result = service.calculate_pricing(
+                        check_in_date=alt_in,
+                        check_out_date=alt_out,
+                        guests=int(guests),
+                        property_id=property_id,
+                        client_id=client_id,
+                    )
+                    alt_available = alt_result.get('totalCasasDisponibles', 0)
+                    if alt_available > 0:
+                        alternatives.append(self._format_pricing_result(alt_result))
+                except Exception:
+                    continue
+
+            if alternatives:
+                formatted += "\n\n--- FECHAS ALTERNATIVAS DISPONIBLES ---\n\n"
+                formatted += "\n\n".join(alternatives)
+
+        return formatted
 
     def _format_pricing_result(self, result):
         """Formatea el resultado del pricing service como cotización estructurada"""
@@ -261,9 +298,17 @@ class ToolExecutor:
         available_props = []
         unavailable_props = []
 
+        # Cargar datos de propiedades para incluir capacidad/habitaciones
+        from apps.property.models import Property as PropertyModel
+        property_details = {}
+        for p in PropertyModel.objects.filter(deleted=False):
+            property_details[str(p.id)] = p
+
         for prop in properties:
             name = prop.get('property_name', 'Propiedad')
             available = prop.get('available', False)
+            prop_id = str(prop.get('property_id', ''))
+            db_prop = property_details.get(prop_id)
 
             if not available:
                 msg = prop.get('availability_message', 'No disponible')
@@ -279,10 +324,23 @@ class ToolExecutor:
             final_usd = prop.get('final_price_usd', 0)
             final_sol = prop.get('final_price_sol', 0)
 
-            prop_lines = [
-                f"✅ {name} — DISPONIBLE",
-                f"  Precio base ({total_nights} noches): ${base_usd:.2f} USD / S/{base_sol:.2f} PEN",
-            ]
+            prop_lines = [f"✅ {name} — DISPONIBLE"]
+
+            # Info de la propiedad
+            if db_prop:
+                details = []
+                if db_prop.capacity_max:
+                    details.append(f"hasta {db_prop.capacity_max} personas")
+                if db_prop.dormitorios:
+                    details.append(f"{db_prop.dormitorios} hab")
+                if db_prop.banos:
+                    details.append(f"{db_prop.banos} baños")
+                if details:
+                    prop_lines.append(f"  ({', '.join(details)})")
+
+            prop_lines.append(
+                f"  Precio base ({total_nights} noches): ${base_usd:.2f} USD / S/{base_sol:.2f} PEN"
+            )
 
             if extra_guests > 0:
                 prop_lines.append(
