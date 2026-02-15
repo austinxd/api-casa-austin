@@ -207,17 +207,19 @@ class AIOrchestrator:
                 "primero identifica al cliente pidiendo su DNI o número de teléfono."
             )
 
-        # Instrucciones de comportamiento
+        # Instrucciones de comportamiento orientadas a ventas
         context_parts.append(
             "\n\nInstrucciones CRÍTICAS:"
-            "\n- Responde siempre en español, de forma amigable y concisa."
-            "\n- NUNCA inventes datos. Si el cliente no te dio fechas, huéspedes u otra info, PREGÚNTALE antes de usar cualquier herramienta."
-            "\n- Para consultar disponibilidad NECESITAS que el cliente te diga: fecha check-in, fecha check-out y cantidad de huéspedes. Si no los tiene, pregúntale."
-            "\n- Usa las herramientas SOLO cuando tengas los datos necesarios del cliente."
-            "\n- Si el cliente quiere reservar, consulta disponibilidad y precios, y luego indícale que reserve por la web: https://casaaustin.pe"
-            "\n- Si no puedes resolver algo o el cliente está insatisfecho, escala a un agente humano."
-            "\n- NUNCA inventes información sobre propiedades, ubicaciones o precios; usa las herramientas."
-            "\n- Mantén las respuestas cortas (máximo 3-4 párrafos)."
+            "\n- Responde SIEMPRE en español, amigable y conciso."
+            "\n- NUNCA inventes datos (fechas, precios, ubicaciones). Si no tienes info, PREGUNTA."
+            "\n- Para check_availability NECESITAS: fecha check-in, fecha check-out, cantidad de huéspedes. Si falta alguno, pregúntale."
+            "\n- Cuando tengas fechas + personas, ejecuta check_availability INMEDIATAMENTE sin preguntar nada más."
+            "\n- Presenta los resultados como COTIZACIÓN estructurada con precios claros."
+            "\n- Si NO hay disponibilidad, sugiere fechas alternativas o pregunta si pueden ser flexibles."
+            "\n- SIEMPRE termina con una pregunta que avance hacia la reserva."
+            "\n- Para reservar, dirige a https://casaaustin.pe (50% adelanto)."
+            "\n- Soporte: 📲 https://wa.me/51999902992 | 📞 +51 935 900 900"
+            "\n- Si el cliente pide fullday u horarios especiales, deriva a soporte sin cotizar."
         )
 
         return '\n'.join(context_parts)

@@ -237,32 +237,103 @@ class ToolExecutor:
             return f"Error consultando disponibilidad: {str(e)}"
 
     def _format_pricing_result(self, result):
-        """Formatea el resultado del pricing service para la IA"""
-        if isinstance(result, dict):
-            lines = []
-            properties = result.get('properties', [result])
-            for prop in properties:
-                name = prop.get('property_name', prop.get('name', 'Propiedad'))
-                available = prop.get('available', prop.get('is_available', False))
-                if not available:
-                    lines.append(f"- {name}: NO DISPONIBLE")
-                    continue
-                price_usd = prop.get('total_price_usd', prop.get('price_usd', 0))
-                price_sol = prop.get('total_price_sol', prop.get('price_sol', 0))
-                nights = prop.get('total_nights', prop.get('nights', 0))
-                lines.append(
-                    f"- {name}: DISPONIBLE\n"
-                    f"  Noches: {nights}\n"
-                    f"  Precio: ${price_usd} USD / S/{price_sol} PEN"
-                )
-                # Descuentos automáticos
-                discounts = prop.get('automatic_discounts', [])
-                if discounts:
-                    for d in discounts:
-                        lines.append(f"  Descuento: {d.get('name', '')} ({d.get('percentage', '')}%)")
-            return '\n'.join(lines) if lines else "Sin resultados de disponibilidad"
+        """Formatea el resultado del pricing service como cotización estructurada"""
+        if not isinstance(result, dict):
+            return str(result)
 
-        return str(result)
+        properties = result.get('properties', [])
+        if not properties:
+            return "No se encontraron propiedades para consultar."
+
+        total_nights = result.get('total_nights', 0)
+        guests = result.get('guests', 0)
+        check_in = result.get('check_in_date', '')
+        check_out = result.get('check_out_date', '')
+        available_count = result.get('totalCasasDisponibles', 0)
+
+        lines = [
+            f"COTIZACIÓN - {available_count} casa(s) disponible(s)",
+            f"Fechas: {check_in} al {check_out} ({total_nights} noches)",
+            f"Huéspedes: {guests}",
+            "",
+        ]
+
+        available_props = []
+        unavailable_props = []
+
+        for prop in properties:
+            name = prop.get('property_name', 'Propiedad')
+            available = prop.get('available', False)
+
+            if not available:
+                msg = prop.get('availability_message', 'No disponible')
+                unavailable_props.append(f"❌ {name}: NO DISPONIBLE — {msg}")
+                continue
+
+            base_usd = prop.get('base_price_usd', 0)
+            base_sol = prop.get('base_price_sol', 0)
+            extra_guests = prop.get('extra_guests', 0)
+            extra_price_night_usd = prop.get('extra_person_price_per_night_usd', 0)
+            extra_total_usd = prop.get('extra_person_total_usd', 0)
+            extra_total_sol = prop.get('extra_person_total_sol', 0)
+            final_usd = prop.get('final_price_usd', 0)
+            final_sol = prop.get('final_price_sol', 0)
+
+            prop_lines = [
+                f"✅ {name} — DISPONIBLE",
+                f"  Precio base ({total_nights} noches): ${base_usd:.2f} USD / S/{base_sol:.2f} PEN",
+            ]
+
+            if extra_guests > 0:
+                prop_lines.append(
+                    f"  Personas extra ({extra_guests} × ${extra_price_night_usd:.2f}/noche × {total_nights} noches): "
+                    f"+${extra_total_usd:.2f} USD / +S/{extra_total_sol:.2f} PEN"
+                )
+
+            # Descuento aplicado
+            discount = prop.get('discount_applied')
+            if discount and discount.get('type') not in ('none', None):
+                disc_desc = discount.get('description', '')
+                disc_pct = discount.get('discount_percentage', 0)
+                disc_usd = discount.get('discount_amount_usd', 0)
+                if disc_pct:
+                    prop_lines.append(f"  🎁 Descuento: {disc_desc} (-{disc_pct}% = -${disc_usd:.2f} USD)")
+
+            prop_lines.append(f"  💰 PRECIO TOTAL: ${final_usd:.2f} USD / S/{final_sol:.2f} PEN")
+
+            # Beneficios del cliente
+            benefits = prop.get('client_benefits')
+            if benefits and benefits.get('points_available', 0) > 0:
+                pts = benefits['points_available']
+                pts_usd = benefits.get('points_value_usd', 0)
+                prop_lines.append(f"  🌟 Tienes {pts} puntos disponibles (valor: ${pts_usd:.2f} USD)")
+
+            available_props.append('\n'.join(prop_lines))
+
+        # Mostrar disponibles primero
+        if available_props:
+            lines.extend(available_props)
+            lines.append("")
+
+        # Mostrar no disponibles
+        if unavailable_props:
+            lines.extend(unavailable_props)
+            lines.append("")
+
+        # Mensajes del pricing service
+        msg1 = result.get('message1', '')
+        msg2 = result.get('message2', '')
+        if msg1:
+            lines.append(f"Nota: {msg1}")
+        if msg2:
+            lines.append(f"Info: {msg2}")
+
+        # Recomendaciones
+        recs = result.get('general_recommendations', [])
+        if recs:
+            lines.append("Recomendaciones: " + '; '.join(recs))
+
+        return '\n'.join(lines)
 
     def _identify_client(self, document_number=None, phone_number=None):
         """Busca cliente por documento o teléfono"""
