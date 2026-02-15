@@ -274,7 +274,7 @@ class ToolExecutor:
         return formatted
 
     def _format_pricing_result(self, result):
-        """Formatea el resultado del pricing service como cotización estructurada"""
+        """Formatea el resultado del pricing service como cotización WhatsApp-friendly"""
         if not isinstance(result, dict):
             return str(result)
 
@@ -287,28 +287,17 @@ class ToolExecutor:
         check_in = result.get('check_in_date', '')
         check_out = result.get('check_out_date', '')
         available_count = result.get('totalCasasDisponibles', 0)
+        n_label = "noche" if total_nights == 1 else "noches"
 
-        lines = [
-            f"🏖️ COTIZACIÓN CASA AUSTIN",
-            f"📅 Fechas: {check_in} al {check_out} ({total_nights} noches)",
-            f"👥 Huéspedes: {guests}",
-            f"📊 Casas disponibles: {available_count}",
-        ]
-        if guests <= 1:
-            lines.append(
-                "⚠️ COTIZACIÓN BASE PARA 1 PERSONA. "
-                "Pregunta al cliente cuántas personas serán para recotizar con check_availability."
-            )
-        lines.append("")
-
-        available_props = []
-        unavailable_props = []
-
-        # Cargar datos de propiedades para incluir capacidad/habitaciones
+        # Cargar datos de propiedades
         from apps.property.models import Property as PropertyModel
         property_details = {}
         for p in PropertyModel.objects.filter(deleted=False):
             property_details[str(p.id)] = p
+
+        # Separar disponibles y no disponibles
+        available_props = []
+        unavailable_props = []
 
         for prop in properties:
             name = prop.get('property_name', 'Propiedad')
@@ -318,91 +307,92 @@ class ToolExecutor:
 
             if not available:
                 msg = prop.get('availability_message', 'No disponible')
-                unavailable_props.append(f"❌ {name}: NO DISPONIBLE — {msg}")
+                unavailable_props.append(f"❌ {name}: {msg}")
                 continue
 
             base_usd = prop.get('base_price_usd', 0)
-            base_sol = prop.get('base_price_sol', 0)
             extra_guests = prop.get('extra_guests', 0)
-            extra_price_night_usd = prop.get('extra_person_price_per_night_usd', 0)
+            extra_price_usd = prop.get('extra_person_price_per_night_usd', 0)
             extra_total_usd = prop.get('extra_person_total_usd', 0)
-            extra_total_sol = prop.get('extra_person_total_sol', 0)
             final_usd = prop.get('final_price_usd', 0)
             final_sol = prop.get('final_price_sol', 0)
 
-            prop_lines = [f"✅ {name} — DISPONIBLE"]
+            # Construir bloque de propiedad
+            block = [f"🏠 *{name}* ✅"]
 
             # Info de la propiedad
             if db_prop:
-                details = []
-                if db_prop.capacity_max:
-                    details.append(f"hasta {db_prop.capacity_max} personas")
+                specs = []
                 if db_prop.dormitorios:
-                    details.append(f"{db_prop.dormitorios} hab")
+                    specs.append(f"{db_prop.dormitorios} hab")
                 if db_prop.banos:
-                    details.append(f"{db_prop.banos} baños")
-                if details:
-                    prop_lines.append(f"  ({', '.join(details)})")
+                    specs.append(f"{db_prop.banos} baños")
+                if db_prop.capacity_max:
+                    specs.append(f"hasta {db_prop.capacity_max} pers.")
+                if specs:
+                    block.append(f"   {' · '.join(specs)}")
 
-            prop_lines.append(
-                f"  Precio base ({total_nights} noches): ${base_usd:.2f} USD / S/{base_sol:.2f} PEN"
-            )
-
+            # Desglose de precio
+            block.append(f"   Precio base: ${base_usd:.0f} USD")
             if extra_guests > 0:
-                prop_lines.append(
-                    f"  Personas extra ({extra_guests} × ${extra_price_night_usd:.2f}/noche × {total_nights} noches): "
-                    f"+${extra_total_usd:.2f} USD / +S/{extra_total_sol:.2f} PEN"
+                block.append(
+                    f"   + {extra_guests} pers. extra (${extra_price_usd:.0f}/noche): ${extra_total_usd:.0f} USD"
                 )
 
-            # Descuento aplicado
+            # Descuento
             discount = prop.get('discount_applied')
             if discount and discount.get('type') not in ('none', None):
                 disc_desc = discount.get('description', '')
                 disc_pct = discount.get('discount_percentage', 0)
                 disc_usd = discount.get('discount_amount_usd', 0)
                 if disc_pct:
-                    prop_lines.append(f"  🎁 Descuento: {disc_desc} (-{disc_pct}% = -${disc_usd:.2f} USD)")
+                    block.append(f"   🎁 {disc_desc}: -{disc_pct}% (-${disc_usd:.0f})")
 
-            prop_lines.append(f"  💰 PRECIO TOTAL: ${final_usd:.2f} USD / S/{final_sol:.2f} PEN")
+            block.append(f"   ──────────")
+            block.append(f"   💰 *Total: ${final_usd:.0f} USD (S/{final_sol:.0f})*")
 
-            # Beneficios del cliente
+            # Puntos del cliente
             benefits = prop.get('client_benefits')
             if benefits and benefits.get('points_available', 0) > 0:
                 pts = benefits['points_available']
                 pts_usd = benefits.get('points_value_usd', 0)
-                prop_lines.append(f"  🌟 Tienes {pts} puntos disponibles (valor: ${pts_usd:.2f} USD)")
+                block.append(f"   🌟 {pts} puntos disponibles (${pts_usd:.0f} USD)")
 
-            available_props.append('\n'.join(prop_lines))
+            available_props.append('\n'.join(block))
 
-        # Mostrar disponibles primero
+        # Construir cotización completa
+        lines = [
+            "🏖️ *COTIZACIÓN CASA AUSTIN*",
+            f"📅 {check_in} → {check_out} ({total_nights} {n_label})",
+            f"👥 {guests} persona{'s' if guests != 1 else ''}",
+            "━━━━━━━━━━━━━━━━━━",
+        ]
+
         if available_props:
-            lines.extend(available_props)
-            lines.append("")
+            lines.append('\n'.join(available_props))
 
-        # Mostrar no disponibles
         if unavailable_props:
-            lines.extend(unavailable_props)
+            lines.append('\n'.join(unavailable_props))
+
+        lines.append("━━━━━━━━━━━━━━━━━━")
+        lines.append("⏰ Check-in: 3:00 PM · Check-out: 11:00 AM")
+        lines.append("🎯 ¡Separa con el 50% de adelanto!")
+        lines.append("🌐 Reserva: casaaustin.pe")
+        lines.append("📲 Soporte: wa.me/51999902992")
+
+        if guests <= 1:
             lines.append("")
-
-        # Mensajes del pricing service
-        msg1 = result.get('message1', '')
-        msg2 = result.get('message2', '')
-        if msg1:
-            lines.append(f"Nota: {msg1}")
-        if msg2:
-            lines.append(f"Info: {msg2}")
-
-        # Recomendaciones
-        recs = result.get('general_recommendations', [])
-        if recs:
-            lines.append("Recomendaciones: " + '; '.join(recs))
+            lines.append(
+                "⚠️ PRECIO BASE PARA 1 PERSONA. "
+                "Pregunta cuántas personas serán y llama check_availability de nuevo para recotizar."
+            )
 
         # Instrucción para la IA
         lines.append("")
         lines.append(
-            "INSTRUCCIÓN: Presenta esta cotización al cliente con EXACTAMENTE estos precios. "
-            "NO modifiques los montos. Si el cliente cambia fechas o número de personas, "
-            "llama a check_availability de nuevo."
+            "[INSTRUCCIÓN IA: Envía esta cotización COMPLETA al cliente tal como está. "
+            "Si el cliente cambia fechas o personas, llama check_availability de nuevo. "
+            "NO inventes precios.]"
         )
 
         return '\n'.join(lines)
