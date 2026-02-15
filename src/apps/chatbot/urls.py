@@ -9,6 +9,7 @@ from .admin_views import (
     ToggleAIView,
     ChatSessionPollView,
     ChatAnalyticsView,
+    PropertyVisitListView,
 )
 
 urlpatterns = [
@@ -22,6 +23,9 @@ urlpatterns = [
     path('sessions/<uuid:session_id>/messages/', ChatMessagesView.as_view(), name='chatbot-messages'),
     path('sessions/<uuid:session_id>/send/', SendManualMessageView.as_view(), name='chatbot-send'),
     path('sessions/<uuid:session_id>/toggle-ai/', ToggleAIView.as_view(), name='chatbot-toggle-ai'),
+
+    # Visitas
+    path('visits/', PropertyVisitListView.as_view(), name='chatbot-visits'),
 
     # Analytics
     path('analytics/', ChatAnalyticsView.as_view(), name='chatbot-analytics'),

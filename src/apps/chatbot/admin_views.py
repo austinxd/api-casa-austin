@@ -10,11 +10,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.paginator import CustomPagination
-from .models import ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics
+from .models import ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics, PropertyVisit
 from .serializers import (
     ChatSessionListSerializer, ChatSessionDetailSerializer,
     ChatMessageSerializer, SendMessageSerializer, ToggleAISerializer,
-    ChatAnalyticsSerializer,
+    ChatAnalyticsSerializer, PropertyVisitSerializer,
 )
 from .whatsapp_sender import WhatsAppSender
 
@@ -228,6 +228,26 @@ class ChatSessionPollView(APIView):
             'new_messages': ChatMessageSerializer(new_messages, many=True).data,
             'server_time': timezone.now().isoformat(),
         })
+
+
+class PropertyVisitListView(ListAPIView):
+    """GET /visits/ — Visitas futuras programadas"""
+    serializer_class = PropertyVisitSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        from datetime import date
+        qs = PropertyVisit.objects.filter(
+            deleted=False,
+            visit_date__gte=date.today(),
+        ).select_related('property', 'client', 'session')
+
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+
+        return qs.order_by('visit_date', 'visit_time')
 
 
 class ChatAnalyticsView(APIView):

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics
+from .models import ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics, PropertyVisit
 
 
 class ChatMessageSerializer(serializers.ModelSerializer):
@@ -99,6 +99,28 @@ class ChatbotConfigurationSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatbotConfiguration
         fields = '__all__'
+
+
+class PropertyVisitSerializer(serializers.ModelSerializer):
+    property_name = serializers.CharField(source='property.name', read_only=True)
+    client_name = serializers.SerializerMethodField()
+    session_wa_profile = serializers.CharField(
+        source='session.wa_profile_name', read_only=True
+    )
+
+    class Meta:
+        model = PropertyVisit
+        fields = [
+            'id', 'created', 'session', 'property', 'property_name',
+            'client', 'client_name', 'session_wa_profile',
+            'visit_date', 'visit_time', 'visitor_name', 'visitor_phone',
+            'guests_count', 'notes', 'status',
+        ]
+
+    def get_client_name(self, obj):
+        if obj.client:
+            return f"{obj.client.first_name} {obj.client.last_name or ''}".strip()
+        return None
 
 
 class ChatAnalyticsSerializer(serializers.ModelSerializer):
