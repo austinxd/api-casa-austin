@@ -83,8 +83,8 @@ class Command(BaseCommand):
 
             try:
                 from apps.chatbot.ai_orchestrator import AIOrchestrator
-                orchestrator = AIOrchestrator(session)
-                response_text = orchestrator.process_message(user_input)
+                orchestrator = AIOrchestrator(config)
+                response_text = orchestrator.process_message(session, user_input, send_wa=False)
 
                 if response_text:
                     self.stdout.write(f'\n🤖 Austin Bot: {response_text}')

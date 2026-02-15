@@ -25,8 +25,17 @@ class AIOrchestrator:
         self.config = config
         self.sender = WhatsAppSender()
 
-    def process_message(self, session, inbound_message):
-        """Procesa un mensaje entrante y genera respuesta con IA"""
+    def process_message(self, session, inbound_message, send_wa=True):
+        """Procesa un mensaje entrante y genera respuesta con IA.
+
+        Args:
+            session: ChatSession
+            inbound_message: ChatMessage object o string con el contenido
+            send_wa: Si True, envía respuesta por WhatsApp. False para modo test.
+
+        Returns:
+            str: Texto de la respuesta generada
+        """
         try:
             response_text, tool_calls_data, model_used, tokens = self._call_ai(
                 session, inbound_message, self.config.primary_model
@@ -44,8 +53,10 @@ class AIOrchestrator:
                 model_used = 'error'
                 tokens = 0
 
-        # Guardar mensaje de respuesta
-        wa_message_id = self.sender.send_text_message(session.wa_id, response_text)
+        # Enviar por WhatsApp solo si está habilitado
+        wa_message_id = None
+        if send_wa:
+            wa_message_id = self.sender.send_text_message(session.wa_id, response_text)
 
         ChatMessage.objects.create(
             session=session,
@@ -65,6 +76,8 @@ class AIOrchestrator:
         session.save(update_fields=[
             'total_messages', 'ai_messages', 'last_message_at'
         ])
+
+        return response_text
 
     def _call_ai(self, session, inbound_message, model):
         """Realiza la llamada a OpenAI con function calling"""
@@ -131,17 +144,25 @@ class AIOrchestrator:
         return response_text, tool_calls_data, model, total_tokens
 
     def _build_messages(self, session, inbound_message):
-        """Construye el array de mensajes para OpenAI"""
+        """Construye el array de mensajes para OpenAI.
+
+        inbound_message puede ser un ChatMessage object o un string.
+        """
         messages = [
             {"role": "system", "content": self._build_system_prompt(session)}
         ]
 
+        # Determinar si es objeto ChatMessage o string
+        is_obj = isinstance(inbound_message, ChatMessage)
+        msg_content = inbound_message.content if is_obj else str(inbound_message)
+
         # Últimos 20 mensajes del historial
-        recent_messages = ChatMessage.objects.filter(
+        recent_qs = ChatMessage.objects.filter(
             session=session, deleted=False
-        ).exclude(
-            id=inbound_message.id
-        ).order_by('-created')[:20]
+        )
+        if is_obj:
+            recent_qs = recent_qs.exclude(id=inbound_message.id)
+        recent_messages = recent_qs.order_by('-created')[:20]
 
         # Revertir para orden cronológico
         for msg in reversed(list(recent_messages)):
@@ -154,7 +175,7 @@ class AIOrchestrator:
                 messages.append({"role": "assistant", "content": msg.content})
 
         # Mensaje actual
-        messages.append({"role": "user", "content": inbound_message.content})
+        messages.append({"role": "user", "content": msg_content})
 
         return messages
 
@@ -192,7 +213,7 @@ class AIOrchestrator:
             "\n- Responde siempre en español, de forma amigable y concisa."
             "\n- Usa las herramientas disponibles para consultar información real."
             "\n- Los precios incluyen impuestos."
-            "\n- Si el cliente quiere reservar, primero identifícalo, luego consulta disponibilidad, y finalmente crea la reserva."
+            "\n- Si el cliente quiere reservar, consulta disponibilidad y precios, y luego indícale que reserve por la web: https://casaaustin.pe"
             "\n- Si no puedes resolver algo o el cliente está insatisfecho, escala a un agente humano."
             "\n- No inventes información sobre propiedades o precios; usa las herramientas."
             "\n- Mantén las respuestas cortas (máximo 3-4 párrafos)."
