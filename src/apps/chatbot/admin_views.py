@@ -292,43 +292,50 @@ class ChatAnalysisView(APIView):
         "Se te proporcionará:\n"
         "1. El PROMPT ACTUAL del chatbot (las instrucciones que usa la IA para responder a clientes)\n"
         "2. Las últimas conversaciones reales del chatbot con clientes\n\n"
+        "NOTA IMPORTANTE: Los mensajes de la IA incluyen las herramientas (tools) que ejecutó "
+        "entre corchetes, ej: [🔧 check_availability(...)]. Si ves que la IA ejecutó una herramienta, "
+        "NO reportes que 'no verificó' — en cambio analiza si USÓ CORRECTAMENTE el resultado.\n\n"
         "Genera un reporte en español con las siguientes secciones:\n\n"
         "## 1. Resumen General\n"
-        "Estado general de las conversaciones, tono, efectividad.\n\n"
-        "## 2. Problemas Detectados en las Respuestas\n"
-        "Respuestas incorrectas, inconsistencias, información errónea, o momentos "
-        "donde la IA no supo responder. Para CADA problema:\n"
-        "- Indica la conversación exacta (nombre/número del contacto)\n"
-        "- Cita textualmente el fragmento problemático entre comillas\n"
-        "- Explica qué estuvo mal y qué debió responder\n\n"
-        "## 3. Análisis del Prompt Actual\n"
-        "Evalúa el prompt del chatbot:\n"
-        "- ¿Qué instrucciones están funcionando bien?\n"
-        "- ¿Qué instrucciones faltan o son ambiguas?\n"
-        "- ¿Hay contradicciones en el prompt?\n"
-        "- ¿El tono indicado en el prompt se refleja en las respuestas?\n\n"
-        "## 4. Mejoras Sugeridas al Prompt\n"
-        "Sugiere cambios CONCRETOS al prompt del chatbot. Para cada sugerencia:\n"
-        "- Explica el problema que resuelve (con ejemplo de la conversación)\n"
-        "- Muestra la línea/instrucción ACTUAL del prompt que causa el problema (o indica si falta)\n"
-        "- Propón la instrucción NUEVA o MODIFICADA exacta que debería agregarse/cambiarse\n"
-        "Formato:\n"
-        "**Problema:** [descripción con cita de conversación]\n"
-        "**Prompt actual:** \"[línea actual o 'No existe']\" \n"
+        "Estado general: total de conversaciones, tasa de respuesta, tono, efectividad.\n\n"
+        "## 2. Problemas Detectados\n"
+        "Para CADA problema encontrado:\n"
+        "- Conversación exacta (nombre del contacto)\n"
+        "- Cita textual del fragmento problemático\n"
+        "- Qué estuvo mal y qué debió hacer\n"
+        "Tipos de problemas a buscar:\n"
+        "- Respuestas con datos incorrectos o inventados\n"
+        "- Número de personas mal interpretado (ej: cliente dice 11 y la IA cotiza para 1)\n"
+        "- Precios o disponibilidad que NO coinciden con lo que devolvió la herramienta\n"
+        "- Respuestas demasiado largas o confusas\n"
+        "- Oportunidades perdidas de cierre/conversión\n"
+        "- Falta de seguimiento o preguntas importantes no hechas\n"
+        "- Escalaciones innecesarias o falta de escalación cuando era necesario\n\n"
+        "## 3. Análisis de Conversión\n"
+        "- ¿Cuántas conversaciones terminaron en cotización?\n"
+        "- ¿Cuántas en reserva?\n"
+        "- ¿Dónde se perdieron los clientes potenciales?\n"
+        "- ¿La IA hizo seguimiento adecuado?\n\n"
+        "## 4. Calidad de Uso de Herramientas\n"
+        "- ¿La IA usó check_availability antes de cotizar? ¿Con los parámetros correctos?\n"
+        "- ¿Interpretó correctamente los resultados de las herramientas?\n"
+        "- ¿Usó identify_client cuando correspondía?\n"
+        "- ¿Ofreció descuentos/puntos cuando el cliente estaba identificado?\n\n"
+        "## 5. Análisis del Prompt y Mejoras Sugeridas\n"
+        "Sugiere cambios CONCRETOS al prompt del chatbot:\n"
+        "**Problema:** [descripción con cita]\n"
+        "**Prompt actual:** \"[línea actual o 'No existe']\"\n"
         "**Prompt sugerido:** \"[nueva instrucción exacta]\"\n\n"
-        "## 5. Intenciones Frecuentes\n"
-        "Top 5 intenciones de los clientes.\n\n"
         "## 6. Extractos Destacados\n"
-        "3-5 extractos textuales de conversaciones que ejemplifiquen "
-        "los problemas o aciertos más importantes. Formato:\n"
+        "3-5 extractos que ejemplifiquen problemas o aciertos:\n"
         "> **Conversación con [nombre]:**\n"
-        "> [Cliente]: mensaje del cliente\n"
-        "> [IA]: respuesta de la IA\n"
+        "> [Cliente]: mensaje\n"
+        "> [IA]: respuesta\n"
         "> **Veredicto:** explicación\n\n"
         "## 7. Puntuación\n"
         "Del 1 al 10, calidad general. Justifica la nota.\n\n"
         "IMPORTANTE: Sé específico. SIEMPRE cita fragmentos reales. "
-        "Las sugerencias al prompt deben ser instrucciones EXACTAS listas para copiar y pegar."
+        "NO acuses a la IA de no usar herramientas si ves [🔧 tool_name(...)] en su mensaje."
     )
 
     def get(self, request):
@@ -373,7 +380,19 @@ class ChatAnalysisView(APIView):
                     'system': 'Sistema',
                 }.get(msg.direction, msg.direction)
                 timestamp = msg.created.strftime('%d/%m %H:%M')
-                msg_lines.append(f"  [{timestamp}] [{direction_label}]: {msg.content[:300]}")
+                # Incluir tool_calls para que el análisis sepa qué herramientas usó la IA
+                tools_info = ''
+                if msg.direction == 'outbound_ai' and msg.tool_calls:
+                    tool_names = []
+                    for tc in msg.tool_calls:
+                        if isinstance(tc, dict):
+                            fn = tc.get('function', {})
+                            tool_names.append(f"🔧 {fn.get('name', '?')}({fn.get('arguments', '')[:80]})")
+                        elif isinstance(tc, str):
+                            tool_names.append(f"🔧 {tc}")
+                    if tool_names:
+                        tools_info = f" [{', '.join(tool_names)}]"
+                msg_lines.append(f"  [{timestamp}] [{direction_label}]{tools_info}: {msg.content[:300]}")
 
             conv_text = (
                 f"\n--- Conversación {i}: {name}{client_name} "
@@ -398,7 +417,7 @@ class ChatAnalysisView(APIView):
             response = client.chat.completions.create(
                 model="gpt-4.1-nano",
                 temperature=0.3,
-                max_tokens=3500,
+                max_tokens=4500,
                 messages=[
                     {"role": "system", "content": self.ANALYSIS_PROMPT},
                     {"role": "user", "content": user_message},

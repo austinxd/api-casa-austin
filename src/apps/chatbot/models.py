@@ -109,8 +109,8 @@ class ChatMessage(BaseModel):
     content = models.TextField()
     media_url = models.URLField(null=True, blank=True)
     wa_message_id = models.CharField(
-        max_length=150, unique=True, null=True, blank=True,
-        help_text="ID del mensaje en WhatsApp para idempotencia"
+        max_length=500, unique=True, null=True, blank=True,
+        help_text="ID del mensaje (WhatsApp/Instagram/Messenger) para idempotencia"
     )
     wa_status = models.CharField(
         max_length=15, null=True, blank=True,
