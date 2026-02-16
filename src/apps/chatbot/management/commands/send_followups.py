@@ -105,16 +105,19 @@ class Command(BaseCommand):
         )
 
         for session in no_quote_sessions:
+            name = session.wa_profile_name or session.wa_id
             if dry_run:
-                name = session.wa_profile_name or session.wa_id
                 self.stdout.write(f'[DRY] Sin cotización: {name} — último msg cliente: {session.last_customer_message_at}')
+                sent_no_quote += 1
                 continue
 
             try:
                 self._send_followup(session, config, 'no_quote')
                 sent_no_quote += 1
+                self.stdout.write(f'  Enviado a {name}')
             except Exception as e:
                 logger.error(f"Error enviando follow-up sin cotización a {session.wa_id}: {e}")
+                self.stdout.write(self.style.ERROR(f'  Error con {name}: {e}'))
 
         # === 2. Sesiones CON cotización pero sin conversión ===
         quoted_sessions = ChatSession.objects.filter(
@@ -129,16 +132,19 @@ class Command(BaseCommand):
         )
 
         for session in quoted_sessions:
+            name = session.wa_profile_name or session.wa_id
             if dry_run:
-                name = session.wa_profile_name or session.wa_id
                 self.stdout.write(f'[DRY] Cotizada sin conversión: {name} — cotizada: {session.quoted_at}')
+                sent_quoted += 1
                 continue
 
             try:
                 self._send_followup(session, config, 'quoted')
                 sent_quoted += 1
+                self.stdout.write(f'  Enviado a {name}')
             except Exception as e:
                 logger.error(f"Error enviando follow-up cotizado a {session.wa_id}: {e}")
+                self.stdout.write(self.style.ERROR(f'  Error con {name}: {e}'))
 
         action = 'Enviaría' if dry_run else 'Enviados'
         self.stdout.write(self.style.SUCCESS(
