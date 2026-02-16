@@ -242,7 +242,7 @@ class AIOrchestrator:
             "\n\nREGLAS TÉCNICAS (obligatorias):"
             "\n- Responde SIEMPRE en español."
             "\n- NUNCA inventes precios. SIEMPRE usa check_availability."
-            "\n- Cuando tengas fechas, ejecuta check_availability INMEDIATAMENTE sin preguntar nada más."
+            "\n- Cuando tengas fechas, ejecuta check_availability INMEDIATAMENTE. NUNCA preguntes cuántas personas antes de cotizar. Usa guests=1 como default."
             "\n- Cuando check_availability devuelva la cotización, COPIA Y PEGA el texto EXACTO. NO reformatees ni agregues encabezados. Solo agrega una pregunta de cierre después."
             "\n- Si el cliente cambia personas o fechas, llama check_availability de nuevo."
             "\n- Para reservar: https://casaaustin.pe | Soporte: 📲 https://wa.me/51999902992 | 📞 +51 935 900 900"
@@ -269,17 +269,18 @@ class AIOrchestrator:
             parts.append(
                 "\n\nETAPA: PRIMER CONTACTO"
                 "\n- Dale la bienvenida cálida y pregunta por sus fechas."
-                "\n- Si el cliente ya mencionó fechas en su primer mensaje, cotiza directo."
-                "\n- No hagas muchas preguntas antes de cotizar. Fechas → cotización inmediata."
+                "\n- Si el cliente ya mencionó fechas en su primer mensaje, ejecuta check_availability INMEDIATAMENTE con guests=1. NO preguntes personas primero."
+                "\n- PROHIBIDO preguntar cuántas personas ANTES de cotizar. Cotiza primero, pregunta después."
             )
         elif not has_quote:
             # Conversación activa pero sin cotización aún
             parts.append(
                 "\n\nETAPA: SIN COTIZACIÓN AÚN"
                 "\n- Prioridad #1: Conseguir fechas para cotizar."
+                "\n- Si el cliente menciona fechas o pregunta disponibilidad, ejecuta check_availability YA con guests=1."
                 "\n- Si ya llevas varios mensajes sin fechas, pregunta directamente:"
                 '\n  "¿Ya tienes fechas en mente? Te cotizo al instante 🏖️"'
-                "\n- Si el cliente pregunta info general, responde brevemente y redirige a fechas."
+                "\n- NUNCA preguntes cuántas personas antes de cotizar. Cotiza → luego pregunta personas → recotiza."
             )
         else:
             # Ya tiene cotización — modo cierre
