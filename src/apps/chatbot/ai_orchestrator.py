@@ -48,7 +48,7 @@ class AIOrchestrator:
                 )
             except Exception as e2:
                 logger.error(f"Error con modelo fallback: {e2}")
-                response_text = "Disculpa, estoy teniendo problemas técnicos. Un agente te atenderá pronto."
+                response_text = "¡Hola! 😊 En este momento no puedo procesar tu consulta. Nuestro equipo te atenderá en breve, o puedes contactarnos directamente: 📲 https://wa.me/51999902992"
                 tool_calls_data = []
                 model_used = 'error'
                 tokens = 0
