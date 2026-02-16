@@ -9,8 +9,39 @@ TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
+            "name": "check_calendar",
+            "description": (
+                "Consulta qué casas están disponibles u ocupadas en un rango de fechas. "
+                "NO calcula precios, solo muestra disponibilidad. "
+                "Usa esta herramienta cuando el cliente pregunta '¿hay disponibilidad?' o '¿qué fechas tienen?' "
+                "sin haber dado número de personas. "
+                "Después de mostrar disponibilidad, pregunta cuántas personas para cotizar precios con check_availability."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "from_date": {
+                        "type": "string",
+                        "description": "Fecha inicio del rango en formato YYYY-MM-DD. Si no se indica, usar hoy."
+                    },
+                    "to_date": {
+                        "type": "string",
+                        "description": "Fecha fin del rango en formato YYYY-MM-DD. Si no se indica, usar 30 días desde from_date."
+                    },
+                    "property_name": {
+                        "type": "string",
+                        "description": "Nombre de una propiedad específica (opcional, si no se indica se muestran todas)"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "check_availability",
-            "description": "Consulta disponibilidad y precios de propiedades para fechas específicas. IMPORTANTE: NO inventes fechas. Usa el calendario del sistema para calcular fechas relativas ('este sábado', 'mañana', etc.). Si el cliente no dijo cuántos huéspedes, usa 1 como default y cotiza igualmente.",
+            "description": "Consulta disponibilidad Y PRECIOS de propiedades para fechas específicas. Requiere fechas y número de huéspedes para calcular precio. Si el cliente no dijo cuántos huéspedes, usa 1 como default. Usa esta herramienta cuando ya tengas fechas Y personas para dar una cotización con precios.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -224,6 +255,7 @@ class ToolExecutor:
     def execute(self, tool_name, arguments):
         """Ejecuta una herramienta y retorna el resultado como string"""
         tool_map = {
+            'check_calendar': self._check_calendar,
             'check_availability': self._check_availability,
             'identify_client': self._identify_client,
             'check_client_points': self._check_client_points,
@@ -244,6 +276,157 @@ class ToolExecutor:
         except Exception as e:
             logger.error(f"Error ejecutando {tool_name}: {e}", exc_info=True)
             return f"Error al ejecutar {tool_name}: {str(e)}"
+
+    def _check_calendar(self, from_date=None, to_date=None, property_name=None):
+        """Consulta disponibilidad de casas en un rango de fechas (sin precios)."""
+        from apps.property.models import Property
+        from apps.reservation.models import Reservation
+        from datetime import timedelta
+
+        today = date.today()
+
+        # Parsear fechas
+        if from_date:
+            try:
+                start = datetime.strptime(from_date, '%Y-%m-%d').date()
+            except ValueError:
+                start = today
+        else:
+            start = today
+
+        if start < today:
+            start = today
+
+        if to_date:
+            try:
+                end = datetime.strptime(to_date, '%Y-%m-%d').date()
+            except ValueError:
+                end = start + timedelta(days=30)
+        else:
+            end = start + timedelta(days=30)
+
+        # Limitar a máximo 60 días
+        if (end - start).days > 60:
+            end = start + timedelta(days=60)
+
+        # Obtener propiedades
+        properties = Property.objects.filter(deleted=False)
+        if property_name:
+            filtered = properties.filter(name__icontains=property_name)
+            if filtered.exists():
+                properties = filtered
+
+        if not properties.exists():
+            return "No hay propiedades registradas."
+
+        # Obtener reservas activas en el rango
+        active_statuses = ['approved', 'pending', 'under_review']
+        reservations = Reservation.objects.filter(
+            deleted=False,
+            status__in=active_statuses,
+            check_out_date__gt=start,
+            check_in_date__lt=end,
+        ).select_related('property')
+
+        # Construir mapa de ocupación: {property_id: [(check_in, check_out), ...]}
+        occupation = {}
+        for r in reservations:
+            occupation.setdefault(r.property_id, []).append(
+                (r.check_in_date, r.check_out_date)
+            )
+
+        # Para la fecha específica consultada o rango corto, mostrar por fecha
+        days_range = (end - start).days
+        months_es = {
+            1: 'ene', 2: 'feb', 3: 'mar', 4: 'abr',
+            5: 'may', 6: 'jun', 7: 'jul', 8: 'ago',
+            9: 'sep', 10: 'oct', 11: 'nov', 12: 'dic',
+        }
+        days_es = {
+            0: 'lun', 1: 'mar', 2: 'mié',
+            3: 'jue', 4: 'vie', 5: 'sáb', 6: 'dom',
+        }
+
+        if days_range <= 7:
+            # Rango corto: mostrar cada día con cada casa
+            lines = [f"📅 Disponibilidad del {start.strftime('%d/%m')} al {end.strftime('%d/%m')}:\n"]
+
+            for i in range(days_range):
+                d = start + timedelta(days=i)
+                day_label = f"{days_es[d.weekday()]} {d.day} {months_es[d.month]}"
+                available = []
+                occupied = []
+
+                for prop in properties:
+                    is_occupied = False
+                    for (ci, co) in occupation.get(prop.id, []):
+                        if ci <= d < co:
+                            is_occupied = True
+                            break
+                    if is_occupied:
+                        occupied.append(prop.name)
+                    else:
+                        available.append(prop.name)
+
+                if available:
+                    avail_str = ", ".join(available)
+                    lines.append(f"✅ {day_label}: {avail_str}")
+                else:
+                    lines.append(f"❌ {day_label}: Todo ocupado")
+
+            lines.append("")
+            lines.append(
+                "[INSTRUCCIÓN IA: Muestra esta disponibilidad al cliente. "
+                "Pregunta cuántas personas serán para dar precios exactos. "
+                "Si el cliente elige una fecha, usa check_availability con esa fecha para cotizar.]"
+            )
+            return '\n'.join(lines)
+
+        else:
+            # Rango largo: mostrar resumen por casa
+            lines = [f"📅 Disponibilidad del {start.strftime('%d/%m')} al {end.strftime('%d/%m')}:\n"]
+
+            for prop in properties:
+                prop_reservations = occupation.get(prop.id, [])
+
+                if not prop_reservations:
+                    lines.append(f"🏠 {prop.name}: ✅ Disponible TODO el período")
+                    continue
+
+                # Encontrar fechas ocupadas
+                occupied_ranges = []
+                for (ci, co) in sorted(prop_reservations):
+                    ci_display = max(ci, start)
+                    co_display = min(co, end)
+                    occupied_ranges.append(
+                        f"{ci_display.day}-{co_display.day} {months_es[ci_display.month]}"
+                    )
+
+                # Contar noches libres
+                free_nights = 0
+                for i in range(days_range):
+                    d = start + timedelta(days=i)
+                    is_free = True
+                    for (ci, co) in prop_reservations:
+                        if ci <= d < co:
+                            is_free = False
+                            break
+                    if is_free:
+                        free_nights += 1
+
+                occ_str = ", ".join(occupied_ranges)
+                lines.append(
+                    f"🏠 {prop.name}: {free_nights} noches libres "
+                    f"(ocupada: {occ_str})"
+                )
+
+            lines.append("")
+            lines.append(
+                "[INSTRUCCIÓN IA: Muestra esta disponibilidad al cliente. "
+                "Pregunta por qué fechas específicas le interesan y cuántas personas serán. "
+                "Luego usa check_availability para cotizar precios.]"
+            )
+            return '\n'.join(lines)
 
     def _check_availability(self, check_in, check_out, guests=1, property_name=None):
         """Consulta disponibilidad usando PricingCalculationService.
