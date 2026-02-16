@@ -423,15 +423,12 @@ class ToolExecutor:
                 "Pregunta cuántas personas serán y llama check_availability de nuevo para recotizar."
             )
 
-        # Instrucción para la IA
+        # Instrucción para la IA (no visible al cliente)
         lines.append("")
         lines.append(
-            "[INSTRUCCIÓN IA: Envía esta cotización COMPLETA al cliente tal como está. "
-            "Incluye SIEMPRE el link de fotos y detalles. "
-            "Si el cliente cambia fechas o personas, llama check_availability de nuevo. "
-            "NO inventes precios. "
-            "Si hay descuento, usa EXACTAMENTE la razón que aparece arriba (nivel del cliente, cumpleaños, código, etc.). "
-            "NUNCA inventes motivos de descuento.]"
+            "[INSTRUCCIÓN IA: COPIA Y PEGA todo el texto de arriba EXACTAMENTE como está. "
+            "NO reformatees, NO agregues encabezados, NO cambies el orden. "
+            "Solo agrega una pregunta de cierre breve DESPUÉS de la cotización.]"
         )
 
         return '\n'.join(lines)

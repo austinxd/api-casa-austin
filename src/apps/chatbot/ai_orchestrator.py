@@ -243,7 +243,7 @@ class AIOrchestrator:
             "\n- Responde SIEMPRE en español."
             "\n- NUNCA inventes precios. SIEMPRE usa check_availability."
             "\n- Cuando tengas fechas, ejecuta check_availability INMEDIATAMENTE sin preguntar nada más."
-            "\n- Presenta la cotización COMPLETA tal como la devuelve la herramienta. No resumas precios."
+            "\n- Cuando check_availability devuelva la cotización, COPIA Y PEGA el texto EXACTO. NO reformatees ni agregues encabezados. Solo agrega una pregunta de cierre después."
             "\n- Si el cliente cambia personas o fechas, llama check_availability de nuevo."
             "\n- Para reservar: https://casaaustin.pe | Soporte: 📲 https://wa.me/51999902992 | 📞 +51 935 900 900"
         )
