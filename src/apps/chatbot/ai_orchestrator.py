@@ -185,12 +185,12 @@ class AIOrchestrator:
         return messages
 
     def _build_system_prompt(self, session):
-        """Construye el system prompt dinámico con contexto"""
+        """Construye el system prompt dinámico con contexto de ventas"""
         base_prompt = self.config.system_prompt
 
         context_parts = [base_prompt]
 
-        # Fecha actual con calendario de próximos 7 días
+        # Fecha actual con calendario de próximos 14 días
         from datetime import timedelta
         days_es = {
             0: 'lunes', 1: 'martes', 2: 'miércoles',
@@ -199,9 +199,18 @@ class AIOrchestrator:
         today = date.today()
         day_name = days_es[today.weekday()]
         calendar_lines = []
-        for i in range(7):
+        for i in range(14):
             d = today + timedelta(days=i)
-            calendar_lines.append(f"  {days_es[d.weekday()]} {d.strftime('%d/%m/%Y')} = {d.strftime('%Y-%m-%d')}")
+            label = ""
+            if i == 0:
+                label = " (HOY)"
+            elif i == 1:
+                label = " (MAÑANA)"
+            elif d.weekday() in (4, 5, 6) and i <= 7:
+                label = " (ESTE FIN DE SEMANA)" if d.weekday() == 5 else ""
+            calendar_lines.append(
+                f"  {days_es[d.weekday()]} {d.strftime('%d/%m/%Y')} = {d.strftime('%Y-%m-%d')}{label}"
+            )
         context_parts.append(
             f"\nHoy es {day_name} {today.strftime('%d/%m/%Y')}."
             f"\nCalendario próximos días (usa estas fechas EXACTAS):\n"
@@ -212,34 +221,130 @@ class AIOrchestrator:
         if session.client:
             client = session.client
             client_info = (
-                f"\n\nCliente identificado:"
-                f"\n- Nombre: {client.first_name} {client.last_name or ''}"
+                f"\n\nCliente identificado: {client.first_name} {client.last_name or ''}"
                 f"\n- Documento: {client.number_doc}"
                 f"\n- Teléfono: {client.tel_number}"
                 f"\n- ID: {client.id}"
             )
             if hasattr(client, 'points_balance') and client.points_balance:
-                client_info += f"\n- Puntos: {float(client.points_balance):.0f}"
+                points = float(client.points_balance)
+                if points > 0:
+                    client_info += f"\n- Puntos: {points:.0f} (menciónale que tiene puntos acumulados)"
             context_parts.append(client_info)
         else:
             context_parts.append(
-                "\n\nCliente NO identificado aún. Si necesitas crear una reserva, "
-                "primero identifica al cliente pidiendo su DNI o número de teléfono."
+                "\n\nCliente NO identificado aún. No necesitas identificarlo para cotizar. "
+                "Solo pide DNI si el cliente quiere consultar reservas o puntos."
             )
 
-        # Instrucciones de comportamiento orientadas a ventas
+        # Instrucciones técnicas (SIEMPRE presentes)
         context_parts.append(
-            "\n\nInstrucciones CRÍTICAS:"
-            "\n- Responde SIEMPRE en español, amigable y conciso."
-            "\n- NUNCA inventes precios. SIEMPRE usa check_availability para obtener precios."
-            "\n- Cuando tengas fechas, ejecuta check_availability INMEDIATAMENTE."
-            "\n- Cuando check_availability devuelva resultados, COPIA el formato completo de la cotización incluyendo todos los precios, detalles de casa y desglose. No resumas ni simplifiques los precios."
-            "\n- Si el cliente cambia cantidad de personas o fechas, VUELVE a llamar check_availability. No calcules precios mentalmente."
-            "\n- SIEMPRE termina con una pregunta que avance hacia la reserva."
+            "\n\nREGLAS TÉCNICAS (obligatorias):"
+            "\n- Responde SIEMPRE en español."
+            "\n- NUNCA inventes precios. SIEMPRE usa check_availability."
+            "\n- Cuando tengas fechas, ejecuta check_availability INMEDIATAMENTE sin preguntar nada más."
+            "\n- Presenta la cotización COMPLETA tal como la devuelve la herramienta. No resumas precios."
+            "\n- Si el cliente cambia personas o fechas, llama check_availability de nuevo."
             "\n- Para reservar: https://casaaustin.pe | Soporte: 📲 https://wa.me/51999902992 | 📞 +51 935 900 900"
         )
 
+        # === INSTRUCCIONES DINÁMICAS según estado de la conversación ===
+        context_parts.append(self._build_sales_context(session, today))
+
         return '\n'.join(context_parts)
+
+    def _build_sales_context(self, session, today):
+        """Genera instrucciones de venta dinámicas según el estado de la conversación"""
+        from datetime import timedelta
+
+        parts = []
+
+        # Detectar etapa del embudo
+        has_quote = session.quoted_at is not None
+        msg_count = session.total_messages
+        is_new = msg_count <= 2
+
+        if is_new:
+            # Primer contacto — modo bienvenida
+            parts.append(
+                "\n\nETAPA: PRIMER CONTACTO"
+                "\n- Dale la bienvenida cálida y pregunta por sus fechas."
+                "\n- Si el cliente ya mencionó fechas en su primer mensaje, cotiza directo."
+                "\n- No hagas muchas preguntas antes de cotizar. Fechas → cotización inmediata."
+            )
+        elif not has_quote:
+            # Conversación activa pero sin cotización aún
+            parts.append(
+                "\n\nETAPA: SIN COTIZACIÓN AÚN"
+                "\n- Prioridad #1: Conseguir fechas para cotizar."
+                "\n- Si ya llevas varios mensajes sin fechas, pregunta directamente:"
+                '\n  "¿Ya tienes fechas en mente? Te cotizo al instante 🏖️"'
+                "\n- Si el cliente pregunta info general, responde brevemente y redirige a fechas."
+            )
+        else:
+            # Ya tiene cotización — modo cierre
+            parts.append(
+                "\n\nETAPA: POST-COTIZACIÓN (ya recibió precios)"
+                "\n- Prioridad #1: Guiar al cliente a reservar en casaaustin.pe"
+                "\n- Recuérdale: 'Solo necesitas el 50% de adelanto para separar tu fecha'"
+                "\n- Si tiene dudas, resuélvelas rápido y vuelve al cierre."
+                "\n- Si dice que quiere reservar, usa notify_team(ready_to_book) Y guíalo a casaaustin.pe"
+            )
+
+        # Detectar urgencia por fechas cercanas (si hay contexto de fechas)
+        # Revisamos últimas herramientas ejecutadas para extraer fechas cotizadas
+        last_check = ChatMessage.objects.filter(
+            session=session,
+            deleted=False,
+            direction=ChatMessage.DirectionChoices.OUTBOUND_AI,
+            intent_detected='availability_check',
+        ).order_by('-created').first()
+
+        if last_check and last_check.tool_calls:
+            for tc in last_check.tool_calls:
+                if tc.get('name') == 'check_availability':
+                    args = tc.get('arguments', {})
+                    check_in_str = args.get('check_in', '')
+                    try:
+                        from datetime import datetime as dt
+                        check_in_date = dt.strptime(check_in_str, '%Y-%m-%d').date()
+                        days_until = (check_in_date - today).days
+                        if 0 < days_until <= 3:
+                            parts.append(
+                                "\n\n⚡ URGENCIA ALTA: El check-in es en menos de 3 días."
+                                "\n- Transmite urgencia genuina: 'Tu fecha es muy pronto, "
+                                "te recomiendo reservar hoy para asegurar disponibilidad'"
+                                "\n- Menciona que alguien más podría reservar antes."
+                            )
+                        elif 0 < days_until <= 7:
+                            parts.append(
+                                "\n\n⏰ URGENCIA MEDIA: El check-in es esta semana/próxima semana."
+                                "\n- Menciona que fines de semana se llenan rápido."
+                                "\n- Sugiere reservar pronto para no perder la fecha."
+                            )
+                    except (ValueError, TypeError):
+                        pass
+                    break  # Solo necesitamos la última cotización
+
+        # Señal de fin de semana actual
+        days_to_saturday = (5 - today.weekday()) % 7
+        if days_to_saturday <= 2:
+            parts.append(
+                "\n\n📅 CONTEXTO: Este fin de semana está muy cerca."
+                "\n- Si el cliente pregunta por 'este finde/sábado/fin de semana', "
+                "transmite que la disponibilidad es limitada."
+            )
+
+        # Si la conversación lleva muchos mensajes sin cierre
+        if has_quote and msg_count >= 8:
+            parts.append(
+                "\n\n🎯 CONVERSACIÓN LARGA: Ya llevas varios mensajes."
+                "\n- Sé más directo con el cierre."
+                "\n- Pregunta: '¿Te gustaría que el equipo te ayude a completar la reserva?'"
+                "\n- Si no avanza, ofrece resolver su última duda y cierra."
+            )
+
+        return ''.join(parts)
 
     def _detect_intent(self, tool_calls_data):
         """Detecta la intención principal basada en las herramientas usadas"""
