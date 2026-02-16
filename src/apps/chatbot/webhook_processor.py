@@ -1,5 +1,7 @@
+import os
 import re
 import logging
+import requests
 from django.utils import timezone
 
 from .models import ChatSession, ChatMessage, ChatbotConfiguration
@@ -161,8 +163,13 @@ class WebhookProcessor:
             logger.info(f"Mensaje {channel} sin contenido procesable")
             return
 
+        # Obtener nombre del perfil (Messenger requiere llamada extra a la API)
+        profile_name = None
+        if channel == 'messenger':
+            profile_name = self._fetch_messenger_profile(sender_id)
+
         # Obtener o crear sesión
-        session = self._get_or_create_session(sender_id, channel)
+        session = self._get_or_create_session(sender_id, channel, profile_name)
 
         # Determinar tipo de mensaje
         msg_type = 'text'
@@ -269,6 +276,26 @@ class WebhookProcessor:
     # =============================================
     # Session management
     # =============================================
+
+    def _fetch_messenger_profile(self, psid):
+        """Obtiene el nombre del usuario de Messenger via Graph API."""
+        token = os.getenv('MESSENGER_PAGE_ACCESS_TOKEN')
+        if not token:
+            return None
+        try:
+            resp = requests.get(
+                f"https://graph.facebook.com/v22.0/{psid}",
+                params={'fields': 'name', 'access_token': token},
+                timeout=5,
+            )
+            if resp.status_code == 200:
+                name = resp.json().get('name')
+                if name:
+                    logger.info(f"Messenger profile: {psid} → {name}")
+                    return name
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Error obteniendo perfil Messenger {psid}: {e}")
+        return None
 
     def _get_or_create_session(self, contact_id, channel, profile_name=None):
         """Obtiene o crea una sesión de chat para un contacto.
