@@ -75,6 +75,21 @@ TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
+            "name": "check_reservations",
+            "description": (
+                "Consulta las reservas activas de un cliente identificado. "
+                "Muestra reservas confirmadas (aprobadas) y pendientes de pago. "
+                "Requiere que el cliente esté vinculado a la sesión."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "validate_discount_code",
             "description": "Valida un código de descuento y calcula el descuento aplicable.",
             "parameters": {
@@ -212,6 +227,7 @@ class ToolExecutor:
             'check_availability': self._check_availability,
             'identify_client': self._identify_client,
             'check_client_points': self._check_client_points,
+            'check_reservations': self._check_reservations,
             'validate_discount_code': self._validate_discount_code,
             'get_property_info': self._get_property_info,
             'schedule_visit': self._schedule_visit,
@@ -464,6 +480,54 @@ class ToolExecutor:
             )
         except Clients.DoesNotExist:
             return "Cliente no encontrado."
+
+    def _check_reservations(self):
+        """Consulta reservas activas del cliente vinculado a la sesión"""
+        from apps.reservation.models import Reservation
+        from django.utils import timezone
+
+        if not self.session.client:
+            return (
+                "No hay un cliente identificado en esta conversación. "
+                "Pide el DNI o teléfono del cliente para identificarlo primero."
+            )
+
+        client = self.session.client
+        today = timezone.now().date()
+
+        reservations = Reservation.objects.filter(
+            client=client,
+            deleted=False,
+            status__in=['approved', 'pending', 'under_review'],
+            check_out_date__gte=today,
+        ).select_related('property').order_by('check_in_date')
+
+        if not reservations.exists():
+            return f"{client.first_name} no tiene reservas activas en este momento."
+
+        STATUS_LABELS = {
+            'approved': 'Confirmada',
+            'pending': 'Pendiente de pago',
+            'under_review': 'En revisión',
+        }
+
+        lines = [f"Reservas activas de {client.first_name}:\n"]
+        for r in reservations:
+            status_label = STATUS_LABELS.get(r.status, r.status)
+            in_progress = r.check_in_date <= today <= r.check_out_date
+
+            line = (
+                f"{'🟢' if in_progress else '📅'} {r.property.name}\n"
+                f"   📆 {r.check_in_date.strftime('%d/%m/%Y')} al {r.check_out_date.strftime('%d/%m/%Y')}\n"
+                f"   👥 {r.guests} persona{'s' if r.guests != 1 else ''}\n"
+                f"   💰 S/{r.price_sol:.2f} / ${r.price_usd:.2f}\n"
+                f"   📌 Estado: {status_label}"
+                f"{' (EN CURSO)' if in_progress else ''}\n"
+                f"   💳 {'Pagado 100%' if r.full_payment else f'Adelanto: {r.advance_payment or 0}'}"
+            )
+            lines.append(line)
+
+        return '\n\n'.join(lines)
 
     def _validate_discount_code(self, code, property_name=None, check_in_date=None):
         """Valida un código de descuento"""
