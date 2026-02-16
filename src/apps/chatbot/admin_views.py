@@ -286,6 +286,40 @@ class ChatAnalysisView(APIView):
     """GET /analysis/ — Análisis IA de las últimas 20 conversaciones"""
     permission_classes = [IsAuthenticated]
 
+    SYSTEM_PROMPT = (
+        "Eres un analista de calidad de atención al cliente para Casa Austin, "
+        "un negocio de alquiler de casas vacacionales en Lima, Perú. "
+        "Analiza las conversaciones del chatbot y genera un reporte en español "
+        "con las siguientes secciones:\n\n"
+        "## 1. Resumen General\n"
+        "Estado general de las conversaciones, tono, efectividad.\n\n"
+        "## 2. Problemas Detectados\n"
+        "Respuestas incorrectas, inconsistencias, información errónea, o momentos "
+        "donde la IA no supo responder. Para CADA problema:\n"
+        "- Indica la conversación exacta (nombre/número del contacto)\n"
+        "- Cita textualmente el fragmento problemático entre comillas\n"
+        "- Explica qué estuvo mal y qué debió responder\n\n"
+        "## 3. Oportunidades de Mejora\n"
+        "Sugerencias concretas para mejorar las respuestas del chatbot. "
+        "Incluye ejemplos de cómo debería responder vs cómo respondió.\n\n"
+        "## 4. Intenciones Frecuentes\n"
+        "Qué buscan los clientes más seguido. Lista las top 5 intenciones.\n\n"
+        "## 5. Escalaciones y Pausas de IA\n"
+        "Casos que se escalaron a humano o donde se pausó la IA. "
+        "Indica por qué y si fue justificado.\n\n"
+        "## 6. Extractos Destacados\n"
+        "Muestra 3-5 extractos textuales de conversaciones que ejemplifiquen "
+        "los problemas o aciertos más importantes. Formato:\n"
+        "> **Conversación con [nombre]:**\n"
+        "> [Cliente]: mensaje del cliente\n"
+        "> [IA]: respuesta de la IA\n"
+        "> **Problema/Acierto:** explicación\n\n"
+        "## 7. Puntuación\n"
+        "Del 1 al 10, calidad general de la atención. Justifica la nota.\n\n"
+        "IMPORTANTE: Sé específico. SIEMPRE cita fragmentos reales de las conversaciones. "
+        "No generalices sin evidencia."
+    )
+
     def get(self, request):
         import openai
         from django.conf import settings as django_settings
@@ -299,15 +333,20 @@ class ChatAnalysisView(APIView):
             return Response({
                 'analysis': 'No hay conversaciones para analizar.',
                 'sessions_analyzed': 0,
+                'system_prompt': self.SYSTEM_PROMPT,
+                'conversations_sent': '',
             })
 
         # Construir resumen de conversaciones
         conversations_text = []
         for i, session in enumerate(sessions, 1):
             name = session.wa_profile_name or session.wa_id
+            client_name = ''
+            if session.client:
+                client_name = f" — Cliente: {session.client.first_name} {session.client.last_name or ''}"
             msgs = ChatMessage.objects.filter(
                 session=session, deleted=False
-            ).order_by('created')[:30]  # últimos 30 msgs por sesión
+            ).order_by('created')[:30]
 
             msg_lines = []
             for msg in msgs:
@@ -317,13 +356,19 @@ class ChatAnalysisView(APIView):
                     'outbound_human': 'Admin',
                     'system': 'Sistema',
                 }.get(msg.direction, msg.direction)
-                msg_lines.append(f"  [{direction_label}]: {msg.content[:200]}")
+                timestamp = msg.created.strftime('%d/%m %H:%M')
+                msg_lines.append(f"  [{timestamp}] [{direction_label}]: {msg.content[:300]}")
 
-            conv_text = f"\n--- Conversación {i}: {name} (estado: {session.status}, IA: {'activa' if session.ai_enabled else 'pausada'}) ---\n"
+            conv_text = (
+                f"\n--- Conversación {i}: {name}{client_name} "
+                f"(estado: {session.status}, IA: {'activa' if session.ai_enabled else 'pausada'}, "
+                f"mensajes: {session.total_messages}) ---\n"
+            )
             conv_text += "\n".join(msg_lines)
             conversations_text.append(conv_text)
 
         all_conversations = "\n".join(conversations_text)
+        user_message = f"Analiza estas {len(sessions)} conversaciones recientes:\n\n{all_conversations}"
 
         # Llamar a OpenAI para análisis
         try:
@@ -331,29 +376,10 @@ class ChatAnalysisView(APIView):
             response = client.chat.completions.create(
                 model="gpt-4.1-nano",
                 temperature=0.3,
-                max_tokens=2000,
+                max_tokens=3000,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "Eres un analista de calidad de atención al cliente para Casa Austin, "
-                            "un negocio de alquiler de casas vacacionales en Lima, Perú. "
-                            "Analiza las conversaciones del chatbot y genera un reporte en español "
-                            "con las siguientes secciones:\n\n"
-                            "1. **Resumen General**: Estado general de las conversaciones\n"
-                            "2. **Problemas Detectados**: Respuestas incorrectas, inconsistencias, "
-                            "información errónea, o momentos donde la IA no supo responder\n"
-                            "3. **Oportunidades de Mejora**: Sugerencias concretas para mejorar las respuestas\n"
-                            "4. **Intenciones Frecuentes**: Qué buscan los clientes más seguido\n"
-                            "5. **Escalaciones**: Casos que se escalaron a humano y por qué\n"
-                            "6. **Puntuación**: Del 1 al 10, calidad general de la atención\n\n"
-                            "Sé conciso pero específico. Menciona conversaciones puntuales cuando encuentres problemas."
-                        )
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Analiza estas {len(sessions)} conversaciones recientes:\n\n{all_conversations}"
-                    }
+                    {"role": "system", "content": self.SYSTEM_PROMPT},
+                    {"role": "user", "content": user_message},
                 ],
             )
 
@@ -365,6 +391,8 @@ class ChatAnalysisView(APIView):
                 'sessions_analyzed': len(sessions),
                 'tokens_used': tokens_used,
                 'model': 'gpt-4.1-nano',
+                'system_prompt': self.SYSTEM_PROMPT,
+                'conversations_sent': all_conversations,
             })
 
         except Exception as e:
