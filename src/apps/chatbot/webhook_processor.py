@@ -161,27 +161,31 @@ class WebhookProcessor:
         return None
 
     def _get_or_create_session(self, wa_id, profile_name=None):
-        """Obtiene o crea una sesión de chat para un wa_id"""
-        session = ChatSession.objects.filter(
-            wa_id=wa_id, deleted=False
-        ).exclude(
-            status=ChatSession.StatusChoices.CLOSED
-        ).first()
+        """Obtiene o crea una sesión de chat para un wa_id.
+        Usa select_for_update para evitar sesiones duplicadas por race condition."""
+        from django.db import transaction
 
-        if session:
-            if profile_name and not session.wa_profile_name:
-                session.wa_profile_name = profile_name
-                session.save(update_fields=['wa_profile_name'])
-            return session
+        with transaction.atomic():
+            session = ChatSession.objects.select_for_update().filter(
+                wa_id=wa_id, deleted=False
+            ).exclude(
+                status=ChatSession.StatusChoices.CLOSED
+            ).first()
 
-        # Crear nueva sesión
-        session = ChatSession.objects.create(
-            wa_id=wa_id,
-            wa_profile_name=profile_name,
-            status=ChatSession.StatusChoices.ACTIVE,
-        )
+            if session:
+                if profile_name and not session.wa_profile_name:
+                    session.wa_profile_name = profile_name
+                    session.save(update_fields=['wa_profile_name'])
+                return session
 
-        # Intentar vincular con cliente existente
+            # Crear nueva sesión
+            session = ChatSession.objects.create(
+                wa_id=wa_id,
+                wa_profile_name=profile_name,
+                status=ChatSession.StatusChoices.ACTIVE,
+            )
+
+        # Intentar vincular con cliente existente (fuera del lock)
         self._try_link_client(session)
 
         return session
