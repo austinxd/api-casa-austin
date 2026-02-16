@@ -424,3 +424,84 @@ class ChatAnalysisView(APIView):
                 {'error': f'Error al generar análisis: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class FollowupOpportunitiesView(APIView):
+    """GET /followups/ — Oportunidades de seguimiento pendientes"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        now = timezone.now()
+        min_age = now - timedelta(hours=22)
+
+        # Sesiones sin cotización (escribieron hace 2-22h)
+        no_quote = ChatSession.objects.filter(
+            deleted=False,
+            status__in=['active', 'ai_paused'],
+            quoted_at__isnull=True,
+            followup_count=0,
+            last_customer_message_at__isnull=False,
+            last_customer_message_at__gte=min_age,
+            last_customer_message_at__lte=now - timedelta(hours=1),
+            total_messages__gte=2,
+        ).order_by('-last_customer_message_at')[:20]
+
+        # Sesiones cotizadas sin conversión (cotizadas hace 4-22h)
+        quoted_no_conversion = ChatSession.objects.filter(
+            deleted=False,
+            status__in=['active', 'ai_paused'],
+            quoted_at__isnull=False,
+            followup_count=0,
+            last_customer_message_at__isnull=False,
+            last_customer_message_at__gte=min_age,
+            quoted_at__lte=now - timedelta(hours=2),
+        ).order_by('-quoted_at')[:20]
+
+        # Sesiones que ya recibieron follow-up
+        followed_up = ChatSession.objects.filter(
+            deleted=False,
+            followup_count__gt=0,
+            followup_sent_at__gte=now - timedelta(days=3),
+        ).order_by('-followup_sent_at')[:10]
+
+        def serialize_session(s, category):
+            name = s.wa_profile_name or s.wa_id
+            if s.client:
+                name = f"{s.client.first_name} {s.client.last_name or ''}".strip()
+            last_msg = s.messages.order_by('-created').first()
+            hours_since = None
+            if s.last_customer_message_at:
+                hours_since = round((now - s.last_customer_message_at).total_seconds() / 3600, 1)
+            wa_window_remaining = None
+            if s.last_customer_message_at:
+                remaining = 24 - (now - s.last_customer_message_at).total_seconds() / 3600
+                wa_window_remaining = round(max(0, remaining), 1)
+            return {
+                'id': str(s.id),
+                'wa_id': s.wa_id,
+                'name': name,
+                'category': category,
+                'status': s.status,
+                'ai_enabled': s.ai_enabled,
+                'total_messages': s.total_messages,
+                'quoted_at': s.quoted_at.isoformat() if s.quoted_at else None,
+                'followup_count': s.followup_count,
+                'followup_sent_at': s.followup_sent_at.isoformat() if s.followup_sent_at else None,
+                'last_customer_message_at': s.last_customer_message_at.isoformat() if s.last_customer_message_at else None,
+                'hours_since_last_message': hours_since,
+                'wa_window_remaining_hours': wa_window_remaining,
+                'last_message_preview': last_msg.content[:100] if last_msg else None,
+            }
+
+        results = (
+            [serialize_session(s, 'no_quote') for s in no_quote] +
+            [serialize_session(s, 'quoted') for s in quoted_no_conversion] +
+            [serialize_session(s, 'followed_up') for s in followed_up]
+        )
+
+        return Response({
+            'no_quote_count': no_quote.count(),
+            'quoted_count': quoted_no_conversion.count(),
+            'followed_up_count': followed_up.count(),
+            'results': results,
+        })

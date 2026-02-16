@@ -289,8 +289,14 @@ class ToolExecutor:
 
         formatted = self._format_pricing_result(result)
 
-        # Si ninguna propiedad está disponible, buscar alternativas
+        # Marcar sesión como cotizada si hay disponibilidad
         available_count = result.get('totalCasasDisponibles', 0)
+        if available_count > 0 and not self.session.quoted_at:
+            from django.utils import timezone
+            self.session.quoted_at = timezone.now()
+            self.session.save(update_fields=['quoted_at'])
+
+        # Si ninguna propiedad está disponible, buscar alternativas
         if available_count == 0:
             alternatives = []
             today = date.today()

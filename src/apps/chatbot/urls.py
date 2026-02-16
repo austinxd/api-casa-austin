@@ -12,6 +12,7 @@ from .admin_views import (
     ChatAnalyticsView,
     ChatAnalysisView,
     PropertyVisitListView,
+    FollowupOpportunitiesView,
 )
 
 urlpatterns = [
@@ -33,4 +34,5 @@ urlpatterns = [
     # Analytics
     path('analytics/', ChatAnalyticsView.as_view(), name='chatbot-analytics'),
     path('analysis/', ChatAnalysisView.as_view(), name='chatbot-analysis'),
+    path('followups/', FollowupOpportunitiesView.as_view(), name='chatbot-followups'),
 ]

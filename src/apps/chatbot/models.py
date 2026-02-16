@@ -45,6 +45,18 @@ class ChatSession(BaseModel):
         null=True, blank=True,
         help_text="Última vez que un admin leyó esta conversación"
     )
+    quoted_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Cuándo se envió la primera cotización"
+    )
+    followup_sent_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Cuándo se envió el último follow-up automático"
+    )
+    followup_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Cantidad de follow-ups enviados"
+    )
 
     class Meta:
         verbose_name = '💬 Sesión de Chat'
