@@ -162,23 +162,31 @@ class WebhookProcessor:
 
     def _get_or_create_session(self, wa_id, profile_name=None):
         """Obtiene o crea una sesión de chat para un wa_id.
-        Usa select_for_update para evitar sesiones duplicadas por race condition."""
+        Un número = una sesión. Si estaba cerrada, la reabre.
+        Usa select_for_update para evitar duplicadas por race condition."""
         from django.db import transaction
 
         with transaction.atomic():
+            # Buscar cualquier sesión existente (incluyendo cerradas)
             session = ChatSession.objects.select_for_update().filter(
                 wa_id=wa_id, deleted=False
-            ).exclude(
-                status=ChatSession.StatusChoices.CLOSED
-            ).first()
+            ).order_by('-last_message_at').first()
 
             if session:
+                update_fields = []
                 if profile_name and not session.wa_profile_name:
                     session.wa_profile_name = profile_name
-                    session.save(update_fields=['wa_profile_name'])
+                    update_fields.append('wa_profile_name')
+                # Reabrir si estaba cerrada
+                if session.status == ChatSession.StatusChoices.CLOSED:
+                    session.status = ChatSession.StatusChoices.ACTIVE
+                    session.ai_enabled = True
+                    update_fields.extend(['status', 'ai_enabled'])
+                if update_fields:
+                    session.save(update_fields=update_fields)
                 return session
 
-            # Crear nueva sesión
+            # Crear nueva sesión solo si no existe ninguna
             session = ChatSession.objects.create(
                 wa_id=wa_id,
                 wa_profile_name=profile_name,
