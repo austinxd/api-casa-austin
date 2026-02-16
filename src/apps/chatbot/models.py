@@ -41,6 +41,10 @@ class ChatSession(BaseModel):
     human_messages = models.PositiveIntegerField(default=0)
     last_message_at = models.DateTimeField(null=True, blank=True)
     last_customer_message_at = models.DateTimeField(null=True, blank=True)
+    last_read_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Última vez que un admin leyó esta conversación"
+    )
 
     class Meta:
         verbose_name = '💬 Sesión de Chat'
