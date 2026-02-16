@@ -286,43 +286,58 @@ class ChatAnalysisView(APIView):
     """GET /analysis/ — Análisis IA de las últimas 20 conversaciones"""
     permission_classes = [IsAuthenticated]
 
-    SYSTEM_PROMPT = (
-        "Eres un analista de calidad de atención al cliente para Casa Austin, "
-        "un negocio de alquiler de casas vacacionales en Lima, Perú. "
-        "Analiza las conversaciones del chatbot y genera un reporte en español "
-        "con las siguientes secciones:\n\n"
+    ANALYSIS_PROMPT = (
+        "Eres un analista experto en optimización de prompts y calidad de chatbots "
+        "para Casa Austin, un negocio de alquiler de casas vacacionales en Lima, Perú.\n\n"
+        "Se te proporcionará:\n"
+        "1. El PROMPT ACTUAL del chatbot (las instrucciones que usa la IA para responder a clientes)\n"
+        "2. Las últimas conversaciones reales del chatbot con clientes\n\n"
+        "Genera un reporte en español con las siguientes secciones:\n\n"
         "## 1. Resumen General\n"
         "Estado general de las conversaciones, tono, efectividad.\n\n"
-        "## 2. Problemas Detectados\n"
+        "## 2. Problemas Detectados en las Respuestas\n"
         "Respuestas incorrectas, inconsistencias, información errónea, o momentos "
         "donde la IA no supo responder. Para CADA problema:\n"
         "- Indica la conversación exacta (nombre/número del contacto)\n"
         "- Cita textualmente el fragmento problemático entre comillas\n"
         "- Explica qué estuvo mal y qué debió responder\n\n"
-        "## 3. Oportunidades de Mejora\n"
-        "Sugerencias concretas para mejorar las respuestas del chatbot. "
-        "Incluye ejemplos de cómo debería responder vs cómo respondió.\n\n"
-        "## 4. Intenciones Frecuentes\n"
-        "Qué buscan los clientes más seguido. Lista las top 5 intenciones.\n\n"
-        "## 5. Escalaciones y Pausas de IA\n"
-        "Casos que se escalaron a humano o donde se pausó la IA. "
-        "Indica por qué y si fue justificado.\n\n"
+        "## 3. Análisis del Prompt Actual\n"
+        "Evalúa el prompt del chatbot:\n"
+        "- ¿Qué instrucciones están funcionando bien?\n"
+        "- ¿Qué instrucciones faltan o son ambiguas?\n"
+        "- ¿Hay contradicciones en el prompt?\n"
+        "- ¿El tono indicado en el prompt se refleja en las respuestas?\n\n"
+        "## 4. Mejoras Sugeridas al Prompt\n"
+        "Sugiere cambios CONCRETOS al prompt del chatbot. Para cada sugerencia:\n"
+        "- Explica el problema que resuelve (con ejemplo de la conversación)\n"
+        "- Muestra la línea/instrucción ACTUAL del prompt que causa el problema (o indica si falta)\n"
+        "- Propón la instrucción NUEVA o MODIFICADA exacta que debería agregarse/cambiarse\n"
+        "Formato:\n"
+        "**Problema:** [descripción con cita de conversación]\n"
+        "**Prompt actual:** \"[línea actual o 'No existe']\" \n"
+        "**Prompt sugerido:** \"[nueva instrucción exacta]\"\n\n"
+        "## 5. Intenciones Frecuentes\n"
+        "Top 5 intenciones de los clientes.\n\n"
         "## 6. Extractos Destacados\n"
-        "Muestra 3-5 extractos textuales de conversaciones que ejemplifiquen "
+        "3-5 extractos textuales de conversaciones que ejemplifiquen "
         "los problemas o aciertos más importantes. Formato:\n"
         "> **Conversación con [nombre]:**\n"
         "> [Cliente]: mensaje del cliente\n"
         "> [IA]: respuesta de la IA\n"
-        "> **Problema/Acierto:** explicación\n\n"
+        "> **Veredicto:** explicación\n\n"
         "## 7. Puntuación\n"
-        "Del 1 al 10, calidad general de la atención. Justifica la nota.\n\n"
-        "IMPORTANTE: Sé específico. SIEMPRE cita fragmentos reales de las conversaciones. "
-        "No generalices sin evidencia."
+        "Del 1 al 10, calidad general. Justifica la nota.\n\n"
+        "IMPORTANTE: Sé específico. SIEMPRE cita fragmentos reales. "
+        "Las sugerencias al prompt deben ser instrucciones EXACTAS listas para copiar y pegar."
     )
 
     def get(self, request):
         import openai
         from django.conf import settings as django_settings
+
+        # Obtener el prompt actual del chatbot
+        chatbot_config = ChatbotConfiguration.get_config()
+        chatbot_prompt = chatbot_config.system_prompt
 
         # Obtener las últimas 20 sesiones con mensajes
         sessions = ChatSession.objects.filter(
@@ -333,7 +348,8 @@ class ChatAnalysisView(APIView):
             return Response({
                 'analysis': 'No hay conversaciones para analizar.',
                 'sessions_analyzed': 0,
-                'system_prompt': self.SYSTEM_PROMPT,
+                'analysis_prompt': self.ANALYSIS_PROMPT,
+                'chatbot_prompt': chatbot_prompt,
                 'conversations_sent': '',
             })
 
@@ -368,7 +384,13 @@ class ChatAnalysisView(APIView):
             conversations_text.append(conv_text)
 
         all_conversations = "\n".join(conversations_text)
-        user_message = f"Analiza estas {len(sessions)} conversaciones recientes:\n\n{all_conversations}"
+
+        user_message = (
+            f"## PROMPT ACTUAL DEL CHATBOT:\n"
+            f"```\n{chatbot_prompt}\n```\n\n"
+            f"## CONVERSACIONES RECIENTES ({len(sessions)}):\n\n"
+            f"{all_conversations}"
+        )
 
         # Llamar a OpenAI para análisis
         try:
@@ -376,9 +398,9 @@ class ChatAnalysisView(APIView):
             response = client.chat.completions.create(
                 model="gpt-4.1-nano",
                 temperature=0.3,
-                max_tokens=3000,
+                max_tokens=3500,
                 messages=[
-                    {"role": "system", "content": self.SYSTEM_PROMPT},
+                    {"role": "system", "content": self.ANALYSIS_PROMPT},
                     {"role": "user", "content": user_message},
                 ],
             )
@@ -391,7 +413,8 @@ class ChatAnalysisView(APIView):
                 'sessions_analyzed': len(sessions),
                 'tokens_used': tokens_used,
                 'model': 'gpt-4.1-nano',
-                'system_prompt': self.SYSTEM_PROMPT,
+                'analysis_prompt': self.ANALYSIS_PROMPT,
+                'chatbot_prompt': chatbot_prompt,
                 'conversations_sent': all_conversations,
             })
 
