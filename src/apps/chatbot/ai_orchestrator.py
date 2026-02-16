@@ -58,6 +58,9 @@ class AIOrchestrator:
         if send_wa:
             wa_message_id = self.sender.send_text_message(session.wa_id, response_text)
 
+        # Detectar intención basada en herramientas usadas
+        intent = self._detect_intent(tool_calls_data)
+
         ChatMessage.objects.create(
             session=session,
             direction=ChatMessage.DirectionChoices.OUTBOUND_AI,
@@ -67,6 +70,7 @@ class AIOrchestrator:
             ai_model=model_used,
             tokens_used=tokens,
             tool_calls=tool_calls_data,
+            intent_detected=intent,
         )
 
         # Actualizar contadores
@@ -235,3 +239,24 @@ class AIOrchestrator:
         )
 
         return '\n'.join(context_parts)
+
+    def _detect_intent(self, tool_calls_data):
+        """Detecta la intención principal basada en las herramientas usadas"""
+        if not tool_calls_data:
+            return ''
+
+        tool_names = [tc['name'] for tc in tool_calls_data]
+
+        # notify_team captura el intent real decidido por GPT
+        for tc in tool_calls_data:
+            if tc['name'] == 'notify_team':
+                return tc.get('arguments', {}).get('reason', 'notify')
+
+        if 'escalate_to_human' in tool_names:
+            return 'escalation'
+        if 'check_availability' in tool_names:
+            return 'availability_check'
+        if 'schedule_visit' in tool_names:
+            return 'visit_scheduled'
+
+        return ''

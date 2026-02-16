@@ -167,6 +167,36 @@ TOOL_DEFINITIONS = [
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "notify_team",
+            "description": (
+                "Envía una alerta al equipo de Casa Austin. NO pausa la IA ni escala. "
+                "Usar SOLO en estos casos:\n"
+                "- ready_to_book: El cliente dice explícitamente que quiere reservar YA "
+                "(ej: 'quiero reservar', 'cómo pago', 'listo, vamos', 'me interesa reservar').\n"
+                "- query_not_understood: No entiendes lo que el cliente pide o no puedes ayudarlo "
+                "con la información disponible.\n"
+                "NO usar para consultas normales de precio, disponibilidad o información general."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reason": {
+                        "type": "string",
+                        "enum": ["ready_to_book", "query_not_understood"],
+                        "description": "Tipo de alerta"
+                    },
+                    "details": {
+                        "type": "string",
+                        "description": "Descripción breve del contexto"
+                    }
+                },
+                "required": ["reason", "details"]
+            }
+        }
+    },
 ]
 
 
@@ -186,6 +216,7 @@ class ToolExecutor:
             'get_property_info': self._get_property_info,
             'schedule_visit': self._schedule_visit,
             'escalate_to_human': self._escalate_to_human,
+            'notify_team': self._notify_team,
         }
 
         handler = tool_map.get(tool_name)
@@ -326,8 +357,12 @@ class ToolExecutor:
             discount_text = ""
             if discount and discount.get('type') not in ('none', None):
                 disc_pct = discount.get('discount_percentage', 0)
+                disc_desc = discount.get('description', '')
                 if disc_pct:
-                    discount_text = f" 🎁 (-{disc_pct}%)"
+                    if disc_desc:
+                        discount_text = f"\n   🎁 Descuento: {disc_desc} (-{disc_pct}%)"
+                    else:
+                        discount_text = f"\n   🎁 Descuento: -{disc_pct}%"
 
             available_lines.append(
                 f"🏠 {name}: *${final_usd:.2f}* ó *S/{final_sol:.2f}*{discount_text}"
@@ -372,7 +407,9 @@ class ToolExecutor:
             "[INSTRUCCIÓN IA: Envía esta cotización COMPLETA al cliente tal como está. "
             "Incluye SIEMPRE el link de fotos y detalles. "
             "Si el cliente cambia fechas o personas, llama check_availability de nuevo. "
-            "NO inventes precios.]"
+            "NO inventes precios. "
+            "Si hay descuento, usa EXACTAMENTE la razón que aparece arriba (nivel del cliente, cumpleaños, código, etc.). "
+            "NUNCA inventes motivos de descuento.]"
         )
 
         return '\n'.join(lines)
@@ -633,3 +670,39 @@ class ToolExecutor:
             f"Razón: {reason}\n"
             f"Un miembro del equipo atenderá al cliente pronto."
         )
+
+    def _notify_team(self, reason, details=''):
+        """Envía alerta al equipo sin pausar la IA ni escalar"""
+        from apps.clients.expo_push_service import ExpoPushService
+
+        name = self.session.wa_profile_name or self.session.wa_id
+        if self.session.client:
+            name = f"{self.session.client.first_name} {self.session.client.last_name or ''}".strip()
+
+        ALERT_CONFIG = {
+            'ready_to_book': {
+                'title': f"🎯 Quiere reservar: {name}",
+                'type': 'chatbot_ready_to_book',
+            },
+            'query_not_understood': {
+                'title': f"❓ Consulta no entendida: {name}",
+                'type': 'chatbot_query_unclear',
+            },
+        }
+
+        config = ALERT_CONFIG.get(reason, {
+            'title': f"📢 Alerta: {name}",
+            'type': 'chatbot_alert',
+        })
+
+        ExpoPushService.send_to_admins(
+            title=config['title'],
+            body=details or reason,
+            data={
+                'type': config['type'],
+                'session_id': str(self.session.id),
+                'screen': 'ChatBot',
+            }
+        )
+
+        return "Equipo notificado. Continúa atendiendo al cliente normalmente."
