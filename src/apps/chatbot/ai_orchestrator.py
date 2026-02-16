@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from .models import ChatSession, ChatMessage
 from .tool_executor import ToolExecutor, TOOL_DEFINITIONS
-from .whatsapp_sender import WhatsAppSender
+from .channel_sender import get_sender
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +19,11 @@ class AIOrchestrator:
     - Ejecuta function calling
     - Maneja fallback de modelo
     - Guarda mensajes y métricas
+    - Soporta WhatsApp, Instagram y Messenger
     """
 
     def __init__(self, config):
         self.config = config
-        self.sender = WhatsAppSender()
 
     def process_message(self, session, inbound_message, send_wa=True):
         """Procesa un mensaje entrante y genera respuesta con IA.
@@ -53,10 +53,11 @@ class AIOrchestrator:
                 model_used = 'error'
                 tokens = 0
 
-        # Enviar por WhatsApp solo si está habilitado
+        # Enviar por el canal correspondiente
         wa_message_id = None
         if send_wa:
-            wa_message_id = self.sender.send_text_message(session.wa_id, response_text)
+            sender = get_sender(session.channel)
+            wa_message_id = sender.send_text_message(session.wa_id, response_text)
 
         # Detectar intención basada en herramientas usadas
         intent = self._detect_intent(tool_calls_data)

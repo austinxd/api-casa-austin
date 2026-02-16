@@ -20,7 +20,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from apps.chatbot.models import ChatSession, ChatMessage, ChatbotConfiguration
-from apps.chatbot.whatsapp_sender import WhatsAppSender
+from apps.chatbot.channel_sender import get_sender
 from apps.chatbot.ai_orchestrator import AIOrchestrator
 
 logger = logging.getLogger(__name__)
@@ -197,8 +197,8 @@ class Command(BaseCommand):
         if not followup_text.strip():
             return
 
-        # Enviar por WhatsApp
-        sender = WhatsAppSender()
+        # Enviar por el canal correspondiente
+        sender = get_sender(session.channel)
         wa_message_id = sender.send_text_message(session.wa_id, followup_text)
 
         # Guardar mensaje

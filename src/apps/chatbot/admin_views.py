@@ -16,7 +16,7 @@ from .serializers import (
     ChatMessageSerializer, SendMessageSerializer, ToggleAISerializer,
     ChatAnalyticsSerializer, PropertyVisitSerializer,
 )
-from .whatsapp_sender import WhatsAppSender
+from .channel_sender import get_sender
 
 logger = logging.getLogger(__name__)
 
@@ -111,8 +111,8 @@ class SendManualMessageView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Enviar por WhatsApp
-        sender = WhatsAppSender()
+        # Enviar por el canal correspondiente (WhatsApp, Instagram, Messenger)
+        sender = get_sender(session.channel)
         wa_message_id = sender.send_text_message(session.wa_id, content)
 
         # Crear mensaje

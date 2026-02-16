@@ -448,3 +448,9 @@ RENIEC_LEGACY_DB_NAME = env('RENIEC_LEGACY_DB_NAME', default='rutificador_bd')
 # OpenAI Configuration (Chatbot IA)
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
 WHATSAPP_WEBHOOK_VERIFY_TOKEN = env('WHATSAPP_WEBHOOK_VERIFY_TOKEN', default='casa_austin_webhook_2024')
+
+# Instagram Messaging API
+INSTAGRAM_ACCESS_TOKEN = env('INSTAGRAM_ACCESS_TOKEN', default='')
+
+# Facebook Messenger Page Access Token
+MESSENGER_PAGE_ACCESS_TOKEN = env('MESSENGER_PAGE_ACCESS_TOKEN', default='')

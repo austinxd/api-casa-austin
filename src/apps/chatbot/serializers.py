@@ -46,11 +46,12 @@ class ChatSessionListSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatSession
         fields = [
-            'id', 'wa_id', 'wa_profile_name', 'client', 'client_name',
-            'client_level', 'status', 'ai_enabled', 'current_intent',
-            'total_messages', 'ai_messages', 'human_messages',
-            'last_message_at', 'last_customer_message_at',
-            'last_message_preview', 'unread_count', 'created',
+            'id', 'wa_id', 'wa_profile_name', 'channel', 'client',
+            'client_name', 'client_level', 'status', 'ai_enabled',
+            'current_intent', 'total_messages', 'ai_messages',
+            'human_messages', 'last_message_at',
+            'last_customer_message_at', 'last_message_preview',
+            'unread_count', 'created',
         ]
 
     def get_last_message_preview(self, obj):
@@ -84,12 +85,12 @@ class ChatSessionDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatSession
         fields = [
-            'id', 'wa_id', 'wa_profile_name', 'client', 'client_name',
-            'client_info', 'status', 'ai_enabled', 'ai_paused_at',
-            'ai_paused_by', 'ai_resume_at', 'current_intent',
-            'conversation_context', 'total_messages', 'ai_messages',
-            'human_messages', 'last_message_at',
-            'last_customer_message_at', 'created',
+            'id', 'wa_id', 'wa_profile_name', 'channel', 'client',
+            'client_name', 'client_info', 'status', 'ai_enabled',
+            'ai_paused_at', 'ai_paused_by', 'ai_resume_at',
+            'current_intent', 'conversation_context',
+            'total_messages', 'ai_messages', 'human_messages',
+            'last_message_at', 'last_customer_message_at', 'created',
         ]
 
     def get_client_name(self, obj):

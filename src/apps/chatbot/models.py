@@ -5,7 +5,7 @@ from apps.core.models import BaseModel
 
 
 class ChatSession(BaseModel):
-    """Sesión de chat por contacto de WhatsApp"""
+    """Sesión de chat por contacto (WhatsApp, Instagram, Messenger)"""
 
     class StatusChoices(models.TextChoices):
         ACTIVE = 'active', 'Activa'
@@ -13,9 +13,19 @@ class ChatSession(BaseModel):
         CLOSED = 'closed', 'Cerrada'
         ESCALATED = 'escalated', 'Escalada'
 
+    class ChannelChoices(models.TextChoices):
+        WHATSAPP = 'whatsapp', 'WhatsApp'
+        INSTAGRAM = 'instagram', 'Instagram'
+        MESSENGER = 'messenger', 'Messenger'
+
+    channel = models.CharField(
+        max_length=15, choices=ChannelChoices.choices,
+        default=ChannelChoices.WHATSAPP, db_index=True,
+        help_text="Canal de comunicación"
+    )
     wa_id = models.CharField(
-        max_length=20, db_index=True,
-        help_text="Número WhatsApp formato 51XXXXXXXXX"
+        max_length=50, db_index=True,
+        help_text="ID del contacto: número WA (51XXX), IGSID (Instagram), o PSID (Messenger)"
     )
     wa_profile_name = models.CharField(max_length=150, null=True, blank=True)
     client = models.ForeignKey(
