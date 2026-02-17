@@ -100,6 +100,49 @@ class WhatsAppSender:
             logger.error(f"Error enviando interactive a {to}: {e}")
             return None
 
+    def send_template_message(self, to, template_name, language_code, components):
+        """
+        Envía un mensaje de plantilla aprobada por Meta (para mensajes fuera de ventana 24h).
+
+        Args:
+            to: Número WhatsApp (formato 51XXXXXXXXX)
+            template_name: Nombre de la plantilla aprobada en Meta
+            language_code: Código de idioma (ej: 'es')
+            components: Lista de componentes con parámetros, ej:
+                [{"type": "body", "parameters": [{"type": "text", "text": "Juan"}, ...]}]
+
+        Returns:
+            str|None: wa_message_id del mensaje enviado
+        """
+        payload = {
+            'messaging_product': 'whatsapp',
+            'recipient_type': 'individual',
+            'to': to,
+            'type': 'template',
+            'template': {
+                'name': template_name,
+                'language': {'code': language_code},
+                'components': components,
+            }
+        }
+
+        try:
+            response = requests.post(
+                self.api_url, json=payload,
+                headers=self.headers, timeout=15
+            )
+            response.raise_for_status()
+            data = response.json()
+            wa_message_id = data.get('messages', [{}])[0].get('id')
+            logger.info(f"WhatsApp template '{template_name}' enviado a {to}: {wa_message_id}")
+            return wa_message_id
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error enviando template '{template_name}' a {to}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response body: {e.response.text}")
+            return None
+
     def mark_as_read(self, wa_message_id):
         """Marca un mensaje como leído en WhatsApp"""
         payload = {

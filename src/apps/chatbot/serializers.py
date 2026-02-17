@@ -1,5 +1,8 @@
 from rest_framework import serializers
-from .models import ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics, PropertyVisit
+from .models import (
+    ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics,
+    PropertyVisit, PromoDateConfig, PromoDateSent,
+)
 
 
 def _get_client_level(client):
@@ -153,3 +156,48 @@ class ChatAnalyticsSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatAnalytics
         fields = '__all__'
+
+
+class PromoDateConfigSerializer(serializers.ModelSerializer):
+    discount_config_name = serializers.CharField(
+        source='discount_config.name', read_only=True, default=None
+    )
+    discount_percentage = serializers.DecimalField(
+        source='discount_config.discount_percentage',
+        max_digits=5, decimal_places=2,
+        read_only=True, default=None
+    )
+
+    class Meta:
+        model = PromoDateConfig
+        fields = [
+            'id', 'is_active', 'days_before_checkin', 'discount_config',
+            'discount_config_name', 'discount_percentage',
+            'wa_template_name', 'wa_template_language',
+            'max_promos_per_client', 'min_search_count',
+            'send_hour', 'exclude_recent_chatters',
+            'created', 'updated',
+        ]
+
+
+class PromoDateSentSerializer(serializers.ModelSerializer):
+    client_name = serializers.SerializerMethodField()
+    client_phone = serializers.CharField(source='client.tel_number', read_only=True)
+    discount_code_str = serializers.CharField(
+        source='discount_code.code', read_only=True, default=None
+    )
+
+    class Meta:
+        model = PromoDateSent
+        fields = [
+            'id', 'client', 'client_name', 'client_phone',
+            'check_in_date', 'check_out_date', 'guests',
+            'discount_code', 'discount_code_str',
+            'wa_message_id', 'message_content', 'pricing_snapshot',
+            'status', 'created',
+        ]
+
+    def get_client_name(self, obj):
+        if obj.client:
+            return f"{obj.client.first_name} {obj.client.last_name or ''}".strip()
+        return None

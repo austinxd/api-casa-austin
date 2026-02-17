@@ -260,6 +260,114 @@ class PropertyVisit(BaseModel):
         return f"Visita a {self.property} - {self.visit_date} - {self.visitor_name}"
 
 
+class PromoDateConfig(BaseModel):
+    """Configuración para promos automáticas por fechas buscadas (singleton)"""
+
+    is_active = models.BooleanField(default=False, help_text="Activar/desactivar envío automático de promos")
+    days_before_checkin = models.PositiveIntegerField(
+        default=3,
+        help_text="Días antes del check-in para enviar la promo"
+    )
+    discount_config = models.ForeignKey(
+        'property.DynamicDiscountConfig', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='promo_date_configs',
+        help_text="Configuración de descuento dinámico a usar para generar códigos"
+    )
+    wa_template_name = models.CharField(
+        max_length=100, default='promo_fecha_disponible',
+        help_text="Nombre de la plantilla aprobada en Meta"
+    )
+    wa_template_language = models.CharField(
+        max_length=10, default='es',
+        help_text="Código de idioma de la plantilla"
+    )
+    max_promos_per_client = models.PositiveIntegerField(
+        default=1,
+        help_text="Máximo de promos por cliente para una misma fecha"
+    )
+    min_search_count = models.PositiveIntegerField(
+        default=1,
+        help_text="Mínimo de búsquedas para calificar"
+    )
+    send_hour = models.TimeField(
+        default='09:00',
+        help_text="Hora del día para envío de promos"
+    )
+    exclude_recent_chatters = models.BooleanField(
+        default=True,
+        help_text="Excluir clientes con chat activo en las últimas 24h"
+    )
+
+    class Meta:
+        verbose_name = '🎯 Config Promo por Fechas'
+        verbose_name_plural = '🎯 Config Promo por Fechas'
+
+    def __str__(self):
+        status = "Activo" if self.is_active else "Inactivo"
+        return f"Promo Fechas ({status}) - {self.days_before_checkin} días antes"
+
+    def save(self, *args, **kwargs):
+        if not self.pk and PromoDateConfig.objects.exists():
+            existing = PromoDateConfig.objects.first()
+            self.pk = existing.pk
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_config(cls):
+        config, _ = cls.objects.get_or_create(
+            defaults={'is_active': False}
+        )
+        return config
+
+
+class PromoDateSent(BaseModel):
+    """Registro de promos enviadas para evitar duplicados"""
+
+    class StatusChoices(models.TextChoices):
+        SENT = 'sent', 'Enviado'
+        DELIVERED = 'delivered', 'Entregado'
+        READ = 'read', 'Leído'
+        CONVERTED = 'converted', 'Convertido'
+        FAILED = 'failed', 'Fallido'
+
+    client = models.ForeignKey(
+        'clients.Clients', on_delete=models.CASCADE,
+        related_name='promo_dates_sent'
+    )
+    check_in_date = models.DateField()
+    check_out_date = models.DateField()
+    guests = models.PositiveIntegerField()
+    discount_code = models.ForeignKey(
+        'property.DiscountCode', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='promo_dates'
+    )
+    wa_message_id = models.CharField(max_length=500, null=True, blank=True)
+    session = models.ForeignKey(
+        ChatSession, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='promo_dates'
+    )
+    message_content = models.TextField(
+        blank=True, default='',
+        help_text="Contenido/parámetros enviados"
+    )
+    pricing_snapshot = models.JSONField(
+        default=dict, blank=True,
+        help_text="Precios al momento del envío"
+    )
+    status = models.CharField(
+        max_length=15, choices=StatusChoices.choices,
+        default=StatusChoices.SENT
+    )
+
+    class Meta:
+        verbose_name = '📨 Promo Enviada'
+        verbose_name_plural = '📨 Promos Enviadas'
+        ordering = ['-created']
+
+    def __str__(self):
+        return f"Promo a {self.client} - {self.check_in_date} ({self.status})"
+
+
 class ChatAnalytics(BaseModel):
     """Métricas diarias del chatbot"""
 

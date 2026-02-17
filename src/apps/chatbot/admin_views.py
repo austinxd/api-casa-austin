@@ -10,11 +10,15 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.paginator import CustomPagination
-from .models import ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics, PropertyVisit
+from .models import (
+    ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics,
+    PropertyVisit, PromoDateConfig, PromoDateSent,
+)
 from .serializers import (
     ChatSessionListSerializer, ChatSessionDetailSerializer,
     ChatMessageSerializer, SendMessageSerializer, ToggleAISerializer,
     ChatAnalyticsSerializer, PropertyVisitSerializer,
+    PromoDateConfigSerializer, PromoDateSentSerializer,
 )
 from .channel_sender import get_sender
 
@@ -517,4 +521,123 @@ class FollowupOpportunitiesView(APIView):
             'quoted_count': quoted_no_conversion.count(),
             'followed_up_count': followed_up.count(),
             'results': results,
+        })
+
+
+class PromoConfigView(APIView):
+    """GET/PUT /promo-config/ — Configuración de promos automáticas"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        config = PromoDateConfig.get_config()
+        return Response(PromoDateConfigSerializer(config).data)
+
+    def put(self, request):
+        config = PromoDateConfig.get_config()
+        serializer = PromoDateConfigSerializer(config, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
+class PromoListView(ListAPIView):
+    """GET /promos/ — Historial de promos enviadas"""
+    serializer_class = PromoDateSentSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        qs = PromoDateSent.objects.filter(deleted=False).select_related(
+            'client', 'discount_code', 'session'
+        )
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        return qs.order_by('-created')
+
+
+class PromoPreviewView(APIView):
+    """GET /promos/preview/ — Preview de qué se enviaría hoy (dry-run)"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from datetime import date as date_cls
+        from apps.clients.models import SearchTracking
+        from apps.rentals.models import Reservation
+        from apps.chatbot.management.commands.send_promo_dates import select_best_search
+
+        config = PromoDateConfig.get_config()
+        if not config.is_active:
+            return Response({
+                'active': False,
+                'target_date': None,
+                'candidates': [],
+                'message': 'Promo automática desactivada',
+            })
+
+        today = date_cls.today()
+        target_date = today + timedelta(days=config.days_before_checkin)
+
+        # Buscar clientes
+        searches = SearchTracking.objects.filter(
+            check_in_date=target_date,
+            client__isnull=False,
+        ).select_related('client')
+
+        # Agrupar por cliente
+        client_searches = {}
+        for s in searches:
+            if s.client_id not in client_searches:
+                client_searches[s.client_id] = []
+            client_searches[s.client_id].append(s)
+
+        # Exclusiones
+        clients_with_reservation = set(
+            Reservation.objects.filter(
+                deleted=False,
+                status__in=['approved', 'pending', 'incomplete', 'under_review'],
+                check_in_date__lte=target_date,
+                check_out_date__gt=target_date,
+            ).values_list('client_id', flat=True)
+        )
+
+        clients_already_promo = set(
+            PromoDateSent.objects.filter(
+                check_in_date=target_date,
+                deleted=False,
+            ).values_list('client_id', flat=True)
+        )
+
+        candidates = []
+        for client_id, search_list in client_searches.items():
+            client = search_list[0].client
+
+            if client_id in clients_with_reservation:
+                continue
+            if client_id in clients_already_promo:
+                continue
+            if len(search_list) < config.min_search_count:
+                continue
+            if not client.tel_number:
+                continue
+
+            check_out_date, guests = select_best_search(search_list)
+
+            candidates.append({
+                'client_id': str(client.id),
+                'client_name': f"{client.first_name} {client.last_name or ''}".strip(),
+                'client_phone': client.tel_number,
+                'check_in_date': str(target_date),
+                'check_out_date': str(check_out_date),
+                'guests': guests,
+                'search_count': len(search_list),
+            })
+
+        return Response({
+            'active': True,
+            'target_date': str(target_date),
+            'discount_config': config.discount_config.name if config.discount_config else None,
+            'discount_percentage': float(config.discount_config.discount_percentage) if config.discount_config else None,
+            'candidates': candidates,
+            'total_candidates': len(candidates),
         })

@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics, PropertyVisit
+from .models import (
+    ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics,
+    PropertyVisit, PromoDateConfig, PromoDateSent,
+)
 
 
 @admin.register(ChatSession)
@@ -34,6 +37,20 @@ class PropertyVisitAdmin(admin.ModelAdmin):
     search_fields = ['visitor_name', 'visitor_phone']
     readonly_fields = ['created', 'updated']
     date_hierarchy = 'visit_date'
+
+
+@admin.register(PromoDateConfig)
+class PromoDateConfigAdmin(admin.ModelAdmin):
+    list_display = ['is_active', 'days_before_checkin', 'discount_config', 'wa_template_name', 'send_hour']
+
+
+@admin.register(PromoDateSent)
+class PromoDateSentAdmin(admin.ModelAdmin):
+    list_display = ['client', 'check_in_date', 'check_out_date', 'guests', 'discount_code', 'status', 'created']
+    list_filter = ['status', 'check_in_date']
+    search_fields = ['client__first_name', 'client__last_name', 'client__tel_number']
+    readonly_fields = ['created', 'updated']
+    date_hierarchy = 'check_in_date'
 
 
 @admin.register(ChatAnalytics)

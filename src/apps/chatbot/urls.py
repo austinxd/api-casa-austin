@@ -13,6 +13,9 @@ from .admin_views import (
     ChatAnalysisView,
     PropertyVisitListView,
     FollowupOpportunitiesView,
+    PromoConfigView,
+    PromoListView,
+    PromoPreviewView,
 )
 
 urlpatterns = [
@@ -35,4 +38,9 @@ urlpatterns = [
     path('analytics/', ChatAnalyticsView.as_view(), name='chatbot-analytics'),
     path('analysis/', ChatAnalysisView.as_view(), name='chatbot-analysis'),
     path('followups/', FollowupOpportunitiesView.as_view(), name='chatbot-followups'),
+
+    # Promos automáticas
+    path('promo-config/', PromoConfigView.as_view(), name='chatbot-promo-config'),
+    path('promos/', PromoListView.as_view(), name='chatbot-promos'),
+    path('promos/preview/', PromoPreviewView.as_view(), name='chatbot-promos-preview'),
 ]
