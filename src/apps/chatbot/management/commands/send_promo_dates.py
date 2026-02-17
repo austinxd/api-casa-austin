@@ -171,7 +171,7 @@ class Command(BaseCommand):
                     check_in_date=target_date,
                     check_out_date=check_out_date,
                     guests=guests,
-                    client=client,
+                    client_id=str(client.id),
                 )
             except Exception as e:
                 self.stdout.write(self.style.ERROR(
@@ -215,7 +215,7 @@ class Command(BaseCommand):
                     check_in_date=target_date,
                     check_out_date=check_out_date,
                     guests=guests,
-                    client=client,
+                    client_id=str(client.id),
                     discount_code=discount_code.code,
                 )
                 available_with_discount = [
