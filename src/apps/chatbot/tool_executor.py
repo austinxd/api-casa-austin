@@ -483,8 +483,27 @@ class ToolExecutor:
         if available_count == 0:
             alternatives = []
             today = date.today()
-            offsets = [-1, 1, 2, 7]  # día antes, después, +2, próxima semana
+
+            # Búsqueda amplia: día antes, +1, +2, +3, +4, +5, próxima semana, +2 semanas
+            offsets = [-1, 1, 2, 3, 4, 5, 7, 14]
+
+            # También buscar próximo viernes y sábado si no están en los offsets
+            days_until_friday = (4 - check_in_date.weekday()) % 7
+            if days_until_friday == 0:
+                days_until_friday = 7
+            days_until_saturday = (5 - check_in_date.weekday()) % 7
+            if days_until_saturday == 0:
+                days_until_saturday = 7
+            for extra in [days_until_friday, days_until_saturday]:
+                if extra not in offsets and extra > 0:
+                    offsets.append(extra)
+
+            offsets = sorted(set(offsets))
+            max_alternatives = 3  # Limitar a 3 para no saturar
+
             for offset in offsets:
+                if len(alternatives) >= max_alternatives:
+                    break
                 alt_in = check_in_date + timedelta(days=offset)
                 alt_out = alt_in + timedelta(days=nights)
                 if alt_in <= today:
@@ -506,6 +525,18 @@ class ToolExecutor:
             if alternatives:
                 formatted += "\n\n--- FECHAS ALTERNATIVAS DISPONIBLES ---\n\n"
                 formatted += "\n\n".join(alternatives)
+            else:
+                # No se encontraron alternativas cercanas
+                formatted += (
+                    "\n\n--- SIN ALTERNATIVAS CERCANAS ---"
+                    "\nNo se encontraron fechas disponibles en las próximas 2 semanas "
+                    "para este número de personas."
+                    "\n\nSUGERENCIAS PARA EL CLIENTE:"
+                    "\n- Preguntar si puede considerar fechas más adelante (siguiente mes)"
+                    "\n- Preguntar si puede reducir el número de personas (casas más pequeñas pueden tener disponibilidad)"
+                    "\n- Ofrecer avisarle si se libera alguna fecha"
+                    "\n- Preguntar si le interesa una fecha entre semana (generalmente más disponibilidad)"
+                )
 
         return formatted
 

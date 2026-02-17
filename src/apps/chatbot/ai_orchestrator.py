@@ -273,15 +273,34 @@ class AIOrchestrator:
                 "\n- Si dio fechas + personas, usa check_availability directo para cotizar."
             )
         elif not has_quote:
-            # Conversación activa pero sin cotización aún
-            parts.append(
-                "\n\nETAPA: SIN COTIZACIÓN AÚN"
-                "\n- Prioridad #1: Conseguir fechas."
-                "\n- Si el cliente da fechas sin personas → check_calendar (disponibilidad) → pregunta personas → check_availability (precios)."
-                "\n- Si el cliente da fechas + personas → check_availability directo."
-                "\n- Si ya llevas varios mensajes sin fechas, pregunta directamente:"
-                '\n  "¿Ya tienes fechas en mente? Te cotizo al instante 🏖️"'
-            )
+            # Verificar si ya hubo intentos de check_availability (fechas dadas pero sin disponibilidad)
+            had_availability_check = ChatMessage.objects.filter(
+                session=session,
+                deleted=False,
+                intent_detected='availability_check',
+            ).exists()
+
+            if had_availability_check:
+                # Cliente YA dio fechas pero no había disponibilidad
+                parts.append(
+                    "\n\nETAPA: SIN COTIZACIÓN — FECHAS YA PROPORCIONADAS (sin disponibilidad previa)"
+                    "\n- El cliente YA dio fechas y personas antes, pero no había disponibilidad."
+                    "\n- NO le pidas fechas ni personas de nuevo."
+                    "\n- Si el cliente dice 'ya te dije' o similar, RECONÓCELO y usa los datos del historial."
+                    "\n- Ofrece alternativas proactivamente: otros fines de semana, fechas entre semana, otro mes."
+                    "\n- Si el cliente da nuevas fechas → check_availability directo."
+                    "\n- Si no avanza: 'Entiendo que esas fechas estaban ocupadas. ¿Puedo buscar para otras fechas?'"
+                )
+            else:
+                # Conversación activa sin cotización y sin intentos previos
+                parts.append(
+                    "\n\nETAPA: SIN COTIZACIÓN AÚN"
+                    "\n- Prioridad #1: Conseguir fechas."
+                    "\n- Si el cliente da fechas sin personas → check_calendar (disponibilidad) → pregunta personas → check_availability (precios)."
+                    "\n- Si el cliente da fechas + personas → check_availability directo."
+                    "\n- Si ya llevas varios mensajes sin fechas, pregunta directamente:"
+                    '\n  "¿Ya tienes fechas en mente? Te cotizo al instante 🏖️"'
+                )
         else:
             # Ya tiene cotización — modo cierre
             parts.append(
