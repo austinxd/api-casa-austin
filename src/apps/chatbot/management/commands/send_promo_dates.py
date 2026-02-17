@@ -94,7 +94,7 @@ class Command(BaseCommand):
         self.stdout.write(f'Clientes únicos que buscaron {target_date}: {len(client_searches)}')
 
         # Filtrar clientes que ya tienen reserva activa/futura
-        from apps.rentals.models import Reservation
+        from apps.reservation.models import Reservation
         clients_with_reservation = set(
             Reservation.objects.filter(
                 deleted=False,

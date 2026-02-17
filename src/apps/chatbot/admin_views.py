@@ -563,7 +563,7 @@ class PromoPreviewView(APIView):
     def get(self, request):
         from datetime import date as date_cls
         from apps.clients.models import SearchTracking
-        from apps.rentals.models import Reservation
+        from apps.reservation.models import Reservation
         from apps.chatbot.management.commands.send_promo_dates import select_best_search
 
         config = PromoDateConfig.get_config()
