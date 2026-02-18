@@ -252,6 +252,10 @@ TOOL_DEFINITIONS = [
                 "Usar SOLO en estos casos:\n"
                 "- ready_to_book: El cliente dice explícitamente que quiere reservar YA "
                 "(ej: 'quiero reservar', 'cómo pago', 'listo, vamos', 'me interesa reservar').\n"
+                "- needs_human_assist: El cliente necesita atención humana para cerrar — "
+                "negociación de precio, propuesta de colaboración/canje, solicitud especial, "
+                "grupo corporativo con requisitos específicos, o cualquier situación que "
+                "el bot no puede resolver solo pero hay interés real del cliente.\n"
                 "- query_not_understood: No entiendes lo que el cliente pide o no puedes ayudarlo "
                 "con la información disponible.\n"
                 "NO usar para consultas normales de precio, disponibilidad o información general."
@@ -261,7 +265,7 @@ TOOL_DEFINITIONS = [
                 "properties": {
                     "reason": {
                         "type": "string",
-                        "enum": ["ready_to_book", "query_not_understood"],
+                        "enum": ["ready_to_book", "needs_human_assist", "query_not_understood"],
                         "description": "Tipo de alerta"
                     },
                     "details": {
@@ -1088,6 +1092,10 @@ class ToolExecutor:
             'ready_to_book': {
                 'title': f"🎯 Quiere reservar: {name}",
                 'type': 'chatbot_ready_to_book',
+            },
+            'needs_human_assist': {
+                'title': f"🤝 Necesita agente: {name}",
+                'type': 'chatbot_needs_human',
             },
             'query_not_understood': {
                 'title': f"❓ Consulta no entendida: {name}",
