@@ -2966,9 +2966,6 @@ class IngresosAnalysisView(APIView):
         data_text += f"- Propiedades activas: {property_count}\n"
         data_text += f"- Día {days_elapsed} de {days_in_month} del mes ({round(days_elapsed/days_in_month*100)}% del mes transcurrido)\n"
         if cur_month:
-            data_text += f"- Ingreso del mes hasta hoy: S/{cur_month['revenue']:,.0f}\n"
-            data_text += f"- Reservas del mes hasta hoy: {cur_month['reservations']}\n"
-            data_text += f"- Noches vendidas del mes hasta hoy: {cur_month['nights']}\n"
             # Reservas confirmadas para el resto del mes (check-ins futuros)
             remaining_reservations = Reservation.objects.filter(
                 check_in_date__gt=today,
@@ -2980,18 +2977,34 @@ class IngresosAnalysisView(APIView):
             remaining_revenue = float(
                 remaining_reservations.aggregate(total=Sum('price_sol'))['total'] or 0
             )
-            data_text += f"- Reservas confirmadas del {today.day + 1} al {days_in_month} de este mes: {remaining_count} (S/{remaining_revenue:,.0f})\n"
-            data_text += f"- Total estimado del mes (real + confirmado): S/{cur_month['revenue'] + remaining_revenue:,.0f}\n"
-            data_text += f"- Noches libres restantes este mes: {days_in_month - today.day} días del calendario por cubrir\n"
+            total_month_estimate = cur_month['revenue'] + remaining_revenue
+
+            data_text += f"\n### A) YA COBRADO (check-ins del 1 al {today.day}):\n"
+            data_text += f"- S/{cur_month['revenue']:,.0f} de {cur_month['reservations']} reservas ({cur_month['nights']} noches)\n"
+
+            data_text += f"\n### B) POR COBRAR (check-ins confirmados del {today.day + 1} al {days_in_month}):\n"
+            data_text += f"- S/{remaining_revenue:,.0f} de {remaining_count} reservas\n"
+
+            data_text += f"\n### C) TOTAL ESTIMADO DEL MES (A + B):\n"
+            data_text += f"- S/{total_month_estimate:,.0f}\n"
+            data_text += f"- Días del calendario sin reserva: {days_in_month - today.day - remaining_count} (oportunidad de venta)\n"
+
             if cur_month['target'] > 0:
-                data_text += f"- Meta del mes: S/{cur_month['target']:,.0f}\n"
-                total_month_estimate = cur_month['revenue'] + remaining_revenue
-                data_text += f"- Progreso vs meta (real + confirmado): {round(total_month_estimate / cur_month['target'] * 100)}%\n"
+                data_text += f"\n### D) META DEL MES:\n"
+                data_text += f"- Meta: S/{cur_month['target']:,.0f}\n"
+                pct = round(total_month_estimate / cur_month['target'] * 100)
+                if pct >= 100:
+                    data_text += f"- Ya superada: el estimado (A+B) es {pct}% de la meta\n"
+                else:
+                    gap = cur_month['target'] - total_month_estimate
+                    data_text += f"- Faltan S/{gap:,.0f} para alcanzar la meta ({pct}% cubierto)\n"
+
             prev_same_month = next(
                 (m for m in monthly_data if m['year'] == today.year - 1 and m['month'] == today.month), None
             )
             if prev_same_month:
-                data_text += f"- Mismo mes año anterior (completo): S/{prev_same_month['revenue']:,.0f} ({prev_same_month['reservations']} reservas, {prev_same_month['nights']} noches)\n"
+                data_text += f"\n### E) MISMO MES AÑO ANTERIOR ({today.year - 1}, mes completo):\n"
+                data_text += f"- S/{prev_same_month['revenue']:,.0f} de {prev_same_month['reservations']} reservas ({prev_same_month['nights']} noches)\n"
 
         # Distribución de precios
         data_text += f"\n## Distribución de Precios ({today.year})\n\n"
@@ -3015,8 +3028,11 @@ class IngresosAnalysisView(APIView):
             "---\n\n"
             "Con base en TODOS estos datos, genera este análisis (no repitas tablas de datos, interprétalos):\n\n"
             "## 1. Estado Actual\n"
-            "¿Cómo va el negocio hoy? Ingreso acumulado, ritmo vs año pasado, progreso del mes. "
-            "Sé específico con números.\n\n"
+            "¿Cómo va el negocio hoy? Diferencia claramente entre:\n"
+            "- Lo YA COBRADO (A): reservas que ya hicieron check-in\n"
+            "- Lo POR COBRAR (B): reservas confirmadas que aún no hicieron check-in\n"
+            "- El TOTAL ESTIMADO (A+B): lo que se espera cerrar el mes\n"
+            "No mezcles estos números. Indica también el ritmo vs año pasado.\n\n"
             "## 2. Comparación Interanual\n"
             "Análisis mes a mes de cómo va el año actual vs el anterior. "
             "¿Qué meses mejoraron? ¿Cuáles cayeron? ¿Por cuánto? "
