@@ -2604,19 +2604,23 @@ class IngresosStatsView(APIView):
         }
     
     def _calculate_revenue_growth(self, current_reservations, date_from, date_to, period):
-        """Calcular crecimiento de ingresos vs período anterior"""
+        """Calcular crecimiento de ingresos vs mismo período del año anterior"""
         from django.db.models import Sum
-        from datetime import timedelta
-        
+        from datetime import date as dt_date
+
         # Calcular ingresos período actual
         current_revenue = current_reservations.aggregate(Sum('price_sol'))['price_sol__sum'] or 0
         current_count = current_reservations.count()
-        
-        # Calcular período anterior (mismo rango de días)
-        period_days = (date_to - date_from).days
-        previous_date_to = date_from - timedelta(days=1)
-        previous_date_from = previous_date_to - timedelta(days=period_days)
-        
+
+        # Mismo período del año anterior (Ene 1 - Feb 18, 2026 → Ene 1 - Feb 18, 2025)
+        try:
+            previous_date_from = date_from.replace(year=date_from.year - 1)
+            previous_date_to = date_to.replace(year=date_to.year - 1)
+        except ValueError:
+            # 29 feb → 28 feb
+            previous_date_from = dt_date(date_from.year - 1, date_from.month, min(date_from.day, 28))
+            previous_date_to = dt_date(date_to.year - 1, date_to.month, min(date_to.day, 28))
+
         from apps.reservation.models import Reservation
         previous_reservations = Reservation.objects.filter(
             check_in_date__gte=previous_date_from,
@@ -2624,21 +2628,23 @@ class IngresosStatsView(APIView):
             status='approved',
             deleted=False,
         )
-        
+
         previous_revenue = previous_reservations.aggregate(Sum('price_sol'))['price_sol__sum'] or 0
         previous_count = previous_reservations.count()
-        
+
         # Calcular crecimiento
         revenue_growth = ((current_revenue - previous_revenue) / previous_revenue * 100) if previous_revenue > 0 else 0
         reservations_growth = ((current_count - previous_count) / previous_count * 100) if previous_count > 0 else 0
-        
+
         return {
             'revenue_growth_percentage': round(revenue_growth, 2),
             'reservations_growth_percentage': round(reservations_growth, 2),
             'current_period_revenue': round(current_revenue, 2),
             'previous_period_revenue': round(previous_revenue, 2),
             'current_period_reservations': current_count,
-            'previous_period_reservations': previous_count
+            'previous_period_reservations': previous_count,
+            'current_period_label': f"{date_from.strftime('%d %b %Y')} - {date_to.strftime('%d %b %Y')}",
+            'previous_period_label': f"{previous_date_from.strftime('%d %b %Y')} - {previous_date_to.strftime('%d %b %Y')}",
         }
 
 
