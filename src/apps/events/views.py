@@ -3266,8 +3266,8 @@ class IngresosAnalysisView(APIView):
             "Lista los 3-5 datos más valiosos que NO tienes y cómo cambiarían tu análisis."
         )
 
-        # --- Llamar a OpenAI (gpt-4.1: modelo completo para análisis profundo) ---
-        MODEL = "gpt-4.1"
+        # --- Llamar a OpenAI (gpt-4.1-mini: balance entre calidad y velocidad) ---
+        MODEL = "gpt-4.1-mini"
         client = openai.OpenAI(api_key=django_settings.OPENAI_API_KEY)
         response = client.chat.completions.create(
             model=MODEL,
