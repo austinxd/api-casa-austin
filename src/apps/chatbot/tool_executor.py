@@ -510,6 +510,43 @@ class ToolExecutor:
             self.session.quoted_at = timezone.now()
             self.session.save(update_fields=['quoted_at'])
 
+        # Registrar búsqueda en SearchTracking (dedup por cliente+fechas o wa_id+fechas)
+        try:
+            from apps.clients.models import SearchTracking
+            from apps.property.models import Property as PropModel
+            from django.utils import timezone as tz
+
+            prop_obj = None
+            if property_id:
+                prop_obj = PropModel.objects.filter(id=property_id).first()
+
+            lookup = {
+                'check_in_date': check_in_date,
+                'check_out_date': check_out_date,
+                'deleted': False,
+            }
+            if self.session.client:
+                lookup['client'] = self.session.client
+            else:
+                lookup['client__isnull'] = True
+                lookup['session_key'] = f'chatbot_{self.session.wa_id}'
+
+            defaults = {
+                'guests': int(guests),
+                'property': prop_obj,
+                'search_timestamp': tz.now(),
+                'user_agent': f'chatbot/{self.session.channel}',
+                'referrer': f'chatbot_session:{self.session.id}',
+            }
+            if self.session.client:
+                defaults['session_key'] = f'chatbot_{self.session.wa_id}'
+            else:
+                defaults['client'] = None
+
+            SearchTracking.objects.update_or_create(defaults=defaults, **lookup)
+        except Exception as e:
+            logger.warning(f"Error registrando SearchTracking desde chatbot: {e}")
+
         # Si ninguna propiedad está disponible, buscar alternativas
         if available_count == 0:
             alternatives = []
