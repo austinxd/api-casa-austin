@@ -3220,8 +3220,15 @@ class IngresosAnalysisView(APIView):
             "Indica escenario conservador (50-60% ocupación) y optimista (90-100%). "
             "Suma el total y compara ingreso actual + potencial vs la meta del mes.\n\n"
             "## 4. Proyección del Año\n"
-            "Basándote en el patrón estacional de años anteriores y el ritmo actual, "
-            "¿cómo cerrará el año? ¿Se alcanzarán las metas anuales?\n\n"
+            "IMPORTANTE: No asumas que el crecimiento de los primeros meses se mantiene todo el año. "
+            "Analiza MES POR MES usando el patrón estacional real de años anteriores. "
+            "Para cada mes futuro, toma el ingreso del mismo mes del año anterior y ajusta según: "
+            "(a) la tendencia de crecimiento observada en meses comparables, "
+            "(b) la estacionalidad (¿ese mes suele ser fuerte o débil?), "
+            "(c) factores atípicos (¿hubo un mes inusualmente alto/bajo que no se repetirá?). "
+            "Presenta la proyección mes a mes y el total estimado del año. "
+            "Sé crítico: si solo tienes 2 meses de datos del año actual, reconoce la incertidumbre. "
+            "¿Se alcanzarán las metas anuales?\n\n"
             "## 5. Análisis por Propiedad\n"
             "¿Qué casa rinde más? ¿Cuál tiene mejor tarifa promedio? "
             "¿Hay alguna casa con baja ocupación que necesite atención? "
@@ -3234,30 +3241,38 @@ class IngresosAnalysisView(APIView):
             "Basadas en los datos concretos de CADA PROPIEDAD y sus noches libres restantes. "
             "Ejemplo: 'Casa X tiene 3 noches libres de finde a S/450/noche — "
             "una promo podría generar S/1,350 adicionales'. "
-            "NO des consejos genéricos, solo específicos a estos datos y estas casas."
+            "NO des consejos genéricos, solo específicos a estos datos y estas casas.\n\n"
+            "## 8. Diagnóstico: ¿Qué datos faltan?\n"
+            "Evalúa la calidad de los datos recibidos. ¿Qué información adicional mejoraría "
+            "significativamente tus proyecciones y recomendaciones? Ejemplos: gastos operativos, "
+            "fuente de las reservas (Airbnb vs directa vs Booking), tasa de cancelación, "
+            "reviews/calificaciones, precios de la competencia, eventos locales, etc. "
+            "Lista los 3-5 datos más valiosos que NO tienes y cómo cambiarían tu análisis."
         )
 
-        # --- Llamar a OpenAI ---
+        # --- Llamar a OpenAI (o3-mini: modelo de razonamiento) ---
+        MODEL = "o3-mini"
         try:
             client = openai.OpenAI(api_key=django_settings.OPENAI_API_KEY)
             response = client.chat.completions.create(
-                model="gpt-4.1-nano",
-                temperature=0.3,
-                max_tokens=5000,
+                model=MODEL,
+                reasoning_effort="high",
+                max_completion_tokens=16000,
                 messages=[
-                    {"role": "system", "content": self.ANALYSIS_PROMPT},
+                    {"role": "developer", "content": self.ANALYSIS_PROMPT},
                     {"role": "user", "content": user_message},
                 ],
             )
 
             analysis_text = response.choices[0].message.content
-            tokens_used = response.usage.total_tokens if response.usage else 0
+            usage = response.usage
+            tokens_used = usage.total_tokens if usage else 0
 
             return Response({
                 'analysis': analysis_text,
                 'months_analyzed': len(monthly_data),
                 'tokens_used': tokens_used,
-                'model': 'gpt-4.1-nano',
+                'model': MODEL,
             })
 
         except Exception as e:
