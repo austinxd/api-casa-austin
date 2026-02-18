@@ -712,9 +712,11 @@ class ToolExecutor:
         # Instrucción para la IA (no visible al cliente)
         lines.append("")
         lines.append(
-            "[INSTRUCCIÓN IA: COPIA Y PEGA todo el texto de arriba EXACTAMENTE como está. "
-            "NO reformatees, NO agregues encabezados, NO cambies el orden. "
-            "Solo agrega una pregunta de cierre breve DESPUÉS de la cotización.]"
+            "[INSTRUCCIÓN IA — OBLIGATORIO]"
+            "\nTu respuesta DEBE ser EXACTAMENTE el texto de arriba copiado tal cual, carácter por carácter."
+            "\nPROHIBIDO: resumir, parafrasear, cambiar formato, quitar emojis, quitar asteriscos, juntar líneas."
+            "\nPROHIBIDO: escribir algo como 'el precio sería $X ó S/X' en prosa. La cotización YA está formateada."
+            "\nSolo agrega UNA pregunta de cierre breve DESPUÉS (ej: '¿Te animas a reservar? 😊')."
         )
 
         return '\n'.join(lines)

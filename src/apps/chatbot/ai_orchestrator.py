@@ -133,6 +133,19 @@ class AIOrchestrator:
                     "content": str(result),
                 })
 
+            # Si se usó check_availability, recordar copiar cotización verbatim
+            used_tools = [tc['name'] for tc in tool_calls_data]
+            if 'check_availability' in used_tools or 'check_late_checkout' in used_tools:
+                messages.append({
+                    "role": "system",
+                    "content": (
+                        "RECORDATORIO CRÍTICO: La herramienta devolvió una cotización FORMATEADA con emojis, "
+                        "asteriscos y saltos de línea. DEBES copiar y pegar ese texto EXACTAMENTE tal cual en tu "
+                        "respuesta. NO resumas los precios en una oración. NO cambies el formato. "
+                        "Después de la cotización, agrega solo una pregunta de cierre breve."
+                    ),
+                })
+
             # Segunda llamada con resultados de herramientas
             response2 = client.chat.completions.create(
                 model=model,
@@ -243,7 +256,7 @@ class AIOrchestrator:
             "\n- Responde SIEMPRE en español."
             "\n- NUNCA inventes precios ni disponibilidad. SIEMPRE usa las herramientas."
             "\n- Pregunta de disponibilidad sin personas → check_calendar. Con personas → check_availability."
-            "\n- Cuando una herramienta devuelva texto formateado, COPIA Y PEGA EXACTO. NO reformatees."
+            "\n- Cuando check_availability/check_late_checkout devuelvan cotización formateada, COPIA Y PEGA EXACTO carácter por carácter. PROHIBIDO resumir en prosa o cambiar formato."
             "\n- Si el cliente cambia personas o fechas, llama check_availability de nuevo."
             "\n- Para reservar: https://casaaustin.pe | Soporte: 📲 https://wa.me/51999902992 | 📞 +51 935 900 900"
         )
