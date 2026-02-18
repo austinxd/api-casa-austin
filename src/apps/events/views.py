@@ -2987,8 +2987,19 @@ class IngresosAnalysisView(APIView):
         last_of_month = date(today.year, today.month, days_in_month)
         properties = Property.objects.filter(deleted=False).order_by('name')
 
-        data_text += "| Casa | Ingreso | Reservas | Noches Vendidas | Noches Libres (resto del mes) |\n"
-        data_text += "|------|---------|----------|----------------|------------------------------|\n"
+        # Helper: contar noches de fin de semana (viernes y sábado) en un rango
+        def count_weekend_nights(start_date, end_date):
+            """Cuenta noches de viernes y sábado entre start_date y end_date (excluyendo end_date)."""
+            weekend = 0
+            d = start_date
+            while d < end_date:
+                if d.weekday() in (4, 5):  # viernes=4, sábado=5
+                    weekend += 1
+                d += timedelta(days=1)
+            return weekend
+
+        data_text += "| Casa | Ingreso | Reservas | Noches (sem/fds) | Prom/noche sem | Prom/noche fds | Libres sem | Libres fds |\n"
+        data_text += "|------|---------|----------|-----------------|---------------|---------------|-----------|----------|\n"
 
         for prop in properties:
             # Reservas del mes para esta casa
@@ -3003,14 +3014,31 @@ class IngresosAnalysisView(APIView):
                 prop_reservations.aggregate(total=Sum('price_sol'))['total'] or 0
             )
             prop_count = prop_reservations.count()
-            prop_nights = sum(
-                max((r.check_out_date - r.check_in_date).days, 0)
-                for r in prop_reservations
-            )
 
-            # Noches libres del resto del mes para esta casa
-            # Contar noches ocupadas desde mañana hasta fin de mes
-            occupied_future_nights = 0
+            # Desglose noches semana vs finde por reserva
+            prop_weekday_nights = 0
+            prop_weekend_nights = 0
+            prop_weekday_revenue = 0.0
+            prop_weekend_revenue = 0.0
+            for r in prop_reservations:
+                nights = max((r.check_out_date - r.check_in_date).days, 0)
+                if nights == 0:
+                    continue
+                wknd = count_weekend_nights(r.check_in_date, r.check_out_date)
+                wkdy = nights - wknd
+                prop_weekend_nights += wknd
+                prop_weekday_nights += wkdy
+                # Distribuir revenue proporcionalmente
+                price = float(r.price_sol) if r.price_sol else 0
+                per_night = price / nights
+                prop_weekday_revenue += per_night * wkdy
+                prop_weekend_revenue += per_night * wknd
+
+            avg_weekday = round(prop_weekday_revenue / prop_weekday_nights) if prop_weekday_nights > 0 else 0
+            avg_weekend = round(prop_weekend_revenue / prop_weekend_nights) if prop_weekend_nights > 0 else 0
+
+            # Noches libres del resto del mes — desglosadas semana/finde
+            occupied_dates = set()
             future_reservations = Reservation.objects.filter(
                 property=prop,
                 check_out_date__gt=today,
@@ -3021,17 +3049,33 @@ class IngresosAnalysisView(APIView):
             for r in future_reservations:
                 start = max(r.check_in_date, today + timedelta(days=1))
                 end = min(r.check_out_date, last_of_month + timedelta(days=1))
-                occupied_future_nights += max((end - start).days, 0)
+                d = start
+                while d < end:
+                    occupied_dates.add(d)
+                    d += timedelta(days=1)
 
-            remaining_days = (last_of_month - today).days
-            free_nights = max(remaining_days - occupied_future_nights, 0)
+            # Contar noches libres por tipo
+            free_weekday = 0
+            free_weekend = 0
+            d = today + timedelta(days=1)
+            while d <= last_of_month:
+                if d not in occupied_dates:
+                    if d.weekday() in (4, 5):
+                        free_weekend += 1
+                    else:
+                        free_weekday += 1
+                d += timedelta(days=1)
 
+            total_nights = prop_weekday_nights + prop_weekend_nights
             data_text += (
                 f"| {prop.name} "
                 f"| S/{prop_revenue:,.0f} "
                 f"| {prop_count} "
-                f"| {prop_nights} "
-                f"| {free_nights} de {remaining_days} |\n"
+                f"| {total_nights} ({prop_weekday_nights} sem / {prop_weekend_nights} fds) "
+                f"| S/{avg_weekday:,} "
+                f"| S/{avg_weekend:,} "
+                f"| {free_weekday} "
+                f"| {free_weekend} |\n"
             )
 
         # Detalle de reservas individuales por propiedad (mes actual)
@@ -3047,17 +3091,21 @@ class IngresosAnalysisView(APIView):
 
             if prop_detail_res.exists():
                 data_text += f"\n### {prop.name}\n\n"
-                data_text += "| Check-in | Check-out | Noches | Precio | Huéspedes |\n"
-                data_text += "|----------|-----------|--------|--------|----------|\n"
+                data_text += "| Check-in | Check-out | Noches (sem/fds) | Precio | S//noche | Huéspedes |\n"
+                data_text += "|----------|-----------|-----------------|--------|---------|----------|\n"
                 for r in prop_detail_res:
                     nights = max((r.check_out_date - r.check_in_date).days, 0)
                     price = float(r.price_sol) if r.price_sol else 0
+                    per_night = round(price / nights) if nights > 0 else 0
                     guests = r.guests
+                    wknd = count_weekend_nights(r.check_in_date, r.check_out_date)
+                    wkdy = nights - wknd
                     data_text += (
                         f"| {r.check_in_date.strftime('%d/%m')} "
                         f"| {r.check_out_date.strftime('%d/%m')} "
-                        f"| {nights} "
+                        f"| {nights} ({wkdy}sem/{wknd}fds) "
                         f"| S/{price:,.0f} "
+                        f"| S/{per_night:,} "
                         f"| {guests} |\n"
                     )
 
@@ -3118,9 +3166,11 @@ class IngresosAnalysisView(APIView):
             "¿Qué meses mejoraron? ¿Cuáles cayeron? ¿Por cuánto? "
             "Destaca los cambios más significativos.\n\n"
             "## 3. Proyección del Mes Actual\n"
-            "Con las noches libres que quedan por cada casa y los precios promedio por noche de cada una, "
-            "estima cuánto ingreso adicional podría generarse si se llenan esas noches. "
-            "Indica el rango: escenario conservador (ocupación parcial) y optimista (ocupación total). "
+            "IMPORTANTE: Los precios de fines de semana (viernes/sábado) son significativamente más altos "
+            "que los de días de semana. Usa los promedios diferenciados (sem vs fds) de cada casa "
+            "para proyectar el ingreso potencial de las noches libres restantes. "
+            "Calcula: (noches libres sem × prom/noche sem) + (noches libres fds × prom/noche fds) por casa. "
+            "Indica escenario conservador (50-60% ocupación) y optimista (90-100%). "
             "Compara con la meta del mes.\n\n"
             "## 4. Proyección del Año\n"
             "Basándote en el patrón estacional de años anteriores y el ritmo actual, "
