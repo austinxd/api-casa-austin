@@ -2998,8 +2998,16 @@ class IngresosAnalysisView(APIView):
                 d += timedelta(days=1)
             return weekend
 
-        data_text += "| Casa | Ingreso | Reservas | Noches (sem/fds) | Prom/noche sem | Prom/noche fds | Libres sem | Libres fds |\n"
-        data_text += "|------|---------|----------|-----------------|---------------|---------------|-----------|----------|\n"
+        tomorrow = today + timedelta(days=1)
+        remaining_days = (last_of_month - today).days
+        data_text += f"\n**Noches libres = solo del {tomorrow.strftime('%d/%m')} al {last_of_month.strftime('%d/%m')} ({remaining_days} noches restantes por casa). NO incluye días pasados.**\n"
+        data_text += f"**Fin de semana = noches de viernes y sábado.**\n\n"
+
+        data_text += "| Casa | Ingreso | Reservas | Noches vendidas (sem/fds) | Prom/noche sem | Prom/noche fds | Noches libres sem | Noches libres fds |\n"
+        data_text += "|------|---------|----------|--------------------------|---------------|---------------|------------------|------------------|\n"
+
+        total_free_weekday = 0
+        total_free_weekend = 0
 
         for prop in properties:
             # Reservas del mes para esta casa
@@ -3067,6 +3075,8 @@ class IngresosAnalysisView(APIView):
                 d += timedelta(days=1)
 
             total_nights = prop_weekday_nights + prop_weekend_nights
+            total_free_weekday += free_weekday
+            total_free_weekend += free_weekend
             data_text += (
                 f"| {prop.name} "
                 f"| S/{prop_revenue:,.0f} "
@@ -3077,6 +3087,13 @@ class IngresosAnalysisView(APIView):
                 f"| {free_weekday} "
                 f"| {free_weekend} |\n"
             )
+
+        total_free = total_free_weekday + total_free_weekend
+        data_text += (
+            f"\n**TOTAL noches libres restantes (todas las casas): "
+            f"{total_free} ({total_free_weekday} entre semana + {total_free_weekend} fin de semana). "
+            f"Estos son los ÚNICOS días disponibles para generar ingreso adicional.**\n"
+        )
 
         # Detalle de reservas individuales por propiedad (mes actual)
         data_text += f"\n## Detalle de Reservas por Casa — {calendar.month_name[today.month]} {today.year}\n\n"
@@ -3154,24 +3171,26 @@ class IngresosAnalysisView(APIView):
         user_message = (
             f"{data_text}\n\n"
             "---\n\n"
+            "REGLAS CRÍTICAS:\n"
+            "- Las 'noches libres' en los datos son SOLO del mañana hasta fin de mes. NO incluyen días pasados.\n"
+            "- NO calcules noches libres por tu cuenta (ej: 28 días - noches vendidas). Usa SOLO los números de la tabla.\n"
+            "- Fin de semana = noches de VIERNES y SÁBADO (tarifa más alta). Lunes a jueves = entre semana.\n"
+            "- El ingreso del mes ya incluye TODAS las reservas confirmadas (pasadas y futuras).\n\n"
             "Con base en TODOS estos datos, genera este análisis (no repitas tablas de datos, interprétalos):\n\n"
             "## 1. Estado Actual del Mes\n"
-            "El ingreso del mes incluye TODAS las reservas confirmadas (pasadas y futuras del mes). "
             "Analiza el rendimiento de CADA CASA por separado: cuánto generó cada una, "
-            "cuántas noches libres le quedan y cuál es su potencial de ingreso adicional. "
-            "Usa los datos del detalle de reservas para identificar patrones de precio y ocupación por propiedad. "
+            "cuántas noches libres le quedan (usa los datos de la tabla, no calcules tú) y cuál es su potencial. "
             "Compara vs el mismo mes del año anterior por propiedad.\n\n"
             "## 2. Comparación Interanual\n"
             "Análisis mes a mes de cómo va el año actual vs el anterior. "
             "¿Qué meses mejoraron? ¿Cuáles cayeron? ¿Por cuánto? "
             "Destaca los cambios más significativos.\n\n"
             "## 3. Proyección del Mes Actual\n"
-            "IMPORTANTE: Los precios de fines de semana (viernes/sábado) son significativamente más altos "
-            "que los de días de semana. Usa los promedios diferenciados (sem vs fds) de cada casa "
-            "para proyectar el ingreso potencial de las noches libres restantes. "
-            "Calcula: (noches libres sem × prom/noche sem) + (noches libres fds × prom/noche fds) por casa. "
+            "Usa SOLO las noches libres de la tabla (son futuras, no pasadas). "
+            "Los fines de semana (vie/sáb) tienen tarifa más alta que entre semana. "
+            "Calcula POR CADA CASA: (noches libres sem × prom/noche sem) + (noches libres fds × prom/noche fds). "
             "Indica escenario conservador (50-60% ocupación) y optimista (90-100%). "
-            "Compara con la meta del mes.\n\n"
+            "Suma el total y compara ingreso actual + potencial vs la meta del mes.\n\n"
             "## 4. Proyección del Año\n"
             "Basándote en el patrón estacional de años anteriores y el ritmo actual, "
             "¿cómo cerrará el año? ¿Se alcanzarán las metas anuales?\n\n"
@@ -3184,9 +3203,9 @@ class IngresosAnalysisView(APIView):
             "¿Qué meses son fuertes y cuáles débiles? ¿Se repite el patrón entre años? "
             "¿Cambió la duración promedio de estadía? ¿Cambió el precio por noche?\n\n"
             "## 7. Recomendaciones (3-5 accionables)\n"
-            "Basadas en los datos concretos de CADA PROPIEDAD. "
-            "Ejemplo: 'Casa X tiene 8 noches libres a fin de mes con promedio de S/350/noche — "
-            "una promo de última hora podría generar S/2,800 adicionales'. "
+            "Basadas en los datos concretos de CADA PROPIEDAD y sus noches libres restantes. "
+            "Ejemplo: 'Casa X tiene 3 noches libres de finde a S/450/noche — "
+            "una promo podría generar S/1,350 adicionales'. "
             "NO des consejos genéricos, solo específicos a estos datos y estas casas."
         )
 
