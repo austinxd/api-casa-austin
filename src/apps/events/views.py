@@ -2375,7 +2375,8 @@ class IngresosStatsView(APIView):
             reservations = Reservation.objects.filter(
                 check_in_date__gte=date_from,
                 check_in_date__lte=date_to,
-                status__in=['approved']  # Solo reservas válidas usando el estado correcto
+                status='approved',
+                deleted=False,
             )
             
             # Métricas generales de ingresos
@@ -2491,7 +2492,7 @@ class IngresosStatsView(APIView):
                 'period': current_date.isoformat(),
                 'period_label': period_label,
                 'revenue': round(period_revenue, 2),
-                'count': period_count,
+                'reservations_count': period_count,
                 'nights_count': period_nights,
                 'avg_revenue_per_reservation': round(period_revenue / period_count, 2) if period_count > 0 else 0,
                 'revenue_per_night': round(period_revenue / period_nights, 2) if period_nights > 0 else 0
@@ -2524,7 +2525,7 @@ class IngresosStatsView(APIView):
             for payment in payment_data:
                 payment_methods.append({
                     'payment_method': payment['payment_method'] or 'No especificado',
-                    'count': payment['count'],
+                    'reservations_count': payment['count'],
                     'total_revenue': round(payment['total_revenue'] or 0, 2),
                     'percentage': round((payment['total_revenue'] or 0) / total_revenue * 100, 2) if total_revenue > 0 else 0
                 })
@@ -2532,7 +2533,7 @@ class IngresosStatsView(APIView):
             # Si no hay campo payment_method, devolver estructura básica
             payment_methods.append({
                 'payment_method': 'Todos los métodos',
-                'count': reservations.count(),
+                'reservations_count': reservations.count(),
                 'total_revenue': round(reservations.aggregate(Sum('price_sol'))['price_sol__sum'] or 0, 2),
                 'percentage': 100.0
             })
@@ -2588,8 +2589,8 @@ class IngresosStatsView(APIView):
             ).count()
             
             price_distribution.append({
-                'range': price_range['label'],
-                'count': count,
+                'price_range': price_range['label'],
+                'reservations_count': count,
                 'percentage': round(count / reservations.count() * 100, 2) if reservations.count() > 0 else 0
             })
         
@@ -2599,7 +2600,7 @@ class IngresosStatsView(APIView):
             'max_total_cost': round(price_stats['max_price_sol'] or 0, 2),
             'avg_price_per_night': round(avg_price_per_night, 2),
             'avg_nights_per_reservation': round(avg_nights, 1),
-            'price_ranges': price_distribution
+            'price_distribution': price_distribution
         }
     
     def _calculate_revenue_growth(self, current_reservations, date_from, date_to, period):
@@ -2620,7 +2621,8 @@ class IngresosStatsView(APIView):
         previous_reservations = Reservation.objects.filter(
             check_in_date__gte=previous_date_from,
             check_in_date__lte=previous_date_to,
-            status__in=['approved']  # Usar el estado correcto del modelo
+            status='approved',
+            deleted=False,
         )
         
         previous_revenue = previous_reservations.aggregate(Sum('price_sol'))['price_sol__sum'] or 0
