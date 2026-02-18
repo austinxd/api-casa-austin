@@ -561,6 +561,7 @@ class PromoPreviewView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        import re
         from datetime import date as date_cls
         from apps.clients.models import SearchTracking
         from apps.reservation.models import Reservation
@@ -571,27 +572,40 @@ class PromoPreviewView(APIView):
             return Response({
                 'active': False,
                 'target_date': None,
-                'candidates': [],
+                'all_candidates': [],
+                'qualified': [],
                 'message': 'Promo automática desactivada',
             })
 
         today = date_cls.today()
         target_date = today + timedelta(days=config.days_before_checkin)
 
-        # Buscar clientes
+        # --- Clientes registrados ---
         searches = SearchTracking.objects.filter(
             check_in_date=target_date,
             client__isnull=False,
         ).select_related('client')
 
-        # Agrupar por cliente
         client_searches = {}
         for s in searches:
             if s.client_id not in client_searches:
                 client_searches[s.client_id] = []
             client_searches[s.client_id].append(s)
 
-        # Exclusiones
+        # --- Búsquedas anónimas del chatbot ---
+        chatbot_anon = SearchTracking.objects.filter(
+            check_in_date=target_date,
+            client__isnull=True,
+            session_key__startswith='chatbot_',
+        )
+        anon_searches = {}
+        for s in chatbot_anon:
+            wa_id = s.session_key.replace('chatbot_', '')
+            if wa_id not in anon_searches:
+                anon_searches[wa_id] = []
+            anon_searches[wa_id].append(s)
+
+        # --- Conjuntos de exclusión ---
         clients_with_reservation = set(
             Reservation.objects.filter(
                 deleted=False,
@@ -608,36 +622,112 @@ class PromoPreviewView(APIView):
             ).values_list('client_id', flat=True)
         )
 
-        candidates = []
+        clients_recent_chat = set()
+        if config.exclude_recent_chatters:
+            cutoff = timezone.now() - timedelta(hours=24)
+            clients_recent_chat = set(
+                ChatSession.objects.filter(
+                    deleted=False,
+                    client__isnull=False,
+                    last_customer_message_at__gte=cutoff,
+                ).values_list('client_id', flat=True)
+            )
+
+        # wa_ids de promos ya enviadas (para anónimos)
+        wa_ids_already_promo = set()
+        anon_promos = PromoDateSent.objects.filter(
+            check_in_date=target_date,
+            deleted=False,
+            client__isnull=True,
+        )
+        for p in anon_promos:
+            if p.message_content:
+                wa_ids_already_promo.add(p.message_content[:20])  # fallback
+
+        # wa_ids de clientes registrados (para dedup cruzado anónimos)
+        registered_phones = set()
+        for search_list in client_searches.values():
+            client = search_list[0].client
+            if client.tel_number:
+                digits = re.sub(r'\D', '', client.tel_number)
+                registered_phones.add(digits)
+
+        all_candidates = []
+        qualified = []
+
+        # --- Procesar clientes registrados ---
         for client_id, search_list in client_searches.items():
             client = search_list[0].client
-
-            if client_id in clients_with_reservation:
-                continue
-            if client_id in clients_already_promo:
-                continue
-            if len(search_list) < config.min_search_count:
-                continue
-            if not client.tel_number:
-                continue
-
             check_out_date, guests = select_best_search(search_list)
 
-            candidates.append({
+            candidate = {
                 'client_id': str(client.id),
                 'client_name': f"{client.first_name} {client.last_name or ''}".strip(),
-                'client_phone': client.tel_number,
+                'client_phone': client.tel_number or '',
                 'check_in_date': str(target_date),
                 'check_out_date': str(check_out_date),
                 'guests': guests,
                 'search_count': len(search_list),
-            })
+                'source': 'web',
+                'exclusion_reason': None,
+            }
+
+            # Determinar exclusión
+            if client_id in clients_with_reservation:
+                candidate['exclusion_reason'] = 'Tiene reserva activa'
+            elif client_id in clients_already_promo:
+                candidate['exclusion_reason'] = 'Ya recibió promo'
+            elif client_id in clients_recent_chat:
+                candidate['exclusion_reason'] = 'Chat activo < 24h'
+            elif len(search_list) < config.min_search_count:
+                candidate['exclusion_reason'] = f'Solo {len(search_list)} búsqueda(s)'
+            elif not client.tel_number:
+                candidate['exclusion_reason'] = 'Sin teléfono'
+
+            all_candidates.append(candidate)
+            if candidate['exclusion_reason'] is None:
+                qualified.append(candidate)
+
+        # --- Procesar búsquedas anónimas del chatbot ---
+        for wa_id, search_list in anon_searches.items():
+            check_out_date, guests = select_best_search(search_list)
+
+            # Buscar nombre en sesión de chat
+            session = ChatSession.objects.filter(
+                wa_id=wa_id, deleted=False,
+            ).order_by('-last_message_at').first()
+            name = session.wa_profile_name if session else wa_id
+
+            candidate = {
+                'client_id': None,
+                'client_name': name or wa_id,
+                'client_phone': wa_id,
+                'check_in_date': str(target_date),
+                'check_out_date': str(check_out_date),
+                'guests': guests,
+                'search_count': len(search_list),
+                'source': 'chatbot',
+                'exclusion_reason': None,
+            }
+
+            # Dedup: verificar si es un cliente registrado
+            digits = re.sub(r'\D', '', wa_id)
+            if digits in registered_phones:
+                candidate['exclusion_reason'] = 'Ya registrado como cliente'
+            elif len(search_list) < config.min_search_count:
+                candidate['exclusion_reason'] = f'Solo {len(search_list)} búsqueda(s)'
+
+            all_candidates.append(candidate)
+            if candidate['exclusion_reason'] is None:
+                qualified.append(candidate)
 
         return Response({
             'active': True,
             'target_date': str(target_date),
             'discount_config': config.discount_config.name if config.discount_config else None,
             'discount_percentage': float(config.discount_config.discount_percentage) if config.discount_config else None,
-            'candidates': candidates,
-            'total_candidates': len(candidates),
+            'all_candidates': all_candidates,
+            'qualified': qualified,
+            'total_candidates': len(all_candidates),
+            'total_qualified': len(qualified),
         })
