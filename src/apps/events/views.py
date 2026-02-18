@@ -2849,6 +2849,10 @@ class IngresosAnalysisView(APIView):
                 check_in_date__lte=last_day,
                 status='approved',
                 deleted=False,
+            ).exclude(
+                origin='man'
+            ).exclude(
+                price_sol__lte=0
             )
             revenue = float(
                 reservations.aggregate(total=Sum('price_sol'))['total'] or 0
@@ -2915,6 +2919,10 @@ class IngresosAnalysisView(APIView):
             check_in_date__lte=today,
             status='approved',
             deleted=False,
+        ).exclude(
+            origin='man'
+        ).exclude(
+            price_sol__lte=0
         )
         price_ranges = {'0-300': 0, '300-600': 0, '600-1000': 0, '1000-2000': 0, '2000+': 0}
         for r in cur_year_reservations:
@@ -2932,6 +2940,7 @@ class IngresosAnalysisView(APIView):
 
         # --- Construir datos para la IA ---
         data_text = "# DATOS DE INGRESOS — CASA AUSTIN\n\n"
+        data_text += "**NOTA: Se excluyen reservas de mantenimiento (origin=man) y reservas con ingreso S/0. Estas noches se consideran vacías/no alquiladas.**\n\n"
 
         # Agrupar datos por año y generar tablas separadas
         years_in_data = sorted(set(m['year'] for m in monthly_data))
@@ -3059,6 +3068,10 @@ class IngresosAnalysisView(APIView):
                 check_in_date__lte=last_of_month,
                 status='approved',
                 deleted=False,
+            ).exclude(
+                origin='man'
+            ).exclude(
+                price_sol__lte=0
             )
             prop_revenue = float(
                 prop_reservations.aggregate(total=Sum('price_sol'))['total'] or 0
@@ -3095,6 +3108,10 @@ class IngresosAnalysisView(APIView):
                 check_in_date__lte=last_of_month,
                 status='approved',
                 deleted=False,
+            ).exclude(
+                origin='man'
+            ).exclude(
+                price_sol__lte=0
             )
             for r in future_reservations:
                 start = max(r.check_in_date, today + timedelta(days=1))
@@ -3146,6 +3163,10 @@ class IngresosAnalysisView(APIView):
                 check_in_date__lte=last_of_month,
                 status='approved',
                 deleted=False,
+            ).exclude(
+                origin='man'
+            ).exclude(
+                price_sol__lte=0
             ).order_by('check_in_date')
 
             if prop_detail_res.exists():
@@ -3182,6 +3203,10 @@ class IngresosAnalysisView(APIView):
                     check_in_date__lte=prev_last,
                     status='approved',
                     deleted=False,
+                ).exclude(
+                    origin='man'
+                ).exclude(
+                    price_sol__lte=0
                 )
                 prev_prop_rev = float(
                     prev_prop_res.aggregate(total=Sum('price_sol'))['total'] or 0
