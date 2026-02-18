@@ -439,9 +439,9 @@ class ChatAnalysisView(APIView):
         try:
             client = openai.OpenAI(api_key=django_settings.OPENAI_API_KEY)
             response = client.chat.completions.create(
-                model="gpt-4.1-nano",
-                temperature=0.3,
-                max_tokens=4500,
+                model="gpt-4.1",
+                temperature=0.2,
+                max_tokens=8000,
                 messages=[
                     {"role": "system", "content": self.ANALYSIS_PROMPT},
                     {"role": "user", "content": user_message},
@@ -455,7 +455,7 @@ class ChatAnalysisView(APIView):
                 'analysis': analysis_text,
                 'sessions_analyzed': len(sessions),
                 'tokens_used': tokens_used,
-                'model': 'gpt-4.1-nano',
+                'model': 'gpt-4.1',
                 'analysis_prompt': self.ANALYSIS_PROMPT,
                 'chatbot_prompt': chatbot_prompt,
                 'conversations_sent': all_conversations,
