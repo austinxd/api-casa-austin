@@ -264,6 +264,32 @@ class PropertyVisitListView(ListAPIView):
         return qs.order_by('visit_date', 'visit_time')
 
 
+class PropertyVisitUpdateView(APIView):
+    """PATCH /visits/<id>/ — Actualizar estado de una visita"""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        try:
+            visit = PropertyVisit.objects.get(pk=pk, deleted=False)
+        except PropertyVisit.DoesNotExist:
+            return Response({'error': 'Visita no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+
+        new_status = request.data.get('status')
+        valid_statuses = [c[0] for c in PropertyVisit.StatusChoices.choices]
+        if new_status and new_status not in valid_statuses:
+            return Response(
+                {'error': f'Estado inválido. Opciones: {valid_statuses}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if new_status:
+            visit.status = new_status
+            visit.save(update_fields=['status', 'updated'])
+
+        serializer = PropertyVisitSerializer(visit)
+        return Response(serializer.data)
+
+
 class ChatAnalyticsView(APIView):
     """GET /analytics/?from=date&to=date — Métricas agregadas"""
     permission_classes = [IsAuthenticated]

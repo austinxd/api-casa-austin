@@ -12,6 +12,7 @@ from .admin_views import (
     ChatAnalyticsView,
     ChatAnalysisView,
     PropertyVisitListView,
+    PropertyVisitUpdateView,
     FollowupOpportunitiesView,
     PromoConfigView,
     PromoListView,
@@ -33,6 +34,7 @@ urlpatterns = [
 
     # Visitas
     path('visits/', PropertyVisitListView.as_view(), name='chatbot-visits'),
+    path('visits/<uuid:pk>/', PropertyVisitUpdateView.as_view(), name='chatbot-visit-update'),
 
     # Analytics
     path('analytics/', ChatAnalyticsView.as_view(), name='chatbot-analytics'),
