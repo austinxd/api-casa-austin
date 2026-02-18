@@ -287,17 +287,21 @@ class AIOrchestrator:
                     "\n- El cliente YA dio fechas y personas antes, pero no había disponibilidad."
                     "\n- NO le pidas fechas ni personas de nuevo."
                     "\n- Si el cliente dice 'ya te dije' o similar, RECONÓCELO y usa los datos del historial."
+                    "\n- Si el cliente da nuevas fechas → check_availability directo (si falta checkout, asume 1 noche)."
+                    "\n- Si el cliente da nuevas fechas + personas → check_availability INMEDIATO. NO preguntes más."
                     "\n- Ofrece alternativas proactivamente: otros fines de semana, fechas entre semana, otro mes."
-                    "\n- Si el cliente da nuevas fechas → check_availability directo."
                     "\n- Si no avanza: 'Entiendo que esas fechas estaban ocupadas. ¿Puedo buscar para otras fechas?'"
                 )
             else:
                 # Conversación activa sin cotización y sin intentos previos
                 parts.append(
                     "\n\nETAPA: SIN COTIZACIÓN AÚN"
-                    "\n- Prioridad #1: Conseguir fechas."
+                    "\n- Prioridad #1: Conseguir fechas y COTIZAR."
                     "\n- Si el cliente da fechas sin personas → check_calendar (disponibilidad) → pregunta personas → check_availability (precios)."
                     "\n- Si el cliente da fechas + personas → check_availability directo."
+                    "\n- Si el cliente ya dio fecha y personas en mensajes anteriores → USA check_availability AHORA. No preguntes más."
+                    "\n- Si solo tienes check-in sin check-out, asume 1 noche y cotiza."
+                    "\n- NUNCA respondas '¿quieres reservar?' o '¿te ayudo a elegir?' sin haber mostrado PRECIOS primero."
                     "\n- Si ya llevas varios mensajes sin fechas, pregunta directamente:"
                     '\n  "¿Ya tienes fechas en mente? Te cotizo al instante 🏖️"'
                 )
