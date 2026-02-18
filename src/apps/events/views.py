@@ -2780,3 +2780,178 @@ class MetasIngresosView(APIView):
             },
             'generated_at': timezone.now().isoformat()
         })
+
+
+class IngresosAnalysisView(APIView):
+    """
+    GET /api/v1/stats/ingresos/analysis/
+    Análisis IA de ingresos usando OpenAI gpt-4.1-nano.
+    Recopila 24 meses de datos y genera análisis con proyecciones.
+    """
+    permission_classes = [IsAuthenticated]
+
+    ANALYSIS_PROMPT = (
+        "Eres un analista financiero experto en alquiler vacacional. "
+        "Analiza los datos de ingresos proporcionados y genera un informe "
+        "completo en español con formato markdown. Sé directo, usa datos "
+        "concretos y porcentajes. Las cantidades están en soles peruanos (PEN)."
+    )
+
+    def get(self, request):
+        from django.conf import settings as django_settings
+        from datetime import date, timedelta
+        from apps.reservation.models import Reservation
+        from .models import MonthlyRevenueMeta
+        import calendar
+        import openai
+
+        today = timezone.now().date()
+        # Últimos 24 meses
+        start_date = date(today.year - 2, today.month, 1)
+
+        # --- Recopilar datos mensuales ---
+        monthly_data = []
+        current = start_date
+        while current <= today:
+            last_day = date(
+                current.year, current.month,
+                calendar.monthrange(current.year, current.month)[1]
+            )
+            reservations = Reservation.objects.filter(
+                check_in_date__gte=current,
+                check_in_date__lte=last_day,
+                status='approved',
+                deleted=False,
+            )
+            revenue = float(
+                reservations.aggregate(total=Sum('price_sol'))['total'] or 0
+            )
+            count = reservations.count()
+
+            total_nights = 0
+            for r in reservations:
+                nights = (r.check_out_date - r.check_in_date).days
+                if nights > 0:
+                    total_nights += nights
+
+            avg_per_night = round(revenue / total_nights, 2) if total_nights > 0 else 0
+
+            # Meta del mes
+            meta = MonthlyRevenueMeta.get_meta_for_month(current.month, current.year)
+            target = float(meta.target_amount) if meta else 0
+
+            monthly_data.append({
+                'year': current.year,
+                'month': current.month,
+                'month_name': calendar.month_name[current.month],
+                'revenue': round(revenue, 2),
+                'reservations': count,
+                'nights': total_nights,
+                'avg_per_night': avg_per_night,
+                'target': round(target, 2),
+            })
+
+            # Avanzar al siguiente mes
+            if current.month == 12:
+                current = date(current.year + 1, 1, 1)
+            else:
+                current = date(current.year, current.month + 1, 1)
+
+        # --- Progreso del mes actual ---
+        first_of_month = today.replace(day=1)
+        days_in_month = calendar.monthrange(today.year, today.month)[1]
+        days_elapsed = today.day
+        current_month_data = next(
+            (m for m in monthly_data
+             if m['year'] == today.year and m['month'] == today.month),
+            None
+        )
+
+        # --- Año actual vs anterior (mismo período) ---
+        current_year_total = sum(
+            m['revenue'] for m in monthly_data
+            if m['year'] == today.year and m['month'] <= today.month
+        )
+        prev_year_total = sum(
+            m['revenue'] for m in monthly_data
+            if m['year'] == today.year - 1 and m['month'] <= today.month
+        )
+
+        # --- Propiedades ---
+        from apps.property.models import Property
+        property_count = Property.objects.count()
+
+        # --- Construir mensaje para IA ---
+        data_text = "## Datos de Ingresos Mensuales (últimos 24 meses)\n\n"
+        data_text += "| Mes | Ingreso (PEN) | Reservas | Noches | Prom/Noche | Meta |\n"
+        data_text += "|-----|--------------|----------|--------|-----------|------|\n"
+        for m in monthly_data:
+            meta_str = f"S/{m['target']:,.0f}" if m['target'] > 0 else "Sin meta"
+            data_text += (
+                f"| {m['month_name']} {m['year']} "
+                f"| S/{m['revenue']:,.2f} "
+                f"| {m['reservations']} "
+                f"| {m['nights']} "
+                f"| S/{m['avg_per_night']:,.2f} "
+                f"| {meta_str} |\n"
+            )
+
+        data_text += f"\n## Contexto Actual\n"
+        data_text += f"- Fecha: {today.isoformat()}\n"
+        data_text += f"- Propiedades activas: {property_count}\n"
+        data_text += f"- Día {days_elapsed} de {days_in_month} del mes actual\n"
+        if current_month_data:
+            data_text += f"- Ingreso del mes actual hasta ahora: S/{current_month_data['revenue']:,.2f}\n"
+            if current_month_data['target'] > 0:
+                data_text += f"- Meta del mes actual: S/{current_month_data['target']:,.0f}\n"
+        data_text += f"- Ingreso acumulado {today.year} (ene-{today.strftime('%b')}): S/{current_year_total:,.2f}\n"
+        data_text += f"- Mismo período {today.year - 1}: S/{prev_year_total:,.2f}\n"
+
+        user_message = (
+            f"{data_text}\n\n"
+            "Con base en estos datos, genera el siguiente análisis:\n\n"
+            "## 1. Resumen Ejecutivo\n"
+            "Ingreso total del período, tendencia general, estado actual.\n\n"
+            "## 2. Análisis Mensual\n"
+            "Meses destacados (mejores y peores), comparación con metas cuando existan, "
+            "y comparación interanual mes a mes.\n\n"
+            "## 3. Proyecciones\n"
+            "- Proyección de cierre del mes actual (basado en ritmo de días transcurridos)\n"
+            "- Proyección de cierre del año (extrapolación + patrón estacional)\n"
+            "- Comparación de proyecciones con metas si existen\n\n"
+            "## 4. Estacionalidad\n"
+            "Patrones detectados, meses fuertes y débiles, tendencias recurrentes.\n\n"
+            "## 5. Insights y Recomendaciones\n"
+            "3 a 5 recomendaciones accionables basadas en los datos."
+        )
+
+        # --- Llamar a OpenAI ---
+        try:
+            client = openai.OpenAI(api_key=django_settings.OPENAI_API_KEY)
+            response = client.chat.completions.create(
+                model="gpt-4.1-nano",
+                temperature=0.3,
+                max_tokens=4500,
+                messages=[
+                    {"role": "system", "content": self.ANALYSIS_PROMPT},
+                    {"role": "user", "content": user_message},
+                ],
+            )
+
+            analysis_text = response.choices[0].message.content
+            tokens_used = response.usage.total_tokens if response.usage else 0
+
+            return Response({
+                'analysis': analysis_text,
+                'months_analyzed': len(monthly_data),
+                'tokens_used': tokens_used,
+                'model': 'gpt-4.1-nano',
+            })
+
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error en análisis IA de ingresos: {e}")
+            return Response(
+                {'error': f'Error al generar análisis: {str(e)}'},
+                status=500
+            )
