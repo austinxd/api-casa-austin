@@ -277,10 +277,47 @@ def register_client_activity_feed(client):
     except Exception as e:
         logger.error(f"❌ Error registrando actividad en feed para cliente {client.id}: {str(e)}")
 
+def link_chat_session_to_new_client(client):
+    """Vincula sesiones de chat sin cliente que coincidan por teléfono"""
+    try:
+        import re
+        from apps.chatbot.models import ChatSession
+
+        phone = client.tel_number
+        if not phone:
+            return
+
+        digits = re.sub(r'\D', '', phone)
+        variants = {digits}
+        if digits.startswith('51') and len(digits) > 9:
+            variants.add(digits[2:])
+        elif len(digits) == 9:
+            variants.add(f'51{digits}')
+        # También agregar con +
+        variants.add(f'+{digits}')
+
+        session = ChatSession.objects.filter(
+            wa_id__in=list(variants),
+            client__isnull=True,
+            deleted=False,
+        ).order_by('-last_message_at').first()
+
+        if session:
+            session.client = client
+            session.client_was_new = True  # Siempre True: el cliente se acaba de crear
+            session.save(update_fields=['client', 'client_was_new'])
+            logger.info(f"🤖 Sesión de chat {session.id} vinculada a nuevo cliente {client.id}")
+    except Exception as e:
+        logger.error(f"Error vinculando sesión de chat a nuevo cliente {client.id}: {e}")
+
+
 @receiver(post_save, sender=Clients)
 def update_audience_on_client_creation(sender, instance, created, **kwargs):
     if created:
         logger.debug(f"Nuevo cliente creado: {instance}")
+
+        # 🤖 Vincular sesiones de chat existentes sin cliente
+        link_chat_session_to_new_client(instance)
 
         # Generar código de referido si no existe
         if not instance.referral_code:

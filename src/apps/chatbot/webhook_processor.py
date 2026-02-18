@@ -360,8 +360,12 @@ class WebhookProcessor:
             ).first()
             if client:
                 session.client = client
-                session.save(update_fields=['client'])
-                logger.info(f"Cliente vinculado: {client.first_name} → sesión {session.id}")
+                session.client_was_new = client.created >= session.created
+                session.save(update_fields=['client', 'client_was_new'])
+                logger.info(
+                    f"Cliente vinculado: {client.first_name} → sesión {session.id} "
+                    f"(was_new={session.client_was_new})"
+                )
                 return
 
     def _normalize_phone_variants(self, wa_id):

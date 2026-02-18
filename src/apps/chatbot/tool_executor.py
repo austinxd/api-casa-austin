@@ -702,7 +702,8 @@ class ToolExecutor:
 
         if client:
             self.session.client = client
-            self.session.save(update_fields=['client'])
+            self.session.client_was_new = client.created >= self.session.created
+            self.session.save(update_fields=['client', 'client_was_new'])
             return (
                 f"Cliente identificado:\n"
                 f"- Nombre: {client.first_name} {client.last_name or ''}\n"

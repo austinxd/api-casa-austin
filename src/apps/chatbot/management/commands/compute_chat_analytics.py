@@ -89,8 +89,34 @@ class Command(BaseCommand):
             intent = msg.intent_detected
             intents[intent] = intents.get(intent, 0) + 1
 
-        # Teléfonos de sesiones de chat activas en últimos 3 días
-        # Normalizamos wa_id (formato 51XXXXXXXXX) para cruzar con tel_number
+        # === ATRIBUCIÓN DIRECTA (nuevos campos) ===
+
+        # Leads del bot: sesiones donde el cliente era nuevo y fue creado en target_date
+        bot_leads = ChatSession.objects.filter(
+            client_was_new=True,
+            client__created__date=target_date,
+            deleted=False,
+        ).count()
+
+        # Conversiones del bot: reservas vinculadas a sesiones donde el cliente era nuevo
+        from apps.reservation.models import Reservation
+        bot_conversions = Reservation.objects.filter(
+            chatbot_session__isnull=False,
+            chatbot_session__client_was_new=True,
+            created__date=target_date,
+            deleted=False,
+        ).count()
+
+        # Reservas de clientes recurrentes (ya eran clientes)
+        returning_client_reservations = Reservation.objects.filter(
+            chatbot_session__isnull=False,
+            chatbot_session__client_was_new=False,
+            created__date=target_date,
+            deleted=False,
+        ).count()
+
+        # === COMPATIBILIDAD: mantener campos legacy con ventana 3 días ===
+
         recent_chat_phones = set(
             ChatSession.objects.filter(
                 deleted=False,
@@ -99,17 +125,14 @@ class Command(BaseCommand):
             ).values_list('wa_id', flat=True)
         )
 
-        # Clientes nuevos atribuibles al chatbot:
-        # Registrados hoy cuyo teléfono coincide con un wa_id de chat reciente
         from apps.clients.models import Clients
         if recent_chat_phones:
-            # Variantes de teléfono: 51XXX, +51XXX, XXX
             phone_variants = set()
             for wa_id in recent_chat_phones:
-                phone_variants.add(wa_id)              # 51999888777
-                phone_variants.add(f'+{wa_id}')        # +51999888777
+                phone_variants.add(wa_id)
+                phone_variants.add(f'+{wa_id}')
                 if wa_id.startswith('51') and len(wa_id) == 11:
-                    phone_variants.add(wa_id[2:])      # 999888777
+                    phone_variants.add(wa_id[2:])
 
             clients_identified = Clients.objects.filter(
                 created__date=target_date,
@@ -119,9 +142,6 @@ class Command(BaseCommand):
         else:
             clients_identified = 0
 
-        # Reservas atribuibles al chatbot:
-        # Reservas creadas hoy por clientes vinculados a sesiones de chat recientes
-        from apps.reservation.models import Reservation
         recent_chat_clients = ChatSession.objects.filter(
             deleted=False,
             client__isnull=False,
@@ -150,6 +170,9 @@ class Command(BaseCommand):
                 'estimated_cost_usd': estimated_cost,
                 'reservations_created': reservations_created,
                 'clients_identified': clients_identified,
+                'bot_leads': bot_leads,
+                'bot_conversions': bot_conversions,
+                'returning_client_reservations': returning_client_reservations,
             }
         )
 

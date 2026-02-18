@@ -67,6 +67,10 @@ class ChatSession(BaseModel):
         default=0,
         help_text="Cantidad de follow-ups enviados"
     )
+    client_was_new = models.BooleanField(
+        null=True, blank=True, default=None,
+        help_text="True si el cliente no existía cuando inició el chat"
+    )
 
     class Meta:
         verbose_name = '💬 Sesión de Chat'
@@ -386,6 +390,18 @@ class ChatAnalytics(BaseModel):
     )
     reservations_created = models.PositiveIntegerField(default=0)
     clients_identified = models.PositiveIntegerField(default=0)
+    bot_leads = models.PositiveIntegerField(
+        default=0,
+        help_text="Clientes nuevos generados por el bot"
+    )
+    bot_conversions = models.PositiveIntegerField(
+        default=0,
+        help_text="Reservas de clientes nuevos del bot"
+    )
+    returning_client_reservations = models.PositiveIntegerField(
+        default=0,
+        help_text="Reservas de clientes existentes que chatearon"
+    )
 
     class Meta:
         verbose_name = '📊 Analítica del Chat'

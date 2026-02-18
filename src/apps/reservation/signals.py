@@ -810,7 +810,23 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
     if created:
         logger.info(f"🔥 SIGNAL EJECUTADO: Nueva reserva creada ID {instance.id} - Origen: {instance.origin} - Cliente: {instance.client}")
         notify_new_reservation(instance)
-        
+
+        # 🤖 ATRIBUCIÓN CHATBOT: Vincular reserva a sesión de chat reciente
+        if instance.client_id:
+            try:
+                from apps.chatbot.models import ChatSession
+                from datetime import timedelta as _td
+                chat_session = ChatSession.objects.filter(
+                    client_id=instance.client_id,
+                    deleted=False,
+                    last_message_at__gte=timezone.now() - _td(days=7),
+                ).order_by('-last_message_at').first()
+                if chat_session:
+                    Reservation.objects.filter(pk=instance.pk).update(chatbot_session=chat_session)
+                    logger.info(f"🤖 Reserva {instance.id} vinculada a sesión de chat {chat_session.id}")
+            except Exception as e:
+                logger.error(f"Error vinculando reserva {instance.id} a sesión de chat: {e}")
+
         # 📊 ACTIVITY FEED: Crear actividad para nueva reserva
         if instance.client and instance.origin in ['aus', 'client']:
             try:

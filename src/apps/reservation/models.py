@@ -131,6 +131,13 @@ class Reservation(BaseModel):
         default=False,
         help_text="Indica si ya se envió la notificación de pago aprobado por WhatsApp"
     )
+    chatbot_session = models.ForeignKey(
+        'chatbot.ChatSession',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='attributed_reservations',
+        help_text="Sesión de chat que influyó esta reserva"
+    )
 
     # Histórico de cambios - Auditoría completa
     history = HistoricalRecords(
