@@ -652,6 +652,35 @@ class PromoPreviewView(APIView):
                 digits = re.sub(r'\D', '', client.tel_number)
                 registered_phones.add(digits)
 
+        # --- Verificación rápida de disponibilidad ---
+        # Obtener todas las propiedades y reservas que cubren target_date
+        from apps.property.models import Property as PropModel
+        all_properties = list(PropModel.objects.filter(deleted=False))
+
+        # Reservas activas que cubren algún día del rango posible
+        blocking_reservations = Reservation.objects.filter(
+            deleted=False,
+            status__in=['approved', 'pending', 'under_review'],
+            check_in_date__lt=target_date + timedelta(days=30),  # margen amplio
+            check_out_date__gt=target_date,
+        ).values_list('property_id', 'check_in_date', 'check_out_date')
+
+        occupation = {}
+        for prop_id, ci, co in blocking_reservations:
+            occupation.setdefault(prop_id, []).append((ci, co))
+
+        def has_availability(ci, co):
+            """Verifica si hay al menos 1 propiedad libre en todo el rango ci→co."""
+            for prop in all_properties:
+                is_free = True
+                for (r_ci, r_co) in occupation.get(prop.id, []):
+                    if r_ci < co and r_co > ci:
+                        is_free = False
+                        break
+                if is_free:
+                    return True
+            return False
+
         all_candidates = []
         qualified = []
 
@@ -683,6 +712,8 @@ class PromoPreviewView(APIView):
                 candidate['exclusion_reason'] = f'Solo {len(search_list)} búsqueda(s)'
             elif not client.tel_number:
                 candidate['exclusion_reason'] = 'Sin teléfono'
+            elif not has_availability(target_date, check_out_date):
+                candidate['exclusion_reason'] = 'Sin disponibilidad'
 
             all_candidates.append(candidate)
             if candidate['exclusion_reason'] is None:
@@ -716,6 +747,8 @@ class PromoPreviewView(APIView):
                 candidate['exclusion_reason'] = 'Ya registrado como cliente'
             elif len(search_list) < config.min_search_count:
                 candidate['exclusion_reason'] = f'Solo {len(search_list)} búsqueda(s)'
+            elif not has_availability(target_date, check_out_date):
+                candidate['exclusion_reason'] = 'Sin disponibilidad'
 
             all_candidates.append(candidate)
             if candidate['exclusion_reason'] is None:
