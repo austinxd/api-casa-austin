@@ -199,6 +199,36 @@ TOOL_DEFINITIONS = [
     {
         "type": "function",
         "function": {
+            "name": "check_late_checkout",
+            "description": (
+                "Consulta precio y disponibilidad de late checkout (salida tardía hasta las 8PM). "
+                "Requiere el nombre de la propiedad y la fecha de checkout. "
+                "El precio es DINÁMICO y depende del día de la semana y disponibilidad. "
+                "NUNCA inventes el precio — SIEMPRE usa esta herramienta cuando el cliente pregunte por late checkout."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "property_name": {
+                        "type": "string",
+                        "description": "Nombre de la propiedad (ej: Casa Austin 2)"
+                    },
+                    "checkout_date": {
+                        "type": "string",
+                        "description": "Fecha de checkout en formato YYYY-MM-DD"
+                    },
+                    "guests": {
+                        "type": "integer",
+                        "description": "Número de huéspedes (por defecto 1)"
+                    }
+                },
+                "required": ["property_name", "checkout_date"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "escalate_to_human",
             "description": "Escala la conversación a un agente humano. Usar cuando el cliente lo solicita, cuando hay quejas, o cuando la IA no puede resolver la consulta.",
             "parameters": {
@@ -263,6 +293,7 @@ class ToolExecutor:
             'validate_discount_code': self._validate_discount_code,
             'get_property_info': self._get_property_info,
             'schedule_visit': self._schedule_visit,
+            'check_late_checkout': self._check_late_checkout,
             'escalate_to_human': self._escalate_to_human,
             'notify_team': self._notify_team,
         }
@@ -923,6 +954,61 @@ class ToolExecutor:
             f"- Personas: {guests_count}\n"
             f"El equipo de Casa Austin confirmará tu visita pronto."
         )
+
+    def _check_late_checkout(self, property_name, checkout_date, guests=1):
+        """Consulta precio y disponibilidad de late checkout."""
+        from apps.property.models import Property
+        from apps.property.pricing_service import PricingCalculationService
+
+        try:
+            checkout_dt = datetime.strptime(checkout_date, '%Y-%m-%d').date()
+        except ValueError:
+            return "Error: formato de fecha inválido. Usar YYYY-MM-DD"
+
+        prop = Property.objects.filter(
+            name__icontains=property_name, deleted=False
+        ).first()
+        if not prop:
+            return f"No se encontró propiedad con nombre '{property_name}'"
+
+        service = PricingCalculationService()
+        try:
+            result = service.calculate_late_checkout_pricing(prop, checkout_dt, int(guests))
+        except Exception as e:
+            logger.error(f"Error en check_late_checkout: {e}", exc_info=True)
+            return f"Error consultando late checkout: {str(e)}"
+
+        if not result.get('is_available'):
+            message = result.get('message', 'Late checkout no disponible')
+            return (
+                f"❌ Late checkout NO disponible para {prop.name} el {checkout_date}.\n"
+                f"Motivo: {message}"
+            )
+
+        base_usd = result.get('base_price_usd', 0)
+        base_sol = result.get('base_price_sol', 0)
+        final_usd = result.get('late_checkout_price_usd', base_usd)
+        final_sol = result.get('late_checkout_price_sol', base_sol)
+        discount_pct = result.get('discount_percentage', 0)
+
+        text = (
+            f"✅ *Late checkout disponible* — {prop.name}\n"
+            f"📅 Fecha: {checkout_date} ({result.get('checkout_day', '')})\n"
+            f"🕐 Salida extendida hasta las 8:00 PM\n"
+        )
+
+        if discount_pct > 0:
+            text += (
+                f"💰 Precio base noche: ${base_usd:.2f} / S/{base_sol:.2f}\n"
+                f"🏷️ Descuento late checkout: {discount_pct:.0f}%\n"
+                f"💵 *Precio late checkout: ${final_usd:.2f} / S/{final_sol:.2f}*\n"
+            )
+        else:
+            text += f"💵 *Precio late checkout: ${final_usd:.2f} / S/{final_sol:.2f}*\n"
+
+        text += "\n⚠️ El late checkout se solicita después de reservar, sujeto a disponibilidad."
+
+        return text
 
     def _escalate_to_human(self, reason):
         """Escala la conversación a un agente humano"""
