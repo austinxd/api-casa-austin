@@ -2967,16 +2967,31 @@ class IngresosAnalysisView(APIView):
         data_text += f"- Día {days_elapsed} de {days_in_month} del mes ({round(days_elapsed/days_in_month*100)}% del mes transcurrido)\n"
         if cur_month:
             data_text += f"- Ingreso del mes hasta hoy: S/{cur_month['revenue']:,.0f}\n"
-            projected = round(cur_month['revenue'] / days_elapsed * days_in_month) if days_elapsed > 0 else 0
-            data_text += f"- Proyección lineal de cierre del mes: S/{projected:,.0f}\n"
+            data_text += f"- Reservas del mes hasta hoy: {cur_month['reservations']}\n"
+            data_text += f"- Noches vendidas del mes hasta hoy: {cur_month['nights']}\n"
+            # Reservas confirmadas para el resto del mes (check-ins futuros)
+            remaining_reservations = Reservation.objects.filter(
+                check_in_date__gt=today,
+                check_in_date__lte=date(today.year, today.month, days_in_month),
+                status='approved',
+                deleted=False,
+            )
+            remaining_count = remaining_reservations.count()
+            remaining_revenue = float(
+                remaining_reservations.aggregate(total=Sum('price_sol'))['total'] or 0
+            )
+            data_text += f"- Reservas confirmadas del {today.day + 1} al {days_in_month} de este mes: {remaining_count} (S/{remaining_revenue:,.0f})\n"
+            data_text += f"- Total estimado del mes (real + confirmado): S/{cur_month['revenue'] + remaining_revenue:,.0f}\n"
+            data_text += f"- Noches libres restantes este mes: {days_in_month - today.day} días del calendario por cubrir\n"
             if cur_month['target'] > 0:
                 data_text += f"- Meta del mes: S/{cur_month['target']:,.0f}\n"
-                data_text += f"- Progreso vs meta: {round(cur_month['revenue'] / cur_month['target'] * 100)}%\n"
+                total_month_estimate = cur_month['revenue'] + remaining_revenue
+                data_text += f"- Progreso vs meta (real + confirmado): {round(total_month_estimate / cur_month['target'] * 100)}%\n"
             prev_same_month = next(
                 (m for m in monthly_data if m['year'] == today.year - 1 and m['month'] == today.month), None
             )
             if prev_same_month:
-                data_text += f"- Mismo mes año anterior (completo): S/{prev_same_month['revenue']:,.0f} ({prev_same_month['reservations']} reservas)\n"
+                data_text += f"- Mismo mes año anterior (completo): S/{prev_same_month['revenue']:,.0f} ({prev_same_month['reservations']} reservas, {prev_same_month['nights']} noches)\n"
 
         # Distribución de precios
         data_text += f"\n## Distribución de Precios ({today.year})\n\n"
@@ -3006,14 +3021,18 @@ class IngresosAnalysisView(APIView):
             "Análisis mes a mes de cómo va el año actual vs el anterior. "
             "¿Qué meses mejoraron? ¿Cuáles cayeron? ¿Por cuánto? "
             "Destaca los cambios más significativos.\n\n"
-            "## 3. Proyecciones\n"
-            "- Cierre del mes actual (basado en ritmo diario)\n"
-            "- Cierre del año (usando el patrón estacional de años anteriores)\n"
-            "- ¿Se alcanzarán las metas?\n\n"
-            "## 4. Patrones y Estacionalidad\n"
+            "## 3. Cierre del Mes Actual\n"
+            "Usa los datos de ingreso real + reservas confirmadas para el resto del mes. "
+            "NO hagas proyecciones lineales (dividir entre días transcurridos). "
+            "El ingreso real + confirmado es lo que va a entrar. Indica cuánto falta vs la meta "
+            "y qué tan factible es cubrirlo con las noches restantes libres.\n\n"
+            "## 4. Proyección del Año\n"
+            "Basándote en el patrón estacional de años anteriores, ¿cómo cerrará el año? "
+            "¿Se alcanzarán las metas anuales?\n\n"
+            "## 5. Patrones y Estacionalidad\n"
             "¿Qué meses son fuertes y cuáles débiles? ¿Se repite el patrón entre años? "
             "¿Cambió la duración promedio de estadía? ¿Cambió el precio por noche?\n\n"
-            "## 5. Recomendaciones (3-5 accionables)\n"
+            "## 6. Recomendaciones (3-5 accionables)\n"
             "Basadas en los datos concretos. Ejemplo: 'En marzo el ingreso cayó 30% vs 2025 "
             "porque las reservas bajaron de 12 a 8 — considerar promociones de última hora'. "
             "NO des consejos genéricos, solo específicos a estos datos."
