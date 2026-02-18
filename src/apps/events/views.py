@@ -2917,40 +2917,66 @@ class IngresosAnalysisView(APIView):
         # --- Construir datos para la IA ---
         data_text = "# DATOS DE INGRESOS — CASA AUSTIN\n\n"
 
-        # Tabla principal con comparación interanual
-        data_text += "## Tabla Mensual con Comparación Interanual\n\n"
-        data_text += "| Mes | Ingreso | Reservas | Noches | Prom/Noche | Prom Estadía | Prom/Reserva | vs Año Ant. | Meta |\n"
-        data_text += "|-----|---------|----------|--------|------------|-------------|-------------|------------|------|\n"
+        # Agrupar datos por año y generar tablas separadas
+        years_in_data = sorted(set(m['year'] for m in monthly_data))
 
-        for m in monthly_data:
-            # Buscar mismo mes del año anterior
-            prev_same = next(
-                (p for p in monthly_data if p['year'] == m['year'] - 1 and p['month'] == m['month']),
-                None
-            )
-            if prev_same and prev_same['revenue'] > 0:
-                yoy = round(((m['revenue'] - prev_same['revenue']) / prev_same['revenue']) * 100, 1)
-                yoy_str = f"{yoy:+.1f}%"
-            elif m['revenue'] > 0:
-                yoy_str = "nuevo"
+        for yr in years_in_data:
+            yr_months = [m for m in monthly_data if m['year'] == yr]
+            prev_yr = yr - 1
+
+            # Determinar si este año tiene datos del anterior para comparar
+            has_prev = any(m['year'] == prev_yr for m in monthly_data)
+
+            if yr == today.year:
+                data_text += f"## {yr} (AÑO ACTUAL — solo datos hasta {calendar.month_name[today.month]})\n\n"
             else:
-                yoy_str = "—"
+                data_text += f"## {yr} (año completo)\n\n"
 
-            meta_str = f"S/{m['target']:,.0f}" if m['target'] > 0 else "—"
-            data_text += (
-                f"| {m['month_name'][:3]} {m['year']} "
-                f"| S/{m['revenue']:,.0f} "
-                f"| {m['reservations']} "
-                f"| {m['nights']} "
-                f"| S/{m['avg_per_night']:,.0f} "
-                f"| {m['avg_stay']} noches "
-                f"| S/{m['avg_per_reservation']:,.0f} "
-                f"| {yoy_str} "
-                f"| {meta_str} |\n"
-            )
+            header = "| Mes | Ingreso | Reservas | Noches | Prom/Noche | Prom Estadía | Prom/Reserva"
+            sep = "|-----|---------|----------|--------|------------|-------------|-------------"
+            if has_prev:
+                header += f" | vs {prev_yr}"
+                sep += "|--------"
+            header += " | Meta |\n"
+            sep += "|------|\n"
+            data_text += header
+            data_text += sep
 
-        # Resumen acumulado
-        data_text += f"\n## Acumulado {today.year} vs {today.year - 1} (mismo período ene-{today.strftime('%b')})\n\n"
+            for m in yr_months:
+                row = (
+                    f"| {m['month_name'][:3]} "
+                    f"| S/{m['revenue']:,.0f} "
+                    f"| {m['reservations']} "
+                    f"| {m['nights']} "
+                    f"| S/{m['avg_per_night']:,.0f} "
+                    f"| {m['avg_stay']} noches "
+                    f"| S/{m['avg_per_reservation']:,.0f} "
+                )
+                if has_prev:
+                    prev_same = next(
+                        (p for p in monthly_data if p['year'] == prev_yr and p['month'] == m['month']),
+                        None
+                    )
+                    if prev_same and prev_same['revenue'] > 0:
+                        yoy = round(((m['revenue'] - prev_same['revenue']) / prev_same['revenue']) * 100, 1)
+                        row += f"| {yoy:+.1f}% "
+                    elif m['revenue'] > 0:
+                        row += "| nuevo "
+                    else:
+                        row += "| — "
+
+                meta_str = f"S/{m['target']:,.0f}" if m['target'] > 0 else "—"
+                row += f"| {meta_str} |\n"
+                data_text += row
+
+            # Subtotal del año
+            yr_revenue = sum(m['revenue'] for m in yr_months)
+            yr_reservations = sum(m['reservations'] for m in yr_months)
+            yr_nights = sum(m['nights'] for m in yr_months)
+            data_text += f"\n**Total {yr}:** S/{yr_revenue:,.0f} | {yr_reservations} reservas | {yr_nights} noches\n\n"
+
+        # Resumen acumulado (solo meses que existen en ambos años)
+        data_text += f"\n## Acumulado {today.year} vs {today.year - 1} (solo Ene-{calendar.month_name[today.month]}, mismo período)\n\n"
         data_text += f"| Métrica | {today.year} | {today.year - 1} | Variación |\n"
         data_text += f"|---------|------|------|----------|\n"
         data_text += f"| Ingreso total | S/{cum_cur:,.0f} | S/{cum_prev:,.0f} | {cum_growth:+.1f}% |\n"
@@ -3182,9 +3208,11 @@ class IngresosAnalysisView(APIView):
             "cuántas noches libres le quedan (usa los datos de la tabla, no calcules tú) y cuál es su potencial. "
             "Compara vs el mismo mes del año anterior por propiedad.\n\n"
             "## 2. Comparación Interanual\n"
-            "Análisis mes a mes de cómo va el año actual vs el anterior. "
-            "¿Qué meses mejoraron? ¿Cuáles cayeron? ¿Por cuánto? "
-            "Destaca los cambios más significativos.\n\n"
+            f"Los datos están separados por año. Para {today.year} SOLO existen datos hasta {calendar.month_name[today.month]}. "
+            f"NO menciones meses de {today.year} que aún no han ocurrido. "
+            f"Compara {today.year} (Ene-{calendar.month_name[today.month]}) vs el mismo período de {today.year - 1}. "
+            f"Para el año {today.year - 1} completo, compara vs {today.year - 2} donde haya datos. "
+            "¿Qué meses mejoraron? ¿Cuáles cayeron? Destaca los cambios más significativos.\n\n"
             "## 3. Proyección del Mes Actual\n"
             "Usa SOLO las noches libres de la tabla (son futuras, no pasadas). "
             "Los fines de semana (vie/sáb) tienen tarifa más alta que entre semana. "
