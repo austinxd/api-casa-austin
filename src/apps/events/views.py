@@ -2793,31 +2793,34 @@ class MetasIngresosView(APIView):
 class IngresosAnalysisView(APIView):
     """
     GET /api/v1/stats/ingresos/analysis/
-    Análisis IA de ingresos usando OpenAI gpt-4.1-nano.
-    Recopila 24 meses de datos y genera análisis con proyecciones.
+    Análisis IA de ingresos con datos enriquecidos: comparación interanual,
+    crecimiento por mes, métricas de estadía, distribución de precios.
     """
     permission_classes = [IsAuthenticated]
 
     ANALYSIS_PROMPT = (
-        "Eres un analista financiero experto en alquiler vacacional. "
-        "Analiza los datos de ingresos proporcionados y genera un informe "
-        "completo en español con formato markdown. Sé directo, usa datos "
-        "concretos y porcentajes. Las cantidades están en soles peruanos (PEN)."
+        "Eres un analista financiero senior especializado en alquiler vacacional en Perú. "
+        "El negocio son departamentos/casas vacacionales en Lima (Casa Austin). "
+        "Analiza los datos proporcionados y genera un informe ejecutivo en español con markdown. "
+        "Sé directo y concreto — usa cifras exactas, porcentajes y comparaciones. "
+        "Las cantidades están en soles peruanos (S/). "
+        "NO repitas los datos en tablas — interprétalos, encuentra patrones y da recomendaciones accionables. "
+        "El dueño del negocio quiere saber: ¿cómo voy vs el año pasado? ¿qué debo hacer diferente?"
     )
 
     def get(self, request):
         from django.conf import settings as django_settings
-        from datetime import date, timedelta
+        from datetime import date
         from apps.reservation.models import Reservation
         from .models import MonthlyRevenueMeta
+        from apps.property.models import Property
         import calendar
         import openai
 
         today = timezone.now().date()
-        # Últimos 24 meses
         start_date = date(today.year - 2, today.month, 1)
 
-        # --- Recopilar datos mensuales ---
+        # --- Recopilar datos mensuales (últimos ~24 meses) ---
         monthly_data = []
         current = start_date
         while current <= today:
@@ -2843,8 +2846,9 @@ class IngresosAnalysisView(APIView):
                     total_nights += nights
 
             avg_per_night = round(revenue / total_nights, 2) if total_nights > 0 else 0
+            avg_stay = round(total_nights / count, 1) if count > 0 else 0
+            avg_per_reservation = round(revenue / count, 2) if count > 0 else 0
 
-            # Meta del mes
             meta = MonthlyRevenueMeta.get_meta_for_month(current.month, current.year)
             target = float(meta.target_amount) if meta else 0
 
@@ -2856,81 +2860,163 @@ class IngresosAnalysisView(APIView):
                 'reservations': count,
                 'nights': total_nights,
                 'avg_per_night': avg_per_night,
+                'avg_stay': avg_stay,
+                'avg_per_reservation': avg_per_reservation,
                 'target': round(target, 2),
             })
 
-            # Avanzar al siguiente mes
             if current.month == 12:
                 current = date(current.year + 1, 1, 1)
             else:
                 current = date(current.year, current.month + 1, 1)
 
-        # --- Progreso del mes actual ---
-        first_of_month = today.replace(day=1)
+        # --- Contexto actual ---
         days_in_month = calendar.monthrange(today.year, today.month)[1]
         days_elapsed = today.day
-        current_month_data = next(
-            (m for m in monthly_data
-             if m['year'] == today.year and m['month'] == today.month),
-            None
+        cur_month = next(
+            (m for m in monthly_data if m['year'] == today.year and m['month'] == today.month), None
         )
-
-        # --- Año actual vs anterior (mismo período) ---
-        current_year_total = sum(
-            m['revenue'] for m in monthly_data
-            if m['year'] == today.year and m['month'] <= today.month
-        )
-        prev_year_total = sum(
-            m['revenue'] for m in monthly_data
-            if m['year'] == today.year - 1 and m['month'] <= today.month
-        )
-
-        # --- Propiedades ---
-        from apps.property.models import Property
         property_count = Property.objects.count()
 
-        # --- Construir mensaje para IA ---
-        data_text = "## Datos de Ingresos Mensuales (últimos 24 meses)\n\n"
-        data_text += "| Mes | Ingreso (PEN) | Reservas | Noches | Prom/Noche | Meta |\n"
-        data_text += "|-----|--------------|----------|--------|-----------|------|\n"
+        # --- Acumulados año actual vs anterior ---
+        cur_year_months = [m for m in monthly_data if m['year'] == today.year]
+        prev_year_months = [m for m in monthly_data if m['year'] == today.year - 1]
+        # Solo comparar hasta el mes actual
+        prev_comparable = [m for m in prev_year_months if m['month'] <= today.month]
+
+        cum_cur = sum(m['revenue'] for m in cur_year_months)
+        cum_prev = sum(m['revenue'] for m in prev_comparable)
+        cum_growth = round(((cum_cur - cum_prev) / cum_prev) * 100, 1) if cum_prev > 0 else 0
+
+        total_res_cur = sum(m['reservations'] for m in cur_year_months)
+        total_res_prev = sum(m['reservations'] for m in prev_comparable)
+        total_nights_cur = sum(m['nights'] for m in cur_year_months)
+        total_nights_prev = sum(m['nights'] for m in prev_comparable)
+
+        # --- Distribución de precios (año actual) ---
+        cur_year_reservations = Reservation.objects.filter(
+            check_in_date__gte=date(today.year, 1, 1),
+            check_in_date__lte=today,
+            status='approved',
+            deleted=False,
+        )
+        price_ranges = {'0-300': 0, '300-600': 0, '600-1000': 0, '1000-2000': 0, '2000+': 0}
+        for r in cur_year_reservations:
+            p = float(r.price_sol) if r.price_sol else 0
+            if p <= 300:
+                price_ranges['0-300'] += 1
+            elif p <= 600:
+                price_ranges['300-600'] += 1
+            elif p <= 1000:
+                price_ranges['600-1000'] += 1
+            elif p <= 2000:
+                price_ranges['1000-2000'] += 1
+            else:
+                price_ranges['2000+'] += 1
+
+        # --- Construir datos para la IA ---
+        data_text = "# DATOS DE INGRESOS — CASA AUSTIN\n\n"
+
+        # Tabla principal con comparación interanual
+        data_text += "## Tabla Mensual con Comparación Interanual\n\n"
+        data_text += "| Mes | Ingreso | Reservas | Noches | Prom/Noche | Prom Estadía | Prom/Reserva | vs Año Ant. | Meta |\n"
+        data_text += "|-----|---------|----------|--------|------------|-------------|-------------|------------|------|\n"
+
         for m in monthly_data:
-            meta_str = f"S/{m['target']:,.0f}" if m['target'] > 0 else "Sin meta"
+            # Buscar mismo mes del año anterior
+            prev_same = next(
+                (p for p in monthly_data if p['year'] == m['year'] - 1 and p['month'] == m['month']),
+                None
+            )
+            if prev_same and prev_same['revenue'] > 0:
+                yoy = round(((m['revenue'] - prev_same['revenue']) / prev_same['revenue']) * 100, 1)
+                yoy_str = f"{yoy:+.1f}%"
+            elif m['revenue'] > 0:
+                yoy_str = "nuevo"
+            else:
+                yoy_str = "—"
+
+            meta_str = f"S/{m['target']:,.0f}" if m['target'] > 0 else "—"
             data_text += (
-                f"| {m['month_name']} {m['year']} "
-                f"| S/{m['revenue']:,.2f} "
+                f"| {m['month_name'][:3]} {m['year']} "
+                f"| S/{m['revenue']:,.0f} "
                 f"| {m['reservations']} "
                 f"| {m['nights']} "
-                f"| S/{m['avg_per_night']:,.2f} "
+                f"| S/{m['avg_per_night']:,.0f} "
+                f"| {m['avg_stay']} noches "
+                f"| S/{m['avg_per_reservation']:,.0f} "
+                f"| {yoy_str} "
                 f"| {meta_str} |\n"
             )
 
-        data_text += f"\n## Contexto Actual\n"
-        data_text += f"- Fecha: {today.isoformat()}\n"
-        data_text += f"- Propiedades activas: {property_count}\n"
-        data_text += f"- Día {days_elapsed} de {days_in_month} del mes actual\n"
-        if current_month_data:
-            data_text += f"- Ingreso del mes actual hasta ahora: S/{current_month_data['revenue']:,.2f}\n"
-            if current_month_data['target'] > 0:
-                data_text += f"- Meta del mes actual: S/{current_month_data['target']:,.0f}\n"
-        data_text += f"- Ingreso acumulado {today.year} (ene-{today.strftime('%b')}): S/{current_year_total:,.2f}\n"
-        data_text += f"- Mismo período {today.year - 1}: S/{prev_year_total:,.2f}\n"
+        # Resumen acumulado
+        data_text += f"\n## Acumulado {today.year} vs {today.year - 1} (mismo período ene-{today.strftime('%b')})\n\n"
+        data_text += f"| Métrica | {today.year} | {today.year - 1} | Variación |\n"
+        data_text += f"|---------|------|------|----------|\n"
+        data_text += f"| Ingreso total | S/{cum_cur:,.0f} | S/{cum_prev:,.0f} | {cum_growth:+.1f}% |\n"
+        data_text += f"| Reservas | {total_res_cur} | {total_res_prev} | {round(((total_res_cur - total_res_prev) / total_res_prev) * 100, 1) if total_res_prev > 0 else 0:+.1f}% |\n"
+        data_text += f"| Noches vendidas | {total_nights_cur} | {total_nights_prev} | {round(((total_nights_cur - total_nights_prev) / total_nights_prev) * 100, 1) if total_nights_prev > 0 else 0:+.1f}% |\n"
+        avg_pn_cur = round(cum_cur / total_nights_cur, 0) if total_nights_cur > 0 else 0
+        avg_pn_prev = round(cum_prev / total_nights_prev, 0) if total_nights_prev > 0 else 0
+        data_text += f"| S/ por noche (prom) | S/{avg_pn_cur:,.0f} | S/{avg_pn_prev:,.0f} | {round(((avg_pn_cur - avg_pn_prev) / avg_pn_prev) * 100, 1) if avg_pn_prev > 0 else 0:+.1f}% |\n"
 
+        # Contexto actual
+        data_text += f"\n## Contexto Actual\n\n"
+        data_text += f"- Fecha de hoy: {today.isoformat()}\n"
+        data_text += f"- Propiedades activas: {property_count}\n"
+        data_text += f"- Día {days_elapsed} de {days_in_month} del mes ({round(days_elapsed/days_in_month*100)}% del mes transcurrido)\n"
+        if cur_month:
+            data_text += f"- Ingreso del mes hasta hoy: S/{cur_month['revenue']:,.0f}\n"
+            projected = round(cur_month['revenue'] / days_elapsed * days_in_month) if days_elapsed > 0 else 0
+            data_text += f"- Proyección lineal de cierre del mes: S/{projected:,.0f}\n"
+            if cur_month['target'] > 0:
+                data_text += f"- Meta del mes: S/{cur_month['target']:,.0f}\n"
+                data_text += f"- Progreso vs meta: {round(cur_month['revenue'] / cur_month['target'] * 100)}%\n"
+            prev_same_month = next(
+                (m for m in monthly_data if m['year'] == today.year - 1 and m['month'] == today.month), None
+            )
+            if prev_same_month:
+                data_text += f"- Mismo mes año anterior (completo): S/{prev_same_month['revenue']:,.0f} ({prev_same_month['reservations']} reservas)\n"
+
+        # Distribución de precios
+        data_text += f"\n## Distribución de Precios ({today.year})\n\n"
+        total_pr = sum(price_ranges.values())
+        for rng, cnt in price_ranges.items():
+            pct = round(cnt / total_pr * 100) if total_pr > 0 else 0
+            data_text += f"- S/{rng}: {cnt} reservas ({pct}%)\n"
+
+        # Mejores y peores meses del año actual
+        if cur_year_months:
+            best = max(cur_year_months, key=lambda m: m['revenue'])
+            worst = min([m for m in cur_year_months if m['revenue'] > 0], key=lambda m: m['revenue'], default=None)
+            data_text += f"\n## Extremos {today.year}\n\n"
+            data_text += f"- Mejor mes: {best['month_name']} — S/{best['revenue']:,.0f} ({best['reservations']} reservas)\n"
+            if worst and worst['month'] != best['month']:
+                data_text += f"- Peor mes: {worst['month_name']} — S/{worst['revenue']:,.0f} ({worst['reservations']} reservas)\n"
+
+        # Prompt para la IA
         user_message = (
             f"{data_text}\n\n"
-            "Con base en estos datos, genera el siguiente análisis:\n\n"
-            "## 1. Resumen Ejecutivo\n"
-            "Ingreso total del período, tendencia general, estado actual.\n\n"
-            "## 2. Análisis Mensual\n"
-            "Meses destacados (mejores y peores), comparación con metas cuando existan, "
-            "y comparación interanual mes a mes.\n\n"
+            "---\n\n"
+            "Con base en TODOS estos datos, genera este análisis (no repitas tablas de datos, interprétalos):\n\n"
+            "## 1. Estado Actual\n"
+            "¿Cómo va el negocio hoy? Ingreso acumulado, ritmo vs año pasado, progreso del mes. "
+            "Sé específico con números.\n\n"
+            "## 2. Comparación Interanual\n"
+            "Análisis mes a mes de cómo va el año actual vs el anterior. "
+            "¿Qué meses mejoraron? ¿Cuáles cayeron? ¿Por cuánto? "
+            "Destaca los cambios más significativos.\n\n"
             "## 3. Proyecciones\n"
-            "- Proyección de cierre del mes actual (basado en ritmo de días transcurridos)\n"
-            "- Proyección de cierre del año (extrapolación + patrón estacional)\n"
-            "- Comparación de proyecciones con metas si existen\n\n"
-            "## 4. Estacionalidad\n"
-            "Patrones detectados, meses fuertes y débiles, tendencias recurrentes.\n\n"
-            "## 5. Insights y Recomendaciones\n"
-            "3 a 5 recomendaciones accionables basadas en los datos."
+            "- Cierre del mes actual (basado en ritmo diario)\n"
+            "- Cierre del año (usando el patrón estacional de años anteriores)\n"
+            "- ¿Se alcanzarán las metas?\n\n"
+            "## 4. Patrones y Estacionalidad\n"
+            "¿Qué meses son fuertes y cuáles débiles? ¿Se repite el patrón entre años? "
+            "¿Cambió la duración promedio de estadía? ¿Cambió el precio por noche?\n\n"
+            "## 5. Recomendaciones (3-5 accionables)\n"
+            "Basadas en los datos concretos. Ejemplo: 'En marzo el ingreso cayó 30% vs 2025 "
+            "porque las reservas bajaron de 12 a 8 — considerar promociones de última hora'. "
+            "NO des consejos genéricos, solo específicos a estos datos."
         )
 
         # --- Llamar a OpenAI ---
@@ -2939,7 +3025,7 @@ class IngresosAnalysisView(APIView):
             response = client.chat.completions.create(
                 model="gpt-4.1-nano",
                 temperature=0.3,
-                max_tokens=4500,
+                max_tokens=5000,
                 messages=[
                     {"role": "system", "content": self.ANALYSIS_PROMPT},
                     {"role": "user", "content": user_message},
