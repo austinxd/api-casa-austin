@@ -2810,7 +2810,7 @@ class IngresosAnalysisView(APIView):
 
     def get(self, request):
         from django.conf import settings as django_settings
-        from datetime import date
+        from datetime import date, timedelta
         from apps.reservation.models import Reservation
         from .models import MonthlyRevenueMeta
         from apps.property.models import Property
@@ -2964,47 +2964,127 @@ class IngresosAnalysisView(APIView):
         data_text += f"\n## Contexto Actual\n\n"
         data_text += f"- Fecha de hoy: {today.isoformat()}\n"
         data_text += f"- Propiedades activas: {property_count}\n"
-        data_text += f"- Día {days_elapsed} de {days_in_month} del mes ({round(days_elapsed/days_in_month*100)}% del mes transcurrido)\n"
+        data_text += f"- Día {days_elapsed} de {days_in_month} del mes ({round(days_elapsed/days_in_month*100)}% transcurrido)\n"
+
         if cur_month:
-            # Reservas confirmadas para el resto del mes (check-ins futuros)
-            remaining_reservations = Reservation.objects.filter(
-                check_in_date__gt=today,
-                check_in_date__lte=date(today.year, today.month, days_in_month),
-                status='approved',
-                deleted=False,
-            )
-            remaining_count = remaining_reservations.count()
-            remaining_revenue = float(
-                remaining_reservations.aggregate(total=Sum('price_sol'))['total'] or 0
-            )
-            total_month_estimate = cur_month['revenue'] + remaining_revenue
-
-            data_text += f"\n### A) YA COBRADO (check-ins del 1 al {today.day}):\n"
-            data_text += f"- S/{cur_month['revenue']:,.0f} de {cur_month['reservations']} reservas ({cur_month['nights']} noches)\n"
-
-            data_text += f"\n### B) POR COBRAR (check-ins confirmados del {today.day + 1} al {days_in_month}):\n"
-            data_text += f"- S/{remaining_revenue:,.0f} de {remaining_count} reservas\n"
-
-            data_text += f"\n### C) TOTAL ESTIMADO DEL MES (A + B):\n"
-            data_text += f"- S/{total_month_estimate:,.0f}\n"
-            data_text += f"- Días del calendario sin reserva: {days_in_month - today.day - remaining_count} (oportunidad de venta)\n"
-
+            data_text += f"- Ingreso total del mes (todas las reservas confirmadas de este mes): S/{cur_month['revenue']:,.0f}\n"
+            data_text += f"- Reservas del mes: {cur_month['reservations']} ({cur_month['nights']} noches vendidas)\n"
             if cur_month['target'] > 0:
-                data_text += f"\n### D) META DEL MES:\n"
-                data_text += f"- Meta: S/{cur_month['target']:,.0f}\n"
-                pct = round(total_month_estimate / cur_month['target'] * 100)
-                if pct >= 100:
-                    data_text += f"- Ya superada: el estimado (A+B) es {pct}% de la meta\n"
-                else:
-                    gap = cur_month['target'] - total_month_estimate
-                    data_text += f"- Faltan S/{gap:,.0f} para alcanzar la meta ({pct}% cubierto)\n"
+                pct = round(cur_month['revenue'] / cur_month['target'] * 100)
+                data_text += f"- Meta del mes: S/{cur_month['target']:,.0f} — progreso: {pct}%\n"
+                if pct < 100:
+                    data_text += f"- Falta S/{cur_month['target'] - cur_month['revenue']:,.0f} para la meta\n"
 
             prev_same_month = next(
                 (m for m in monthly_data if m['year'] == today.year - 1 and m['month'] == today.month), None
             )
             if prev_same_month:
-                data_text += f"\n### E) MISMO MES AÑO ANTERIOR ({today.year - 1}, mes completo):\n"
-                data_text += f"- S/{prev_same_month['revenue']:,.0f} de {prev_same_month['reservations']} reservas ({prev_same_month['nights']} noches)\n"
+                data_text += f"- Mismo mes {today.year - 1} (completo): S/{prev_same_month['revenue']:,.0f} ({prev_same_month['reservations']} reservas, {prev_same_month['nights']} noches)\n"
+
+        # --- Desglose por propiedad (mes actual) ---
+        data_text += f"\n## Desglose por Propiedad — {calendar.month_name[today.month]} {today.year}\n\n"
+        first_of_month = date(today.year, today.month, 1)
+        last_of_month = date(today.year, today.month, days_in_month)
+        properties = Property.objects.filter(deleted=False).order_by('name')
+
+        data_text += "| Casa | Ingreso | Reservas | Noches Vendidas | Noches Libres (resto del mes) |\n"
+        data_text += "|------|---------|----------|----------------|------------------------------|\n"
+
+        for prop in properties:
+            # Reservas del mes para esta casa
+            prop_reservations = Reservation.objects.filter(
+                property=prop,
+                check_in_date__gte=first_of_month,
+                check_in_date__lte=last_of_month,
+                status='approved',
+                deleted=False,
+            )
+            prop_revenue = float(
+                prop_reservations.aggregate(total=Sum('price_sol'))['total'] or 0
+            )
+            prop_count = prop_reservations.count()
+            prop_nights = sum(
+                max((r.check_out_date - r.check_in_date).days, 0)
+                for r in prop_reservations
+            )
+
+            # Noches libres del resto del mes para esta casa
+            # Contar noches ocupadas desde mañana hasta fin de mes
+            occupied_future_nights = 0
+            future_reservations = Reservation.objects.filter(
+                property=prop,
+                check_out_date__gt=today,
+                check_in_date__lte=last_of_month,
+                status='approved',
+                deleted=False,
+            )
+            for r in future_reservations:
+                start = max(r.check_in_date, today + timedelta(days=1))
+                end = min(r.check_out_date, last_of_month + timedelta(days=1))
+                occupied_future_nights += max((end - start).days, 0)
+
+            remaining_days = (last_of_month - today).days
+            free_nights = max(remaining_days - occupied_future_nights, 0)
+
+            data_text += (
+                f"| {prop.name} "
+                f"| S/{prop_revenue:,.0f} "
+                f"| {prop_count} "
+                f"| {prop_nights} "
+                f"| {free_nights} de {remaining_days} |\n"
+            )
+
+        # Detalle de reservas individuales por propiedad (mes actual)
+        data_text += f"\n## Detalle de Reservas por Casa — {calendar.month_name[today.month]} {today.year}\n\n"
+        for prop in properties:
+            prop_detail_res = Reservation.objects.filter(
+                property=prop,
+                check_in_date__gte=first_of_month,
+                check_in_date__lte=last_of_month,
+                status='approved',
+                deleted=False,
+            ).order_by('check_in_date')
+
+            if prop_detail_res.exists():
+                data_text += f"\n### {prop.name}\n\n"
+                data_text += "| Check-in | Check-out | Noches | Precio | Huéspedes |\n"
+                data_text += "|----------|-----------|--------|--------|----------|\n"
+                for r in prop_detail_res:
+                    nights = max((r.check_out_date - r.check_in_date).days, 0)
+                    price = float(r.price_sol) if r.price_sol else 0
+                    guests = r.guests
+                    data_text += (
+                        f"| {r.check_in_date.strftime('%d/%m')} "
+                        f"| {r.check_out_date.strftime('%d/%m')} "
+                        f"| {nights} "
+                        f"| S/{price:,.0f} "
+                        f"| {guests} |\n"
+                    )
+
+        # Año anterior mismo mes por propiedad (para comparar)
+        if prev_same_month:
+            data_text += f"\n## Comparación con {calendar.month_name[today.month]} {today.year - 1} por casa\n\n"
+            prev_first = date(today.year - 1, today.month, 1)
+            prev_last = date(today.year - 1, today.month, calendar.monthrange(today.year - 1, today.month)[1])
+            data_text += "| Casa | Ingreso | Reservas | Noches |\n"
+            data_text += "|------|---------|----------|--------|\n"
+            for prop in properties:
+                prev_prop_res = Reservation.objects.filter(
+                    property=prop,
+                    check_in_date__gte=prev_first,
+                    check_in_date__lte=prev_last,
+                    status='approved',
+                    deleted=False,
+                )
+                prev_prop_rev = float(
+                    prev_prop_res.aggregate(total=Sum('price_sol'))['total'] or 0
+                )
+                prev_prop_count = prev_prop_res.count()
+                prev_prop_nights = sum(
+                    max((r.check_out_date - r.check_in_date).days, 0)
+                    for r in prev_prop_res
+                )
+                data_text += f"| {prop.name} | S/{prev_prop_rev:,.0f} | {prev_prop_count} | {prev_prop_nights} |\n"
 
         # Distribución de precios
         data_text += f"\n## Distribución de Precios ({today.year})\n\n"
@@ -3027,31 +3107,37 @@ class IngresosAnalysisView(APIView):
             f"{data_text}\n\n"
             "---\n\n"
             "Con base en TODOS estos datos, genera este análisis (no repitas tablas de datos, interprétalos):\n\n"
-            "## 1. Estado Actual\n"
-            "¿Cómo va el negocio hoy? Diferencia claramente entre:\n"
-            "- Lo YA COBRADO (A): reservas que ya hicieron check-in\n"
-            "- Lo POR COBRAR (B): reservas confirmadas que aún no hicieron check-in\n"
-            "- El TOTAL ESTIMADO (A+B): lo que se espera cerrar el mes\n"
-            "No mezcles estos números. Indica también el ritmo vs año pasado.\n\n"
+            "## 1. Estado Actual del Mes\n"
+            "El ingreso del mes incluye TODAS las reservas confirmadas (pasadas y futuras del mes). "
+            "Analiza el rendimiento de CADA CASA por separado: cuánto generó cada una, "
+            "cuántas noches libres le quedan y cuál es su potencial de ingreso adicional. "
+            "Usa los datos del detalle de reservas para identificar patrones de precio y ocupación por propiedad. "
+            "Compara vs el mismo mes del año anterior por propiedad.\n\n"
             "## 2. Comparación Interanual\n"
             "Análisis mes a mes de cómo va el año actual vs el anterior. "
             "¿Qué meses mejoraron? ¿Cuáles cayeron? ¿Por cuánto? "
             "Destaca los cambios más significativos.\n\n"
-            "## 3. Cierre del Mes Actual\n"
-            "Usa los datos de ingreso real + reservas confirmadas para el resto del mes. "
-            "NO hagas proyecciones lineales (dividir entre días transcurridos). "
-            "El ingreso real + confirmado es lo que va a entrar. Indica cuánto falta vs la meta "
-            "y qué tan factible es cubrirlo con las noches restantes libres.\n\n"
+            "## 3. Proyección del Mes Actual\n"
+            "Con las noches libres que quedan por cada casa y los precios promedio por noche de cada una, "
+            "estima cuánto ingreso adicional podría generarse si se llenan esas noches. "
+            "Indica el rango: escenario conservador (ocupación parcial) y optimista (ocupación total). "
+            "Compara con la meta del mes.\n\n"
             "## 4. Proyección del Año\n"
-            "Basándote en el patrón estacional de años anteriores, ¿cómo cerrará el año? "
-            "¿Se alcanzarán las metas anuales?\n\n"
-            "## 5. Patrones y Estacionalidad\n"
+            "Basándote en el patrón estacional de años anteriores y el ritmo actual, "
+            "¿cómo cerrará el año? ¿Se alcanzarán las metas anuales?\n\n"
+            "## 5. Análisis por Propiedad\n"
+            "¿Qué casa rinde más? ¿Cuál tiene mejor tarifa promedio? "
+            "¿Hay alguna casa con baja ocupación que necesite atención? "
+            "¿La cantidad de huéspedes por reserva varía entre casas? "
+            "¿Hay reservas con precios inusualmente bajos o altos que merezcan atención?\n\n"
+            "## 6. Patrones y Estacionalidad\n"
             "¿Qué meses son fuertes y cuáles débiles? ¿Se repite el patrón entre años? "
             "¿Cambió la duración promedio de estadía? ¿Cambió el precio por noche?\n\n"
-            "## 6. Recomendaciones (3-5 accionables)\n"
-            "Basadas en los datos concretos. Ejemplo: 'En marzo el ingreso cayó 30% vs 2025 "
-            "porque las reservas bajaron de 12 a 8 — considerar promociones de última hora'. "
-            "NO des consejos genéricos, solo específicos a estos datos."
+            "## 7. Recomendaciones (3-5 accionables)\n"
+            "Basadas en los datos concretos de CADA PROPIEDAD. "
+            "Ejemplo: 'Casa X tiene 8 noches libres a fin de mes con promedio de S/350/noche — "
+            "una promo de última hora podría generar S/2,800 adicionales'. "
+            "NO des consejos genéricos, solo específicos a estos datos y estas casas."
         )
 
         # --- Llamar a OpenAI ---
