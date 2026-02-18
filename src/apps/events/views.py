@@ -2816,7 +2816,23 @@ class IngresosAnalysisView(APIView):
         from apps.property.models import Property
         import calendar
         import openai
+        import traceback
 
+        try:
+            return self._generate_analysis(
+                django_settings, date, timedelta, Reservation,
+                MonthlyRevenueMeta, Property, calendar, openai
+            )
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error en análisis IA de ingresos: {traceback.format_exc()}")
+            return Response(
+                {'error': f'Error al generar análisis: {str(e)}', 'detail': traceback.format_exc()},
+                status=500
+            )
+
+    def _generate_analysis(self, django_settings, date, timedelta, Reservation,
+                           MonthlyRevenueMeta, Property, calendar, openai):
         today = timezone.now().date()
         start_date = date(today.year - 2, today.month, 1)
 
@@ -3252,33 +3268,24 @@ class IngresosAnalysisView(APIView):
 
         # --- Llamar a OpenAI (gpt-4.1: modelo completo para análisis profundo) ---
         MODEL = "gpt-4.1"
-        try:
-            client = openai.OpenAI(api_key=django_settings.OPENAI_API_KEY)
-            response = client.chat.completions.create(
-                model=MODEL,
-                temperature=0.2,
-                max_tokens=8000,
-                messages=[
-                    {"role": "system", "content": self.ANALYSIS_PROMPT},
-                    {"role": "user", "content": user_message},
-                ],
-            )
+        client = openai.OpenAI(api_key=django_settings.OPENAI_API_KEY)
+        response = client.chat.completions.create(
+            model=MODEL,
+            temperature=0.2,
+            max_tokens=8000,
+            messages=[
+                {"role": "system", "content": self.ANALYSIS_PROMPT},
+                {"role": "user", "content": user_message},
+            ],
+        )
 
-            analysis_text = response.choices[0].message.content
-            usage = response.usage
-            tokens_used = usage.total_tokens if usage else 0
+        analysis_text = response.choices[0].message.content
+        usage = response.usage
+        tokens_used = usage.total_tokens if usage else 0
 
-            return Response({
-                'analysis': analysis_text,
-                'months_analyzed': len(monthly_data),
-                'tokens_used': tokens_used,
-                'model': MODEL,
-            })
-
-        except Exception as e:
-            logger = logging.getLogger(__name__)
-            logger.error(f"Error en análisis IA de ingresos: {e}")
-            return Response(
-                {'error': f'Error al generar análisis: {str(e)}'},
-                status=500
-            )
+        return Response({
+            'analysis': analysis_text,
+            'months_analyzed': len(monthly_data),
+            'tokens_used': tokens_used,
+            'model': MODEL,
+        })
