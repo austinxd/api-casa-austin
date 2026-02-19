@@ -99,6 +99,7 @@ class Command(BaseCommand):
 
         sent_no_quote = 0
         sent_quoted = 0
+        skipped = 0
 
         # === 1. Sesiones SIN cotización ===
         no_quote_sessions = ChatSession.objects.filter(
@@ -115,6 +116,15 @@ class Command(BaseCommand):
 
         for session in no_quote_sessions:
             name = session.wa_profile_name or session.wa_id
+
+            # Saltar si un admin ya intervino o si el cliente tiene reserva activa
+            skip_reason = self._should_skip(session)
+            if skip_reason:
+                skipped += 1
+                if dry_run:
+                    self.stdout.write(f'[SKIP] {name}: {skip_reason}')
+                continue
+
             if dry_run:
                 self.stdout.write(f'[DRY] Sin cotización: {name} — último msg cliente: {session.last_customer_message_at}')
                 sent_no_quote += 1
@@ -142,6 +152,15 @@ class Command(BaseCommand):
 
         for session in quoted_sessions:
             name = session.wa_profile_name or session.wa_id
+
+            # Saltar si un admin ya intervino o si el cliente tiene reserva activa
+            skip_reason = self._should_skip(session)
+            if skip_reason:
+                skipped += 1
+                if dry_run:
+                    self.stdout.write(f'[SKIP] {name}: {skip_reason}')
+                continue
+
             if dry_run:
                 self.stdout.write(f'[DRY] Cotizada sin conversión: {name} — cotizada: {session.quoted_at}')
                 sent_quoted += 1
@@ -158,8 +177,40 @@ class Command(BaseCommand):
         action = 'Enviaría' if dry_run else 'Enviados'
         self.stdout.write(self.style.SUCCESS(
             f'{action}: {sent_no_quote} follow-ups sin cotización, '
-            f'{sent_quoted} follow-ups post-cotización.'
+            f'{sent_quoted} follow-ups post-cotización. '
+            f'Saltados: {skipped}.'
         ))
+
+    def _should_skip(self, session):
+        """Verifica si la sesión debe ser excluida del follow-up.
+
+        Returns:
+            str con la razón si debe saltarse, None si está ok.
+        """
+        from apps.reservation.models import Reservation
+        from datetime import date as date_type
+
+        # 1. Saltar si un admin ya respondió en esta sesión
+        has_admin_msg = ChatMessage.objects.filter(
+            session=session,
+            deleted=False,
+            direction=ChatMessage.DirectionChoices.OUTBOUND_HUMAN,
+        ).exists()
+        if has_admin_msg:
+            return 'admin ya intervino en la conversación'
+
+        # 2. Saltar si el cliente tiene reserva activa (aprobada/pendiente)
+        if session.client:
+            has_active_reservation = Reservation.objects.filter(
+                client=session.client,
+                deleted=False,
+                status__in=['approved', 'pending', 'incomplete'],
+                check_out_date__gte=date_type.today(),
+            ).exists()
+            if has_active_reservation:
+                return 'cliente tiene reserva activa'
+
+        return None
 
     def _send_followup(self, session, config, followup_type):
         """Genera y envía un mensaje de follow-up usando IA"""
