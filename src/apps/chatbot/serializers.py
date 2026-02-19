@@ -24,6 +24,7 @@ def _get_client_level(client):
 
 class ChatMessageSerializer(serializers.ModelSerializer):
     sent_by_name = serializers.SerializerMethodField()
+    media_url = serializers.SerializerMethodField()
 
     class Meta:
         model = ChatMessage
@@ -33,6 +34,18 @@ class ChatMessageSerializer(serializers.ModelSerializer):
             'intent_detected', 'confidence_score', 'ai_model',
             'tokens_used', 'tool_calls', 'sent_by', 'sent_by_name',
         ]
+
+    def get_media_url(self, obj):
+        if not obj.media_url:
+            return None
+        # Si ya es URL absoluta, devolverla tal cual
+        if obj.media_url.startswith('http'):
+            return obj.media_url
+        # Convertir path relativo a URL absoluta
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.media_url)
+        return obj.media_url
 
     def get_sent_by_name(self, obj):
         if obj.sent_by:

@@ -266,12 +266,74 @@ class WebhookProcessor:
         return None
 
     def _extract_whatsapp_media_url(self, message, msg_type):
-        """Extrae URL de medios de WhatsApp"""
+        """Descarga medios de WhatsApp y los guarda localmente.
+
+        WhatsApp Cloud API envía un media ID. Se hace:
+        1. GET /media_id → obtener URL temporal de descarga
+        2. GET url → descargar el archivo con Authorization header
+        3. Guardar en MEDIA_ROOT/chatbot/ y devolver URL pública
+        """
         media_fields = {'image': 'image', 'audio': 'audio', 'document': 'document'}
-        if msg_type in media_fields:
-            media = message.get(media_fields[msg_type], {})
-            return media.get('link') or media.get('url')
-        return None
+        if msg_type not in media_fields:
+            return None
+
+        media = message.get(media_fields[msg_type], {})
+        media_id = media.get('id')
+        if not media_id:
+            return None
+
+        access_token = os.getenv('WHATSAPP_ACCESS_TOKEN')
+        if not access_token:
+            logger.warning("WHATSAPP_ACCESS_TOKEN no configurado, no se puede obtener media")
+            return None
+
+        auth_header = {'Authorization': f'Bearer {access_token}'}
+
+        try:
+            # Paso 1: obtener URL temporal
+            resp = requests.get(
+                f"https://graph.facebook.com/v22.0/{media_id}",
+                headers=auth_header,
+                timeout=10,
+            )
+            resp.raise_for_status()
+            download_url = resp.json().get('url')
+            mime_type = resp.json().get('mime_type', '')
+            if not download_url:
+                return None
+
+            # Paso 2: descargar el archivo
+            media_resp = requests.get(
+                download_url,
+                headers=auth_header,
+                timeout=30,
+            )
+            media_resp.raise_for_status()
+
+            # Paso 3: guardar localmente
+            from django.conf import settings as dj_settings
+            ext_map = {
+                'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp',
+                'audio/ogg': '.ogg', 'audio/mpeg': '.mp3',
+                'application/pdf': '.pdf',
+            }
+            ext = ext_map.get(mime_type, '.bin')
+            filename = f"{media_id}{ext}"
+
+            media_dir = os.path.join(dj_settings.MEDIA_ROOT, 'chatbot')
+            os.makedirs(media_dir, exist_ok=True)
+            filepath = os.path.join(media_dir, filename)
+
+            with open(filepath, 'wb') as f:
+                f.write(media_resp.content)
+
+            local_url = f"{dj_settings.MEDIA_URL}chatbot/{filename}"
+            logger.info(f"Media guardado: {media_id} → {local_url}")
+            return local_url
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error descargando media {media_id}: {e}")
+            return None
 
     # =============================================
     # Session management

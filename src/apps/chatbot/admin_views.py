@@ -146,7 +146,7 @@ class SendManualMessageView(APIView):
         ])
 
         return Response(
-            ChatMessageSerializer(message).data,
+            ChatMessageSerializer(message, context={'request': request}).data,
             status=status.HTTP_201_CREATED
         )
 
@@ -239,7 +239,7 @@ class ChatSessionPollView(APIView):
 
         return Response({
             'sessions': ChatSessionListSerializer(sessions, many=True).data,
-            'new_messages': ChatMessageSerializer(new_messages, many=True).data,
+            'new_messages': ChatMessageSerializer(new_messages, many=True, context={'request': request}).data,
             'server_time': timezone.now().isoformat(),
         })
 
