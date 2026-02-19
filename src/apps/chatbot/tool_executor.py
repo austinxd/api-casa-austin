@@ -710,22 +710,22 @@ class ToolExecutor:
             f"https://casaaustin.pe/disponibilidad?checkIn={url_ci}&checkOut={url_co}&guests={guests}"
         )
 
-        if guests <= 1:
-            lines.append("")
-            lines.append(
-                "⚠️ PRECIO BASE PARA 1 PERSONA. "
-                "Pregunta cuántas personas serán y llama check_availability de nuevo para recotizar."
-            )
-
-        # Instrucción para la IA (no visible al cliente)
+        # Instrucción para la IA (NO visible al cliente)
         lines.append("")
-        lines.append(
-            "[INSTRUCCIÓN IA — OBLIGATORIO]"
+        ia_instruction = (
+            "[INSTRUCCIÓN IA — OBLIGATORIO — NO MOSTRAR AL CLIENTE]"
             "\nTu respuesta DEBE ser EXACTAMENTE el texto de arriba copiado tal cual, carácter por carácter."
             "\nPROHIBIDO: resumir, parafrasear, cambiar formato, quitar emojis, quitar asteriscos, juntar líneas."
             "\nPROHIBIDO: escribir algo como 'el precio sería $X ó S/X' en prosa. La cotización YA está formateada."
+            "\nPROHIBIDO: incluir CUALQUIER texto que empiece con [INSTRUCCIÓN o ⚠️ PRECIO BASE en tu respuesta."
             "\nSolo agrega UNA pregunta de cierre breve DESPUÉS (ej: '¿Te animas a reservar? 😊')."
         )
+        if guests <= 1:
+            ia_instruction += (
+                "\n\nNOTA INTERNA: Este es precio base para 1 persona. "
+                "Pregunta cuántas personas serán para recotizar con check_availability."
+            )
+        lines.append(ia_instruction)
 
         return '\n'.join(lines)
 
