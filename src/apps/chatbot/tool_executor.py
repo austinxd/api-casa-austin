@@ -15,7 +15,9 @@ TOOL_DEFINITIONS = [
                 "NO calcula precios, solo muestra disponibilidad. "
                 "Usa esta herramienta cuando el cliente pregunta '¿hay disponibilidad?' o '¿qué fechas tienen?' "
                 "sin haber dado número de personas. "
-                "Después de mostrar disponibilidad, pregunta cuántas personas para cotizar precios con check_availability."
+                "Después de mostrar disponibilidad, pregunta cuántas personas para cotizar precios con check_availability. "
+                "IMPORTANTE: SIEMPRE llama esta herramienta cuando el cliente pregunte por fechas, "
+                "aunque ya hayas consultado antes. NUNCA uses resultados de consultas anteriores."
             ),
             "parameters": {
                 "type": "object",
@@ -41,7 +43,7 @@ TOOL_DEFINITIONS = [
         "type": "function",
         "function": {
             "name": "check_availability",
-            "description": "Consulta disponibilidad Y PRECIOS de propiedades para fechas específicas. Requiere fechas y número de huéspedes para calcular precio. Si el cliente no dijo cuántos huéspedes, usa 1 como default. Usa esta herramienta cuando ya tengas fechas Y personas para dar una cotización con precios.",
+            "description": "Consulta disponibilidad Y PRECIOS de propiedades para fechas específicas. Requiere fechas y número de huéspedes para calcular precio. Si el cliente no dijo cuántos huéspedes, usa 1 como default. Usa esta herramienta cuando ya tengas fechas Y personas para dar una cotización con precios. IMPORTANTE: SIEMPRE llama esta herramienta para cada consulta de fechas, NUNCA reutilices precios o disponibilidad de consultas anteriores en la conversación.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -354,20 +356,26 @@ class ToolExecutor:
         if not properties.exists():
             return "No hay propiedades registradas."
 
-        # Obtener reservas activas en el rango
+        # Obtener reservas activas en el rango (ampliar +1 día para late checkout)
         active_statuses = ['approved', 'pending', 'under_review']
         reservations = Reservation.objects.filter(
             deleted=False,
             status__in=active_statuses,
-            check_out_date__gt=start,
+            check_out_date__gt=start - timedelta(days=1),
             check_in_date__lt=end,
         ).select_related('property')
 
-        # Construir mapa de ocupación: {property_id: [(check_in, check_out), ...]}
+        # Construir mapa de ocupación considerando late checkout
         occupation = {}
         for r in reservations:
+            effective_checkout = r.check_out_date
+            if r.late_checkout and r.late_check_out_date:
+                if r.late_check_out_date > r.check_out_date:
+                    effective_checkout = r.late_check_out_date
+                elif r.check_out_date == r.late_check_out_date:
+                    effective_checkout = r.late_check_out_date + timedelta(days=1)
             occupation.setdefault(r.property_id, []).append(
-                (r.check_in_date, r.check_out_date)
+                (r.check_in_date, effective_checkout)
             )
 
         # Para la fecha específica consultada o rango corto, mostrar por fecha

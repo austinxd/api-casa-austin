@@ -257,7 +257,13 @@ class AIOrchestrator:
             "\n- NUNCA inventes precios ni disponibilidad. SIEMPRE usa las herramientas."
             "\n- Pregunta de disponibilidad sin personas → check_calendar. Con personas → check_availability."
             "\n- Cuando check_availability/check_late_checkout devuelvan cotización formateada, COPIA Y PEGA EXACTO carácter por carácter. PROHIBIDO resumir en prosa o cambiar formato."
+            "\n- ⚠️ REGLA CRÍTICA DE FECHAS: Cada vez que el cliente mencione fechas (nuevas O las mismas de antes), "
+            "DEBES llamar check_availability o check_calendar DE NUEVO. NUNCA reutilices resultados anteriores "
+            "de la conversación. La disponibilidad cambia en tiempo real. PROHIBIDO decir 'según lo que consulté antes' "
+            "o usar precios/disponibilidad de mensajes anteriores. SIEMPRE consulta fresco."
             "\n- Si el cliente cambia personas o fechas, llama check_availability de nuevo."
+            "\n- PROHIBIDO mezclar resultados: si consultaste fecha A y luego fecha B, la respuesta de B debe "
+            "ser SOLO con datos de la consulta B. Nunca combines datos de consultas diferentes."
             "\n- Para reservar: https://casaaustin.pe | Soporte: 📲 https://wa.me/51999902992 | 📞 +51 935 900 900"
         )
 
@@ -300,8 +306,10 @@ class AIOrchestrator:
                     "\n- El cliente YA dio fechas y personas antes, pero no había disponibilidad."
                     "\n- NO le pidas fechas ni personas de nuevo."
                     "\n- Si el cliente dice 'ya te dije' o similar, RECONÓCELO y usa los datos del historial."
-                    "\n- Si el cliente da nuevas fechas → check_availability directo (si falta checkout, asume 1 noche)."
-                    "\n- Si el cliente da nuevas fechas + personas → check_availability INMEDIATO. NO preguntes más."
+                    "\n- Si el cliente da nuevas fechas → LLAMA check_availability directo (si falta checkout, asume 1 noche)."
+                    "\n- Si el cliente da nuevas fechas + personas → LLAMA check_availability INMEDIATO. NO preguntes más."
+                    "\n- ⚠️ NUNCA respondas sobre disponibilidad sin llamar la herramienta. Aunque recuerdes "
+                    "resultados anteriores, DEBES volver a consultar porque la disponibilidad cambia en tiempo real."
                     "\n- Ofrece alternativas proactivamente: otros fines de semana, fechas entre semana, otro mes."
                     "\n- Si no avanza: 'Entiendo que esas fechas estaban ocupadas. ¿Puedo buscar para otras fechas?'"
                 )

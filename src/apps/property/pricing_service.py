@@ -270,13 +270,15 @@ class PricingCalculationService:
         )
 
         for res in potential_reservations:
-            # Calcular effective_checkout_date defensivamente
+            # Calcular effective_checkout_date considerando late checkout
             effective_checkout = res.check_out_date
 
-            # Si hay late_checkout pero datos inconsistentes (check_out_date == late_check_out_date)
             if res.late_checkout and res.late_check_out_date:
-                if res.check_out_date == res.late_check_out_date:
-                    # Datos inconsistentes: calcular la fecha correcta
+                if res.late_check_out_date > res.check_out_date:
+                    # Caso normal: late checkout extiende la ocupación
+                    effective_checkout = res.late_check_out_date
+                elif res.check_out_date == res.late_check_out_date:
+                    # Datos inconsistentes: asumimos que late checkout es +1 día
                     effective_checkout = res.late_check_out_date + timedelta(days=1)
 
             # Verificar conflicto con la fecha efectiva
