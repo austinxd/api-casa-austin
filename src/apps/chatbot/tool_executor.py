@@ -689,6 +689,8 @@ class ToolExecutor:
 
         if available_lines:
             lines.append(f"*PRECIO PARA {guests} PERSONA{'S' if guests != 1 else ''}*")
+            if guests == 1:
+                lines.append("⚠️ Este precio es solo para 1 persona. Cada persona adicional tiene un costo extra por noche.")
             lines.extend(available_lines)
         else:
             lines.append("❌ No hay casas disponibles para estas fechas.")
