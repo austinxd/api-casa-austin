@@ -472,9 +472,18 @@ class WebhookProcessor:
             logger.error(f"Error en AI dispatch: {e}", exc_info=True)
 
     def _notify_admins(self, session, chat_message):
-        """Notifica a admins vía push cuando la IA está pausada"""
+        """Notifica a admins vía push cuando la IA está pausada.
+        Throttle: máximo 1 cada 30 minutos por sesión."""
         try:
+            from django.utils import timezone
+            from datetime import timedelta
             from apps.clients.expo_push_service import ExpoPushService
+
+            now = timezone.now()
+            if session.last_notify_at:
+                elapsed = now - session.last_notify_at
+                if elapsed < timedelta(minutes=30):
+                    return
 
             channel_label = {
                 'whatsapp': 'WhatsApp',
@@ -495,6 +504,9 @@ class WebhookProcessor:
                     'screen': 'ChatBot',
                 }
             )
+
+            session.last_notify_at = now
+            session.save(update_fields=['last_notify_at'])
         except Exception as e:
             logger.error(f"Error notificando admins: {e}")
 
