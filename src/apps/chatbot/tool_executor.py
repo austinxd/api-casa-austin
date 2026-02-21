@@ -279,6 +279,35 @@ TOOL_DEFINITIONS = [
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "log_unanswered_question",
+            "description": (
+                "Registra una pregunta que NO puedes responder con la información disponible. "
+                "Usa esta herramienta SIEMPRE que el cliente haga una pregunta que no puedas resolver: "
+                "políticas que no conoces, servicios no mencionados en tu prompt, precios especiales, "
+                "preguntas sobre la zona, eventos, o cualquier tema donde no tengas información suficiente. "
+                "DESPUÉS de registrar, responde al cliente que consultarás con el equipo. "
+                "NO uses esta herramienta para preguntas que SÍ puedes responder con tu información."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "question": {
+                        "type": "string",
+                        "description": "La pregunta exacta del cliente que no puedes responder"
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": ["pricing", "policy", "property_info", "service", "location", "other"],
+                        "description": "Categoría de la pregunta"
+                    }
+                },
+                "required": ["question", "category"]
+            }
+        }
+    },
 ]
 
 
@@ -302,6 +331,7 @@ class ToolExecutor:
             'check_late_checkout': self._check_late_checkout,
             'escalate_to_human': self._escalate_to_human,
             'notify_team': self._notify_team,
+            'log_unanswered_question': self._log_unanswered_question,
         }
 
         handler = tool_map.get(tool_name)
@@ -1149,3 +1179,29 @@ class ToolExecutor:
         self.session.save(update_fields=['last_notify_at'])
 
         return "Equipo notificado. Continúa atendiendo al cliente normalmente."
+
+    def _log_unanswered_question(self, question, category='other'):
+        """Registra una pregunta que el bot no pudo responder."""
+        from apps.chatbot.models import UnresolvedQuestion, ChatMessage
+
+        # Obtener contexto: últimos 3 mensajes del cliente
+        recent_msgs = ChatMessage.objects.filter(
+            session=self.session,
+            deleted=False,
+            direction='inbound',
+        ).order_by('-created')[:3]
+
+        context = '\n'.join(
+            f"[{m.created.strftime('%d/%m %H:%M')}] {m.content[:200]}"
+            for m in reversed(list(recent_msgs))
+        )
+
+        UnresolvedQuestion.objects.create(
+            session=self.session,
+            question=question,
+            context=context,
+            category=category,
+        )
+
+        logger.info(f"Pregunta sin resolver registrada: {question[:80]} (sesión {self.session.id})")
+        return "Pregunta registrada. Responde al cliente que consultarás con el equipo y le darás una respuesta pronto."

@@ -12,13 +12,14 @@ from rest_framework.views import APIView
 from apps.core.paginator import CustomPagination
 from .models import (
     ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics,
-    PropertyVisit, PromoDateConfig, PromoDateSent,
+    PropertyVisit, PromoDateConfig, PromoDateSent, UnresolvedQuestion,
 )
 from .serializers import (
     ChatSessionListSerializer, ChatSessionDetailSerializer,
     ChatMessageSerializer, SendMessageSerializer, ToggleAISerializer,
     ChatAnalyticsSerializer, PropertyVisitSerializer,
     PromoDateConfigSerializer, PromoDateSentSerializer,
+    UnresolvedQuestionSerializer,
 )
 from .channel_sender import get_sender
 
@@ -772,3 +773,46 @@ class PromoPreviewView(APIView):
             'available_property_names': [p.name for p in available_properties],
             'total_properties': len(all_properties),
         })
+
+
+class UnresolvedQuestionListView(ListAPIView):
+    """GET /unresolved-questions/ — Preguntas que el bot no pudo responder"""
+    serializer_class = UnresolvedQuestionSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        qs = UnresolvedQuestion.objects.filter(deleted=False).select_related('session')
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        category = self.request.query_params.get('category')
+        if category:
+            qs = qs.filter(category=category)
+        return qs.order_by('-created')
+
+
+class UnresolvedQuestionUpdateView(APIView):
+    """PATCH /unresolved-questions/<id>/ — Resolver o ignorar una pregunta"""
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        try:
+            question = UnresolvedQuestion.objects.get(pk=pk, deleted=False)
+        except UnresolvedQuestion.DoesNotExist:
+            return Response({'error': 'Pregunta no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+
+        new_status = request.data.get('status')
+        resolution = request.data.get('resolution')
+
+        if new_status:
+            valid = [c[0] for c in UnresolvedQuestion.StatusChoices.choices]
+            if new_status not in valid:
+                return Response({'error': f'Estado inválido. Opciones: {valid}'}, status=status.HTTP_400_BAD_REQUEST)
+            question.status = new_status
+
+        if resolution is not None:
+            question.resolution = resolution
+
+        question.save(update_fields=['status', 'resolution', 'updated'])
+        return Response(UnresolvedQuestionSerializer(question).data)

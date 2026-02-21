@@ -17,6 +17,8 @@ from .admin_views import (
     PromoConfigView,
     PromoListView,
     PromoPreviewView,
+    UnresolvedQuestionListView,
+    UnresolvedQuestionUpdateView,
 )
 
 urlpatterns = [
@@ -45,4 +47,8 @@ urlpatterns = [
     path('promo-config/', PromoConfigView.as_view(), name='chatbot-promo-config'),
     path('promos/', PromoListView.as_view(), name='chatbot-promos'),
     path('promos/preview/', PromoPreviewView.as_view(), name='chatbot-promos-preview'),
+
+    # Preguntas sin resolver
+    path('unresolved-questions/', UnresolvedQuestionListView.as_view(), name='chatbot-unresolved-questions'),
+    path('unresolved-questions/<uuid:pk>/', UnresolvedQuestionUpdateView.as_view(), name='chatbot-unresolved-question-update'),
 ]

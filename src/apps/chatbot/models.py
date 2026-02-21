@@ -414,3 +414,44 @@ class ChatAnalytics(BaseModel):
 
     def __str__(self):
         return f"Analytics {self.date} - {self.total_messages_in + self.total_messages_out_ai} msgs"
+
+
+class UnresolvedQuestion(BaseModel):
+    """Preguntas que el bot no pudo responder, para revisar y alimentar el prompt."""
+
+    class StatusChoices(models.TextChoices):
+        PENDING = 'pending', 'Pendiente'
+        RESOLVED = 'resolved', 'Resuelta'
+        IGNORED = 'ignored', 'Ignorada'
+
+    session = models.ForeignKey(
+        ChatSession, on_delete=models.CASCADE,
+        related_name='unresolved_questions',
+    )
+    question = models.TextField(
+        help_text="La pregunta o consulta que el bot no pudo resolver"
+    )
+    context = models.TextField(
+        blank=True, default='',
+        help_text="Contexto de la conversación al momento de la pregunta"
+    )
+    category = models.CharField(
+        max_length=50, blank=True, default='',
+        help_text="Categoría: pricing, policy, property_info, service, other"
+    )
+    status = models.CharField(
+        max_length=15, choices=StatusChoices.choices,
+        default=StatusChoices.PENDING,
+    )
+    resolution = models.TextField(
+        blank=True, default='',
+        help_text="Respuesta correcta para alimentar al bot"
+    )
+
+    class Meta:
+        verbose_name = '❓ Pregunta sin resolver'
+        verbose_name_plural = '❓ Preguntas sin resolver'
+        ordering = ['-created']
+
+    def __str__(self):
+        return f"{self.question[:60]}... ({self.status})"

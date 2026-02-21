@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics,
-    PropertyVisit, PromoDateConfig, PromoDateSent,
+    PropertyVisit, PromoDateConfig, PromoDateSent, UnresolvedQuestion,
 )
 
 
@@ -214,3 +214,21 @@ class PromoDateSentSerializer(serializers.ModelSerializer):
         if obj.client:
             return f"{obj.client.first_name} {obj.client.last_name or ''}".strip()
         return None
+
+
+class UnresolvedQuestionSerializer(serializers.ModelSerializer):
+    session_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UnresolvedQuestion
+        fields = [
+            'id', 'session', 'session_name', 'question', 'context',
+            'category', 'status', 'resolution', 'created',
+        ]
+        read_only_fields = ['session', 'question', 'context', 'category', 'created']
+
+    def get_session_name(self, obj):
+        s = obj.session
+        if s.client:
+            return f"{s.client.first_name} {s.client.last_name or ''}".strip()
+        return s.wa_profile_name or s.wa_id
