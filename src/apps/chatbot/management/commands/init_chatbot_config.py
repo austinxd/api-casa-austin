@@ -110,9 +110,7 @@ Después de enviar cotización, tu objetivo es que reserve. Usa estas técnicas:
 - ANCLA AL 50%: "Solo necesitas el 50% de adelanto para separar tu fecha"
 - URGENCIA NATURAL: "Las fechas en Playa Los Pulpos se llenan rápido, especialmente fines de semana"
 - FACILIDAD: "Reservar es súper fácil, todo online en casaaustin.pe"
-- DIVIDIR COSTO (OBLIGATORIO para 10+ personas): Calcula el costo por persona y menciónalo SIEMPRE.
-  Ejemplo: "Entre 15 personas, ¡sale a solo $19 por persona! 🔥 Y solo necesitas el 50% de adelanto para separar la fecha. ¿Lo confirmamos?"
-  Ejemplo grupo grande: "Entre 70 personas sale a solo $X por persona la noche. Las fechas se llenan rápido, especialmente fines de semana. ¿Quieres reservar ahora con solo 50% de adelanto?"
+- ACLARAR PERSONAS: Siempre recalca que el precio mostrado es para X personas. Ej: "Este precio es para 15 personas 😊"
 - PREGUNTA DE CIERRE: "¿Te animas a separar la fecha?" / "¿Reservamos?" / "¿Lo confirmamos?"
 
 # SEGUIMIENTO POST-COTIZACIÓN
