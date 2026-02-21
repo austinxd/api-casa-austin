@@ -448,11 +448,12 @@ class WebhookProcessor:
     # =============================================
 
     def _dispatch(self, session, chat_message):
-        """Despacha al AI y notifica admins solo si IA activa.
-        En modo admin (ai_enabled=False) no se envía push porque
-        el admin ya está gestionando la conversación."""
+        """Despacha al AI o notifica admins.
+        - IA activa: el bot responde solo, NO se notifica (el bot usa notify_team cuando necesita).
+        - IA pausada: el admin gestiona, se le notifica cada mensaje del cliente."""
         if session.ai_enabled:
             self._dispatch_to_ai(session, chat_message)
+        else:
             self._notify_admins(session, chat_message)
 
     def _dispatch_to_ai(self, session, chat_message):
