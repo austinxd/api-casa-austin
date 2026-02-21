@@ -1093,8 +1093,22 @@ class ToolExecutor:
         )
 
     def _notify_team(self, reason, details=''):
-        """Envía alerta al equipo sin pausar la IA ni escalar"""
+        """Envía alerta al equipo sin pausar la IA ni escalar.
+        Throttle: máximo 1 notificación por sesión cada 5 horas."""
+        from django.utils import timezone
+        from datetime import timedelta
         from apps.clients.expo_push_service import ExpoPushService
+
+        # Throttle: verificar si ya se notificó en las últimas 5 horas
+        now = timezone.now()
+        if self.session.last_notify_at:
+            elapsed = now - self.session.last_notify_at
+            if elapsed < timedelta(hours=5):
+                logger.info(
+                    f"Notificación throttled para sesión {self.session.id} "
+                    f"(última hace {elapsed.total_seconds() / 60:.0f} min)"
+                )
+                return "Equipo ya fue notificado recientemente. Continúa atendiendo al cliente normalmente."
 
         name = self.session.wa_profile_name or self.session.wa_id
         if self.session.client:
@@ -1129,5 +1143,9 @@ class ToolExecutor:
                 'screen': 'ChatBot',
             }
         )
+
+        # Registrar timestamp de la notificación
+        self.session.last_notify_at = now
+        self.session.save(update_fields=['last_notify_at'])
 
         return "Equipo notificado. Continúa atendiendo al cliente normalmente."

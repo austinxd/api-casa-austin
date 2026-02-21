@@ -71,6 +71,10 @@ class ChatSession(BaseModel):
         null=True, blank=True, default=None,
         help_text="True si el cliente no existía cuando inició el chat"
     )
+    last_notify_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Última vez que se envió notify_team para esta sesión"
+    )
 
     class Meta:
         verbose_name = '💬 Sesión de Chat'
