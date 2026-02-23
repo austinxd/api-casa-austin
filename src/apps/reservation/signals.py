@@ -787,6 +787,21 @@ def notify_payment_approved(reservation):
             logger.info(
                 f"WhatsApp de pago aprobado enviado exitosamente para reserva {reservation.id}"
             )
+            try:
+                from apps.chatbot.models import ChatSession
+                ChatSession.register_outbound_template(
+                    phone_number=reservation.client.tel_number,
+                    content=(
+                        f"[Plantilla] Pago aprobado: {payment_info}, "
+                        f"check-in {check_in_formatted}"
+                    ),
+                    intent='template_payment_approved',
+                    client=reservation.client,
+                )
+            except Exception as exc:
+                logger.error(
+                    f"Error registrando plantilla de pago aprobado en chat para reserva {reservation.id}: {exc}"
+                )
         else:
             logger.error(
                 f"Error al enviar WhatsApp de pago aprobado para reserva {reservation.id}"

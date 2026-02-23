@@ -142,6 +142,16 @@ def notify_whatsapp_successful_registration(client):
             
             if whatsapp_success:
                 logger.info(f"WhatsApp de bienvenida enviado exitosamente para cliente {client.id}")
+                try:
+                    from apps.chatbot.models import ChatSession
+                    ChatSession.register_outbound_template(
+                        phone_number=client.tel_number,
+                        content=f"[Plantilla] Bienvenida enviada a {first_name}",
+                        intent='template_welcome',
+                        client=client,
+                    )
+                except Exception as e:
+                    logger.error(f"Error registrando plantilla de bienvenida en chat para cliente {client.id}: {e}")
             else:
                 logger.error(f"Error al enviar WhatsApp de bienvenida para cliente {client.id}")
         else:

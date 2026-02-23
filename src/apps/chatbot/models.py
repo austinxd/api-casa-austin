@@ -1,7 +1,13 @@
+import re
+import logging
+
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 from apps.core.models import BaseModel
+
+logger = logging.getLogger('apps')
 
 
 class ChatSession(BaseModel):
@@ -84,6 +90,62 @@ class ChatSession(BaseModel):
     def __str__(self):
         name = self.wa_profile_name or self.wa_id
         return f"Chat con {name} ({self.get_status_display()})"
+
+
+    @staticmethod
+    def register_outbound_template(phone_number, content, intent, client=None):
+        """Registra un mensaje de plantilla saliente en el historial de chat."""
+        try:
+            digits = re.sub(r'\D', '', phone_number)
+            variants = {digits}
+            if digits.startswith('51') and len(digits) > 9:
+                variants.add(digits[2:])
+            elif len(digits) == 9:
+                variants.add(f'51{digits}')
+
+            session = ChatSession.objects.filter(
+                wa_id__in=list(variants),
+                channel='whatsapp',
+                deleted=False,
+            ).order_by('-last_message_at').first()
+
+            if not session and client:
+                session = ChatSession.objects.create(
+                    channel='whatsapp',
+                    wa_id=digits,
+                    wa_profile_name=client.first_name or '',
+                    client=client,
+                    status='active',
+                    ai_enabled=True,
+                )
+
+            if not session:
+                logger.warning(
+                    f"register_outbound_template: no se encontró sesión para {digits} y no hay client para crearla"
+                )
+                return None
+
+            # Vincular client si la sesión no lo tiene
+            if client and not session.client:
+                session.client = client
+                session.save(update_fields=['client'])
+
+            msg = ChatMessage.objects.create(
+                session=session,
+                direction='system',
+                message_type='text',
+                content=content,
+                intent_detected=intent,
+            )
+
+            session.total_messages += 1
+            session.last_message_at = timezone.now()
+            session.save(update_fields=['total_messages', 'last_message_at'])
+
+            return msg
+        except Exception as e:
+            logger.error(f"register_outbound_template error: {e}")
+            return None
 
 
 class ChatMessage(BaseModel):

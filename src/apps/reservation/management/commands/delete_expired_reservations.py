@@ -125,6 +125,18 @@ class Command(BaseCommand):
                 
                 if whatsapp_success:
                     logger.info(f"WhatsApp de cancelación enviado exitosamente para reserva {reservation.id}")
+                    try:
+                        from apps.chatbot.models import ChatSession
+                        ChatSession.register_outbound_template(
+                            phone_number=reservation.client.tel_number,
+                            content=f"[Plantilla] Reserva cancelada/expirada notificada a {whatsapp_client_name}",
+                            intent='template_reservation_cancelled',
+                            client=reservation.client,
+                        )
+                    except Exception as reg_err:
+                        logger.error(
+                            f"Error registrando plantilla de cancelación en chat para reserva {reservation.id}: {reg_err}"
+                        )
                 else:
                     logger.error(f"Error al enviar WhatsApp de cancelación para reserva {reservation.id}")
                     
