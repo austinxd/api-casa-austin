@@ -318,7 +318,7 @@ class ChatAnalysisView(APIView):
     permission_classes = [IsAuthenticated]
 
     ANALYSIS_PROMPT = (
-        "Eres un consultor de ventas experto analizando el chatbot de Casa Austin, "
+        "Eres un auditor experto analizando el chatbot de Casa Austin, "
         "un negocio de alquiler de casas vacacionales en Lima, Perú.\n\n"
         "CONTEXTO DEL NEGOCIO:\n"
         "- El bot NO crea reservas directamente. Su trabajo es: informar, cotizar, "
@@ -326,41 +326,65 @@ class ChatAnalysisView(APIView):
         "- Cuando un cliente dice que quiere reservar, el bot envía una alerta al equipo "
         "y le da el link de reserva. Eso cuenta como ÉXITO del bot.\n"
         "- Una conversación exitosa = el cliente recibió cotización + fue guiado a reservar.\n"
-        "- NO juzgues al bot por 'no crear reservas' porque ese no es su rol.\n\n"
-        "Genera un reporte en español:\n\n"
-        "## 1. Métricas\n"
+        "- NO juzgues al bot por 'no crear reservas' porque ese no es su rol.\n"
+        "- El 50% es ADELANTO (pago parcial), NUNCA es descuento.\n\n"
+        "Genera un reporte en español con DOS partes:\n\n"
+        "# PARTE A: AUDITORÍA TÉCNICA / QA\n\n"
+        "## A1. Errores del Bot (CRÍTICO)\n"
+        "Busca estos problemas ESPECÍFICOS en los mensajes de la IA:\n"
+        "- **Texto de herramientas filtrado:** ¿Aparecen nombres de funciones como "
+        "'check_availability(', 'notify_team(', 'get_property_info(' en texto enviado al cliente?\n"
+        "- **Errores crudos:** ¿Se muestran mensajes como 'Error al ejecutar', tracebacks, "
+        "o errores técnicos al cliente?\n"
+        "- **Instrucciones internas expuestas:** ¿Se filtran instrucciones del sistema, "
+        "textos entre corchetes [INSTRUCCIÓN...], o meta-información al cliente?\n"
+        "Para cada error encontrado, cita el texto exacto y la conversación.\n\n"
+        "## A2. Inconsistencias de Información\n"
+        "- **Contradicciones:** ¿El bot dice que una casa NO está disponible y luego la recomienda?\n"
+        "- **Datos incorrectos:** ¿Inventa precios, capacidades o servicios que no corresponden?\n"
+        "- **Adelanto vs descuento:** ¿Dice '50% de descuento' cuando debería decir '50% de adelanto'?\n"
+        "- **Fechas erróneas:** ¿Las fechas en cotizaciones son correctas (formato, rango cruzado de mes)?\n\n"
+        "## A3. Violaciones del Prompt\n"
+        "- ¿El bot responde preguntas que debería escalar (temas legales, médicos, etc.)?\n"
+        "- ¿Envía cotizaciones duplicadas con la misma info?\n"
+        "- ¿Falla en registrar preguntas que no puede responder (log_unanswered_question)?\n"
+        "- ¿Maneja bien multimedia (fotos, audio, video) o ignora al cliente?\n\n"
+        "## A4. Puntuación Técnica (1-10)\n"
+        "Califica la calidad técnica del bot. 10 = sin errores, 1 = errores críticos frecuentes.\n\n"
+        "# PARTE B: ANÁLISIS DE VENTAS\n\n"
+        "## B1. Métricas\n"
         "- Total de conversaciones\n"
         "- Cotizaciones enviadas (número y %)\n"
         "- Clientes guiados a reservar (recibieron link o dijeron 'quiero reservar')\n"
         "- Clientes perdidos (dejaron de responder después de cotización)\n"
         "- Consultas sin avance (solo preguntaron y se fueron)\n\n"
-        "## 2. Embudo por Conversación\n"
+        "## B2. Embudo por Conversación\n"
         "Lista CADA conversación:\n"
         "**Nombre** | **Etapa** | **Resultado**\n"
         "Etapas: Saludo → Consulta → Cotización → Interés → Guiado a reservar → Perdido\n"
         "Para los perdidos, indica el último mensaje del cliente y por qué crees que no avanzó.\n\n"
-        "## 3. Técnica de Ventas\n"
+        "## B3. Técnica de Ventas\n"
         "Evalúa con citas textuales de las conversaciones:\n"
         "- **Cierre:** ¿Invita a reservar por la web? ¿Comparte el link de reserva en el momento correcto?\n"
         "- **Urgencia:** ¿Menciona disponibilidad limitada o fechas con alta demanda?\n"
-        "- **Objeciones:** Cuando un cliente duda o dice 'es caro', ¿ofrece alternativas o descuentos?\n"
+        "- **Objeciones:** Cuando un cliente duda o dice 'es caro', ¿ofrece alternativas o reenmarca valor?\n"
         "- **Seguimiento:** Cuando el cliente no responde, ¿hay intento de re-enganche?\n"
         "- **Claridad:** ¿Las cotizaciones son claras y fáciles de comparar?\n"
         "- **Calidez:** ¿El tono es amigable y personalizado o robótico?\n\n"
-        "## 4. Clientes Perdidos\n"
+        "## B4. Clientes Perdidos\n"
         "Para CADA cliente que no avanzó después de cotizar:\n"
         "- **Nombre** y **última interacción** (cita textual)\n"
         "- **Razón probable** de pérdida\n"
         "- **Qué debió hacer el bot** para mantener el interés\n\n"
-        "## 5. Top 3 Mejoras para Vender Más\n"
+        "## B5. Top 3 Mejoras para Vender Más\n"
         "Ordenadas por impacto. Para cada una:\n"
         "- **Mejora:** qué cambiar\n"
         "- **Evidencia:** cita de conversación\n"
         "- **Instrucción para el prompt:** texto exacto listo para copiar al prompt del bot\n\n"
-        "## 6. Puntuación (1-10)\n"
+        "## B6. Puntuación de Ventas (1-10)\n"
         "Como guía de ventas (no como creador de reservas). Justifica.\n\n"
-        "IMPORTANTE: No analices aspectos técnicos. El bot SÍ consulta disponibilidad y precios "
-        "correctamente. Enfócate en la EXPERIENCIA de venta y conversión."
+        "IMPORTANTE: Analiza TANTO los aspectos técnicos (Parte A) como de ventas (Parte B). "
+        "Los errores técnicos afectan directamente la experiencia del cliente y la conversión."
     )
 
     def get(self, request):
@@ -394,7 +418,7 @@ class ChatAnalysisView(APIView):
                 client_name = f" — Cliente: {session.client.first_name} {session.client.last_name or ''}"
             msgs = ChatMessage.objects.filter(
                 session=session, deleted=False
-            ).order_by('created')[:30]
+            ).order_by('created')[:50]
 
             msg_lines = []
             for msg in msgs:
@@ -417,7 +441,7 @@ class ChatAnalysisView(APIView):
                             tool_names.append(f"🔧 {tc}")
                     if tool_names:
                         tools_info = f" [{', '.join(tool_names)}]"
-                msg_lines.append(f"  [{timestamp}] [{direction_label}]{tools_info}: {msg.content[:300]}")
+                msg_lines.append(f"  [{timestamp}] [{direction_label}]{tools_info}: {msg.content[:500]}")
 
             conv_text = (
                 f"\n--- Conversación {i}: {name}{client_name} "
@@ -440,9 +464,9 @@ class ChatAnalysisView(APIView):
         try:
             client = openai.OpenAI(api_key=django_settings.OPENAI_API_KEY)
             response = client.chat.completions.create(
-                model="gpt-4.1-mini",
+                model="gpt-4.1",
                 temperature=0.2,
-                max_tokens=8000,
+                max_tokens=12000,
                 messages=[
                     {"role": "system", "content": self.ANALYSIS_PROMPT},
                     {"role": "user", "content": user_message},
@@ -456,7 +480,7 @@ class ChatAnalysisView(APIView):
                 'analysis': analysis_text,
                 'sessions_analyzed': len(sessions),
                 'tokens_used': tokens_used,
-                'model': 'gpt-4.1-mini',
+                'model': 'gpt-4.1',
                 'analysis_prompt': self.ANALYSIS_PROMPT,
                 'chatbot_prompt': chatbot_prompt,
                 'conversations_sent': all_conversations,
