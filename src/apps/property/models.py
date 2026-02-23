@@ -44,6 +44,12 @@ class Property(BaseModel):
         verbose_name="ID de Casa",
         help_text="Escribe el ID de la casa (ej: ca1, ca2, ca3, ca4)"
     )
+    guest_instructions = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name="Instrucciones para huéspedes",
+        help_text="Info para el chatbot: WiFi, dirección, estacionamiento, qué traer, instrucciones de llegada, etc."
+    )
 
     def __str__(self):
         return self.name

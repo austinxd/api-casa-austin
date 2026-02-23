@@ -148,6 +148,11 @@ class PropertyAdmin(admin.ModelAdmin):
             "fields": ("player_id",),
             "classes": ("collapse",),
             "description": "ID del reproductor de Music Assistant vinculado a esta propiedad. Obtén el player_id desde el endpoint /api/v1/music/players/"
+        }),
+        ("📋 Instrucciones para Huéspedes (Chatbot Post-Venta)", {
+            "fields": ("guest_instructions",),
+            "classes": ("collapse",),
+            "description": "Información que el chatbot compartirá con clientes que tienen reserva activa: WiFi, dirección exacta, estacionamiento, qué traer, instrucciones de llegada, etc."
         })
     )
 

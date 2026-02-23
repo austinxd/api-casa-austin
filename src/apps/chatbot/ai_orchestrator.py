@@ -316,6 +316,28 @@ class AIOrchestrator:
                 if points > 0:
                     client_info += f"\n- Puntos: {points:.0f} (menciónale que tiene puntos acumulados)"
             context_parts.append(client_info)
+
+            # Reserva activa futura del cliente
+            active_res = self._get_active_reservation(client, today)
+            if active_res:
+                res_info = (
+                    f"\n\n🏠 RESERVA ACTIVA del cliente:"
+                    f"\n- Propiedad: {active_res.property.name}"
+                    f"\n- Check-in: {active_res.check_in_date.strftime('%d/%m/%Y')}"
+                    f"\n- Check-out: {active_res.check_out_date.strftime('%d/%m/%Y')}"
+                    f"\n- Huéspedes: {active_res.guests}"
+                    f"\n- Estado: {active_res.status}"
+                    f"\n- Pago completo: {'Sí' if active_res.full_payment else 'No'}"
+                )
+                if active_res.property.guest_instructions:
+                    res_info += f"\n- Instrucciones de la casa:\n{active_res.property.guest_instructions}"
+                if active_res.property.hora_ingreso:
+                    res_info += f"\n- Hora de ingreso: {active_res.property.hora_ingreso.strftime('%H:%M')}"
+                if active_res.property.hora_salida:
+                    res_info += f"\n- Hora de salida: {active_res.property.hora_salida.strftime('%H:%M')}"
+                if active_res.property.location:
+                    res_info += f"\n- Ubicación: {active_res.property.location}"
+                context_parts.append(res_info)
         else:
             context_parts.append(
                 "\n\nCliente NO identificado aún. No necesitas identificarlo para cotizar. "
@@ -344,11 +366,86 @@ class AIOrchestrator:
 
         return '\n'.join(context_parts)
 
+    def _get_active_reservation(self, client, today):
+        """Busca la reserva activa más próxima del cliente (en curso o futura)"""
+        from apps.reservation.models import Reservation
+
+        return Reservation.objects.filter(
+            client=client,
+            check_out_date__gte=today,
+            status='approved',
+            deleted=False,
+        ).order_by('check_in_date').first()
+
+    def _build_in_stay_context(self, res):
+        """Contexto para huésped EN CURSO (check_in <= hoy <= check_out)"""
+        return (
+            "\n\nETAPA: SOPORTE DURANTE ESTADÍA 🏠"
+            f"\n- El cliente está AHORA MISMO alojado en {res.property.name}."
+            "\n- Modo: SOPORTE (no vender). Ayúdale con lo que necesite de la casa."
+            "\n- Si tiene un PROBLEMA (algo roto, falta algo, emergencia), usa notify_team(reason='needs_human_assist', details='[describe el problema]') para alertar al equipo."
+            "\n- Comparte las instrucciones de la casa si pregunta (WiFi, dirección, estacionamiento, etc.)."
+            "\n- Si pregunta por disponibilidad para OTRAS fechas, atiende con check_availability normalmente (modo venta para nueva reserva)."
+            "\n- Tono: servicial, cálido. 'Estamos para ti durante toda tu estadía.'"
+        )
+
+    def _build_pre_checkin_context(self, res, days_until):
+        """Contexto PRE CHECK-IN (≤7 días para check_in)"""
+        return (
+            "\n\nETAPA: PRE CHECK-IN 📋"
+            f"\n- El cliente tiene reserva en {res.property.name} en {days_until} día{'s' if days_until != 1 else ''}."
+            "\n- Modo: PREPARACIÓN. Comparte proactivamente:"
+            "\n  • Dirección e instrucciones de llegada"
+            "\n  • Hora de check-in y check-out"
+            "\n  • Qué traer / qué NO traer"
+            "\n  • Info de WiFi, estacionamiento, etc."
+            + (
+                "\n- ⚠️ PAGO PENDIENTE: El cliente NO ha completado el pago al 100%. "
+                "Recuérdale amablemente: 'Para activar la llave digital necesitas completar el pago. "
+                "¿Necesitas ayuda con eso?'"
+                if not res.full_payment else ""
+            )
+            + "\n- Si pregunta por OTRAS fechas, atiende con check_availability normalmente."
+            "\n- Tono: entusiasta. '¡Ya falta poco para tu escapada! 🏖️'"
+        )
+
+    def _build_pending_payment_context(self, res):
+        """Contexto PAGO PENDIENTE (>7 días, sin pago 100%)"""
+        return (
+            "\n\nETAPA: RECORDATORIO DE PAGO 💳"
+            f"\n- El cliente tiene reserva en {res.property.name} pero NO ha completado el pago."
+            "\n- Recuérdale amablemente el saldo pendiente."
+            "\n- Menciona: 'La llave digital se activa al completar el pago al 100%.'"
+            "\n- Opciones de pago: tarjeta o transferencia en casaaustin.pe"
+            "\n- Si pregunta por OTRAS fechas, atiende con check_availability normalmente."
+            "\n- Tono: amigable pero claro sobre la importancia de completar el pago."
+        )
+
     def _build_sales_context(self, session, today):
         """Genera instrucciones de venta dinámicas según el estado de la conversación"""
         from datetime import timedelta
 
         parts = []
+
+        # === DETECTAR RESERVA ACTIVA (post-venta) ===
+        if session.client:
+            active_res = self._get_active_reservation(session.client, today)
+            if active_res:
+                days_until = (active_res.check_in_date - today).days
+
+                if days_until <= 0:
+                    # EN CURSO: check_in ya pasó o es hoy, check_out >= hoy
+                    parts.append(self._build_in_stay_context(active_res))
+                    return ''.join(parts)
+                elif days_until <= 7:
+                    # PRE CHECK-IN: ≤7 días
+                    parts.append(self._build_pre_checkin_context(active_res, days_until))
+                    return ''.join(parts)
+                elif not active_res.full_payment:
+                    # PAGO PENDIENTE: >7 días, sin pago 100%
+                    parts.append(self._build_pending_payment_context(active_res))
+                    return ''.join(parts)
+                # CONFIRMADA LEJANA: >7 días, pagada → flujo normal de ventas
 
         # Detectar etapa del embudo
         has_quote = session.quoted_at is not None
