@@ -1,5 +1,5 @@
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -512,7 +512,18 @@ class ToolExecutor:
             check_in_date = datetime.strptime(check_in, '%Y-%m-%d').date()
             check_out_date = datetime.strptime(check_out, '%Y-%m-%d').date()
         except ValueError:
-            return "Error: formato de fecha inválido. Usar YYYY-MM-DD"
+            return "Las fechas proporcionadas no son válidas. Pide al cliente que confirme las fechas en formato día/mes."
+
+        today = date.today()
+        if check_in_date < today:
+            return (
+                f"La fecha de entrada ({check_in}) ya pasó. "
+                f"Hoy es {today.strftime('%d/%m/%Y')}. "
+                "Pide al cliente una fecha a futuro."
+            )
+
+        if check_out_date <= check_in_date:
+            check_out_date = check_in_date + timedelta(days=1)
 
         nights = (check_out_date - check_in_date).days
 
@@ -538,10 +549,13 @@ class ToolExecutor:
                 client_id=client_id,
             )
         except ValueError as e:
-            return str(e)
+            error_msg = str(e)
+            if 'pasado' in error_msg.lower() or 'past' in error_msg.lower():
+                return f"La fecha de entrada ({check_in}) ya pasó. Hoy es {date.today().strftime('%d/%m/%Y')}. Pide al cliente una fecha futura."
+            return f"No se pudo consultar disponibilidad: {error_msg}. Pide al cliente que confirme las fechas."
         except Exception as e:
             logger.error(f"Error en check_availability: {e}", exc_info=True)
-            return f"Error consultando disponibilidad: {str(e)}"
+            return "Hubo un problema consultando disponibilidad. Pide al cliente que intente de nuevo o contacte soporte."
 
         formatted = self._format_pricing_result(result)
 
@@ -673,7 +687,12 @@ class ToolExecutor:
         try:
             ci = datetime.strptime(str(check_in), '%Y-%m-%d').date()
             co = datetime.strptime(str(check_out), '%Y-%m-%d').date()
-            fecha_display = f"Del {ci.day} al {co.day} de {months_es[ci.month]} de {ci.year}"
+            if ci.month == co.month and ci.year == co.year:
+                fecha_display = f"Del {ci.day} al {co.day} de {months_es[ci.month]} de {ci.year}"
+            elif ci.year == co.year:
+                fecha_display = f"Del {ci.day} de {months_es[ci.month]} al {co.day} de {months_es[co.month]} de {ci.year}"
+            else:
+                fecha_display = f"Del {ci.day} de {months_es[ci.month]} de {ci.year} al {co.day} de {months_es[co.month]} de {co.year}"
             # URL con formato D/MM/YYYY
             url_ci = f"{ci.day}/{ci.month:02d}/{ci.year}"
             url_co = f"{co.day}/{co.month:02d}/{co.year}"

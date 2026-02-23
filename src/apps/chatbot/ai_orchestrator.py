@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from datetime import date
 
 from django.conf import settings
@@ -10,6 +11,61 @@ from .tool_executor import ToolExecutor, TOOL_DEFINITIONS
 from .channel_sender import get_sender
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_response(text):
+    """Limpia el texto de respuesta antes de enviar al cliente.
+    Elimina llamadas a herramientas expuestas, errores internos y
+    instrucciones IA que GPT haya incluido por error."""
+    if not text:
+        return text
+
+    lines = text.split('\n')
+    cleaned = []
+    skip_block = False
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Saltar bloques de instrucciones IA
+        if stripped.startswith('[INSTRUCCIÓN') or stripped.startswith('[INSTRUCCION'):
+            skip_block = True
+            continue
+        if skip_block:
+            if stripped.endswith(']'):
+                skip_block = False
+            continue
+
+        # Eliminar llamadas a herramientas expuestas como texto
+        # Ej: "notify_team(reason="...", details="...")"
+        if re.match(r'^(notify_team|check_availability|check_calendar|check_late_checkout|'
+                     r'escalate_to_human|log_unanswered_question|identify_client|'
+                     r'schedule_visit|get_property_info)\s*\(', stripped):
+            continue
+
+        # Eliminar líneas que son solo el nombre de una herramienta
+        if stripped in ('notify_team', 'check_availability', 'check_calendar',
+                        'check_late_checkout', 'escalate_to_human',
+                        'log_unanswered_question', 'identify_client',
+                        'schedule_visit', 'get_property_info'):
+            continue
+
+        # Eliminar errores internos expuestos
+        if stripped.startswith('Error al ejecutar') or stripped.startswith('Error:'):
+            continue
+
+        # Eliminar líneas con "⚠️ PRECIO BASE" (instrucción interna)
+        if '⚠️ PRECIO BASE' in stripped:
+            continue
+
+        cleaned.append(line)
+
+    result = '\n'.join(cleaned).strip()
+
+    # Limpiar dobles saltos de línea excesivos
+    result = re.sub(r'\n{4,}', '\n\n\n', result)
+
+    return result
 
 
 class AIOrchestrator:
@@ -52,6 +108,9 @@ class AIOrchestrator:
                 tool_calls_data = []
                 model_used = 'error'
                 tokens = 0
+
+        # Sanitizar respuesta antes de enviar
+        response_text = sanitize_response(response_text)
 
         # Enviar por el canal correspondiente
         wa_message_id = None
@@ -110,6 +169,7 @@ class AIOrchestrator:
             messages.append(choice.message)
 
             executor = ToolExecutor(session)
+            seen_calls = set()  # Dedup: evitar misma herramienta con mismos args
 
             for tool_call in choice.message.tool_calls:
                 func_name = tool_call.function.name
@@ -117,6 +177,18 @@ class AIOrchestrator:
                     arguments = json.loads(tool_call.function.arguments)
                 except json.JSONDecodeError:
                     arguments = {}
+
+                # Dedup: si ya ejecutamos esta misma herramienta con los mismos args, skip
+                dedup_key = f"{func_name}:{json.dumps(arguments, sort_keys=True)}"
+                if dedup_key in seen_calls:
+                    logger.info(f"Herramienta duplicada, saltando: {func_name}({arguments})")
+                    messages.append({
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": "(Ya consultado arriba, ver resultado anterior)",
+                    })
+                    continue
+                seen_calls.add(dedup_key)
 
                 logger.info(f"Ejecutando herramienta: {func_name}({arguments})")
                 result = executor.execute(func_name, arguments)
