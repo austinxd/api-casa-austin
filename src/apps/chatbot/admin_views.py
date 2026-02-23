@@ -339,11 +339,19 @@ class ChatAnalysisView(APIView):
         "- **Instrucciones internas expuestas:** ¿Se filtran instrucciones del sistema, "
         "textos entre corchetes [INSTRUCCIÓN...], o meta-información al cliente?\n"
         "Para cada error encontrado, cita el texto exacto y la conversación.\n\n"
-        "## A2. Inconsistencias de Información\n"
-        "- **Contradicciones:** ¿El bot dice que una casa NO está disponible y luego la recomienda?\n"
-        "- **Datos incorrectos:** ¿Inventa precios, capacidades o servicios que no corresponden?\n"
+        "## A2. Inconsistencias vs Base de Datos\n"
+        "Compara lo que el bot DICE contra los DATOS REALES DE PROPIEDADES y REGLAS DEL NEGOCIO "
+        "que se proporcionan abajo. Busca:\n"
+        "- **Capacidad incorrecta:** ¿El bot dice que una casa tiene capacidad diferente a la BD?\n"
+        "- **Precios inventados:** ¿El bot da un precio sin haber llamado a check_availability?\n"
+        "- **Late checkout inventado:** ¿Da precio de late checkout sin usar check_late_checkout?\n"
+        "- **Reglas incorrectas:** ¿Dice que la piscina es temperada? ¿Que incluye toallas? ¿Que hay full day?\n"
+        "- **Check-in/out mal:** ¿Da horarios diferentes a los de la BD?\n"
+        "- **Mascotas:** ¿Inventa precio fijo por mascota en vez de contar como +1 persona?\n"
         "- **Adelanto vs descuento:** ¿Dice '50% de descuento' cuando debería decir '50% de adelanto'?\n"
-        "- **Fechas erróneas:** ¿Las fechas en cotizaciones son correctas (formato, rango cruzado de mes)?\n\n"
+        "- **Contradicciones:** ¿Dice que una casa NO está disponible y luego la recomienda?\n"
+        "- **Fechas erróneas:** ¿Las fechas en cotizaciones son correctas?\n"
+        "Para cada error, cita el texto del bot Y el dato correcto de la BD.\n\n"
         "## A3. Violaciones del Prompt\n"
         "- ¿El bot responde preguntas que debería escalar (temas legales, médicos, etc.)?\n"
         "- ¿Envía cotizaciones duplicadas con la misma info?\n"
@@ -387,6 +395,64 @@ class ChatAnalysisView(APIView):
         "Los errores técnicos afectan directamente la experiencia del cliente y la conversión."
     )
 
+    def _build_property_reference(self):
+        """Construye referencia de datos reales de propiedades desde la BD."""
+        from apps.property.models import Property as PropModel
+        from apps.property.pricing_models import PropertyPricing
+
+        properties = PropModel.objects.filter(deleted=False).order_by('name')
+        lines = []
+
+        for prop in properties:
+            ci = prop.hora_ingreso.strftime('%-I:%M %p') if prop.hora_ingreso else '?'
+            co = prop.hora_salida.strftime('%-I:%M %p') if prop.hora_salida else '?'
+            chars = ', '.join(prop.caracteristicas[:8]) if prop.caracteristicas else 'N/A'
+            lines.append(
+                f"### {prop.name}\n"
+                f"- Capacidad máxima: {prop.capacity_max or '?'} personas\n"
+                f"- Dormitorios: {prop.dormitorios or '?'} | Baños: {prop.banos or '?'}\n"
+                f"- Check-in: {ci} | Check-out: {co}\n"
+                f"- Precio extra/persona: ${prop.precio_extra_persona or '?'}\n"
+                f"- Características: {chars}\n"
+            )
+
+            # Precios por temporada
+            pricing = PropertyPricing.objects.filter(
+                property=prop, deleted=False
+            ).first()
+            if pricing:
+                lines.append(
+                    f"- Precios temporada baja: "
+                    f"L-J ${pricing.weekday_low_season_usd}/noche, "
+                    f"V-S ${pricing.weekend_low_season_usd}/noche\n"
+                    f"- Precios temporada alta: "
+                    f"L-J ${pricing.weekday_high_season_usd}/noche, "
+                    f"V-S ${pricing.weekend_high_season_usd}/noche\n"
+                )
+
+        return "\n".join(lines)
+
+    BUSINESS_RULES_REFERENCE = (
+        "## REGLAS DEL NEGOCIO (referencia para validar)\n"
+        "- Check-in estándar: 3:00 PM | Check-out: 11:00 AM\n"
+        "- 50% = ADELANTO (pago parcial para separar fecha). NUNCA es descuento.\n"
+        "- Saldo restante: 1 día antes del check-in\n"
+        "- Mascotas: SÍ permitidas, contar como +1 persona para pricing. NO hay precio fijo por mascota.\n"
+        "- Bebés < 3 años: GRATIS, no cuentan como persona\n"
+        "- Piscina: NO temperada | Jacuzzi: S/100/noche (se pide después de reservar)\n"
+        "- Late checkout: hasta 8PM, precio DINÁMICO (debe usar herramienta check_late_checkout)\n"
+        "- Full day / alquiler por horas: NO disponible, solo pernocte\n"
+        "- Año Nuevo (31 dic): mínimo 3 noches consecutivas\n"
+        "- Casa Austin 1: hasta 15 personas, SIN termoacústicas (no fiestas con volumen alto)\n"
+        "- Casa Austin 2: hasta 40 personas, CON termoacústicas, permite fiestas\n"
+        "- Casa Austin 3: hasta 70 personas, CON termoacústicas, piscina grande\n"
+        "- Casa Austin 4: hasta 40 personas, CON termoacústicas, permite fiestas\n"
+        "- Precios: SIEMPRE dinámicos, el bot DEBE usar check_availability (nunca inventar)\n"
+        "- Late checkout: DEBE usar check_late_checkout (nunca inventar precio)\n"
+        "- Toallas/artículos de higiene: NO incluidos\n"
+        "- Domótica/llave digital: se activa al 100% del pago\n"
+    )
+
     def get(self, request):
         import openai
         from django.conf import settings as django_settings
@@ -394,6 +460,9 @@ class ChatAnalysisView(APIView):
         # Obtener el prompt actual del chatbot
         chatbot_config = ChatbotConfiguration.get_config()
         chatbot_prompt = chatbot_config.system_prompt
+
+        # Obtener datos reales de propiedades
+        property_reference = self._build_property_reference()
 
         # Obtener las últimas 20 sesiones con mensajes
         sessions = ChatSession.objects.filter(
@@ -454,6 +523,9 @@ class ChatAnalysisView(APIView):
         all_conversations = "\n".join(conversations_text)
 
         user_message = (
+            f"## DATOS REALES DE PROPIEDADES (desde la base de datos):\n"
+            f"{property_reference}\n\n"
+            f"{self.BUSINESS_RULES_REFERENCE}\n\n"
             f"## PROMPT ACTUAL DEL CHATBOT:\n"
             f"```\n{chatbot_prompt}\n```\n\n"
             f"## CONVERSACIONES RECIENTES ({len(sessions)}):\n\n"
