@@ -410,22 +410,22 @@ class PricingCalculationService:
                 # Debug logging
                 import logging
                 logger = logging.getLogger(__name__)
-                logger.info(f"Validando código {code.code} para propiedad {property.name} (ID: {property.id})")
-                logger.info(f"Propiedades asignadas al código: {list(code.properties.values_list('name', flat=True))}")
+                logger.debug(f"Validando código {code.code} para propiedad {property.name} (ID: {property.id})")
+                logger.debug(f"Propiedades asignadas al código: {list(code.properties.values_list('name', flat=True))}")
 
                 is_valid, message = code.is_valid(property.id, subtotal_usd, check_in_date)
-                logger.info(f"Resultado validación: {is_valid} - {message}")
+                logger.debug(f"Resultado validación: {is_valid} - {message}")
 
                 if is_valid:
                     # Verificar si el código debe aplicarse solo al precio base
                     if code.apply_only_to_base_price and base_total_usd is not None:
                         # Calcular descuento solo sobre el precio base (sin huéspedes adicionales)
                         discount_amount_usd = code.calculate_discount(base_total_usd)
-                        logger.info(f"💰 Descuento BASE aplicado: ${discount_amount_usd} USD sobre precio base ${base_total_usd} USD (excluyendo ${extra_person_total_usd or 0} USD de personas extras)")
+                        logger.debug(f"💰 Descuento BASE aplicado: ${discount_amount_usd} USD sobre precio base ${base_total_usd} USD (excluyendo ${extra_person_total_usd or 0} USD de personas extras)")
                     else:
                         # Calcular descuento sobre el total completo
                         discount_amount_usd = code.calculate_discount(subtotal_usd)
-                        logger.info(f"💰 Descuento TOTAL aplicado: ${discount_amount_usd} USD sobre total ${subtotal_usd} USD")
+                        logger.debug(f"💰 Descuento TOTAL aplicado: ${discount_amount_usd} USD sobre total ${subtotal_usd} USD")
                     
                     discount_info.update({
                         'type': 'discount_code',
@@ -465,26 +465,26 @@ class PricingCalculationService:
             import logging
             logger = logging.getLogger(__name__)
 
-            logger.info(f"🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS")
+            logger.debug(f"🤖 EVALUANDO DESCUENTOS AUTOMÁTICOS")
             if client:
-                logger.info(f"👤 Cliente: {client.first_name} {client.last_name or ''} (ID: {client.id})")
-                logger.info(f"📅 Fecha de nacimiento: {client.date}")
-                logger.info(f"📅 Mes de check-in: {check_in_date.month}")
-                logger.info(f"📅 Fecha de check-in: {check_in_date}")
+                logger.debug(f"👤 Cliente: {client.first_name} {client.last_name or ''} (ID: {client.id})")
+                logger.debug(f"📅 Fecha de nacimiento: {client.date}")
+                logger.debug(f"📅 Mes de check-in: {check_in_date.month}")
+                logger.debug(f"📅 Fecha de check-in: {check_in_date}")
 
                 # Mostrar logros del cliente
                 client_achievements = ClientAchievement.objects.filter(client=client)
                 if client_achievements.exists():
                     achievement_names = list(client_achievements.values_list('achievement__name', flat=True))
-                    logger.info(f"🏆 Logros del cliente: {achievement_names}")
+                    logger.debug(f"🏆 Logros del cliente: {achievement_names}")
                 else:
-                    logger.info(f"🏆 Cliente no tiene logros registrados")
+                    logger.debug(f"🏆 Cliente no tiene logros registrados")
             else:
-                logger.info(f"👤 Sin cliente - evaluando descuentos globales")
+                logger.debug(f"👤 Sin cliente - evaluando descuentos globales")
 
             # Buscar descuentos automáticos aplicables
             automatic_discounts = AutomaticDiscount.objects.filter(is_active=True, deleted=False)
-            logger.info(f"📋 Descuentos automáticos disponibles: {automatic_discounts.count()}")
+            logger.debug(f"📋 Descuentos automáticos disponibles: {automatic_discounts.count()}")
 
             # Evaluar todos los descuentos automáticos aplicables y elegir el mejor
             applicable_discounts = []
@@ -502,7 +502,7 @@ class PricingCalculationService:
                 ).count()
                 
                 if previous_reservations == 0:
-                    logger.info(f"🎁 Cliente fue referido por {client.referred_by.first_name} - evaluando descuento de primera reserva")
+                    logger.debug(f"🎁 Cliente fue referido por {client.referred_by.first_name} - evaluando descuento de primera reserva")
                     
                     # Obtener el nivel más alto del referidor
                     referrer_highest_achievement = ClientAchievement.objects.filter(
@@ -526,7 +526,7 @@ class PricingCalculationService:
                             discount_percentage = referral_discount_config.discount_percentage
                             discount_amount_usd = (subtotal_usd * discount_percentage) / Decimal('100.00')
                             
-                            logger.info(f"✨ Descuento de referido aplicable: {discount_percentage}% por nivel '{referrer_highest_achievement.achievement.name}'")
+                            logger.debug(f"✨ Descuento de referido aplicable: {discount_percentage}% por nivel '{referrer_highest_achievement.achievement.name}'")
                             
                             applicable_discounts.append({
                                 'discount': type('obj', (object,), {
@@ -538,14 +538,14 @@ class PricingCalculationService:
                                 'amount_usd': discount_amount_usd
                             })
                         else:
-                            logger.info(f"⚠️ No hay descuento configurado para el nivel '{referrer_highest_achievement.achievement.name}'")
+                            logger.debug(f"⚠️ No hay descuento configurado para el nivel '{referrer_highest_achievement.achievement.name}'")
                     else:
-                        logger.info(f"⚠️ El referidor no tiene niveles/logros asignados")
+                        logger.debug(f"⚠️ El referidor no tiene niveles/logros asignados")
                 else:
-                    logger.info(f"ℹ️ Cliente tiene {previous_reservations} reserva(s) aprobada(s) - descuento de primera reserva no aplica")
+                    logger.debug(f"ℹ️ Cliente tiene {previous_reservations} reserva(s) aprobada(s) - descuento de primera reserva no aplica")
 
             for auto_discount in automatic_discounts:
-                logger.info(f"🔍 Evaluando: '{auto_discount.name}' - Trigger: '{auto_discount.trigger}'")
+                logger.debug(f"🔍 Evaluando: '{auto_discount.name}' - Trigger: '{auto_discount.trigger}'")
 
                 # Determinar si es un descuento global aplicable sin cliente
                 # REGLA SIMPLIFICADA: Es global si es GLOBAL_PROMOTION O no requiere logros específicos
@@ -563,19 +563,19 @@ class PricingCalculationService:
                 is_global_trigger = auto_discount.trigger in global_applicable_triggers
 
                 if is_global_discount:
-                    logger.info(f"🌍 '{auto_discount.name}' es un descuento GLOBAL (todos los niveles)")
+                    logger.debug(f"🌍 '{auto_discount.name}' es un descuento GLOBAL (todos los niveles)")
                 elif is_global_promotion:
-                    logger.info(f"🌍 '{auto_discount.name}' es una PROMOCIÓN GLOBAL")
+                    logger.debug(f"🌍 '{auto_discount.name}' es una PROMOCIÓN GLOBAL")
                 elif no_achievements_required and is_global_trigger:
-                    logger.info(f"🌍 '{auto_discount.name}' NO requiere logros específicos - DEBE APLICAR GLOBALMENTE")
+                    logger.debug(f"🌍 '{auto_discount.name}' NO requiere logros específicos - DEBE APLICAR GLOBALMENTE")
                 elif auto_discount.required_achievements.exists():
                     required_names = list(auto_discount.required_achievements.values_list('name', flat=True))
-                    logger.info(f"🎯 Logros requeridos para '{auto_discount.name}': {required_names}")
+                    logger.debug(f"🎯 Logros requeridos para '{auto_discount.name}': {required_names}")
                     if not client:
-                        logger.info(f"❌ Sin cliente - descuento requiere logros específicos")
+                        logger.debug(f"❌ Sin cliente - descuento requiere logros específicos")
                         continue
                 else:
-                    logger.info(f"🌍 '{auto_discount.name}' sin logros específicos")
+                    logger.debug(f"🌍 '{auto_discount.name}' sin logros específicos")
 
                 try:
                     # Para descuentos globales, aplicar incluso sin cliente
@@ -602,7 +602,7 @@ class PricingCalculationService:
                         message = "Requiere cliente registrado para este descuento específico"
                         continue
 
-                    logger.info(f"✅ Resultado para '{auto_discount.name}': {applies} - '{message}'")
+                    logger.debug(f"✅ Resultado para '{auto_discount.name}': {applies} - '{message}'")
 
                     if applies:
                         # Verificar si es un descuento solo para precio base
@@ -610,15 +610,15 @@ class PricingCalculationService:
                             # Calcular descuento solo sobre el precio base
                             if base_total_usd is not None:
                                 discount_amount_usd = auto_discount.calculate_base_price_discount(base_total_usd, extra_person_total_usd or Decimal('0.00'))
-                                logger.info(f"💰 Descuento BASE calculado para '{auto_discount.name}': ${discount_amount_usd} USD sobre precio base ${base_total_usd} USD ({auto_discount.discount_percentage}%)")
+                                logger.debug(f"💰 Descuento BASE calculado para '{auto_discount.name}': ${discount_amount_usd} USD sobre precio base ${base_total_usd} USD ({auto_discount.discount_percentage}%)")
                             else:
                                 # Fallback al descuento normal si no se proporciona base_total_usd
                                 discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
-                                logger.info(f"💰 Descuento TOTAL calculado para '{auto_discount.name}' (fallback): ${discount_amount_usd} USD ({auto_discount.discount_percentage}%)")
+                                logger.debug(f"💰 Descuento TOTAL calculado para '{auto_discount.name}' (fallback): ${discount_amount_usd} USD ({auto_discount.discount_percentage}%)")
                         else:
                             # Descuento normal sobre el total
                             discount_amount_usd = auto_discount.calculate_discount(subtotal_usd)
-                            logger.info(f"💰 Descuento TOTAL calculado para '{auto_discount.name}': ${discount_amount_usd} USD ({auto_discount.discount_percentage}%)")
+                            logger.debug(f"💰 Descuento TOTAL calculado para '{auto_discount.name}': ${discount_amount_usd} USD ({auto_discount.discount_percentage}%)")
 
                         applicable_discounts.append({
                             'discount': auto_discount,
@@ -634,7 +634,7 @@ class PricingCalculationService:
                 # Ordenar por monto de descuento (de mayor a menor)
                 best_discount = max(applicable_discounts, key=lambda x: x['amount_usd'])
 
-                logger.info(f"🏆 MEJOR DESCUENTO SELECCIONADO: {best_discount['discount'].name} - ${best_discount['amount_usd']} USD")
+                logger.debug(f"🏆 MEJOR DESCUENTO SELECCIONADO: {best_discount['discount'].name} - ${best_discount['amount_usd']} USD")
 
                 # Actualizar discount_info con el descuento automático
                 discount_info = {
@@ -647,7 +647,7 @@ class PricingCalculationService:
                     'apply_only_to_base_price': best_discount['discount'].apply_only_to_base_price
                 }
             else:
-                logger.info(f"❌ No se encontraron descuentos automáticos aplicables")
+                logger.debug(f"❌ No se encontraron descuentos automáticos aplicables")
 
         return discount_info
 
@@ -860,11 +860,11 @@ class PricingCalculationService:
         ).exists()
 
         if not has_special_dates:
-            logger.info(f"Propiedad {property.name} no tiene fechas especiales configuradas - omitiendo validación")
+            logger.debug(f"Propiedad {property.name} no tiene fechas especiales configuradas - omitiendo validación")
             return
 
-        logger.info(f"🔍 Validando protección de fechas especiales para {property.name}")
-        logger.info(f"📅 Check-in: {check_in_date}, Check-out: {check_out_date}, Noches: {nights}")
+        logger.debug(f"🔍 Validando protección de fechas especiales para {property.name}")
+        logger.debug(f"📅 Check-in: {check_in_date}, Check-out: {check_out_date}, Noches: {nights}")
 
         # Obtener todas las fechas especiales de esta propiedad para el año actual y siguiente
         current_year = check_in_date.year
@@ -886,9 +886,9 @@ class PricingCalculationService:
                     protected_start = special_date - timedelta(days=required_nights - 1)
                     protected_end = special_date + timedelta(days=required_nights - 1)
 
-                    logger.info(f"🎯 Fecha especial: {special_date.strftime('%d/%m/%Y')} ({special_pricing.description})")
-                    logger.info(f"🛡️  Rango protegido: {protected_start.strftime('%d/%m/%Y')} a {protected_end.strftime('%d/%m/%Y')}")
-                    logger.info(f"📏 Noches mínimas requeridas: {required_nights}")
+                    logger.debug(f"🎯 Fecha especial: {special_date.strftime('%d/%m/%Y')} ({special_pricing.description})")
+                    logger.debug(f"🛡️  Rango protegido: {protected_start.strftime('%d/%m/%Y')} a {protected_end.strftime('%d/%m/%Y')}")
+                    logger.debug(f"📏 Noches mínimas requeridas: {required_nights}")
 
                     # Verificar si la reserva propuesta interfiere con el rango protegido
                     reservation_start = check_in_date
@@ -898,7 +898,7 @@ class PricingCalculationService:
                     interferes = not (reservation_end < protected_start or reservation_start > protected_end)
 
                     if interferes:
-                        logger.info(f"⚠️  La reserva interfiere con el rango protegido de {special_pricing.description}")
+                        logger.debug(f"⚠️  La reserva interfiere con el rango protegido de {special_pricing.description}")
 
                         # Verificar si la fecha especial ya está ocupada
                         existing_reservations = Reservation.objects.filter(
@@ -910,7 +910,7 @@ class PricingCalculationService:
                         )
 
                         if existing_reservations.exists():
-                            logger.info(f"✅ Fecha especial {special_date.strftime('%d/%m/%Y')} ya está ocupada, permitiendo reserva")
+                            logger.debug(f"✅ Fecha especial {special_date.strftime('%d/%m/%Y')} ya está ocupada, permitiendo reserva")
                             continue
 
                         # La fecha especial está libre, verificar si esta reserva cumple el mínimo
@@ -940,7 +940,7 @@ class PricingCalculationService:
                             logger.error(f"🚫 VALIDACIÓN FALLIDA: {error_msg}")
                             raise ValueError(error_msg)
 
-                        logger.info(f"✅ Reserva válida: incluye fecha especial {special_date.strftime('%d/%m/%Y')} con {nights} noches")
+                        logger.debug(f"✅ Reserva válida: incluye fecha especial {special_date.strftime('%d/%m/%Y')} con {nights} noches")
 
                 except ValueError as ve:
                     # Re-lanzar errores de validación
@@ -950,7 +950,7 @@ class PricingCalculationService:
                     logger.warning(f"Fecha especial inválida: {special_pricing.day}/{special_pricing.month}/{year} - {e}")
                     continue
 
-        logger.info("✅ Validación de protección de fechas especiales completada exitosamente")
+        logger.debug("✅ Validación de protección de fechas especiales completada exitosamente")
 
     def _get_month_name_spanish(self, month):
         """Convierte número de mes a nombre en español"""
