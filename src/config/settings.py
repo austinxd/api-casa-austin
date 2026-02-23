@@ -319,6 +319,7 @@ SPECTACULAR_SETTINGS = {
 }
 
 # Logging configuration
+LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO').upper()
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -337,7 +338,7 @@ LOGGING = {
             'formatter': 'verbose',
         },
         'console': {
-            'level': 'DEBUG',
+            'level': LOG_LEVEL,
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
