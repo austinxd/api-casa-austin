@@ -388,27 +388,27 @@ class DiscountCode(BaseModel):
         # Debug logging para fechas
         import logging
         logger = logging.getLogger(__name__)
-        logger.info(f"Validando fechas - Hoy: {today}, Check date: {check_date}, Start: {self.start_date}, End: {self.end_date}")
+        logger.debug(f"Validando fechas - Hoy: {today}, Check date: {check_date}, Start: {self.start_date}, End: {self.end_date}")
 
         # Verificar fechas
         if check_date < self.start_date:
-            logger.info(f"Código no válido - fecha muy temprana: {check_date} < {self.start_date}")
+            logger.debug(f"Código no válido - fecha muy temprana: {check_date} < {self.start_date}")
             return False, f"Código válido desde {self.start_date.strftime('%d/%m/%Y')}"
 
         if check_date > self.end_date:
-            logger.info(f"Código expirado - fecha muy tardía: {check_date} > {self.end_date}")
+            logger.debug(f"Código expirado - fecha muy tardía: {check_date} > {self.end_date}")
             return False, f"Código expiró el {self.end_date.strftime('%d/%m/%Y')}"
 
-        logger.info(f"Fechas válidas - Código activo")
+        logger.debug(f"Fechas válidas - Código activo")
 
         # Verificar restricciones por día de la semana (SIEMPRE usar fecha de reserva si se proporciona)
         # Si no se proporciona booking_date, NO aplicar restricciones de días
         if not booking_check_date or booking_check_date == today:
-            logger.info(f"⚠️ No se proporcionó fecha de check-in válida para validar restricciones de días")
+            logger.debug(f"⚠️ No se proporcionó fecha de check-in válida para validar restricciones de días")
             # Si no hay fecha de reserva válida, omitir validación de días de semana
             # Esto permite que la cotización funcione pero la reserva real requiere fecha
             if self.restrict_weekdays or self.restrict_weekends:
-                logger.info(f"ℹ️ Código tiene restricciones de días pero no se puede validar sin fecha de check-in")
+                logger.debug(f"ℹ️ Código tiene restricciones de días pero no se puede validar sin fecha de check-in")
         else:
             day_check_date = booking_check_date
 
@@ -421,21 +421,21 @@ class DiscountCode(BaseModel):
             day_names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
             day_name = day_names[weekday]
 
-            logger.info(f"📅 Validando día del check-in: {day_check_date} - {weekday} ({day_name}) - {'Fin de semana' if is_weekend else 'Día de semana'}")
-            logger.info(f"📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana")
+            logger.debug(f"📅 Validando día del check-in: {day_check_date} - {weekday} ({day_name}) - {'Fin de semana' if is_weekend else 'Día de semana'}")
+            logger.debug(f"📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana")
 
             if self.restrict_weekdays and not is_weekday:
-                logger.info(f"❌ Restringido a días de semana pero check-in {day_check_date} ({day_name}) es fin de semana")
+                logger.debug(f"❌ Restringido a días de semana pero check-in {day_check_date} ({day_name}) es fin de semana")
                 return False, f"Descuento solo válido para check-in en días de semana (Domingo a Jueves). El check-in seleccionado cae en {day_name}."
 
             if self.restrict_weekends and not is_weekend:
-                logger.info(f"❌ Restringido a fines de semana pero check-in {day_check_date} ({day_name}) es día de semana")
+                logger.debug(f"❌ Restringido a fines de semana pero check-in {day_check_date} ({day_name}) es día de semana")
                 return False, f"Descuento solo válido para check-in en fines de semana (Viernes y Sábado). El check-in seleccionado cae en {day_name}."
             
             # Verificar configuración ambigua
             if self.restrict_weekdays and self.restrict_weekends:
                 # Si ambos están marcados, es un error de configuración
-                logger.info(f"❌ Configuración ambigua: ambas restricciones activadas")
+                logger.debug(f"❌ Configuración ambigua: ambas restricciones activadas")
                 return False, "Configuración de restricción de días ambigua (semana y fin de semana)."
 
 
@@ -666,19 +666,19 @@ class AutomaticDiscount(BaseModel):
         import logging
 
         logger = logging.getLogger(__name__)
-        logger.info(f"🔍 Evaluando descuento '{self.name}' con trigger '{self.trigger}'")
+        logger.debug(f"🔍 Evaluando descuento '{self.name}' con trigger '{self.trigger}'")
 
         if not self.is_active:
-            logger.info(f"❌ Descuento no está activo")
+            logger.debug(f"❌ Descuento no está activo")
             return False, "Descuento no activo"
 
         # Verificar validez por fechas (si están definidas)
         if self.start_date and booking_date < self.start_date:
-            logger.info(f"❌ Descuento no válido hasta: {self.start_date}")
+            logger.debug(f"❌ Descuento no válido hasta: {self.start_date}")
             return False, f"Descuento válido desde {self.start_date.strftime('%d/%m/%Y')}"
 
         if self.end_date and booking_date > self.end_date:
-            logger.info(f"❌ Descuento expiró el: {self.end_date}")
+            logger.debug(f"❌ Descuento expiró el: {self.end_date}")
             return False, f"Descuento expiró el {self.end_date.strftime('%d/%m/%Y')}"
 
         # Verificar restricciones de días de la semana
@@ -689,22 +689,22 @@ class AutomaticDiscount(BaseModel):
         day_names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
         day_name = day_names[weekday]
 
-        logger.info(f"📅 Día de la semana: {weekday} ({day_name}) - {'Fin de semana' if is_weekend else 'Día de semana'}")
-        logger.info(f"📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana")
+        logger.debug(f"📅 Día de la semana: {weekday} ({day_name}) - {'Fin de semana' if is_weekend else 'Día de semana'}")
+        logger.debug(f"📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana")
 
         # Verificar días específicos (tiene prioridad sobre restrict_weekdays/weekends)
         if self.specific_weekdays:
             specific_days = [int(d.strip()) for d in self.specific_weekdays.split(',') if d.strip().isdigit()]
             if weekday not in specific_days:
                 allowed_day_names = [day_names[d] for d in specific_days if 0 <= d <= 6]
-                logger.info(f"❌ Restringido a días específicos: {', '.join(allowed_day_names)}, pero hoy es {day_name}")
+                logger.debug(f"❌ Restringido a días específicos: {', '.join(allowed_day_names)}, pero hoy es {day_name}")
                 return False, f"Descuento solo válido para: {', '.join(allowed_day_names)}. Hoy es {day_name}."
-            logger.info(f"✅ Día {day_name} está en días específicos permitidos")
+            logger.debug(f"✅ Día {day_name} está en días específicos permitidos")
         elif self.restrict_weekdays and not is_weekday:
-            logger.info(f"❌ Restringido a días de semana pero {day_name} es fin de semana")
+            logger.debug(f"❌ Restringido a días de semana pero {day_name} es fin de semana")
             return False, f"Descuento solo válido para días de semana (Domingo a Jueves). Hoy es {day_name}."
         elif self.restrict_weekends and not is_weekend:
-            logger.info(f"❌ Restringido a fines de semana pero {day_name} es día de semana")
+            logger.debug(f"❌ Restringido a fines de semana pero {day_name} es día de semana")
             return False, f"Descuento solo válido para fines de semana (Viernes y Sábado). Hoy es {day_name}."
 
         # NUEVA VALIDACIÓN: Verificar que no sea fecha especial
@@ -718,7 +718,7 @@ class AutomaticDiscount(BaseModel):
             ).first()
 
             if special_date:
-                logger.info(f"❌ Fecha especial detectada: {special_date.description}")
+                logger.debug(f"❌ Fecha especial detectada: {special_date.description}")
                 return False, f"Los descuentos automáticos no aplican en fechas especiales como {special_date.description} ({booking_date.strftime('%d/%m')})"
         else:
             # Si no hay property_id específico, verificar si es fecha especial para CUALQUIER propiedad
@@ -730,12 +730,12 @@ class AutomaticDiscount(BaseModel):
 
             if special_dates.exists():
                 special_descriptions = list(special_dates.values_list('description', flat=True).distinct())
-                logger.info(f"❌ Fecha especial detectada: {special_descriptions}")
+                logger.debug(f"❌ Fecha especial detectada: {special_descriptions}")
                 return False, f"Los descuentos automáticos no aplican en fechas especiales como {', '.join(special_descriptions)} ({booking_date.strftime('%d/%m')})"
 
         # Verificar si el cliente tiene los logros requeridos
         if self.required_achievements.exists():
-            logger.info(f"🏆 Verificando logros requeridos...")
+            logger.debug(f"🏆 Verificando logros requeridos...")
 
             # Obtener TODOS los logros del cliente
             client_achievements = ClientAchievement.objects.filter(
@@ -743,7 +743,7 @@ class AutomaticDiscount(BaseModel):
             ).select_related('achievement')
 
             if not client_achievements.exists():
-                logger.info(f"❌ Cliente no tiene ningún logro")
+                logger.debug(f"❌ Cliente no tiene ningún logro")
                 required_names = list(self.required_achievements.values_list('name', flat=True))
                 return False, f"Requiere tener uno de estos logros: {', '.join(required_names)}"
 
@@ -751,36 +751,36 @@ class AutomaticDiscount(BaseModel):
             client_achievement_ids = set(client_achievements.values_list('achievement__id', flat=True))
             client_achievement_names = list(client_achievements.values_list('achievement__name', flat=True))
             
-            logger.info(f"🏆 Logros del cliente: {client_achievement_names}")
-            logger.info(f"🏆 IDs de logros del cliente: {client_achievement_ids}")
+            logger.debug(f"🏆 Logros del cliente: {client_achievement_names}")
+            logger.debug(f"🏆 IDs de logros del cliente: {client_achievement_ids}")
 
             # Verificar si alguno de los logros del cliente está en los requeridos
             required_achievement_ids = set(self.required_achievements.values_list('id', flat=True))
             required_names = list(self.required_achievements.values_list('name', flat=True))
 
-            logger.info(f"🏆 Logros requeridos: {required_names}")
-            logger.info(f"🏆 IDs requeridos: {required_achievement_ids}")
+            logger.debug(f"🏆 Logros requeridos: {required_names}")
+            logger.debug(f"🏆 IDs requeridos: {required_achievement_ids}")
 
             # Verificar si hay intersección entre los logros del cliente y los requeridos
             matching_achievements = client_achievement_ids.intersection(required_achievement_ids)
             
             if not matching_achievements:
-                logger.info(f"❌ El cliente no tiene ninguno de los logros requeridos")
+                logger.debug(f"❌ El cliente no tiene ninguno de los logros requeridos")
                 return False, f"Este descuento es exclusivo para: {', '.join(required_names)}. Tus logros actuales ({', '.join(client_achievement_names)}) no califican."
 
             # Obtener nombres de los logros que coinciden
             matching_achievement_names = list(
                 self.required_achievements.filter(id__in=matching_achievements).values_list('name', flat=True)
             )
-            logger.info(f"✅ El cliente tiene los siguientes logros requeridos: {matching_achievement_names}")
+            logger.debug(f"✅ El cliente tiene los siguientes logros requeridos: {matching_achievement_names}")
         else:
-            logger.info(f"🏆 Sin logros requeridos - descuento disponible para todos los clientes")
+            logger.debug(f"🏆 Sin logros requeridos - descuento disponible para todos los clientes")
 
         # Evaluar triggers específicos
-        logger.info(f"🎯 Evaluando trigger: {self.trigger}")
+        logger.debug(f"🎯 Evaluando trigger: {self.trigger}")
 
         if self.trigger == self.DiscountTrigger.BIRTHDAY:
-            logger.info(f"🎂 Verificando cumpleaños - Mes cliente: {client.date.month if client.date else 'N/A'}, Mes booking: {booking_date.month}")
+            logger.debug(f"🎂 Verificando cumpleaños - Mes cliente: {client.date.month if client.date else 'N/A'}, Mes booking: {booking_date.month}")
             if client.date and client.date.month == booking_date.month:
                 return True, f"¡Feliz cumpleaños! {self.discount_percentage}% de descuento"
             else:
@@ -792,7 +792,7 @@ class AutomaticDiscount(BaseModel):
                 deleted=False,
                 status__in=['approved', 'completed']  # Solo contar reservas exitosas
             ).count()
-            logger.info(f"🔄 Cliente frecuente - Reservas previas: {reservations_count}")
+            logger.debug(f"🔄 Cliente frecuente - Reservas previas: {reservations_count}")
             if reservations_count >= 1:  # Al menos una reserva previa
                 return True, f"Cliente frecuente: {self.discount_percentage}% de descuento"
             else:
@@ -803,14 +803,14 @@ class AutomaticDiscount(BaseModel):
                 client=client,
                 deleted=False
             ).count()
-            logger.info(f"🆕 Primera reserva - Reservas previas: {reservations_count}")
+            logger.debug(f"🆕 Primera reserva - Reservas previas: {reservations_count}")
             if reservations_count == 0:
                 return True, f"¡Bienvenido! {self.discount_percentage}% de descuento en tu primera reserva"
             else:
                 return False, f"Ya tiene reservas previas ({reservations_count})"
 
         elif self.trigger == self.DiscountTrigger.LOYALTY:
-            logger.info(f"🏆 Programa de lealtad - Requiere logros específicos")
+            logger.debug(f"🏆 Programa de lealtad - Requiere logros específicos")
             # Para programa de lealtad, verificar que tenga al menos los logros requeridos
             if self.required_achievements.exists():
                 return True, f"Programa de lealtad: {self.discount_percentage}% de descuento"
@@ -822,7 +822,7 @@ class AutomaticDiscount(BaseModel):
             today = date.today()
             tomorrow = today + timedelta(days=1)
 
-            logger.info(f"⏰ Último minuto - Hoy: {today}, Mañana: {tomorrow}, Booking: {booking_date}")
+            logger.debug(f"⏰ Último minuto - Hoy: {today}, Mañana: {tomorrow}, Booking: {booking_date}")
 
             # Verificar si la fecha de check-in es hoy o mañana
             if booking_date == today:
@@ -833,12 +833,12 @@ class AutomaticDiscount(BaseModel):
                 return False, f"No es reserva de último minuto (booking: {booking_date})"
 
         elif self.trigger == self.DiscountTrigger.GLOBAL_PROMOTION:
-            logger.info(f"🌍 Promoción global - Aplicable para todos los clientes")
+            logger.debug(f"🌍 Promoción global - Aplicable para todos los clientes")
             return True, f"Descuento por tiempo limitado: {self.discount_percentage}% de descuento"
         
         
 
-        logger.info(f"❌ Trigger '{self.trigger}' no reconocido")
+        logger.debug(f"❌ Trigger '{self.trigger}' no reconocido")
         return False, "Trigger no reconocido"
 
     def applies_to_client_global(self, booking_date, property_id=None):
@@ -847,19 +847,19 @@ class AutomaticDiscount(BaseModel):
         import logging
 
         logger = logging.getLogger(__name__)
-        logger.info(f"🌍 Evaluando descuento GLOBAL '{self.name}' con trigger '{self.trigger}'")
+        logger.debug(f"🌍 Evaluando descuento GLOBAL '{self.name}' con trigger '{self.trigger}'")
 
         if not self.is_active:
-            logger.info(f"❌ Descuento no está activo")
+            logger.debug(f"❌ Descuento no está activo")
             return False, "Descuento no activo"
 
         # Verificar validez por fechas (si están definidas)
         if self.start_date and booking_date < self.start_date:
-            logger.info(f"❌ Descuento no válido hasta: {self.start_date}")
+            logger.debug(f"❌ Descuento no válido hasta: {self.start_date}")
             return False, f"Descuento válido desde {self.start_date.strftime('%d/%m/%Y')}"
 
         if self.end_date and booking_date > self.end_date:
-            logger.info(f"❌ Descuento expiró el: {self.end_date}")
+            logger.debug(f"❌ Descuento expiró el: {self.end_date}")
             return False, f"Descuento expiró el {self.end_date.strftime('%d/%m/%Y')}"
 
         # Verificar restricciones de días de la semana
@@ -870,22 +870,22 @@ class AutomaticDiscount(BaseModel):
         day_names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
         day_name = day_names[weekday]
 
-        logger.info(f"📅 Día de la semana: {weekday} ({day_name}) - {'Fin de semana' if is_weekend else 'Día de semana'}")
-        logger.info(f"📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana")
+        logger.debug(f"📅 Día de la semana: {weekday} ({day_name}) - {'Fin de semana' if is_weekend else 'Día de semana'}")
+        logger.debug(f"📅 Según definición empresarial: Domingo-Jueves=semana, Viernes-Sábado=fin de semana")
 
         # Verificar días específicos (tiene prioridad sobre restrict_weekdays/weekends)
         if self.specific_weekdays:
             specific_days = [int(d.strip()) for d in self.specific_weekdays.split(',') if d.strip().isdigit()]
             if weekday not in specific_days:
                 allowed_day_names = [day_names[d] for d in specific_days if 0 <= d <= 6]
-                logger.info(f"❌ Restringido a días específicos: {', '.join(allowed_day_names)}, pero hoy es {day_name}")
+                logger.debug(f"❌ Restringido a días específicos: {', '.join(allowed_day_names)}, pero hoy es {day_name}")
                 return False, f"Descuento solo válido para: {', '.join(allowed_day_names)}. Hoy es {day_name}."
-            logger.info(f"✅ Día {day_name} está en días específicos permitidos")
+            logger.debug(f"✅ Día {day_name} está en días específicos permitidos")
         elif self.restrict_weekdays and not is_weekday:
-            logger.info(f"❌ Restringido a días de semana pero {day_name} es fin de semana")
+            logger.debug(f"❌ Restringido a días de semana pero {day_name} es fin de semana")
             return False, f"Descuento solo válido para días de semana (Domingo a Jueves). Hoy es {day_name}."
         elif self.restrict_weekends and not is_weekend:
-            logger.info(f"❌ Restringido a fines de semana pero {day_name} es día de semana")
+            logger.debug(f"❌ Restringido a fines de semana pero {day_name} es día de semana")
             return False, f"Descuento solo válido para fines de semana (Viernes y Sábado). Hoy es {day_name}."
 
         # Verificar que no sea fecha especial
@@ -898,7 +898,7 @@ class AutomaticDiscount(BaseModel):
             ).first()
 
             if special_date:
-                logger.info(f"❌ Fecha especial detectada: {special_date.description}")
+                logger.debug(f"❌ Fecha especial detectada: {special_date.description}")
                 return False, f"Los descuentos automáticos no aplican en fechas especiales como {special_date.description} ({booking_date.strftime('%d/%m')})"
         else:
             special_dates = SpecialDatePricing.objects.filter(
@@ -909,17 +909,17 @@ class AutomaticDiscount(BaseModel):
 
             if special_dates.exists():
                 special_descriptions = list(special_dates.values_list('description', flat=True).distinct())
-                logger.info(f"❌ Fecha especial detectada: {special_descriptions}")
+                logger.debug(f"❌ Fecha especial detectada: {special_descriptions}")
                 return False, f"Los descuentos automáticos no aplican en fechas especiales como {', '.join(special_descriptions)} ({booking_date.strftime('%d/%m')})"
 
         # Para descuentos globales, solo evaluar triggers que no requieren cliente específico
-        logger.info(f"🎯 Evaluando trigger global: {self.trigger}")
+        logger.debug(f"🎯 Evaluando trigger global: {self.trigger}")
 
         if self.trigger == self.DiscountTrigger.LAST_MINUTE:
             today = date.today()
             tomorrow = today + timedelta(days=1)
 
-            logger.info(f"⏰ Último minuto - Hoy: {today}, Mañana: {tomorrow}, Booking: {booking_date}")
+            logger.debug(f"⏰ Último minuto - Hoy: {today}, Mañana: {tomorrow}, Booking: {booking_date}")
 
             if booking_date == today:
                 return True, "Descuento por tiempo limitado"
@@ -930,21 +930,21 @@ class AutomaticDiscount(BaseModel):
 
         elif self.trigger == self.DiscountTrigger.LOYALTY:
             # Para descuentos globales de lealtad, siempre aplicar
-            logger.info(f"🏆 Descuento global de lealtad")
+            logger.debug(f"🏆 Descuento global de lealtad")
             return True, f"Descuento por tiempo limitado: {self.discount_percentage}% de descuento"
 
         elif self.trigger == self.DiscountTrigger.GLOBAL_PROMOTION:
             # Para promociones globales, siempre aplicar
-            logger.info(f"🌍 Promoción global - Aplicable sin cliente")
+            logger.debug(f"🌍 Promoción global - Aplicable sin cliente")
             return True, "Descuento por tiempo limitado"
 
         # Otros triggers que podrían ser globales
         elif self.trigger in [self.DiscountTrigger.FIRST_TIME, self.DiscountTrigger.RETURNING, self.DiscountTrigger.BIRTHDAY]:
             # Estos triggers normally requieren cliente, pero si es global, aplicar como "tiempo limitado"
-            logger.info(f"🌍 Trigger {self.trigger} aplicado globalmente")
+            logger.debug(f"🌍 Trigger {self.trigger} aplicado globalmente")
             return True, f"Descuento por tiempo limitado: {self.discount_percentage}% de descuento"
 
-        logger.info(f"❌ Trigger '{self.trigger}' no reconocido para descuento global")
+        logger.debug(f"❌ Trigger '{self.trigger}' no reconocido para descuento global")
         return False, "Trigger no reconocido para descuento global"
 
     def calculate_discount(self, total_amount_usd):
@@ -1289,7 +1289,7 @@ class WelcomeDiscountConfig(BaseModel):
         start_date = date.today()
         end_date = start_date + timedelta(days=self.validity_days)
         
-        logger.info(f"🎫 Generando código de bienvenida: {code} (longitud: {len(code)} chars)")
+        logger.debug(f"🎫 Generando código de bienvenida: {code} (longitud: {len(code)} chars)")
         
         # Crear el código de descuento
         try:
@@ -1309,7 +1309,7 @@ class WelcomeDiscountConfig(BaseModel):
                 apply_only_to_base_price=self.apply_only_to_base_price,
                 is_active=True
             )
-            logger.info(f"✅ Código creado exitosamente en base de datos: {code}")
+            logger.debug(f"✅ Código creado exitosamente en base de datos: {code}")
         except Exception as e:
             logger.error(f"❌ Error al crear código de descuento en BD: {str(e)}")
             logger.error(f"   Código: {code} (longitud: {len(code)})")
