@@ -537,6 +537,10 @@ class Achievement(BaseModel):
     # Configuración
     is_active = models.BooleanField(default=True, help_text="Activar/desactivar este logro")
     order = models.PositiveIntegerField(default=0, help_text="Orden de visualización")
+    discount_percentage = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0,
+        help_text="% descuento permanente para clientes con este nivel"
+    )
     
     class Meta:
         ordering = ['order', 'required_reservations', 'required_referrals']

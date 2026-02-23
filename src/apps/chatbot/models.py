@@ -438,6 +438,81 @@ class PromoDateSent(BaseModel):
         return f"Promo a {self.client} - {self.check_in_date} ({self.status})"
 
 
+class PromoBirthdayConfig(BaseModel):
+    """Configuración para promos automáticas de cumpleaños (singleton)"""
+
+    is_active = models.BooleanField(default=False, help_text="Activar/desactivar envío automático de promos de cumpleaños")
+    days_before_birthday = models.PositiveIntegerField(
+        default=15,
+        help_text="Días antes del cumpleaños para enviar la promo"
+    )
+    birthday_discount_percentage = models.PositiveIntegerField(
+        default=10,
+        help_text="% de descuento de cumpleaños que se envía en la plantilla"
+    )
+    wa_template_name = models.CharField(
+        max_length=100, default='cumpleanos_cliente',
+        help_text="Nombre de la plantilla aprobada en Meta"
+    )
+    wa_template_language = models.CharField(
+        max_length=10, default='es',
+        help_text="Código de idioma de la plantilla"
+    )
+    send_hour = models.TimeField(
+        default='09:00',
+        help_text="Hora del día para envío de promos"
+    )
+
+    class Meta:
+        verbose_name = '🎂 Config Promo Cumpleaños'
+        verbose_name_plural = '🎂 Config Promo Cumpleaños'
+
+    def __str__(self):
+        status = "Activo" if self.is_active else "Inactivo"
+        return f"Promo Cumpleaños ({status}) - {self.days_before_birthday} días antes, {self.birthday_discount_percentage}% desc"
+
+    def save(self, *args, **kwargs):
+        if not self.pk and PromoBirthdayConfig.objects.exists():
+            existing = PromoBirthdayConfig.objects.first()
+            self.pk = existing.pk
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_config(cls):
+        config, _ = cls.objects.get_or_create(
+            defaults={'is_active': False}
+        )
+        return config
+
+
+class PromoBirthdaySent(BaseModel):
+    """Registro de promos de cumpleaños enviadas para evitar duplicados"""
+
+    class StatusChoices(models.TextChoices):
+        SENT = 'sent', 'Enviado'
+        FAILED = 'failed', 'Fallido'
+
+    client = models.ForeignKey(
+        'clients.Clients', on_delete=models.CASCADE,
+        related_name='promo_birthdays_sent'
+    )
+    year = models.PositiveIntegerField(help_text="Año del cumpleaños para el que se envió")
+    wa_message_id = models.CharField(max_length=500, null=True, blank=True)
+    status = models.CharField(
+        max_length=10, choices=StatusChoices.choices,
+        default=StatusChoices.SENT
+    )
+
+    class Meta:
+        verbose_name = '🎂 Promo Cumpleaños Enviada'
+        verbose_name_plural = '🎂 Promos Cumpleaños Enviadas'
+        ordering = ['-created']
+        unique_together = ('client', 'year')
+
+    def __str__(self):
+        return f"Promo cumpleaños a {self.client} - {self.year} ({self.status})"
+
+
 class ChatAnalytics(BaseModel):
     """Métricas diarias del chatbot"""
 
