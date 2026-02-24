@@ -445,7 +445,7 @@ class ToolExecutor:
                     avail_str = ", ".join(available)
                     lines.append(f"✅ {day_label}: {avail_str}")
                 else:
-                    lines.append(f"❌ {day_label}: Todo ocupado")
+                    lines.append(f"📅 {day_label}: Ocupado")
 
             lines.append("")
             lines.append(
@@ -711,7 +711,7 @@ class ToolExecutor:
 
             if not available:
                 msg = prop.get('availability_message', 'No disponible')
-                unavailable_lines.append(f"❌ {name}: {msg}")
+                unavailable_lines.append(f"⚠️ {name}: {msg}")
                 continue
 
             final_usd = prop.get('final_price_usd', 0)
@@ -741,42 +741,50 @@ class ToolExecutor:
             if guests == 1:
                 lines.append("⚠️ Este precio es solo para 1 persona. Cada persona adicional tiene un costo extra por noche.")
             lines.extend(available_lines)
-        else:
-            lines.append("❌ No hay casas disponibles para estas fechas.")
 
-        if unavailable_lines:
+            if unavailable_lines:
+                lines.append("")
+                lines.extend(unavailable_lines)
+
             lines.append("")
-            lines.extend(unavailable_lines)
-
-        lines.append("")
-        lines.append(
-            "⚠️ *Importante:* Cualquier visitante, sea de día o de noche, "
-            "cuenta como persona adicional. Por favor, indícanos el número exacto de personas."
-        )
-
-        # Link directo con fechas y personas
-        lines.append("")
-        lines.append(
-            f"🔗 Fotos y detalles: "
-            f"https://casaaustin.pe/disponibilidad?checkIn={url_ci}&checkOut={url_co}&guests={guests}"
-        )
-
-        # Instrucción para la IA (NO visible al cliente)
-        lines.append("")
-        ia_instruction = (
-            "[INSTRUCCIÓN IA — OBLIGATORIO — NO MOSTRAR AL CLIENTE]"
-            "\nTu respuesta DEBE ser EXACTAMENTE el texto de arriba copiado tal cual, carácter por carácter."
-            "\nPROHIBIDO: resumir, parafrasear, cambiar formato, quitar emojis, quitar asteriscos, juntar líneas."
-            "\nPROHIBIDO: escribir algo como 'el precio sería $X ó S/X' en prosa. La cotización YA está formateada."
-            "\nPROHIBIDO: incluir CUALQUIER texto que empiece con [INSTRUCCIÓN o ⚠️ PRECIO BASE en tu respuesta."
-            "\nSolo agrega UNA pregunta de cierre breve DESPUÉS (ej: '¿Te animas a reservar? 😊')."
-        )
-        if guests <= 1:
-            ia_instruction += (
-                "\n\nNOTA INTERNA: Este es precio base para 1 persona. "
-                "Pregunta cuántas personas serán para recotizar con check_availability."
+            lines.append(
+                "⚠️ *Importante:* Cualquier visitante, sea de día o de noche, "
+                "cuenta como persona adicional. Por favor, indícanos el número exacto de personas."
             )
-        lines.append(ia_instruction)
+
+            # Link directo con fechas y personas
+            lines.append("")
+            lines.append(
+                f"🔗 Fotos y detalles: "
+                f"https://casaaustin.pe/disponibilidad?checkIn={url_ci}&checkOut={url_co}&guests={guests}"
+            )
+
+            # Instrucción para la IA (NO visible al cliente)
+            lines.append("")
+            ia_instruction = (
+                "[INSTRUCCIÓN IA — OBLIGATORIO — NO MOSTRAR AL CLIENTE]"
+                "\nTu respuesta DEBE ser EXACTAMENTE el texto de arriba copiado tal cual, carácter por carácter."
+                "\nPROHIBIDO: resumir, parafrasear, cambiar formato, quitar emojis, quitar asteriscos, juntar líneas."
+                "\nPROHIBIDO: escribir algo como 'el precio sería $X ó S/X' en prosa. La cotización YA está formateada."
+                "\nPROHIBIDO: incluir CUALQUIER texto que empiece con [INSTRUCCIÓN o ⚠️ PRECIO BASE en tu respuesta."
+                "\nSolo agrega UNA pregunta de cierre breve DESPUÉS (ej: '¿Te animas a reservar? 😊')."
+            )
+            if guests <= 1:
+                ia_instruction += (
+                    "\n\nNOTA INTERNA: Este es precio base para 1 persona. "
+                    "Pregunta cuántas personas serán para recotizar con check_availability."
+                )
+            lines.append(ia_instruction)
+        else:
+            lines.append("Lamentablemente todas nuestras casas están ocupadas para estas fechas 😔")
+            lines.append("")
+            lines.append(
+                "[INSTRUCCIÓN IA — NO MOSTRAR AL CLIENTE]"
+                "\nMuestra SOLO la primera línea (📅 fechas) y el mensaje de que están ocupadas."
+                "\nNO incluyas detalles de cada propiedad ni enlaces de reserva."
+                "\nOfrece al cliente buscar fechas alternativas cercanas o fines de semana diferentes."
+                "\nSé empático y proactivo sugiriendo opciones."
+            )
 
         return '\n'.join(lines)
 
@@ -1084,7 +1092,7 @@ class ToolExecutor:
         if not result.get('is_available'):
             message = result.get('message', 'Late checkout no disponible')
             return (
-                f"❌ Late checkout NO disponible para {prop.name} el {checkout_date}.\n"
+                f"Late checkout no disponible para {prop.name} el {checkout_date}.\n"
                 f"Motivo: {message}"
             )
 
