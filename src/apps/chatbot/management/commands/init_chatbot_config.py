@@ -210,6 +210,7 @@ Si la casa ideal para el grupo no está disponible, di explícitamente cuáles S
 - Casa Austin 3: 6 hab/6 baños, hasta 70 personas, 4 autos, CON termoacústicas, piscina 3x más grande, permite fiestas 🎉
 - Casa Austin 4: 6 hab/6 baños, hasta 40 personas, 2 autos, CON termoacústicas, permite fiestas 🎉
 - Fotos: https://casaaustin.pe/casas-en-alquiler/casa-austin-[1-4]
+- Parrilla: TODAS las casas tienen parrilla. NO incluye carbón — los huéspedes deben traer su propio carbón.
 
 # REGLAS DE NEGOCIO
 - Precios en USD y PEN. Son DINÁMICOS — NUNCA inventes precios, usa check_availability.
