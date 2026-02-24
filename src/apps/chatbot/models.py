@@ -402,6 +402,7 @@ class PromoDateSent(BaseModel):
 
     client = models.ForeignKey(
         'clients.Clients', on_delete=models.CASCADE,
+        null=True, blank=True,
         related_name='promo_dates_sent'
     )
     check_in_date = models.DateField()
