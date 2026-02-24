@@ -11,7 +11,7 @@ from rest_framework_simplejwt.views import (
 )
 
 # Estadísticas comprehensivas
-from apps.events.views import ComprehensiveStatsView, UpcomingCheckinsView, SearchTrackingStatsView, IngresosStatsView, MetasIngresosView, IngresosAnalysisView
+from apps.events.views import ComprehensiveStatsView, UpcomingCheckinsView, SearchTrackingStatsView, IngresosStatsView, MetasIngresosView, IngresosAnalysisView, ClientProfileStatsView
 
 
 urlpatterns = [
@@ -40,6 +40,7 @@ urlpatterns = [
     path('api/v1/stats/search-tracking/', SearchTrackingStatsView.as_view(), name='stats-search-tracking'),
     path('api/v1/stats/ingresos/', IngresosStatsView.as_view(), name='stats-ingresos'),
     path('api/v1/stats/ingresos/analysis/', IngresosAnalysisView.as_view(), name='stats-ingresos-analysis'),
+    path('api/v1/stats/client-profile/', ClientProfileStatsView.as_view(), name='stats-client-profile'),
     path('api/v1/metas/', MetasIngresosView.as_view(), name='stats-ingresos-metas'),
     path('api/v1/upcoming-checkins/', UpcomingCheckinsView.as_view(), name='upcoming-checkins'),
 ]

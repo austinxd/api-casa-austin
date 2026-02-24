@@ -3318,3 +3318,349 @@ class IngresosAnalysisView(APIView):
             'tokens_used': tokens_used,
             'model': MODEL,
         })
+
+
+class ClientProfileStatsView(APIView):
+    """
+    Endpoint para análisis del perfil demográfico de clientes por mes.
+    Cruza demografía (edad, género, tipo documento) con gasto para
+    identificar el "cliente ideal" — el segmento que gasta más.
+
+    Parámetros:
+    - month: mes (1-12, default: mes actual)
+    - year: año (default: año actual)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    MONTH_NAMES = {
+        1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
+        5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
+        9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre',
+    }
+
+    GENDER_LABELS = {'m': 'Masculino', 'f': 'Femenino', 'e': 'Empresa'}
+    DOC_TYPE_LABELS = {'dni': 'DNI', 'cex': 'Carnet de Extranjería', 'pas': 'Pasaporte', 'ruc': 'RUC'}
+    ORIGIN_LABELS = {'air': 'Airbnb', 'aus': 'Directo', 'client': 'Cliente Web'}
+
+    AGE_RANGES = [
+        (0, 17, '0-17'),
+        (18, 25, '18-25'),
+        (26, 35, '26-35'),
+        (36, 45, '36-45'),
+        (46, 55, '46-55'),
+        (56, 65, '56-65'),
+        (66, 200, '66+'),
+    ]
+
+    def get(self, request):
+        from apps.reservation.models import Reservation
+        from apps.clients.models import Clients
+        from datetime import date
+        import calendar
+
+        now = timezone.now()
+        try:
+            month = int(request.GET.get('month', now.month))
+            year = int(request.GET.get('year', now.year))
+            if month < 1 or month > 12:
+                month = now.month
+        except (ValueError, TypeError):
+            month, year = now.month, now.year
+
+        first_day = date(year, month, 1)
+        last_day_num = calendar.monthrange(year, month)[1]
+        last_day = date(year, month, last_day_num)
+
+        try:
+            # --- Reservas del mes ---
+            reservations = Reservation.objects.filter(
+                check_in_date__gte=first_day,
+                check_in_date__lte=last_day,
+                status='approved',
+                deleted=False,
+            ).exclude(origin='man').select_related('client')
+
+            # Agrupar datos por cliente único
+            client_data = {}  # client_id -> {info}
+            for r in reservations:
+                if not r.client:
+                    continue
+                cid = str(r.client.id)
+                spend = float(r.price_sol or 0)
+                nights = (r.check_out_date - r.check_in_date).days
+                if nights < 0:
+                    nights = 0
+                guests = r.guests or 1
+
+                if cid not in client_data:
+                    # Calcular edad
+                    age = None
+                    if r.client.date:
+                        today = date.today()
+                        bd = r.client.date
+                        age = today.year - bd.year - ((today.month, today.day) < (bd.month, bd.day))
+
+                    client_data[cid] = {
+                        'client': r.client,
+                        'name': f"{r.client.first_name} {r.client.last_name or ''}".strip(),
+                        'sex': r.client.sex,
+                        'age': age,
+                        'document_type': r.client.document_type,
+                        'number_doc': r.client.number_doc,
+                        'total_spent': 0.0,
+                        'reservation_count': 0,
+                        'total_nights': 0,
+                        'total_guests': 0,
+                        'origins': [],
+                    }
+                client_data[cid]['total_spent'] += spend
+                client_data[cid]['reservation_count'] += 1
+                client_data[cid]['total_nights'] += nights
+                client_data[cid]['total_guests'] += guests
+                client_data[cid]['origins'].append(r.origin)
+
+            total_clients = len(client_data)
+            total_reservations = sum(c['reservation_count'] for c in client_data.values())
+            total_revenue = sum(c['total_spent'] for c in client_data.values())
+            total_nights_all = sum(c['total_nights'] for c in client_data.values())
+            total_guests_all = sum(c['total_guests'] for c in client_data.values())
+
+            avg_spend = round(total_revenue / total_clients, 2) if total_clients else 0
+            avg_nights = round(total_nights_all / total_reservations, 1) if total_reservations else 0
+            avg_guests = round(total_guests_all / total_reservations, 1) if total_reservations else 0
+
+            # --- Nuevos vs recurrentes ---
+            new_clients = 0
+            returning_clients = 0
+            for cid, cd in client_data.items():
+                has_prev = Reservation.objects.filter(
+                    client=cd['client'],
+                    status='approved',
+                    deleted=False,
+                    check_in_date__lt=first_day,
+                ).exclude(origin='man').exists()
+                if has_prev:
+                    returning_clients += 1
+                else:
+                    new_clients += 1
+
+            new_pct = round(new_clients / total_clients * 100, 1) if total_clients else 0
+            ret_pct = round(returning_clients / total_clients * 100, 1) if total_clients else 0
+
+            # --- Distribución por género ---
+            gender_dist = self._build_distribution(
+                client_data, 'sex', self.GENDER_LABELS
+            )
+
+            # --- Distribución por edad ---
+            age_dist = self._build_age_distribution(client_data)
+
+            # --- Distribución por tipo de documento ---
+            doc_dist = self._build_distribution(
+                client_data, 'document_type', self.DOC_TYPE_LABELS
+            )
+
+            # --- Distribución por origen ---
+            origin_dist = self._build_origin_distribution(client_data)
+
+            # --- Distribución por nro de huéspedes ---
+            guest_dist = self._build_guest_distribution(client_data)
+
+            # --- Top 10 clientes ---
+            top_clients = sorted(client_data.values(), key=lambda x: x['total_spent'], reverse=True)[:10]
+            top_clients_list = []
+            for i, c in enumerate(top_clients, 1):
+                top_clients_list.append({
+                    'rank': i,
+                    'client_id': str(c['client'].id),
+                    'name': c['name'],
+                    'document': c['number_doc'],
+                    'document_type': c['document_type'],
+                    'sex': c['sex'],
+                    'age': c['age'],
+                    'total_spent': round(c['total_spent'], 2),
+                    'reservation_count': c['reservation_count'],
+                })
+
+            # --- Perfil ideal ---
+            ideal_profile = self._build_ideal_profile(
+                gender_dist, age_dist, doc_dist, origin_dist, guest_dist
+            )
+
+            return Response({
+                'success': True,
+                'data': {
+                    'period_info': {
+                        'month': month,
+                        'year': year,
+                        'month_name': self.MONTH_NAMES.get(month, ''),
+                    },
+                    'summary': {
+                        'total_clients': total_clients,
+                        'total_reservations': total_reservations,
+                        'total_revenue': round(total_revenue, 2),
+                        'avg_spend': avg_spend,
+                        'avg_nights': avg_nights,
+                        'avg_guests': avg_guests,
+                        'new_clients': new_clients,
+                        'returning_clients': returning_clients,
+                        'new_clients_percentage': new_pct,
+                        'returning_clients_percentage': ret_pct,
+                    },
+                    'gender_distribution': gender_dist,
+                    'age_distribution': age_dist,
+                    'document_type_distribution': doc_dist,
+                    'origin_distribution': origin_dist,
+                    'guest_distribution': guest_dist,
+                    'top_clients': top_clients_list,
+                    'ideal_profile': ideal_profile,
+                },
+            })
+
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f'Client profile stats error: {str(e)}')
+            return Response({
+                'success': False,
+                'error': 'Error al procesar estadísticas de perfil de clientes',
+                'message': str(e),
+            }, status=500)
+
+    # ---- helpers ----
+
+    def _build_distribution(self, client_data, field, labels):
+        """Construye distribución genérica por un campo del cliente."""
+        buckets = {}  # value -> {count, total_spend}
+        for cd in client_data.values():
+            val = cd.get(field)
+            if not val:
+                continue
+            if val not in buckets:
+                buckets[val] = {'count': 0, 'total_spend': 0.0}
+            buckets[val]['count'] += 1
+            buckets[val]['total_spend'] += cd['total_spent']
+
+        total = sum(b['count'] for b in buckets.values())
+        result = []
+        for val, b in sorted(buckets.items(), key=lambda x: x[1]['total_spend'], reverse=True):
+            result.append({
+                'label': labels.get(val, val),
+                'value': val,
+                'count': b['count'],
+                'percentage': round(b['count'] / total * 100, 1) if total else 0,
+                'avg_spend': round(b['total_spend'] / b['count'], 2) if b['count'] else 0,
+                'total_spend': round(b['total_spend'], 2),
+            })
+        return result
+
+    def _build_age_distribution(self, client_data):
+        buckets = {r[2]: {'count': 0, 'total_spend': 0.0} for r in self.AGE_RANGES}
+        for cd in client_data.values():
+            age = cd.get('age')
+            if age is None:
+                continue
+            for lo, hi, label in self.AGE_RANGES:
+                if lo <= age <= hi:
+                    buckets[label]['count'] += 1
+                    buckets[label]['total_spend'] += cd['total_spent']
+                    break
+
+        total = sum(b['count'] for b in buckets.values())
+        result = []
+        for r in self.AGE_RANGES:
+            label = r[2]
+            b = buckets[label]
+            if b['count'] == 0:
+                continue
+            result.append({
+                'range': label,
+                'count': b['count'],
+                'percentage': round(b['count'] / total * 100, 1) if total else 0,
+                'avg_spend': round(b['total_spend'] / b['count'], 2) if b['count'] else 0,
+                'total_spend': round(b['total_spend'], 2),
+            })
+        return result
+
+    def _build_origin_distribution(self, client_data):
+        """Distribución por origen de reserva (usa la moda por cliente)."""
+        from collections import Counter
+        buckets = {}
+        for cd in client_data.values():
+            if not cd['origins']:
+                continue
+            # Origen más frecuente del cliente
+            origin = Counter(cd['origins']).most_common(1)[0][0]
+            if origin not in buckets:
+                buckets[origin] = {'count': 0, 'total_spend': 0.0}
+            buckets[origin]['count'] += 1
+            buckets[origin]['total_spend'] += cd['total_spent']
+
+        total = sum(b['count'] for b in buckets.values())
+        result = []
+        for val, b in sorted(buckets.items(), key=lambda x: x[1]['total_spend'], reverse=True):
+            result.append({
+                'label': self.ORIGIN_LABELS.get(val, val),
+                'value': val,
+                'count': b['count'],
+                'percentage': round(b['count'] / total * 100, 1) if total else 0,
+                'avg_spend': round(b['total_spend'] / b['count'], 2) if b['count'] else 0,
+                'total_spend': round(b['total_spend'], 2),
+            })
+        return result
+
+    def _build_guest_distribution(self, client_data):
+        """Distribución por número de huéspedes (promedio por cliente)."""
+        buckets = {}
+        for cd in client_data.values():
+            avg_g = round(cd['total_guests'] / cd['reservation_count']) if cd['reservation_count'] else 1
+            if avg_g not in buckets:
+                buckets[avg_g] = {'count': 0, 'total_spend': 0.0}
+            buckets[avg_g]['count'] += 1
+            buckets[avg_g]['total_spend'] += cd['total_spent']
+
+        total = sum(b['count'] for b in buckets.values())
+        result = []
+        for guests, b in sorted(buckets.items()):
+            result.append({
+                'guests': guests,
+                'count': b['count'],
+                'percentage': round(b['count'] / total * 100, 1) if total else 0,
+                'avg_spend': round(b['total_spend'] / b['count'], 2) if b['count'] else 0,
+                'total_spend': round(b['total_spend'], 2),
+            })
+        return result
+
+    def _build_ideal_profile(self, gender_dist, age_dist, doc_dist, origin_dist, guest_dist):
+        """Identifica el segmento de mayor gasto promedio en cada categoría."""
+        top_gender = max(gender_dist, key=lambda x: x['avg_spend']) if gender_dist else None
+        top_age = max(age_dist, key=lambda x: x['avg_spend']) if age_dist else None
+        top_doc = max(doc_dist, key=lambda x: x['avg_spend']) if doc_dist else None
+        top_origin = max(origin_dist, key=lambda x: x['avg_spend']) if origin_dist else None
+        top_guest = max(guest_dist, key=lambda x: x['avg_spend']) if guest_dist else None
+
+        parts = []
+        if top_gender:
+            parts.append(top_gender['label'])
+        if top_age:
+            parts.append(f"{top_age['range']} años")
+        if top_doc:
+            parts.append(f"{top_doc['label']}")
+        if top_origin:
+            parts.append(f"reserva {top_origin['label']}")
+        if top_guest:
+            parts.append(f"grupo de {top_guest['guests']} personas")
+
+        max_avg = max(
+            [x['avg_spend'] for x in [top_gender, top_age, top_doc, top_origin, top_guest] if x],
+            default=0,
+        )
+
+        return {
+            'top_gender': {'label': top_gender['label'], 'avg_spend': top_gender['avg_spend']} if top_gender else None,
+            'top_age_range': {'range': top_age['range'], 'avg_spend': top_age['avg_spend']} if top_age else None,
+            'top_document_type': {'label': top_doc['label'], 'avg_spend': top_doc['avg_spend']} if top_doc else None,
+            'top_origin': {'label': top_origin['label'], 'avg_spend': top_origin['avg_spend']} if top_origin else None,
+            'top_guest_count': {'guests': top_guest['guests'], 'avg_spend': top_guest['avg_spend']} if top_guest else None,
+            'description': ', '.join(parts) if parts else 'Sin datos suficientes',
+        }
