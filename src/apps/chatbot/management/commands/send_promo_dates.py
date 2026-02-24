@@ -257,7 +257,7 @@ class Command(BaseCommand):
                     casas_detalle.append(
                         f"{p['property_name']}: S/{final:.0f}"
                     )
-            casas_text = '\n'.join(casas_detalle)
+            casas_text = ' | '.join(casas_detalle)
 
             # Formatear fechas
             from apps.property.pricing_service import PricingCalculationService as PCS
@@ -523,7 +523,7 @@ class Command(BaseCommand):
                         casas_detalle.append(f"{p['property_name']}: S/{original:.0f} → S/{final:.0f}")
                     else:
                         casas_detalle.append(f"{p['property_name']}: S/{final:.0f}")
-                casas_text = '\n'.join(casas_detalle)
+                casas_text = ' | '.join(casas_detalle)
 
                 # Formatear fechas
                 try:
