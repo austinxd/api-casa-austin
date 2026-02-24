@@ -300,11 +300,34 @@ class Command(BaseCommand):
                 components=components,
             )
 
+            # Obtener contenido real de la plantilla renderizada
+            rendered = sender.render_template(
+                config.wa_template_name, config.wa_template_language, components
+            )
+            template_content = rendered or (
+                f"Fechas: {fechas_str} ({guests} personas) | "
+                f"Casas: {casas_text} | Código: {discount_code.code} ({discount_pct}% desc)"
+            )
+
+            # Obtener/crear sesión de chat
+            session = ChatSession.objects.filter(
+                client=client, deleted=False
+            ).order_by('-last_message_at').first()
+
+            if not session:
+                session = ChatSession.objects.create(
+                    channel='whatsapp',
+                    wa_id=phone,
+                    wa_profile_name=client_name,
+                    client=client,
+                    status='active',
+                    ai_enabled=True,
+                )
+
             if not wa_message_id:
                 self.stdout.write(self.style.ERROR(
                     f'  ERROR {client_name}: envío WA falló'
                 ))
-                # No borrar el código generado, pero marcar como fallido
                 PromoDateSent.objects.create(
                     client=client,
                     check_in_date=target_date,
@@ -312,6 +335,7 @@ class Command(BaseCommand):
                     guests=guests,
                     discount_code=discount_code,
                     wa_message_id=None,
+                    session=session,
                     message_content=casas_text,
                     pricing_snapshot={
                         'properties': [
@@ -325,14 +349,20 @@ class Command(BaseCommand):
                     },
                     status='failed',
                 )
+                ChatMessage.objects.create(
+                    session=session,
+                    direction='system',
+                    message_type='text',
+                    content=f"[Promo fechas - ERROR] No se pudo enviar:\n\n{template_content}",
+                    intent_detected='promo_date',
+                )
+                session.total_messages += 1
+                session.last_message_at = timezone.now()
+                session.save(update_fields=['total_messages', 'last_message_at'])
                 continue
 
             # Registrar en PromoDateSent
-            session = ChatSession.objects.filter(
-                client=client, deleted=False
-            ).order_by('-last_message_at').first()
-
-            promo_sent = PromoDateSent.objects.create(
+            PromoDateSent.objects.create(
                 client=client,
                 check_in_date=target_date,
                 check_out_date=check_out_date,
@@ -355,31 +385,15 @@ class Command(BaseCommand):
                 status='sent',
             )
 
-            # Crear/actualizar ChatSession y ChatMessage para visibilidad en Austin Assistant
-            if not session:
-                session = ChatSession.objects.create(
-                    channel='whatsapp',
-                    wa_id=phone,
-                    wa_profile_name=client_name,
-                    client=client,
-                    status='active',
-                    ai_enabled=True,
-                )
-
             ChatMessage.objects.create(
                 session=session,
                 direction='system',
                 message_type='text',
-                content=(
-                    f"[Promo automática] Se envió promo por fecha {fechas_str} "
-                    f"({guests}p). Código: {discount_code.code} ({discount_pct}% desc). "
-                    f"Casas: {casas_text}"
-                ),
+                content=f"[Promo fechas - Enviado OK]\n\n{template_content}",
                 wa_message_id=wa_message_id,
                 intent_detected='promo_date',
             )
 
-            # Actualizar contadores de sesión
             session.total_messages += 1
             session.last_message_at = timezone.now()
             session.save(update_fields=['total_messages', 'last_message_at'])
@@ -566,8 +580,47 @@ class Command(BaseCommand):
                     components=components,
                 )
 
+                # Obtener contenido real de la plantilla renderizada
+                rendered = sender.render_template(
+                    config.wa_template_name, config.wa_template_language, components
+                )
+                template_content = rendered or (
+                    f"Fechas: {fechas_str} ({guests} personas) | "
+                    f"Casas: {casas_text} | Código: {discount_code.code} ({discount_pct}% desc)"
+                )
+
                 if not wa_message_id:
                     self.stdout.write(self.style.ERROR(f'  ERROR {wa_id}: envío WA falló'))
+                    PromoDateSent.objects.create(
+                        client=None,
+                        check_in_date=target_date,
+                        check_out_date=check_out_date,
+                        guests=guests,
+                        discount_code=discount_code,
+                        wa_message_id=None,
+                        session=session,
+                        message_content=casas_text,
+                        pricing_snapshot={
+                            'properties': [
+                                {'name': p['property_name'], 'final_price_sol': float(p.get('final_price_sol', 0))}
+                                for p in available_with_discount
+                            ],
+                            'discount_percentage': discount_pct,
+                            'wa_id': wa_id,
+                        },
+                        status='failed',
+                    )
+                    if session:
+                        ChatMessage.objects.create(
+                            session=session,
+                            direction='system',
+                            message_type='text',
+                            content=f"[Promo fechas - ERROR] No se pudo enviar:\n\n{template_content}",
+                            intent_detected='promo_date',
+                        )
+                        session.total_messages += 1
+                        session.last_message_at = timezone.now()
+                        session.save(update_fields=['total_messages', 'last_message_at'])
                     skipped_count += 1
                     continue
 
@@ -593,17 +646,12 @@ class Command(BaseCommand):
                     status='sent',
                 )
 
-                # Crear ChatMessage para visibilidad en Austin Assistant
                 if session:
                     ChatMessage.objects.create(
                         session=session,
                         direction='system',
                         message_type='text',
-                        content=(
-                            f"[Promo automática] Se envió promo por fecha {fechas_str} "
-                            f"({guests}p). Código: {discount_code.code} ({discount_pct}% desc). "
-                            f"Casas: {casas_text}"
-                        ),
+                        content=f"[Promo fechas - Enviado OK]\n\n{template_content}",
                         wa_message_id=wa_message_id,
                         intent_detected='promo_date',
                     )

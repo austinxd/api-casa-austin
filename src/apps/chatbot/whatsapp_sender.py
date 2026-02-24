@@ -1,8 +1,12 @@
 import os
+import re
 import requests
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Cache de plantillas para no consultar Meta en cada envío
+_template_cache = {}
 
 
 class WhatsAppSender:
@@ -11,6 +15,7 @@ class WhatsAppSender:
     def __init__(self):
         self.access_token = os.getenv('WHATSAPP_ACCESS_TOKEN')
         self.phone_number_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID')
+        self.waba_id = os.getenv('WHATSAPP_BUSINESS_ACCOUNT_ID', '')
         self.api_url = f"https://graph.facebook.com/v22.0/{self.phone_number_id}/messages"
         self.headers = {
             'Authorization': f'Bearer {self.access_token}',
@@ -142,6 +147,57 @@ class WhatsAppSender:
             if hasattr(e, 'response') and e.response is not None:
                 logger.error(f"Response body: {e.response.text}")
             return None
+
+    def render_template(self, template_name, language_code, components):
+        """
+        Obtiene el body de la plantilla de Meta y reemplaza {{1}}, {{2}}, etc.
+        con los parámetros enviados. Usa cache en memoria para no repetir llamadas.
+
+        Returns:
+            str|None: Texto renderizado de la plantilla, o None si falla
+        """
+        cache_key = f"{template_name}:{language_code}"
+
+        # Obtener body de la plantilla (cache o API)
+        if cache_key not in _template_cache:
+            if not self.waba_id:
+                logger.warning("WHATSAPP_BUSINESS_ACCOUNT_ID no configurado, no se puede obtener plantilla")
+                return None
+            try:
+                url = f"https://graph.facebook.com/v22.0/{self.waba_id}/message_templates"
+                resp = requests.get(url, params={'name': template_name}, headers=self.headers, timeout=10)
+                resp.raise_for_status()
+                templates = resp.json().get('data', [])
+                body_text = None
+                for tmpl in templates:
+                    if tmpl.get('language') == language_code:
+                        for comp in tmpl.get('components', []):
+                            if comp.get('type') == 'BODY':
+                                body_text = comp.get('text', '')
+                                break
+                        break
+                if not body_text:
+                    logger.warning(f"No se encontró body para plantilla '{template_name}' ({language_code})")
+                    return None
+                _template_cache[cache_key] = body_text
+            except Exception as e:
+                logger.error(f"Error obteniendo plantilla '{template_name}': {e}")
+                return None
+
+        body = _template_cache[cache_key]
+
+        # Extraer parámetros del body component
+        params = []
+        for comp in components:
+            if comp.get('type') == 'body':
+                params = [p.get('text', '') for p in comp.get('parameters', [])]
+                break
+
+        # Reemplazar {{1}}, {{2}}, etc.
+        for i, value in enumerate(params, start=1):
+            body = body.replace(f'{{{{{i}}}}}', value)
+
+        return body
 
     def mark_as_read(self, wa_message_id):
         """Marca un mensaje como leído en WhatsApp"""

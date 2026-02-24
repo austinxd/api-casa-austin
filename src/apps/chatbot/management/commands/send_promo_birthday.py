@@ -204,6 +204,16 @@ class Command(BaseCommand):
                 components=components,
             )
 
+            # Obtener contenido real de la plantilla renderizada
+            rendered = sender.render_template(
+                config.wa_template_name, config.wa_template_language, components
+            )
+            template_content = rendered or (
+                f"{primer_nombre} | Nivel: {nivel_actual} | Puntos: {int(puntos)} (S/ {int(puntos)}) | "
+                f"Sig nivel: {siguiente_nivel} | Falta: {que_falta} | "
+                f"Desc cumple: {config.birthday_discount_percentage}% | Desc perm: {int(discount_perm)}%"
+            )
+
             if not wa_message_id:
                 self.stdout.write(self.style.ERROR(
                     f'  ERROR {client_name}: envío WA falló'
@@ -213,6 +223,12 @@ class Command(BaseCommand):
                     year=target_date.year,
                     wa_message_id=None,
                     status='failed',
+                )
+                ChatSession.register_outbound_template(
+                    phone_number=phone,
+                    content=f"[Promo cumpleaños - ERROR]\n\n{template_content}",
+                    intent='promo_birthday',
+                    client=client,
                 )
                 skipped_count += 1
                 continue
@@ -225,16 +241,9 @@ class Command(BaseCommand):
                 status='sent',
             )
 
-            # Registrar en chat
-            content = (
-                f"[Promo cumpleaños] Se envió promo de cumpleaños a {client_name}. "
-                f"Nivel: {nivel_actual}, Puntos: {int(puntos)}, "
-                f"Desc cumple: {config.birthday_discount_percentage}%, "
-                f"Desc permanente: {int(discount_perm)}%"
-            )
             ChatSession.register_outbound_template(
                 phone_number=phone,
-                content=content,
+                content=f"[Promo cumpleaños - Enviado OK]\n\n{template_content}",
                 intent='promo_birthday',
                 client=client,
             )
