@@ -6,7 +6,7 @@ Lógica:
 2. Calcula fecha objetivo: hoy + days_before_birthday
 3. Busca clientes con cumpleaños en esa fecha (date__month, date__day)
 4. Filtra: tiene teléfono, no existe PromoBirthdaySent para ese año
-5. Para cada cliente: construye 7 params de plantilla y envía via WhatsApp
+5. Para cada cliente: construye 8 params de plantilla y envía via WhatsApp
 
 Uso: python manage.py send_promo_birthday [--dry-run]
 Cron recomendado: diario 9am
@@ -168,27 +168,29 @@ class Command(BaseCommand):
                     f'  [DRY] {client_name} ({phone}):\n'
                     f'    {{1}} nombre: {primer_nombre}\n'
                     f'    {{2}} nivel: {nivel_actual}\n'
-                    f'    {{3}} puntos: {puntos}\n'
-                    f'    {{4}} sig nivel: {siguiente_nivel}\n'
-                    f'    {{5}} falta: {que_falta}\n'
-                    f'    {{6}} desc cumple: {config.birthday_discount_percentage}%\n'
-                    f'    {{7}} desc perm: {discount_perm}%'
+                    f'    {{3}} puntos: {int(puntos)}\n'
+                    f'    {{4}} equiv S/: {int(puntos)}\n'
+                    f'    {{5}} sig nivel: {siguiente_nivel}\n'
+                    f'    {{6}} falta: {que_falta}\n'
+                    f'    {{7}} desc cumple: {config.birthday_discount_percentage}%\n'
+                    f'    {{8}} desc perm: {discount_perm}%'
                 )
                 sent_count += 1
                 continue
 
-            # Construir componentes del template (7 parámetros body)
+            # Construir componentes del template (8 parámetros body)
             components = [
                 {
                     'type': 'body',
                     'parameters': [
-                        {'type': 'text', 'text': primer_nombre},
-                        {'type': 'text', 'text': str(nivel_actual)},
-                        {'type': 'text', 'text': str(int(puntos))},
-                        {'type': 'text', 'text': str(siguiente_nivel)},
-                        {'type': 'text', 'text': str(que_falta)},
-                        {'type': 'text', 'text': str(config.birthday_discount_percentage)},
-                        {'type': 'text', 'text': str(int(discount_perm))},
+                        {'type': 'text', 'text': primer_nombre},                              # {{1}} nombre
+                        {'type': 'text', 'text': str(nivel_actual)},                           # {{2}} nivel actual
+                        {'type': 'text', 'text': str(int(puntos))},                            # {{3}} puntos
+                        {'type': 'text', 'text': str(int(puntos))},                            # {{4}} equiv S/
+                        {'type': 'text', 'text': str(siguiente_nivel)},                        # {{5}} siguiente nivel
+                        {'type': 'text', 'text': str(que_falta)},                              # {{6}} qué falta
+                        {'type': 'text', 'text': str(config.birthday_discount_percentage)},    # {{7}} desc cumpleaños
+                        {'type': 'text', 'text': str(int(discount_perm))},                     # {{8}} desc permanente
                     ]
                 }
             ]
