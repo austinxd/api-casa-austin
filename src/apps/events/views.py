@@ -3322,12 +3322,13 @@ class IngresosAnalysisView(APIView):
 
 class ClientProfileStatsView(APIView):
     """
-    Endpoint para análisis del perfil demográfico de clientes por mes.
+    Endpoint para análisis del perfil demográfico de clientes por mes o año.
     Cruza demografía (edad, género, tipo documento) con gasto para
     identificar el "cliente ideal" — el segmento que gasta más.
 
     Parámetros:
-    - month: mes (1-12, default: mes actual)
+    - mode: 'monthly' (default) o 'annual'
+    - month: mes (1-12, default: mes actual) — solo en modo monthly
     - year: año (default: año actual)
     """
 
@@ -3360,6 +3361,10 @@ class ClientProfileStatsView(APIView):
         import calendar
 
         now = timezone.now()
+        mode = request.GET.get('mode', 'monthly')
+        if mode not in ('monthly', 'annual'):
+            mode = 'monthly'
+
         try:
             month = int(request.GET.get('month', now.month))
             year = int(request.GET.get('year', now.year))
@@ -3368,9 +3373,13 @@ class ClientProfileStatsView(APIView):
         except (ValueError, TypeError):
             month, year = now.month, now.year
 
-        first_day = date(year, month, 1)
-        last_day_num = calendar.monthrange(year, month)[1]
-        last_day = date(year, month, last_day_num)
+        if mode == 'annual':
+            first_day = date(year, 1, 1)
+            last_day = date(year, 12, 31)
+        else:
+            first_day = date(year, month, 1)
+            last_day_num = calendar.monthrange(year, month)[1]
+            last_day = date(year, month, last_day_num)
 
         try:
             # --- Reservas del mes ---
@@ -3488,13 +3497,42 @@ class ClientProfileStatsView(APIView):
                 gender_dist, age_dist, doc_dist, origin_dist, guest_dist
             )
 
+            # --- Tendencia mensual (solo en modo anual) ---
+            monthly_trend = None
+            if mode == 'annual':
+                monthly_trend = []
+                for m in range(1, 13):
+                    m_first = date(year, m, 1)
+                    m_last_num = calendar.monthrange(year, m)[1]
+                    m_last = date(year, m, m_last_num)
+
+                    m_clients = set()
+                    m_revenue = 0.0
+                    for r in reservations:
+                        if not r.client:
+                            continue
+                        if m_first <= r.check_in_date <= m_last:
+                            m_clients.add(str(r.client.id))
+                            m_revenue += float(r.price_sol or 0)
+
+                    m_total = len(m_clients)
+                    m_avg = round(m_revenue / m_total, 2) if m_total else 0
+                    monthly_trend.append({
+                        'month': m,
+                        'month_name': self.MONTH_NAMES.get(m, ''),
+                        'total_clients': m_total,
+                        'revenue': round(m_revenue, 2),
+                        'avg_spend': m_avg,
+                    })
+
             return Response({
                 'success': True,
                 'data': {
                     'period_info': {
-                        'month': month,
+                        'mode': mode,
+                        'month': month if mode == 'monthly' else None,
                         'year': year,
-                        'month_name': self.MONTH_NAMES.get(month, ''),
+                        'month_name': self.MONTH_NAMES.get(month, '') if mode == 'monthly' else None,
                     },
                     'summary': {
                         'total_clients': total_clients,
@@ -3515,6 +3553,7 @@ class ClientProfileStatsView(APIView):
                     'guest_distribution': guest_dist,
                     'top_clients': top_clients_list,
                     'ideal_profile': ideal_profile,
+                    'monthly_trend': monthly_trend,
                 },
             })
 
