@@ -3476,8 +3476,8 @@ class ClientProfileStatsView(APIView):
             # --- Distribución por nro de huéspedes ---
             guest_dist = self._build_guest_distribution(client_data)
 
-            # --- Top 10 clientes ---
-            top_clients = sorted(client_data.values(), key=lambda x: x['total_spent'], reverse=True)[:10]
+            # --- Todos los clientes ordenados por gasto ---
+            top_clients = sorted(client_data.values(), key=lambda x: x['total_spent'], reverse=True)
             top_clients_list = []
             for i, c in enumerate(top_clients, 1):
                 top_clients_list.append({
