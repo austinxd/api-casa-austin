@@ -557,6 +557,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
             img_data = base64.b64decode(firma_b64)
             img = Image.open(io.BytesIO(img_data)).convert("RGBA")
 
+            # Quitar fondo blanco
             pixels = list(img.getdata())
             new_pixels = []
             for p in pixels:
@@ -566,11 +567,57 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     new_pixels.append(p)
             img.putdata(new_pixels)
 
+            # Adelgazar trazos si la firma es muy gruesa
+            img = self._normalize_firma_thickness(img)
+
             buffer = io.BytesIO()
             img.save(buffer, format="PNG")
             return buffer.getvalue()
         except Exception:
             return None
+
+    def _normalize_firma_thickness(self, img):
+        """
+        Detecta firmas con trazos muy gruesos (lapicero grueso) y los adelgaza.
+        Mide la densidad de píxeles de tinta dentro del bounding box de la firma.
+        """
+        import numpy as np
+        from PIL import ImageFilter
+
+        alpha = np.array(img.split()[3])
+
+        # Bounding box de la firma (píxeles opacos)
+        rows = np.any(alpha > 128, axis=1)
+        cols = np.any(alpha > 128, axis=0)
+        if not rows.any() or not cols.any():
+            return img
+
+        rmin, rmax = np.where(rows)[0][[0, -1]]
+        cmin, cmax = np.where(cols)[0][[0, -1]]
+
+        # Densidad = proporción de píxeles de tinta en el bounding box
+        bbox_alpha = alpha[rmin:rmax + 1, cmin:cmax + 1]
+        density = np.sum(bbox_alpha > 128) / bbox_alpha.size
+
+        # Firma normal: ~5-15% densidad. Gruesa: >18%
+        if density > 0.18:
+            alpha_img = img.split()[3]
+
+            # Más pasadas = más adelgazamiento
+            if density > 0.35:
+                passes = 3
+            elif density > 0.25:
+                passes = 2
+            else:
+                passes = 1
+
+            for _ in range(passes):
+                alpha_img = alpha_img.filter(ImageFilter.MinFilter(size=3))
+
+            r, g, b, _ = img.split()
+            img = Image.merge('RGBA', (r, g, b, alpha_img))
+
+        return img
 
     def _insert_firma_anchor(self, docx_path, firma_png_bytes):
         """
