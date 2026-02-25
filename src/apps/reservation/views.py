@@ -622,13 +622,13 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
         # Calcular dimensiones de la imagen
         img = Image.open(io.BytesIO(firma_png_bytes))
-        target_width_emu = int(4 * 914400 / 2.54)  # 4cm en EMU
+        target_width_emu = int(7 * 914400 / 2.54)  # 7cm en EMU
         aspect = img.height / img.width
         target_height_emu = int(target_width_emu * aspect)
 
         # Agregar imagen inline vía python-docx (gestiona el empaquetado)
         run = underline_p.add_run()
-        run.add_picture(io.BytesIO(firma_png_bytes), width=Cm(4))
+        run.add_picture(io.BytesIO(firma_png_bytes), width=Cm(7))
 
         # Encontrar el wp:inline y convertirlo a wp:anchor (flotante)
         from docx.oxml.ns import qn
@@ -670,7 +670,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
         posH = OxmlElement('wp:positionH')
         posH.set('relativeFrom', 'column')
         offH = OxmlElement('wp:posOffset')
-        offH.text = '500000'
+        offH.text = '100000'  # ~1mm desde el borde izquierdo de la celda
         posH.append(offH)
         anchor.append(posH)
 
