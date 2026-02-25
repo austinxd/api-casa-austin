@@ -649,17 +649,29 @@ class ToolExecutor:
             if alternatives:
                 formatted += "\n\n--- FECHAS ALTERNATIVAS DISPONIBLES ---\n\n"
                 formatted += "\n\n".join(alternatives)
+                formatted += (
+                    "\n\n[INSTRUCCIÓN IA — OBLIGATORIO — NO MOSTRAR AL CLIENTE]"
+                    "\nLas fechas originales están ocupadas. Muestra la primera línea (📅 fechas) y el mensaje de ocupadas."
+                    "\nLuego presenta las alternativas de arriba TAL CUAL con sus precios formateados."
+                    "\nPregunta si alguna de esas fechas le interesa."
+                    "\nSi dice que sí, confirma la cantidad exacta de personas y la fecha elegida para recotizar."
+                    "\nNO inventes otras fechas ni busques más opciones por tu cuenta."
+                    "\nNO incluyas texto que empiece con [INSTRUCCIÓN o ⚠️ PRECIO BASE."
+                )
             else:
                 # No se encontraron alternativas cercanas
                 formatted += (
                     "\n\n--- SIN ALTERNATIVAS CERCANAS ---"
                     "\nNo se encontraron fechas disponibles en las próximas 2 semanas "
                     "para este número de personas."
-                    "\n\nSUGERENCIAS PARA EL CLIENTE:"
-                    "\n- Preguntar si puede considerar fechas más adelante (siguiente mes)"
-                    "\n- Preguntar si puede reducir el número de personas (casas más pequeñas pueden tener disponibilidad)"
-                    "\n- Ofrecer avisarle si se libera alguna fecha"
-                    "\n- Preguntar si le interesa una fecha entre semana (generalmente más disponibilidad)"
+                    "\n\n[INSTRUCCIÓN IA — NO MOSTRAR AL CLIENTE]"
+                    "\nMuestra la primera línea (📅 fechas) y el mensaje de ocupadas. Sé empático."
+                    "\nNO incluyas detalles de cada propiedad ni enlaces de reserva."
+                    "\nSugiere al cliente:"
+                    "\n- Considerar fechas más adelante (siguiente mes)"
+                    "\n- Reducir el número de personas (casas más pequeñas pueden tener disponibilidad)"
+                    "\n- Probar fechas entre semana (generalmente más disponibilidad)"
+                    "\nPregunta qué prefiere el cliente."
                 )
 
         return formatted
@@ -777,14 +789,6 @@ class ToolExecutor:
             lines.append(ia_instruction)
         else:
             lines.append("Lamentablemente todas nuestras casas están ocupadas para estas fechas 😔")
-            lines.append("")
-            lines.append(
-                "[INSTRUCCIÓN IA — NO MOSTRAR AL CLIENTE]"
-                "\nMuestra SOLO la primera línea (📅 fechas) y el mensaje de que están ocupadas."
-                "\nNO incluyas detalles de cada propiedad ni enlaces de reserva."
-                "\nOfrece al cliente buscar fechas alternativas cercanas o fines de semana diferentes."
-                "\nSé empático y proactivo sugiriendo opciones."
-            )
 
         return '\n'.join(lines)
 
