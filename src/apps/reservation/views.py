@@ -490,6 +490,9 @@ class ReservationsApiView(viewsets.ModelViewSet):
             with open(temp_pdf_path, "rb") as pdf_file:
                 pdf_data = pdf_file.read()
 
+            # Aplicar efecto de documento escaneado (determinístico por cliente)
+            pdf_data = self._apply_scan_effect(pdf_data, client.id)
+
             response = HttpResponse(pdf_data, content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{property_obj.name}_contrato_firmado.pdf"'
 
@@ -571,6 +574,83 @@ class ReservationsApiView(viewsets.ModelViewSet):
             return InlineImage(doc, buffer, width=Cm(4))
         except Exception:
             return None
+
+    def _apply_scan_effect(self, pdf_data, client_id):
+        """
+        Aplica un efecto de documento escaneado al PDF.
+        Determinístico por cliente: mismo client_id = mismo efecto siempre.
+        Diferentes clientes = diferentes escaneos.
+        """
+        import random
+        import fitz  # PyMuPDF
+        import numpy as np
+        from PIL import Image, ImageFilter, ImageEnhance
+
+        # Seed basado en client_id para reproducibilidad por cliente
+        seed = hash(str(client_id)) % (2**32)
+        rng = random.Random(seed)
+        np_rng = np.random.RandomState(seed)
+
+        pdf_doc = fitz.open(stream=pdf_data, filetype="pdf")
+        scanned_pages = []
+
+        for page_num in range(len(pdf_doc)):
+            page = pdf_doc[page_num]
+
+            # Renderizar a imagen (DPI ligeramente variable como escáner real)
+            dpi = rng.uniform(245, 255)
+            mat = fitz.Matrix(dpi / 72, dpi / 72)
+            pix = page.get_pixmap(matrix=mat)
+            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+
+            # 1. Rotación leve (papel no perfectamente alineado)
+            angle = rng.uniform(-0.8, 0.8)
+            fill_color = (rng.randint(250, 254), rng.randint(249, 253), rng.randint(247, 251))
+            img = img.rotate(angle, resample=Image.BICUBIC, expand=False, fillcolor=fill_color)
+
+            # 2. Tono cálido sutil (escáneres tienden a dar tono ligeramente amarillento)
+            img_array = np.array(img, dtype=np.float32)
+            img_array[:, :, 0] = np.clip(img_array[:, :, 0] + rng.uniform(0, 2.5), 0, 255)
+            img_array[:, :, 1] = np.clip(img_array[:, :, 1] + rng.uniform(-1, 1), 0, 255)
+            img_array[:, :, 2] = np.clip(img_array[:, :, 2] + rng.uniform(-3, -0.5), 0, 255)
+
+            # 3. Ruido sutil (grano de escáner) — seed fijo por cliente
+            noise_level = rng.uniform(1.8, 3.5)
+            noise = np_rng.normal(0, noise_level, img_array.shape).astype(np.float32)
+            img_array = np.clip(img_array + noise, 0, 255)
+            img = Image.fromarray(img_array.astype(np.uint8))
+
+            # 4. Ajuste de contraste y brillo
+            enhancer = ImageEnhance.Contrast(img)
+            img = enhancer.enhance(rng.uniform(0.96, 1.03))
+            enhancer = ImageEnhance.Brightness(img)
+            img = enhancer.enhance(rng.uniform(0.98, 1.02))
+
+            # 5. Desenfoque muy leve (óptica del escáner)
+            img = img.filter(ImageFilter.GaussianBlur(radius=rng.uniform(0.2, 0.45)))
+
+            # 6. Compresión JPEG (artefactos típicos de escáner)
+            jpeg_quality = rng.randint(88, 93)
+            jpeg_buffer = io.BytesIO()
+            img.save(jpeg_buffer, format="JPEG", quality=jpeg_quality)
+            jpeg_buffer.seek(0)
+            img = Image.open(jpeg_buffer).convert("RGB")
+
+            scanned_pages.append(img)
+
+        pdf_doc.close()
+
+        # Guardar como PDF multi-página
+        output = io.BytesIO()
+        if len(scanned_pages) == 1:
+            scanned_pages[0].save(output, format="PDF", resolution=250)
+        else:
+            scanned_pages[0].save(
+                output, format="PDF", resolution=250,
+                save_all=True, append_images=scanned_pages[1:]
+            )
+
+        return output.getvalue()
 
 class DeleteRecipeApiView(generics.DestroyAPIView):
     queryset = RentalReceipt.objects.all()
