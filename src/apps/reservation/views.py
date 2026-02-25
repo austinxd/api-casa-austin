@@ -678,7 +678,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
         posV = OxmlElement('wp:positionV')
         posV.set('relativeFrom', 'paragraph')
         offV = OxmlElement('wp:posOffset')
-        offV.text = str(-int(cy) + 50000)  # Borde inferior de la firma justo sobre la línea
+        offV.text = str(-int(int(cy) * 0.55))  # La firma cruza la línea — 55% arriba, 45% sobre/debajo
         posV.append(offV)
         anchor.append(posV)
 
