@@ -29,7 +29,8 @@ from apps.accounts.models import CustomUser
 from apps.core.functions import get_month_name, generate_audit, check_user_has_rol, confeccion_ics
 from apps.dashboard.utils import get_stadistics_period
 import subprocess
-from docxtpl import DocxTemplate
+from docxtpl import DocxTemplate, InlineImage
+from docx.shared import Cm
 from babel.dates import format_date
 import io
 from django.shortcuts import get_object_or_404
@@ -428,6 +429,148 @@ class ReservationsApiView(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=400)
 ###### FIN MOD #######
+
+    @action(detail=True, methods=['get'], url_path='contrato-firma')
+    def contrato_firma(self, request, pk=None):
+        """Genera contrato PDF con la firma digitalizada del cliente (RENIEC)."""
+        try:
+            reservation = self.get_object()
+            client = Clients.objects.get(id=reservation.client_id)
+            property_obj = Property.objects.get(id=reservation.property_id)
+
+            document_type_map = {
+                'pas': 'pasaporte',
+                'cex': 'carnet de extranjería',
+                'dni': 'DNI',
+                'ruc': 'RUC',
+            }
+            document_type = document_type_map.get(client.document_type)
+            if document_type is None:
+                raise ValueError(f"Tipo de documento desconocido: {client.document_type}")
+
+            checkin_date = format_date(reservation.check_in_date, format="d 'de' MMMM 'del' YYYY", locale='es')
+            checkout_date = format_date(reservation.check_out_date, format="d 'de' MMMM 'del' YYYY", locale='es')
+
+            # Plantilla con placeholder {{ firma }}
+            if client.document_type == 'ruc':
+                template_path = os.path.join(os.path.dirname(__file__), '../../plantilla_ruc_firma.docx')
+            else:
+                template_path = os.path.join(os.path.dirname(__file__), '../../plantilla_firma.docx')
+
+            doc = DocxTemplate(template_path)
+
+            # --- Obtener firma del cliente ---
+            firma_image = self._get_firma_image(client, doc)
+
+            context = {
+                'nombre': f"{client.first_name.upper()} {(client.last_name or '').upper()}",
+                'tipodocumento': document_type.upper(),
+                'dni': client.number_doc,
+                'propiedad': property_obj.name,
+                'checkin': checkin_date,
+                'checkout': checkout_date,
+                'preciodolares': f"${reservation.price_usd:.2f}",
+                'numpax': str(reservation.guests),
+                'firma': firma_image if firma_image else '',
+            }
+
+            doc.render(context)
+
+            import uuid as _uuid
+            uid = _uuid.uuid4().hex[:8]
+            temp_doc_path = f"/tmp/contract_firma_{uid}.docx"
+            temp_pdf_path = f"/tmp/contract_firma_{uid}.pdf"
+            doc.save(temp_doc_path)
+
+            subprocess.run(
+                ['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', '/tmp', temp_doc_path],
+                check=True,
+            )
+
+            with open(temp_pdf_path, "rb") as pdf_file:
+                pdf_data = pdf_file.read()
+
+            response = HttpResponse(pdf_data, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{property_obj.name}_contrato_firmado.pdf"'
+
+            os.remove(temp_doc_path)
+            if os.path.exists(temp_pdf_path):
+                os.remove(temp_pdf_path)
+
+            return response
+
+        except Clients.DoesNotExist:
+            return Response({'error': 'Cliente no encontrado'}, status=404)
+        except Property.DoesNotExist:
+            return Response({'error': 'Propiedad no encontrada'}, status=404)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=400)
+        except subprocess.CalledProcessError:
+            return Response({'error': 'Error al convertir DOCX a PDF'}, status=500)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f'contrato_firma error: {e}')
+            return Response({'error': str(e)}, status=400)
+
+    def _get_firma_image(self, client, doc):
+        """
+        Obtiene la firma digitalizada del cliente desde RENIEC/cache,
+        quita el fondo blanco y retorna un InlineImage para docxtpl.
+        Solo funciona para clientes con DNI peruano.
+        """
+        import base64
+        from PIL import Image
+
+        if client.document_type != 'dni':
+            return None
+
+        # Buscar firma en cache de RENIEC
+        from apps.reniec.models import DNICache
+        try:
+            cache = DNICache.objects.get(dni=client.number_doc)
+            firma_b64 = cache.firma
+        except DNICache.DoesNotExist:
+            # Intentar consultar a RENIEC
+            try:
+                from apps.reniec.service import ReniecService
+                success, result = ReniecService.lookup(
+                    dni=client.number_doc,
+                    source_app='contrato_firma',
+                    include_photo=True,
+                )
+                if success:
+                    cache = DNICache.objects.filter(dni=client.number_doc).first()
+                    firma_b64 = cache.firma if cache else None
+                else:
+                    firma_b64 = None
+            except Exception:
+                firma_b64 = None
+
+        if not firma_b64:
+            return None
+
+        # Decodificar y quitar fondo blanco
+        try:
+            img_data = base64.b64decode(firma_b64)
+            img = Image.open(io.BytesIO(img_data)).convert("RGBA")
+
+            # Hacer transparentes los píxeles blancos/casi blancos
+            pixels = list(img.getdata())
+            new_pixels = []
+            for p in pixels:
+                if p[0] > 230 and p[1] > 230 and p[2] > 230:
+                    new_pixels.append((255, 255, 255, 0))
+                else:
+                    new_pixels.append(p)
+            img.putdata(new_pixels)
+
+            buffer = io.BytesIO()
+            img.save(buffer, format="PNG")
+            buffer.seek(0)
+
+            return InlineImage(doc, buffer, width=Cm(4))
+        except Exception:
+            return None
 
 class DeleteRecipeApiView(generics.DestroyAPIView):
     queryset = RentalReceipt.objects.all()
