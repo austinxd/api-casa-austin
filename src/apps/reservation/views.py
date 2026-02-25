@@ -29,8 +29,7 @@ from apps.accounts.models import CustomUser
 from apps.core.functions import get_month_name, generate_audit, check_user_has_rol, confeccion_ics
 from apps.dashboard.utils import get_stadistics_period
 import subprocess
-from docxtpl import DocxTemplate, InlineImage
-from docx.shared import Cm
+from docxtpl import DocxTemplate
 from babel.dates import format_date
 import io
 from django.shortcuts import get_object_or_404
@@ -459,8 +458,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
             doc = DocxTemplate(template_path)
 
-            # --- Obtener firma del cliente ---
-            firma_image = self._get_firma_image(client, doc)
+            # --- Obtener firma del cliente (PNG bytes) ---
+            firma_bytes = self._get_firma_bytes(client)
 
             context = {
                 'nombre': f"{client.first_name.upper()} {(client.last_name or '').upper()}",
@@ -471,7 +470,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 'checkout': checkout_date,
                 'preciodolares': f"${reservation.price_usd:.2f}",
                 'numpax': str(reservation.guests),
-                'firma': firma_image if firma_image else '',
+                'firma': '',  # Se inserta como imagen flotante después
             }
 
             doc.render(context)
@@ -481,6 +480,10 @@ class ReservationsApiView(viewsets.ModelViewSet):
             temp_doc_path = f"/tmp/contract_firma_{uid}.docx"
             temp_pdf_path = f"/tmp/contract_firma_{uid}.pdf"
             doc.save(temp_doc_path)
+
+            # Insertar firma como imagen flotante (anchor) encima de la línea
+            if firma_bytes:
+                self._insert_firma_anchor(temp_doc_path, firma_bytes)
 
             subprocess.run(
                 ['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', '/tmp', temp_doc_path],
@@ -515,10 +518,10 @@ class ReservationsApiView(viewsets.ModelViewSet):
             logging.getLogger(__name__).error(f'contrato_firma error: {e}')
             return Response({'error': str(e)}, status=400)
 
-    def _get_firma_image(self, client, doc):
+    def _get_firma_bytes(self, client):
         """
         Obtiene la firma digitalizada del cliente desde RENIEC/cache,
-        quita el fondo blanco y retorna un InlineImage para docxtpl.
+        quita el fondo blanco y retorna los bytes PNG.
         Solo funciona para clientes con DNI peruano.
         """
         import base64
@@ -527,13 +530,11 @@ class ReservationsApiView(viewsets.ModelViewSet):
         if client.document_type != 'dni':
             return None
 
-        # Buscar firma en cache de RENIEC
         from apps.reniec.models import DNICache
         try:
             cache = DNICache.objects.get(dni=client.number_doc)
             firma_b64 = cache.firma
         except DNICache.DoesNotExist:
-            # Intentar consultar a RENIEC
             try:
                 from apps.reniec.service import ReniecService
                 success, result = ReniecService.lookup(
@@ -552,12 +553,10 @@ class ReservationsApiView(viewsets.ModelViewSet):
         if not firma_b64:
             return None
 
-        # Decodificar y quitar fondo blanco
         try:
             img_data = base64.b64decode(firma_b64)
             img = Image.open(io.BytesIO(img_data)).convert("RGBA")
 
-            # Hacer transparentes los píxeles blancos/casi blancos
             pixels = list(img.getdata())
             new_pixels = []
             for p in pixels:
@@ -569,11 +568,147 @@ class ReservationsApiView(viewsets.ModelViewSet):
 
             buffer = io.BytesIO()
             img.save(buffer, format="PNG")
-            buffer.seek(0)
-
-            return InlineImage(doc, buffer, width=Cm(4))
+            return buffer.getvalue()
         except Exception:
             return None
+
+    def _insert_firma_anchor(self, docx_path, firma_png_bytes):
+        """
+        Abre el .docx renderizado, elimina el párrafo vacío de {{ firma }},
+        e inserta la firma como imagen flotante (wp:anchor) encima de la línea ____.
+        Esto iguala la estructura de ambas columnas para que las líneas queden a la misma altura.
+        """
+        from docx import Document
+        from docx.shared import Cm
+        from docx.oxml import OxmlElement
+        from PIL import Image
+
+        doc = Document(docx_path)
+
+        if not doc.tables:
+            return
+        table = doc.tables[-1]
+        if len(table.rows[0].cells) < 2:
+            return
+        right_cell = table.rows[0].cells[1]
+
+        # Encontrar el párrafo con ____ y eliminar el párrafo vacío anterior
+        cell_paragraphs = list(right_cell.paragraphs)
+        underline_idx = None
+        for i, p in enumerate(cell_paragraphs):
+            if '____' in p.text:
+                underline_idx = i
+                break
+
+        if underline_idx is None:
+            return
+
+        # Eliminar párrafo vacío anterior (era {{ firma }} renderizado como '')
+        if underline_idx > 0:
+            prev = cell_paragraphs[underline_idx - 1]
+            if prev.text.strip() == '':
+                prev._element.getparent().remove(prev._element)
+
+        # Re-encontrar el párrafo ____
+        underline_p = None
+        for p in right_cell.paragraphs:
+            if '____' in p.text:
+                underline_p = p
+                break
+
+        if underline_p is None:
+            doc.save(docx_path)
+            return
+
+        # Calcular dimensiones de la imagen
+        img = Image.open(io.BytesIO(firma_png_bytes))
+        target_width_emu = int(4 * 914400 / 2.54)  # 4cm en EMU
+        aspect = img.height / img.width
+        target_height_emu = int(target_width_emu * aspect)
+
+        # Agregar imagen inline vía python-docx (gestiona el empaquetado)
+        run = underline_p.add_run()
+        run.add_picture(io.BytesIO(firma_png_bytes), width=Cm(4))
+
+        # Encontrar el wp:inline y convertirlo a wp:anchor (flotante)
+        from docx.oxml.ns import qn
+        drawing = run._element.find(qn('w:drawing'))
+        inline = drawing.find(qn('wp:inline'))
+
+        if inline is None:
+            doc.save(docx_path)
+            return
+
+        cx = inline.find(qn('wp:extent')).get('cx')
+        cy = inline.find(qn('wp:extent')).get('cy')
+
+        # Extraer hijos que necesitamos del inline
+        docPr = inline.find(qn('wp:docPr'))
+        cNvGfp = inline.find(qn('wp:cNvGraphicFramePr'))
+        graphic = inline.find(qn('a:graphic'))
+
+        # Construir wp:anchor
+        anchor = OxmlElement('wp:anchor')
+        anchor.set('distT', '0')
+        anchor.set('distB', '0')
+        anchor.set('distL', '114300')
+        anchor.set('distR', '114300')
+        anchor.set('simplePos', '0')
+        anchor.set('relativeHeight', '251660288')
+        anchor.set('behindDoc', '0')
+        anchor.set('locked', '0')
+        anchor.set('layoutInCell', '1')
+        anchor.set('allowOverlap', '1')
+
+        # simplePos
+        spos = OxmlElement('wp:simplePos')
+        spos.set('x', '0')
+        spos.set('y', '0')
+        anchor.append(spos)
+
+        # Posición horizontal — centrado en la celda
+        posH = OxmlElement('wp:positionH')
+        posH.set('relativeFrom', 'column')
+        offH = OxmlElement('wp:posOffset')
+        offH.text = '500000'
+        posH.append(offH)
+        anchor.append(posH)
+
+        # Posición vertical — encima de la línea ____
+        posV = OxmlElement('wp:positionV')
+        posV.set('relativeFrom', 'paragraph')
+        offV = OxmlElement('wp:posOffset')
+        offV.text = str(-int(cy) + 50000)  # Borde inferior de la firma justo sobre la línea
+        posV.append(offV)
+        anchor.append(posV)
+
+        # extent
+        ext = OxmlElement('wp:extent')
+        ext.set('cx', cx)
+        ext.set('cy', cy)
+        anchor.append(ext)
+
+        # effectExtent
+        ee = OxmlElement('wp:effectExtent')
+        ee.set('l', '0')
+        ee.set('t', '0')
+        ee.set('r', '0')
+        ee.set('b', '0')
+        anchor.append(ee)
+
+        # wrapNone — la imagen flota sobre el texto
+        anchor.append(OxmlElement('wp:wrapNone'))
+
+        # docPr, cNvGraphicFramePr, graphic (del inline original)
+        anchor.append(docPr)
+        anchor.append(cNvGfp)
+        anchor.append(graphic)
+
+        # Reemplazar inline con anchor
+        drawing.remove(inline)
+        drawing.append(anchor)
+
+        doc.save(docx_path)
 
     def _apply_scan_effect(self, pdf_data, client_id):
         """
