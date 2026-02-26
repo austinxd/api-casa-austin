@@ -110,21 +110,25 @@ class ReservationSerializer(serializers.ModelSerializer):
         property_field = attrs.get('property')
         reservation_id = self.instance.id if self.instance else None
 
-        # Validar canje de puntos si se especifica (solo en creación, no en PATCH)
+        # Validar canje de puntos si se especifica
         points_to_redeem = attrs.get('points_to_redeem')
         is_patch = request and request.method == 'PATCH'
 
-        if points_to_redeem and points_to_redeem > 0 and not is_patch:
-            client = attrs.get('client')
+        if points_to_redeem and points_to_redeem > 0:
+            client = attrs.get('client') or (self.instance.client if self.instance else None)
             if not client:
                 raise serializers.ValidationError("Debe especificar un cliente para canjear puntos")
 
-            # Verificar que el cliente tenga suficientes puntos
-            available_points = client.get_available_points()
-            if points_to_redeem > available_points:
-                raise serializers.ValidationError(
-                    f"El cliente no tiene suficientes puntos. Disponibles: {available_points}, solicitados: {points_to_redeem}"
-                )
+            # En update, solo validar la DIFERENCIA de puntos nuevos
+            already_redeemed = Decimal(str(self.instance.points_redeemed or 0)) if self.instance else Decimal('0')
+            additional_points = Decimal(str(points_to_redeem)) - already_redeemed
+
+            if additional_points > 0:
+                available_points = client.get_available_points()
+                if additional_points > Decimal(str(available_points)):
+                    raise serializers.ValidationError(
+                        f"El cliente no tiene suficientes puntos. Disponibles: {available_points}, adicionales necesarios: {additional_points}"
+                    )
 
         if attrs.get('full_payment') == True:
             # Obtener puntos ya canjeados (si estamos actualizando una reserva existente)
@@ -257,9 +261,44 @@ class ReservationSerializer(serializers.ModelSerializer):
         return reservation
 
     def update(self, instance, validated_data):
-        # Los puntos ya canjeados no se pueden modificar en updates
-        validated_data.pop('points_to_redeem', None)
-        return super().update(instance, validated_data)
+        points_to_redeem = validated_data.pop('points_to_redeem', None)
+        reservation = super().update(instance, validated_data)
+
+        # Procesar ajuste de puntos si se envió el campo
+        if points_to_redeem is not None and reservation.client:
+            from apps.clients.models import ClientPoints
+
+            new_points = Decimal(str(points_to_redeem))
+            old_points = Decimal(str(reservation.points_redeemed or 0))
+            diff = new_points - old_points
+
+            if diff > 0:
+                # Canjear puntos adicionales
+                success = reservation.client.redeem_points(
+                    points=diff,
+                    reservation=reservation,
+                    description=f"Puntos canjeados (ajuste) en reserva #{reservation.id} - {reservation.property.name}"
+                )
+                if success:
+                    reservation.points_redeemed = new_points
+                    reservation.save(update_fields=['points_redeemed'])
+
+            elif diff < 0:
+                # Devolver puntos (diff es negativo, lo hacemos positivo)
+                refund = abs(diff)
+                ClientPoints.objects.create(
+                    client=reservation.client,
+                    reservation=reservation,
+                    transaction_type=ClientPoints.TransactionType.REFUNDED,
+                    points=refund,
+                    description=f"Puntos devueltos (ajuste) en reserva #{reservation.id} - {reservation.property.name}"
+                )
+                reservation.client.points_balance += refund
+                reservation.client.save(update_fields=['points_balance'])
+                reservation.points_redeemed = new_points
+                reservation.save(update_fields=['points_redeemed'])
+
+        return reservation
 
 class ReservationListSerializer(ReservationSerializer):
     client = serializers.SerializerMethodField()
