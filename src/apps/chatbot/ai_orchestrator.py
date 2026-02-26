@@ -13,6 +13,25 @@ from .channel_sender import get_sender
 logger = logging.getLogger(__name__)
 
 
+TOOL_NAMES = (
+    'notify_team', 'check_availability', 'check_calendar',
+    'check_late_checkout', 'escalate_to_human', 'log_unanswered_question',
+    'identify_client', 'schedule_visit', 'get_property_info',
+    'check_reservations',
+)
+
+# Regex que captura tool calls en cualquier formato:
+# tool_name(...), [tool_name(...)], *tool_name*, `tool_name`, - tool_name(...)
+_TOOL_PATTERN = re.compile(
+    r'[\[\(*`_\-•]*\s*('
+    + '|'.join(TOOL_NAMES)
+    + r')\s*[\]\)*`_]*'
+    r'(?:\s*\(.*\))?'       # argumentos opcionales entre paréntesis
+    r'[\]\)*`_]*',
+    re.IGNORECASE,
+)
+
+
 def sanitize_response(text):
     """Limpia el texto de respuesta antes de enviar al cliente.
     Elimina llamadas a herramientas expuestas, errores internos y
@@ -27,28 +46,31 @@ def sanitize_response(text):
     for line in lines:
         stripped = line.strip()
 
-        # Saltar bloques de instrucciones IA
+        # Saltar bloques de instrucciones IA (multi-línea)
         if stripped.startswith('[INSTRUCCIÓN') or stripped.startswith('[INSTRUCCION'):
             skip_block = True
             continue
         if skip_block:
-            if stripped.endswith(']'):
+            if stripped.endswith(']') or not stripped:
                 skip_block = False
             continue
 
-        # Eliminar llamadas a herramientas expuestas como texto
-        # Ej: "notify_team(reason="...", details="...")"
-        if re.match(r'^(notify_team|check_availability|check_calendar|check_late_checkout|'
-                     r'escalate_to_human|log_unanswered_question|identify_client|'
-                     r'schedule_visit|get_property_info)\s*\(', stripped):
-            continue
-
-        # Eliminar líneas que son solo el nombre de una herramienta
-        if stripped in ('notify_team', 'check_availability', 'check_calendar',
-                        'check_late_checkout', 'escalate_to_human',
-                        'log_unanswered_question', 'identify_client',
-                        'schedule_visit', 'get_property_info'):
-            continue
+        # Eliminar líneas que son SOLO una llamada a herramienta
+        # Captura: tool_name(...), [tool_name(...)], *tool_name*, `tool_name`
+        cleaned_stripped = re.sub(r'[\[\]\(\)*`_\-•\s]', '', stripped)
+        if cleaned_stripped and any(
+            cleaned_stripped.startswith(t) or cleaned_stripped == t
+            for t in TOOL_NAMES
+        ):
+            # Si la línea es básicamente solo el nombre de la herramienta + args
+            if re.match(
+                r'^[\[\(*`_\-•\s]*('
+                + '|'.join(TOOL_NAMES)
+                + r')[\s\]\)*`_]*(\(.*\))?\s*[\]\)*`_]*$',
+                stripped,
+                re.IGNORECASE,
+            ):
+                continue
 
         # Eliminar errores internos expuestos
         if stripped.startswith('Error al ejecutar') or stripped.startswith('Error:'):
@@ -57,6 +79,17 @@ def sanitize_response(text):
         # Eliminar líneas con "⚠️ PRECIO BASE" (instrucción interna)
         if '⚠️ PRECIO BASE' in stripped:
             continue
+
+        # Eliminar inline tool calls dentro de texto mixto
+        # Ej: "el precio sería: *check_availability* ¿Te gustaría..."
+        if any(t in stripped for t in TOOL_NAMES):
+            line = _TOOL_PATTERN.sub('', line)
+            # Limpiar puntuación huérfana (": ¿Te gustaría" → "¿Te gustaría")
+            line = re.sub(r':\s*([¿¡])', r'\1', line)
+            line = re.sub(r'\s{2,}', ' ', line)
+            stripped = line.strip()
+            if not stripped:
+                continue
 
         cleaned.append(line)
 

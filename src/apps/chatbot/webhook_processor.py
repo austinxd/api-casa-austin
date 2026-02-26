@@ -79,16 +79,13 @@ class WebhookProcessor:
 
     def _process_whatsapp_message(self, message, contact_map):
         """Procesa un mensaje entrante de WhatsApp"""
+        from django.db import IntegrityError, transaction
+
         wa_id = message.get('from')
         wa_message_id = message.get('id')
         msg_type = message.get('type', 'text')
 
         if not wa_id or not wa_message_id:
-            return
-
-        # Idempotencia
-        if ChatMessage.objects.filter(wa_message_id=wa_message_id).exists():
-            logger.info(f"Mensaje duplicado ignorado: {wa_message_id}")
             return
 
         content = self._extract_whatsapp_content(message, msg_type)
@@ -106,14 +103,20 @@ class WebhookProcessor:
         }
         chat_msg_type = message_type_map.get(msg_type, 'text')
 
-        chat_message = ChatMessage.objects.create(
-            session=session,
-            direction=ChatMessage.DirectionChoices.INBOUND,
-            message_type=chat_msg_type,
-            content=content,
-            wa_message_id=wa_message_id,
-            media_url=self._extract_whatsapp_media_url(message, msg_type),
-        )
+        # Idempotencia atómica: crear o fallar por unique constraint
+        try:
+            with transaction.atomic():
+                chat_message = ChatMessage.objects.create(
+                    session=session,
+                    direction=ChatMessage.DirectionChoices.INBOUND,
+                    message_type=chat_msg_type,
+                    content=content,
+                    wa_message_id=wa_message_id,
+                    media_url=self._extract_whatsapp_media_url(message, msg_type),
+                )
+        except IntegrityError:
+            logger.info(f"Mensaje duplicado ignorado (constraint): {wa_message_id}")
+            return
 
         self._update_session_on_message(session)
 
@@ -140,6 +143,8 @@ class WebhookProcessor:
 
     def _process_messaging_message(self, event, channel):
         """Procesa un mensaje de Instagram DM o Facebook Messenger"""
+        from django.db import IntegrityError, transaction
+
         sender_id = event.get('sender', {}).get('id')
         recipient_id = event.get('recipient', {}).get('id')
         message_data = event.get('message', {})
@@ -150,11 +155,6 @@ class WebhookProcessor:
 
         # Ignorar mensajes enviados por nosotros (echo)
         if message_data.get('is_echo'):
-            return
-
-        # Idempotencia
-        if ChatMessage.objects.filter(wa_message_id=message_id).exists():
-            logger.info(f"Mensaje {channel} duplicado ignorado: {message_id}")
             return
 
         # Extraer contenido
@@ -181,14 +181,20 @@ class WebhookProcessor:
             type_map = {'image': 'image', 'audio': 'audio', 'video': 'image', 'file': 'document'}
             msg_type = type_map.get(att_type, 'text')
 
-        chat_message = ChatMessage.objects.create(
-            session=session,
-            direction=ChatMessage.DirectionChoices.INBOUND,
-            message_type=msg_type,
-            content=content,
-            wa_message_id=message_id,
-            media_url=media_url,
-        )
+        # Idempotencia atómica: crear o fallar por unique constraint
+        try:
+            with transaction.atomic():
+                chat_message = ChatMessage.objects.create(
+                    session=session,
+                    direction=ChatMessage.DirectionChoices.INBOUND,
+                    message_type=msg_type,
+                    content=content,
+                    wa_message_id=message_id,
+                    media_url=media_url,
+                )
+        except IntegrityError:
+            logger.info(f"Mensaje {channel} duplicado ignorado (constraint): {message_id}")
+            return
 
         self._update_session_on_message(session)
 
