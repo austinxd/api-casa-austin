@@ -1,6 +1,7 @@
 import os
 import re
 import logging
+import threading
 import requests
 from django.utils import timezone
 
@@ -8,6 +9,11 @@ from .models import ChatSession, ChatMessage, ChatbotConfiguration
 from .channel_sender import get_sender
 
 logger = logging.getLogger(__name__)
+
+# Debounce: agrupa mensajes rápidos antes de enviar a IA
+_debounce_timers = {}
+_debounce_lock = threading.Lock()
+DEBOUNCE_SECONDS = 3
 
 
 class WebhookProcessor:
@@ -458,9 +464,46 @@ class WebhookProcessor:
         - IA activa: el bot responde solo, NO se notifica (el bot usa notify_team cuando necesita).
         - IA pausada: el admin gestiona, se le notifica cada mensaje del cliente."""
         if session.ai_enabled:
-            self._dispatch_to_ai(session, chat_message)
+            self._dispatch_to_ai_debounced(session, chat_message)
         else:
             self._notify_admins(session, chat_message)
+
+    def _dispatch_to_ai_debounced(self, session, chat_message):
+        """Despacha a IA con debounce: espera 3s agrupando mensajes rápidos."""
+        session_id = str(session.id)
+
+        def _do_dispatch():
+            with _debounce_lock:
+                _debounce_timers.pop(session_id, None)
+            try:
+                from django.db import connection
+                connection.ensure_connection()
+
+                latest = ChatMessage.objects.filter(
+                    session_id=session.id,
+                    direction=ChatMessage.DirectionChoices.INBOUND,
+                    deleted=False,
+                ).order_by('-created').first()
+
+                if latest and latest.id == chat_message.id:
+                    self._dispatch_to_ai(session, chat_message)
+                else:
+                    logger.info(
+                        f"Debounce skip: session {session_id}, "
+                        f"msg {chat_message.id} superseded by "
+                        f"{latest.id if latest else 'none'}"
+                    )
+            except Exception as e:
+                logger.error(f"Error in debounced dispatch: {e}", exc_info=True)
+
+        with _debounce_lock:
+            old_timer = _debounce_timers.get(session_id)
+            if old_timer:
+                old_timer.cancel()
+            timer = threading.Timer(DEBOUNCE_SECONDS, _do_dispatch)
+            timer.daemon = True
+            _debounce_timers[session_id] = timer
+            timer.start()
 
     def _dispatch_to_ai(self, session, chat_message):
         """Envía el mensaje al orquestador de IA para respuesta"""
