@@ -124,10 +124,11 @@ class ReservationSerializer(serializers.ModelSerializer):
             additional_points = Decimal(str(points_to_redeem)) - already_redeemed
 
             if additional_points > 0:
-                available_points = client.get_available_points()
-                if additional_points > Decimal(str(available_points)):
+                # Usar points_balance directo (consistente con create())
+                available = Decimal(str(client.points_balance or 0))
+                if additional_points > available:
                     raise serializers.ValidationError(
-                        f"El cliente no tiene suficientes puntos. Disponibles: {available_points}, adicionales necesarios: {additional_points}"
+                        f"El cliente no tiene suficientes puntos. Disponibles: {available}, adicionales necesarios: {additional_points}"
                     )
 
         if attrs.get('full_payment') == True:
