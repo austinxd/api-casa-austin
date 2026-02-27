@@ -716,6 +716,7 @@ class ToolExecutor:
         # Separar disponibles y no disponibles
         available_lines = []
         unavailable_lines = []
+        discount_label = None  # Descuento compartido (se muestra una sola vez)
 
         for prop in properties:
             name = prop.get('property_name', 'Propiedad')
@@ -729,20 +730,16 @@ class ToolExecutor:
             final_usd = prop.get('final_price_usd', 0)
             final_sol = prop.get('final_price_sol', 0)
 
-            # Descuento
+            # Capturar descuento (se muestra una sola vez al final)
             discount = prop.get('discount_applied')
-            discount_text = ""
             if discount and discount.get('type') not in ('none', None):
                 disc_pct = discount.get('discount_percentage', 0)
                 disc_desc = discount.get('description', '')
-                if disc_pct:
-                    if disc_desc:
-                        discount_text = f"\n   🎁 Descuento: {disc_desc} (-{disc_pct}%)"
-                    else:
-                        discount_text = f"\n   🎁 Descuento: -{disc_pct}%"
+                if disc_pct and not discount_label:
+                    discount_label = f"{disc_desc} (-{disc_pct}%)" if disc_desc else f"-{disc_pct}%"
 
             available_lines.append(
-                f"🏠 {name}: *${final_usd:.2f}* ó *S/{final_sol:.2f}*{discount_text}"
+                f"🏠 {name}: *${final_usd:.2f}* ó *S/{final_sol:.2f}*"
             )
 
         # Construir cotización
@@ -753,6 +750,9 @@ class ToolExecutor:
             if guests == 1:
                 lines.append("⚠️ Este precio es solo para 1 persona. Cada persona adicional tiene un costo extra por noche.")
             lines.extend(available_lines)
+
+            if discount_label:
+                lines.append(f"\n🎁 *Descuento aplicado:* {discount_label}")
 
             if unavailable_lines:
                 lines.append("")
