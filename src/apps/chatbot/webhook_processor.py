@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 # Debounce: agrupa mensajes rápidos antes de enviar a IA
 _debounce_timers = {}
 _debounce_lock = threading.Lock()
-DEBOUNCE_SECONDS = 3
+DEBOUNCE_SECONDS = 5
 
 
 class WebhookProcessor:
