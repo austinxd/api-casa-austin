@@ -818,12 +818,14 @@ class ToolExecutor:
             self.session.client = client
             self.session.client_was_new = client.created >= self.session.created
             self.session.save(update_fields=['client', 'client_was_new'])
+            referral = client.referral_code or 'No tiene'
             return (
                 f"Cliente identificado:\n"
                 f"- Nombre: {client.first_name} {client.last_name or ''}\n"
                 f"- Documento: {client.number_doc}\n"
                 f"- Teléfono: {client.tel_number}\n"
                 f"- Email: {client.email or 'No registrado'}\n"
+                f"- Código de referido: {referral}\n"
                 f"- ID: {client.id}"
             )
 

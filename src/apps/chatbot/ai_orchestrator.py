@@ -338,10 +338,12 @@ class AIOrchestrator:
         # Información del cliente vinculado
         if session.client:
             client = session.client
+            referral = client.referral_code or 'No tiene'
             client_info = (
                 f"\n\nCliente identificado: {client.first_name} {client.last_name or ''}"
                 f"\n- Documento: {client.number_doc}"
                 f"\n- Teléfono: {client.tel_number}"
+                f"\n- Código de referido (clave WiFi): {referral}"
                 f"\n- ID: {client.id}"
             )
             if hasattr(client, 'points_balance') and client.points_balance:
