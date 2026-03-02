@@ -718,6 +718,8 @@ class ToolExecutor:
         unavailable_lines = []
         discount_label = None  # Descuento compartido (se muestra una sola vez)
 
+        capacity_warnings = []
+
         for prop in properties:
             name = prop.get('property_name', 'Propiedad')
             available = prop.get('available', False)
@@ -726,6 +728,12 @@ class ToolExecutor:
                 msg = prop.get('availability_message', 'No disponible')
                 unavailable_lines.append(f"⚠️ {name}: {msg}")
                 continue
+
+            # Advertencia de capacidad excedida
+            recs = prop.get('recommendations', [])
+            for rec in recs:
+                if 'capacidad máxima' in rec.lower():
+                    capacity_warnings.append(f"⚠️ {name}: {rec}")
 
             final_usd = prop.get('final_price_usd', 0)
             final_sol = prop.get('final_price_sol', 0)
@@ -753,6 +761,11 @@ class ToolExecutor:
 
             if discount_label:
                 lines.append(f"\n🎁 *Descuento aplicado:* {discount_label}")
+
+            if capacity_warnings:
+                lines.append("")
+                lines.extend(capacity_warnings)
+                lines.append("👉 Te recomendamos elegir una casa con capacidad suficiente para tu grupo.")
 
             if unavailable_lines:
                 lines.append("")

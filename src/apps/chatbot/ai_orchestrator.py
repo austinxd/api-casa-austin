@@ -39,20 +39,30 @@ def sanitize_response(text):
     if not text:
         return text
 
+    # Eliminar bloques completos [INSTRUCCIÓN ...] incluyendo multi-línea
+    text = re.sub(
+        r'\[INSTRUCCI[ÓO]N[^\]]*\]',
+        '',
+        text,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    # Eliminar líneas sueltas que son continuación de instrucciones IA
+    # (empiezan con PROHIBIDO:, Tu respuesta DEBE, Solo agrega, NOTA INTERNA:)
+    text = re.sub(
+        r'^(?:PROHIBIDO:|Tu respuesta DEBE|Solo agrega UNA|NOTA INTERNA:).*$',
+        '',
+        text,
+        flags=re.MULTILINE | re.IGNORECASE,
+    )
+
     lines = text.split('\n')
     cleaned = []
-    skip_block = False
 
     for line in lines:
         stripped = line.strip()
 
-        # Saltar bloques de instrucciones IA (multi-línea)
-        if stripped.startswith('[INSTRUCCIÓN') or stripped.startswith('[INSTRUCCION'):
-            skip_block = True
-            continue
-        if skip_block:
-            if stripped.endswith(']') or not stripped:
-                skip_block = False
+        if not stripped:
+            cleaned.append(line)
             continue
 
         # Eliminar líneas que son SOLO una llamada a herramienta
