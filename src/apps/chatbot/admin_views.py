@@ -501,15 +501,21 @@ class ChatAnalysisView(APIView):
                 # Incluir tool_calls para que el análisis sepa qué herramientas usó la IA
                 tools_info = ''
                 if msg.direction == 'outbound_ai' and msg.tool_calls:
-                    tool_names = []
+                    tool_parts = []
                     for tc in msg.tool_calls:
                         if isinstance(tc, dict):
-                            fn = tc.get('function', {})
-                            tool_names.append(f"🔧 {fn.get('name', '?')}({fn.get('arguments', '')[:80]})")
+                            name = tc.get('name', tc.get('function', {}).get('name', '?'))
+                            args = tc.get('arguments', tc.get('function', {}).get('arguments', ''))
+                            args_str = str(args)[:120] if args else ''
+                            preview = tc.get('result_preview', '')
+                            tool_line = f"🔧 {name}({args_str})"
+                            if preview:
+                                tool_line += f" → {preview}"
+                            tool_parts.append(tool_line)
                         elif isinstance(tc, str):
-                            tool_names.append(f"🔧 {tc}")
-                    if tool_names:
-                        tools_info = f" [{', '.join(tool_names)}]"
+                            tool_parts.append(f"🔧 {tc}")
+                    if tool_parts:
+                        tools_info = f"\n    [TOOLS: {' | '.join(tool_parts)}]"
                 msg_lines.append(f"  [{timestamp}] [{direction_label}]{tools_info}: {msg.content[:500]}")
 
             conv_text = (
