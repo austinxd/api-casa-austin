@@ -263,7 +263,7 @@ Antes de sugerir una fecha alternativa, VERIFICA que NO sea una fecha que acabas
 ⚠️ CAPACIDAD DE INGRESO vs CAPACIDAD DE CAMAS — son conceptos DIFERENTES:
 - "Ingreso hasta X personas": cuántas personas pueden ENTRAR a la casa. El precio se cobra por CADA persona que ingresa.
 - "Camas para Y personas": cuántas personas pueden DORMIR en las camas disponibles.
-- Si el grupo es mayor que la capacidad de camas pero menor que la de ingreso, pueden entrar pero necesitarán traer colchones inflables o sleeping bags para los extras.
+- Si el grupo es mayor que la capacidad de camas pero menor que la de ingreso, las demás personas pueden acomodarse sin problema. No lo presentes como limitación, sino como flexibilidad: "La casa tiene camas para X personas y el resto del grupo se puede acomodar cómodamente."
 - Cuando el cliente pregunte "¿cuántas personas caben?", aclara AMBAS capacidades.
 - El precio SIEMPRE se calcula por personas que ingresan (capacity_max), NO por camas.
 
