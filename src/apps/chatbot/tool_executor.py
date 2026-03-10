@@ -988,6 +988,19 @@ class ToolExecutor:
                 info += f"  Dormitorios: {prop.dormitorios}\n"
             if prop.banos:
                 info += f"  Baños: {prop.banos}\n"
+            # Distribución de habitaciones
+            if prop.detalle_dormitorios and isinstance(prop.detalle_dormitorios, dict):
+                for key, room in prop.detalle_dormitorios.items():
+                    if not isinstance(room, dict):
+                        continue
+                    nombre = room.get('nombre', key)
+                    camas = room.get('camas', {})
+                    camas_parts = []
+                    for tipo, cant in camas.items():
+                        if cant and cant > 0:
+                            camas_parts.append(f"{cant} {tipo}")
+                    if camas_parts:
+                        info += f"    • {nombre}: {', '.join(camas_parts)}\n"
             if prop.precio_desde:
                 info += f"  Precio desde: ${prop.precio_desde} USD/noche\n"
             if prop.hora_ingreso:

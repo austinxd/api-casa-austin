@@ -319,7 +319,8 @@ class AIOrchestrator:
         props = list(
             Property.objects.filter(deleted=False)
             .order_by('capacity_max')
-            .values('name', 'capacity_max', 'dormitorios', 'banos', 'caracteristicas')
+            .values('name', 'capacity_max', 'dormitorios', 'banos',
+                    'caracteristicas', 'detalle_dormitorios')
         )
         if not props:
             return {
@@ -339,9 +340,25 @@ class AIOrchestrator:
             chars_str = ''
             if isinstance(chars, list) and chars:
                 chars_str = ' — ' + ', '.join(str(c) for c in chars[:6])
-            info_lines.append(
-                f"- {name}: {dorms} hab/{banos} baños, hasta {cap} personas{chars_str}"
-            )
+            line = f"- {name}: {dorms} hab/{banos} baños, hasta {cap} personas{chars_str}"
+            # Distribución de habitaciones
+            detalle = p.get('detalle_dormitorios') or {}
+            if isinstance(detalle, dict) and detalle:
+                rooms_desc = []
+                for room in detalle.values():
+                    if not isinstance(room, dict):
+                        continue
+                    nombre = room.get('nombre', '')
+                    camas = room.get('camas', {})
+                    camas_parts = []
+                    for tipo, cant in camas.items():
+                        if cant and cant > 0:
+                            camas_parts.append(f"{cant} {tipo}")
+                    if camas_parts:
+                        rooms_desc.append(f"{nombre}: {', '.join(camas_parts)}")
+                if rooms_desc:
+                    line += '\n  Habitaciones: ' + ' | '.join(rooms_desc)
+            info_lines.append(line)
         info_casas = '\n'.join(info_lines)
 
         # --- CLASIFICACION_POR_TAMANO: rangos automáticos ---
