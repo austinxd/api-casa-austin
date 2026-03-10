@@ -312,9 +312,76 @@ class AIOrchestrator:
 
         return messages
 
+    def _build_property_context(self):
+        """Construye secciones dinámicas de propiedades desde la BD."""
+        from apps.property.models import Property
+
+        props = list(
+            Property.objects.filter(deleted=False)
+            .order_by('capacity_max')
+            .values('name', 'capacity_max', 'dormitorios', 'banos', 'caracteristicas')
+        )
+        if not props:
+            return {
+                'INFO_CASAS': '(No hay propiedades registradas)',
+                'CLASIFICACION_POR_TAMANO': '(No hay propiedades registradas)',
+                'REGLA_CAPACIDADES': '(No hay propiedades registradas)',
+            }
+
+        # --- INFO_CASAS: specs de cada propiedad ---
+        info_lines = []
+        for p in props:
+            name = p['name']
+            cap = p['capacity_max'] or '?'
+            dorms = p['dormitorios'] or '?'
+            banos = p['banos'] or '?'
+            chars = p.get('caracteristicas') or []
+            chars_str = ''
+            if isinstance(chars, list) and chars:
+                chars_str = ' — ' + ', '.join(str(c) for c in chars[:6])
+            info_lines.append(
+                f"- {name}: {dorms} hab/{banos} baños, hasta {cap} personas{chars_str}"
+            )
+        info_casas = '\n'.join(info_lines)
+
+        # --- CLASIFICACION_POR_TAMANO: rangos automáticos ---
+        sorted_props = sorted(props, key=lambda p: p['capacity_max'] or 0)
+        ranges = []
+        prev_max = 0
+        for i, p in enumerate(sorted_props):
+            cap = p['capacity_max'] or 0
+            name = p['name']
+            # Agrupar propiedades con misma capacidad
+            same_cap = [x['name'] for x in sorted_props if x['capacity_max'] == cap]
+            label = ' o '.join(same_cap)
+            if i == 0:
+                ranges.append(f"- 1-{cap} personas: PRIORIZAR {name} (la más ajustada y económica)")
+            elif cap != prev_max:
+                ranges.append(f"- {prev_max + 1}-{cap}: Recomendar {label}")
+            prev_max = max(prev_max, cap)
+        max_cap = sorted_props[-1]['capacity_max'] or 0
+        biggest = sorted_props[-1]['name']
+        ranges.append(f"- {max_cap}+: Recomendar {biggest} + otra casa combinada")
+        clasificacion = '\n'.join(ranges)
+
+        # --- REGLA_CAPACIDADES: resumen una línea ---
+        caps = [f"{p['name']} = máx {p['capacity_max']}" for p in props if p['capacity_max']]
+        regla = ', '.join(caps)
+
+        return {
+            'INFO_CASAS': info_casas,
+            'CLASIFICACION_POR_TAMANO': clasificacion,
+            'REGLA_CAPACIDADES': regla,
+        }
+
     def _build_system_prompt(self, session):
         """Construye el system prompt dinámico con contexto de ventas"""
         base_prompt = self.config.system_prompt
+
+        # Inyectar datos de propiedades desde la BD
+        property_ctx = self._build_property_context()
+        for key, value in property_ctx.items():
+            base_prompt = base_prompt.replace('{' + key + '}', value)
 
         context_parts = [base_prompt]
 
