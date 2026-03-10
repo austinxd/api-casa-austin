@@ -9,6 +9,7 @@ from django.utils import timezone
 from .models import ChatSession, ChatMessage
 from .tool_executor import ToolExecutor, TOOL_DEFINITIONS
 from .channel_sender import get_sender
+from .utils import calc_bed_capacity
 
 logger = logging.getLogger(__name__)
 
@@ -340,9 +341,15 @@ class AIOrchestrator:
             chars_str = ''
             if isinstance(chars, list) and chars:
                 chars_str = ' — ' + ', '.join(str(c) for c in chars[:6])
-            line = f"- {name}: {dorms} hab/{banos} baños, hasta {cap} personas{chars_str}"
-            # Distribución de habitaciones
+            line = f"- {name}: {dorms} hab/{banos} baños, ingreso hasta {cap} personas"
+            # Capacidad de camas
             detalle = p.get('detalle_dormitorios') or {}
+            bed_cap, bed_summary = calc_bed_capacity(detalle)
+            if bed_cap:
+                line += f", camas para {bed_cap} personas ({bed_summary})"
+            if chars_str:
+                line += chars_str
+            # Distribución por habitación
             if isinstance(detalle, dict) and detalle:
                 rooms_desc = []
                 for room in detalle.values():

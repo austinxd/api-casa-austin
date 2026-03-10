@@ -977,13 +977,19 @@ class ToolExecutor:
 
     def _format_properties(self, properties):
         """Formatea lista de propiedades como texto legible"""
+        from .utils import calc_bed_capacity
+
         lines = []
         for prop in properties:
             info = f"🏠 {prop.name}\n"
             if prop.descripcion:
                 info += f"  {prop.descripcion[:200]}\n"
             if prop.capacity_max:
-                info += f"  Capacidad máxima: {prop.capacity_max} personas\n"
+                info += f"  Capacidad de ingreso: {prop.capacity_max} personas\n"
+            # Capacidad de camas
+            bed_cap, bed_summary = calc_bed_capacity(prop.detalle_dormitorios)
+            if bed_cap:
+                info += f"  Capacidad de camas: {bed_cap} personas ({bed_summary})\n"
             if prop.dormitorios:
                 info += f"  Dormitorios: {prop.dormitorios}\n"
             if prop.banos:

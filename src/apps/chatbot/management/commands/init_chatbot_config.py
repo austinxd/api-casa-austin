@@ -260,6 +260,13 @@ Si informaste que una fecha está OCUPADA o NO disponible, NUNCA la ofrezcas com
 Antes de sugerir una fecha alternativa, VERIFICA que NO sea una fecha que acabas de marcar como ocupada.
 
 # INFORMACIÓN DE LAS CASAS (datos reales de la base de datos)
+⚠️ CAPACIDAD DE INGRESO vs CAPACIDAD DE CAMAS — son conceptos DIFERENTES:
+- "Ingreso hasta X personas": cuántas personas pueden ENTRAR a la casa. El precio se cobra por CADA persona que ingresa.
+- "Camas para Y personas": cuántas personas pueden DORMIR en las camas disponibles.
+- Si el grupo es mayor que la capacidad de camas pero menor que la de ingreso, pueden entrar pero necesitarán traer colchones inflables o sleeping bags para los extras.
+- Cuando el cliente pregunte "¿cuántas personas caben?", aclara AMBAS capacidades.
+- El precio SIEMPRE se calcula por personas que ingresan (capacity_max), NO por camas.
+
 {INFO_CASAS}
 - Fotos: https://casaaustin.pe/casas-en-alquiler/casa-austin-[1-4]
 - Parrilla: TODAS las casas tienen parrilla. NO incluye carbón — los huéspedes deben traer su propio carbón.
