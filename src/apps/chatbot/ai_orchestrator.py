@@ -342,29 +342,13 @@ class AIOrchestrator:
             if isinstance(chars, list) and chars:
                 chars_str = ' — ' + ', '.join(str(c) for c in chars[:6])
             line = f"- {name}: {dorms} hab/{banos} baños, ingreso hasta {cap} personas"
-            # Capacidad de camas
+            # Solo resumen de camas (sin detalle por habitación — forzar get_property_info)
             detalle = p.get('detalle_dormitorios') or {}
-            bed_cap, bed_summary = calc_bed_capacity(detalle)
+            bed_cap, _ = calc_bed_capacity(detalle)
             if bed_cap:
-                line += f", camas para {bed_cap} personas ({bed_summary})"
+                line += f", camas para {bed_cap} personas"
             if chars_str:
                 line += chars_str
-            # Distribución por habitación
-            if isinstance(detalle, dict) and detalle:
-                rooms_desc = []
-                for room in detalle.values():
-                    if not isinstance(room, dict):
-                        continue
-                    nombre = room.get('nombre', '')
-                    camas = room.get('camas', {})
-                    camas_parts = []
-                    for tipo, cant in camas.items():
-                        if cant and cant > 0:
-                            camas_parts.append(f"{cant} {tipo}")
-                    if camas_parts:
-                        rooms_desc.append(f"{nombre}: {', '.join(camas_parts)}")
-                if rooms_desc:
-                    line += '\n  Habitaciones: ' + ' | '.join(rooms_desc)
             info_lines.append(line)
         info_casas = '\n'.join(info_lines)
 
