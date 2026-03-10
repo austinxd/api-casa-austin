@@ -979,42 +979,57 @@ class ToolExecutor:
 
         lines = []
         for prop in properties:
-            info = f"🏠 {prop.name}\n"
+            info = f"🏠 *{prop.name}*\n"
             if prop.descripcion:
-                info += f"  {prop.descripcion[:200]}\n"
+                info += f"{prop.descripcion[:200]}\n\n"
+
+            # Capacidades
+            parts = []
+            if prop.dormitorios:
+                parts.append(f"{prop.dormitorios} dormitorios")
+            if prop.banos:
+                parts.append(f"{prop.banos} baños")
             if prop.capacity_max:
-                info += f"  Capacidad de ingreso: {prop.capacity_max} personas\n"
-            # Capacidad de camas
+                parts.append(f"hasta {prop.capacity_max} personas")
+            if parts:
+                info += ' | '.join(parts) + '\n'
+
+            # Capacidad de camas + distribución por habitación
             bed_cap, bed_summary = calc_bed_capacity(prop.detalle_dormitorios)
             if bed_cap:
-                info += f"  Capacidad de camas: {bed_cap} personas ({bed_summary})\n"
-            if prop.dormitorios:
-                info += f"  Dormitorios: {prop.dormitorios}\n"
-            if prop.banos:
-                info += f"  Baños: {prop.banos}\n"
-            # Distribución de habitaciones
-            if prop.detalle_dormitorios and isinstance(prop.detalle_dormitorios, dict):
-                for key, room in prop.detalle_dormitorios.items():
-                    if not isinstance(room, dict):
-                        continue
-                    nombre = room.get('nombre', key)
-                    camas = room.get('camas', {})
-                    camas_parts = []
-                    for tipo, cant in camas.items():
-                        if cant and cant > 0:
-                            camas_parts.append(f"{cant} {tipo}")
-                    if camas_parts:
-                        info += f"    • {nombre}: {', '.join(camas_parts)}\n"
-            if prop.precio_desde:
-                info += f"  Precio desde: ${prop.precio_desde} USD/noche\n"
+                info += f"\n🛏️ *Camas para {bed_cap} personas:*\n"
+                if prop.detalle_dormitorios and isinstance(prop.detalle_dormitorios, dict):
+                    for room in prop.detalle_dormitorios.values():
+                        if not isinstance(room, dict):
+                            continue
+                        nombre = room.get('nombre', '')
+                        camas = room.get('camas', {})
+                        camas_parts = []
+                        for tipo, cant in camas.items():
+                            if cant and cant > 0:
+                                camas_parts.append(f"{cant} {tipo}")
+                        if camas_parts:
+                            info += f"  🚪 {nombre}: {', '.join(camas_parts)}\n"
+
+            # Horarios
+            horarios = []
             if prop.hora_ingreso:
-                info += f"  Check-in: {prop.hora_ingreso.strftime('%I:%M %p')}\n"
+                horarios.append(f"Check-in: {prop.hora_ingreso.strftime('%I:%M %p')}")
             if prop.hora_salida:
-                info += f"  Check-out: {prop.hora_salida.strftime('%I:%M %p')}\n"
-            if prop.caracteristicas:
-                chars = prop.caracteristicas[:5] if isinstance(prop.caracteristicas, list) else []
+                horarios.append(f"Check-out: {prop.hora_salida.strftime('%I:%M %p')}")
+            if horarios:
+                info += f"\n🕐 {' | '.join(horarios)}\n"
+
+            # Precio referencia
+            if prop.precio_desde:
+                info += f"💰 Desde ${prop.precio_desde} USD/noche\n"
+
+            # Características
+            if prop.caracteristicas and isinstance(prop.caracteristicas, list):
+                chars = prop.caracteristicas[:6]
                 if chars:
-                    info += f"  Características: {', '.join(str(c) for c in chars)}\n"
+                    info += f"\n✨ {', '.join(str(c) for c in chars)}\n"
+
             lines.append(info)
 
         return '\n'.join(lines)
