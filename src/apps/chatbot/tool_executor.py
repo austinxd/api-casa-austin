@@ -456,46 +456,75 @@ class ToolExecutor:
             return '\n'.join(lines)
 
         else:
-            # Rango largo: mostrar resumen por casa
+            # Rango largo: mostrar resumen por casa con fines de semana explícitos
             lines = [f"📅 Disponibilidad del {start.strftime('%d/%m')} al {end.strftime('%d/%m')}:\n"]
 
+            # Calcular fines de semana (viernes y sábado como check-in) en el rango
+            all_free_weekends = {}  # prop_id -> list of "sáb DD/mmm"
             for prop in properties:
                 prop_reservations = occupation.get(prop.id, [])
-
-                if not prop_reservations:
-                    lines.append(f"🏠 {prop.name}: ✅ Disponible TODO el período")
-                    continue
-
-                # Encontrar fechas ocupadas
-                occupied_ranges = []
-                for (ci, co) in sorted(prop_reservations):
-                    ci_display = max(ci, start)
-                    co_display = min(co, end)
-                    occupied_ranges.append(
-                        f"{ci_display.day}-{co_display.day} {months_es[ci_display.month]}"
-                    )
-
-                # Contar noches libres
-                free_nights = 0
+                free_weekends = []
                 for i in range(days_range):
                     d = start + timedelta(days=i)
+                    # viernes (4) y sábado (5) como días de check-in de fin de semana
+                    if d.weekday() not in (4, 5):
+                        continue
                     is_free = True
                     for (ci, co) in prop_reservations:
                         if ci <= d < co:
                             is_free = False
                             break
                     if is_free:
-                        free_nights += 1
+                        free_weekends.append(
+                            f"{days_es[d.weekday()]} {d.day} {months_es[d.month]}"
+                        )
+                all_free_weekends[prop.id] = free_weekends
 
-                occ_str = ", ".join(occupied_ranges)
-                lines.append(
-                    f"🏠 {prop.name}: {free_nights} noches libres "
-                    f"(ocupada: {occ_str})"
-                )
+            for prop in properties:
+                prop_reservations = occupation.get(prop.id, [])
+
+                if not prop_reservations:
+                    lines.append(f"🏠 {prop.name}: ✅ Disponible TODO el período")
+                else:
+                    # Encontrar fechas ocupadas
+                    occupied_ranges = []
+                    for (ci, co) in sorted(prop_reservations):
+                        ci_display = max(ci, start)
+                        co_display = min(co, end)
+                        occupied_ranges.append(
+                            f"{ci_display.day}-{co_display.day} {months_es[ci_display.month]}"
+                        )
+
+                    # Contar noches libres
+                    free_nights = 0
+                    for i in range(days_range):
+                        d = start + timedelta(days=i)
+                        is_free = True
+                        for (ci, co) in prop_reservations:
+                            if ci <= d < co:
+                                is_free = False
+                                break
+                        if is_free:
+                            free_nights += 1
+
+                    occ_str = ", ".join(occupied_ranges)
+                    lines.append(
+                        f"🏠 {prop.name}: {free_nights} noches libres "
+                        f"(ocupada: {occ_str})"
+                    )
+
+                # Fines de semana libres
+                weekends = all_free_weekends.get(prop.id, [])
+                if weekends:
+                    lines.append(f"  🗓️ Fines de semana libres: {', '.join(weekends)}")
+                else:
+                    lines.append(f"  🗓️ Sin fines de semana disponibles en este período")
 
             lines.append("")
             lines.append(
                 "[INSTRUCCIÓN IA: Muestra esta disponibilidad al cliente. "
+                "IMPORTANTE: Usa EXACTAMENTE los nombres de días (sáb, vie, dom, etc.) que aparecen arriba. "
+                "NUNCA calcules ni adivines qué día de la semana es una fecha — confía en los datos de la herramienta. "
                 "Pregunta por qué fechas específicas le interesan y cuántas personas serán. "
                 "Luego usa check_availability para cotizar precios.]"
             )
