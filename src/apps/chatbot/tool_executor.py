@@ -767,9 +767,7 @@ class ToolExecutor:
                 lines.extend(capacity_warnings)
                 lines.append("👉 Te recomendamos elegir una casa con capacidad suficiente para tu grupo.")
 
-            if unavailable_lines:
-                lines.append("")
-                lines.extend(unavailable_lines)
+            # No mostrar casas no disponibles — solo genera confusión
 
             lines.append("")
             lines.append(
