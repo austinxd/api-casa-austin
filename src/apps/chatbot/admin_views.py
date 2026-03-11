@@ -877,6 +877,86 @@ class PromoPreviewView(APIView):
         })
 
 
+class ChatAnalyticsDetailView(APIView):
+    """GET /analytics/details/?from=date&to=date&type=leads|conversions|returning"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from_date = request.query_params.get('from')
+        to_date = request.query_params.get('to')
+        detail_type = request.query_params.get('type')
+
+        if not detail_type or detail_type not in ('leads', 'conversions', 'returning'):
+            return Response(
+                {'error': 'Parámetro type requerido: leads, conversions, returning'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if detail_type == 'leads':
+            qs = ChatSession.objects.filter(
+                client_was_new=True,
+                client__isnull=False,
+                deleted=False,
+            ).select_related('client')
+
+            if from_date:
+                qs = qs.filter(client__created__date__gte=from_date)
+            if to_date:
+                qs = qs.filter(client__created__date__lte=to_date)
+
+            qs = qs.order_by('-client__created')
+
+            results = []
+            for session in qs:
+                client = session.client
+                results.append({
+                    'session_id': str(session.id),
+                    'client_name': f"{client.first_name} {client.last_name or ''}".strip(),
+                    'phone': client.tel_number or session.wa_id,
+                    'channel': session.get_channel_display(),
+                    'created': client.created.isoformat() if client.created else None,
+                })
+
+            return Response({'results': results})
+
+        # conversions and returning share the same logic
+        from apps.reservation.models import Reservation
+
+        is_new = detail_type == 'conversions'
+        qs = Reservation.objects.filter(
+            chatbot_session__isnull=False,
+            chatbot_session__client_was_new=is_new,
+            deleted=False,
+        ).select_related('client', 'property', 'chatbot_session')
+
+        if from_date:
+            qs = qs.filter(created__date__gte=from_date)
+        if to_date:
+            qs = qs.filter(created__date__lte=to_date)
+
+        qs = qs.order_by('-created')
+
+        results = []
+        for res in qs:
+            client_name = ''
+            if res.client:
+                client_name = f"{res.client.first_name} {res.client.last_name or ''}".strip()
+
+            results.append({
+                'reservation_id': str(res.id),
+                'client_name': client_name,
+                'property_name': res.property.name if res.property else '',
+                'check_in': str(res.check_in_date),
+                'check_out': str(res.check_out_date),
+                'guests': res.guests,
+                'total_amount': str(res.price_usd or 0),
+                'status': res.status,
+                'created': res.created.isoformat() if res.created else None,
+            })
+
+        return Response({'results': results})
+
+
 class UnresolvedQuestionListView(ListAPIView):
     """GET /unresolved-questions/ — Preguntas que el bot no pudo responder"""
     serializer_class = UnresolvedQuestionSerializer

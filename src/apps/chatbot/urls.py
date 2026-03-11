@@ -10,6 +10,7 @@ from .admin_views import (
     MarkAsReadView,
     ChatSessionPollView,
     ChatAnalyticsView,
+    ChatAnalyticsDetailView,
     ChatAnalysisView,
     PropertyVisitListView,
     PropertyVisitUpdateView,
@@ -40,6 +41,7 @@ urlpatterns = [
 
     # Analytics
     path('analytics/', ChatAnalyticsView.as_view(), name='chatbot-analytics'),
+    path('analytics/details/', ChatAnalyticsDetailView.as_view(), name='chatbot-analytics-details'),
     path('analysis/', ChatAnalysisView.as_view(), name='chatbot-analysis'),
     path('followups/', FollowupOpportunitiesView.as_view(), name='chatbot-followups'),
 
