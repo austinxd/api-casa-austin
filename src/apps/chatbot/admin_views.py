@@ -944,6 +944,7 @@ class ChatAnalyticsDetailView(APIView):
 
             results.append({
                 'reservation_id': str(res.id),
+                'session_id': str(res.chatbot_session_id) if res.chatbot_session_id else None,
                 'client_name': client_name,
                 'property_name': res.property.name if res.property else '',
                 'check_in': str(res.check_in_date),
