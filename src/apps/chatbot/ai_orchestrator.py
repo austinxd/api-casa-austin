@@ -623,6 +623,9 @@ class AIOrchestrator:
                 "\n- Recuérdale: 'Solo necesitas el 50% de adelanto para separar tu fecha'"
                 "\n- Si tiene dudas, resuélvelas rápido y vuelve al cierre."
                 "\n- Si dice que quiere reservar, usa notify_team(ready_to_book) Y guíalo a casaaustin.pe"
+                "\n- ⚠️ Si el cliente pregunta por NUEVAS FECHAS o DIFERENTES fechas (incluyendo 'hoy', 'mañana', "
+                "otra fecha distinta a la cotizada), DEBES llamar check_availability o check_calendar DE NUEVO. "
+                "NUNCA asumas disponibilidad ni reutilices la cotización anterior. La disponibilidad cambia en tiempo real."
             )
 
         # Detectar urgencia por fechas cercanas (si hay contexto de fechas)
