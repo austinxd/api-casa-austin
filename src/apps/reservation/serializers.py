@@ -132,10 +132,13 @@ class ReservationSerializer(serializers.ModelSerializer):
                     )
 
         if attrs.get('full_payment') == True:
-            # Obtener puntos ya canjeados (si estamos actualizando una reserva existente)
-            points_redeemed = 0
-            if self.instance:
+            # Usar puntos NUEVOS si vienen en el request, sino los ya canjeados
+            if points_to_redeem is not None:
+                points_redeemed = float(points_to_redeem)
+            elif self.instance:
                 points_redeemed = float(self.instance.points_redeemed or 0)
+            else:
+                points_redeemed = 0
 
             # En PATCH, usar los datos existentes si no se proporcionan nuevos valores
             if is_patch and self.instance:
