@@ -766,6 +766,10 @@ class ToolExecutor:
 
             final_usd = prop.get('final_price_usd', 0)
             final_sol = prop.get('final_price_sol', 0)
+            base_usd = prop.get('base_price_usd', 0)
+            extra_per_night_usd = prop.get('extra_person_price_per_night_usd', 0)
+            extra_guests_count = prop.get('extra_guests', 0)
+            extra_total_usd = prop.get('extra_person_total_usd', 0)
 
             # Capturar descuento (se muestra una sola vez al final)
             discount = prop.get('discount_applied')
@@ -775,9 +779,14 @@ class ToolExecutor:
                 if disc_pct and not discount_label:
                     discount_label = f"{disc_desc} (-{disc_pct}%)" if disc_desc else f"-{disc_pct}%"
 
-            available_lines.append(
-                f"🏠 {name}: *${final_usd:.2f}* ó *S/{final_sol:.2f}*"
-            )
+            line = f"🏠 {name}: *${final_usd:.2f}* ó *S/{final_sol:.2f}*"
+            # Desglose: tarifa base + extra por persona
+            if extra_guests_count > 0 and extra_per_night_usd > 0:
+                line += (
+                    f"\n   ├ Tarifa base: ${base_usd:.2f}"
+                    f"\n   └ +{extra_guests_count} persona{'s' if extra_guests_count != 1 else ''} extra: ${extra_total_usd:.2f} (${extra_per_night_usd:.2f}/persona/noche)"
+                )
+            available_lines.append(line)
 
         # Construir cotización
         lines = [f"📅 {fecha_display}", ""]
