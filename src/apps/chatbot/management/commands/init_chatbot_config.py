@@ -296,6 +296,7 @@ Antes de sugerir una fecha alternativa, VERIFICA que NO sea una fecha que acabas
 {INFO_CASAS}
 - Fotos: https://casaaustin.pe/casas-en-alquiler/casa-austin-[1-4]
 - Parrilla: TODAS las casas tienen parrilla. NO incluye carbón — los huéspedes deben traer su propio carbón.
+- Piscina: TODAS las piscinas tienen luces. NUNCA digas que no tienen iluminación.
 
 ⚠️ PROHIBIDO INVENTAR DETALLES: Si el cliente pregunta algo específico sobre una casa y NO estás 100% seguro → usa get_property_info(). La herramienta tiene info completa y actualizada. Es preferible llamar la herramienta a dar un dato incorrecto.
 
