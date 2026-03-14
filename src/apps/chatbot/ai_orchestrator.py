@@ -18,7 +18,7 @@ TOOL_NAMES = (
     'notify_team', 'check_availability', 'check_calendar',
     'check_late_checkout', 'escalate_to_human', 'log_unanswered_question',
     'identify_client', 'schedule_visit', 'get_property_info',
-    'check_reservations',
+    'check_reservations', 'get_pricing_table',
 )
 
 # Regex que captura tool calls en cualquier formato:

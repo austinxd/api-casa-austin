@@ -308,6 +308,30 @@ TOOL_DEFINITIONS = [
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_pricing_table",
+            "description": (
+                "Obtiene la tabla de precios actual de todas las propiedades directamente de la base de datos. "
+                "Muestra tarifas base por tipo de día (entre semana vs fin de semana) y temporada (alta/baja), "
+                "costo extra por persona, temporadas configuradas y fechas especiales. "
+                "Usa esta herramienta cuando el cliente pregunte por rangos de precios generales, "
+                "estructura de tarifas, o '¿desde qué precios?' SIN dar fechas ni personas específicas. "
+                "Para cotización exacta con fechas y personas, usa check_availability en su lugar."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "property_name": {
+                        "type": "string",
+                        "description": "Nombre de una propiedad específica (opcional, muestra todas si no se indica)"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
 ]
 
 
@@ -332,6 +356,7 @@ class ToolExecutor:
             'escalate_to_human': self._escalate_to_human,
             'notify_team': self._notify_team,
             'log_unanswered_question': self._log_unanswered_question,
+            'get_pricing_table': self._get_pricing_table,
         }
 
         handler = tool_map.get(tool_name)
@@ -1321,3 +1346,84 @@ class ToolExecutor:
 
         logger.info(f"Pregunta sin resolver registrada: {question[:80]} (sesión {self.session.id})")
         return "Pregunta registrada. Responde al cliente que consultarás con el equipo y le darás una respuesta pronto."
+
+    def _get_pricing_table(self, property_name=None):
+        """Obtiene tabla consolidada de precios desde la base de datos."""
+        from apps.property.models import Property
+        from apps.property.pricing_models import (
+            PropertyPricing, SeasonPricing, SpecialDatePricing, ExchangeRate
+        )
+
+        rate = ExchangeRate.get_current_rate()
+
+        properties = Property.objects.filter(deleted=False).order_by('name')
+        if property_name:
+            filtered = properties.filter(name__icontains=property_name)
+            if filtered.exists():
+                properties = filtered
+
+        if not properties.exists():
+            return "No hay propiedades registradas."
+
+        lines = ["📊 *TABLA DE PRECIOS — CASA AUSTIN*", ""]
+
+        for prop in properties:
+            lines.append(f"🏠 *{prop.name}* (hasta {prop.capacity_max} personas)")
+
+            try:
+                pricing = PropertyPricing.objects.get(property=prop)
+                extra_pp = prop.precio_extra_persona
+
+                lines.append("  💰 Tarifa base (1 persona/noche):")
+                lines.append(f"    Entre semana (Lun-Jue):")
+                lines.append(f"      Temp. baja: ${pricing.weekday_low_season_usd:.0f}")
+                lines.append(f"      Temp. alta: ${pricing.weekday_high_season_usd:.0f}")
+                lines.append(f"    Fin de semana (Vie-Sáb):")
+                lines.append(f"      Temp. baja: ${pricing.weekend_low_season_usd:.0f}")
+                lines.append(f"      Temp. alta: ${pricing.weekend_high_season_usd:.0f}")
+
+                if extra_pp:
+                    lines.append(f"  👥 Extra por persona adicional: ${extra_pp:.0f}/noche")
+                else:
+                    lines.append("  👥 Sin cargo extra por persona configurado")
+            except PropertyPricing.DoesNotExist:
+                if prop.precio_desde:
+                    lines.append(f"  💰 Precio desde: ${prop.precio_desde:.0f}/noche")
+                else:
+                    lines.append("  ⚠️ Sin tarifas configuradas")
+                extra_pp = prop.precio_extra_persona
+                if extra_pp:
+                    lines.append(f"  👥 Extra por persona adicional: ${extra_pp:.0f}/noche")
+
+            # Fechas especiales de esta propiedad
+            special_dates = SpecialDatePricing.objects.filter(
+                property=prop, is_active=True
+            ).order_by('month', 'day')
+            if special_dates.exists():
+                lines.append("  🎉 Fechas especiales:")
+                for sd in special_dates:
+                    min_nights = f" (mín. {sd.minimum_consecutive_nights} noches)" if sd.minimum_consecutive_nights > 1 else ""
+                    lines.append(f"    {sd.get_date_display()}: ${sd.price_usd:.0f}/noche — {sd.description or 'Fecha especial'}{min_nights}")
+
+            lines.append("")
+
+        # Temporadas globales
+        seasons = SeasonPricing.objects.filter(is_active=True).order_by('start_month', 'start_day')
+        if seasons.exists():
+            lines.append("📅 *TEMPORADAS*")
+            for s in seasons:
+                tipo = "🔴 Alta" if s.season_type == 'high' else "🟢 Baja"
+                lines.append(f"  {tipo}: {s.name} ({s.get_date_range_display()})")
+            lines.append("")
+
+        lines.append(f"💱 Tipo de cambio: 1 USD = S/{rate} SOL")
+        lines.append("")
+        lines.append(
+            "[INSTRUCCIÓN IA — NO MOSTRAR ESTE BLOQUE AL CLIENTE]\n"
+            "Usa esta tabla para dar al cliente una visión general de precios. "
+            "Presenta la info de forma natural y amigable, resaltando que entre semana es más económico. "
+            "Después pregunta fechas y personas para cotización exacta con check_availability. "
+            "PROHIBIDO copiar esta tabla tal cual — resúmela de forma conversacional."
+        )
+
+        return '\n'.join(lines)
