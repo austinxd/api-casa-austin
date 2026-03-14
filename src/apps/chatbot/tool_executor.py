@@ -701,12 +701,12 @@ class ToolExecutor:
                     continue
 
             if alternatives:
-                formatted += "\n\n--- FECHAS ALTERNATIVAS DISPONIBLES ---\n\n"
+                formatted += "\n\n📅 *Fechas disponibles más cercanas:*\n\n"
                 formatted += "\n\n".join(alternatives)
                 formatted += (
                     "\n\n[INSTRUCCIÓN IA — OBLIGATORIO — NO MOSTRAR AL CLIENTE]"
-                    "\nLas fechas originales están ocupadas. Muestra la primera línea (📅 fechas) y el mensaje de ocupadas."
-                    "\nLuego presenta las alternativas de arriba TAL CUAL con sus precios formateados."
+                    "\nPresenta las fechas alternativas de arriba TAL CUAL con sus precios formateados."
+                    "\nNO repitas que las fechas originales están ocupadas — enfócate en las opciones disponibles."
                     "\nPregunta si alguna de esas fechas le interesa."
                     "\nSi dice que sí, confirma la cantidad exacta de personas y la fecha elegida para recotizar."
                     "\nNO inventes otras fechas ni busques más opciones por tu cuenta."
@@ -805,12 +805,10 @@ class ToolExecutor:
                     discount_label = f"{disc_desc} (-{disc_pct}%)" if disc_desc else f"-{disc_pct}%"
 
             line = f"🏠 {name}: *${final_usd:.2f}* ó *S/{final_sol:.2f}*"
-            # Desglose: tarifa base + extra por persona
-            if extra_guests_count > 0 and extra_per_night_usd > 0:
-                line += (
-                    f"\n   ├ Tarifa base: ${base_usd:.2f}"
-                    f"\n   └ +{extra_guests_count} persona{'s' if extra_guests_count != 1 else ''} extra: ${extra_total_usd:.2f} (${extra_per_night_usd:.2f}/persona/noche)"
-                )
+            # Desglose simplificado: precio por persona por noche
+            if extra_guests_count > 0 and extra_per_night_usd > 0 and total_nights > 0:
+                price_pp = final_usd / guests / total_nights if guests > 0 else 0
+                line += f"\n   └ ${price_pp:.2f} por persona/noche"
             available_lines.append(line)
 
         # Construir cotización
@@ -862,7 +860,7 @@ class ToolExecutor:
                 )
             lines.append(ia_instruction)
         else:
-            lines.append("Lamentablemente todas nuestras casas están ocupadas para estas fechas 😔")
+            lines.append("Esas fechas están muy pedidas 🔥 ¡Pero tenemos opciones cercanas!")
 
         return '\n'.join(lines)
 
