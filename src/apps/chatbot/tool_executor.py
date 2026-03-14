@@ -805,10 +805,6 @@ class ToolExecutor:
                     discount_label = f"{disc_desc} (-{disc_pct}%)" if disc_desc else f"-{disc_pct}%"
 
             line = f"🏠 {name}: *${final_usd:.2f}* ó *S/{final_sol:.2f}*"
-            # Desglose simplificado: precio por persona por noche
-            if extra_guests_count > 0 and extra_per_night_usd > 0 and total_nights > 0:
-                price_pp = final_usd / guests / total_nights if guests > 0 else 0
-                line += f"\n   └ ${price_pp:.2f} por persona/noche"
             available_lines.append(line)
 
         # Construir cotización
