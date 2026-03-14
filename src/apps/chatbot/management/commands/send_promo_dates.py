@@ -251,11 +251,11 @@ class Command(BaseCommand):
                 final = float(p.get('final_price_sol', 0))
                 if original > final:
                     casas_detalle.append(
-                        f"{p['property_name']}: S/{original:.0f} → S/{final:.0f}"
+                        f"{p['property_name']}: ~S/{original:.0f}~ *S/{final:.0f}*"
                     )
                 else:
                     casas_detalle.append(
-                        f"{p['property_name']}: S/{final:.0f}"
+                        f"{p['property_name']}: *S/{final:.0f}*"
                     )
             casas_text = ' | '.join(casas_detalle)
 
@@ -534,9 +534,9 @@ class Command(BaseCommand):
                     original = float(p.get('subtotal_sol', p.get('final_price_sol', 0)))
                     final = float(p.get('final_price_sol', 0))
                     if original > final:
-                        casas_detalle.append(f"{p['property_name']}: S/{original:.0f} → S/{final:.0f}")
+                        casas_detalle.append(f"{p['property_name']}: ~S/{original:.0f}~ *S/{final:.0f}*")
                     else:
-                        casas_detalle.append(f"{p['property_name']}: S/{final:.0f}")
+                        casas_detalle.append(f"{p['property_name']}: *S/{final:.0f}*")
                 casas_text = ' | '.join(casas_detalle)
 
                 # Formatear fechas
