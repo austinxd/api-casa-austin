@@ -25,8 +25,15 @@ Tu rol:
 - Si te piden análisis estratégico, basa tus recomendaciones en los datos reales que obtuviste.
 - Para montos, indica la moneda (S/ para soles, $ para dólares).
 - Si no hay datos para el período solicitado, dilo claramente.
+- Cuando te pidan cálculos financieros (préstamos, ROI, cuotas, proyecciones), puedes calcularlos tú mismo con los datos obtenidos de las herramientas. No necesitas herramienta para operaciones aritméticas.
 
-Propiedades disponibles en Casa Austin: consulta con get_property_details para obtener la lista actual.
+IMPORTANTE sobre consultas de datos:
+- SIEMPRE llama get_revenue_summary SIN filtrar por property_name para obtener el desglose completo de TODAS las propiedades. La herramienta ya devuelve desglose por propiedad.
+- NO llames la misma herramienta múltiples veces con diferentes nombres de propiedad. Una sola llamada sin filtro te da todo.
+- Si necesitas datos de varias métricas (ingresos + ocupación + reservas), llama las herramientas en paralelo en una sola ronda.
+
+Propiedades de Casa Austin:
+{properties_info}
 
 Fecha actual: {current_date}
 """
@@ -37,7 +44,7 @@ class AdminAIOrchestrator:
 
     MODEL = 'gpt-4.1'
     TEMPERATURE = 0.3
-    MAX_TOKENS = 1500
+    MAX_TOKENS = 3000
 
     def process_message(self, session: AdminChatSession, user_message: str) -> str:
         """Procesa un mensaje del admin y genera respuesta con IA."""
@@ -159,10 +166,22 @@ class AdminAIOrchestrator:
 
         return response_text, tool_calls_data, total_tokens
 
+    def _get_properties_info(self):
+        """Obtiene lista de propiedades reales para el system prompt"""
+        try:
+            from apps.property.models import Property
+            props = Property.objects.filter(deleted=False).values_list('name', flat=True)
+            if props:
+                return ', '.join(props)
+        except Exception:
+            pass
+        return 'Consulta con get_property_details'
+
     def _build_messages(self, session, user_message):
         """Construye el array de mensajes para OpenAI"""
         system_prompt = SYSTEM_PROMPT.format(
             current_date=timezone.now().strftime('%Y-%m-%d'),
+            properties_info=self._get_properties_info(),
         )
 
         messages = [{"role": "system", "content": system_prompt}]

@@ -7,7 +7,8 @@ import logging
 from datetime import date, timedelta
 from decimal import Decimal
 
-from django.db.models import Sum, Avg, Count, Q, F
+from django.db import models as db_models
+from django.db.models import Sum, Avg, Count, Q, F, Min, Max
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -133,6 +134,23 @@ class AdminToolExecutor:
                 for p in by_property
             ],
         }
+
+        # Si no hay datos, agregar contexto útil
+        if count == 0:
+            all_props = list(Property.objects.filter(deleted=False).values_list('name', flat=True))
+            all_reservations = Reservation.objects.filter(status='approved', deleted=False)
+            date_range = all_reservations.aggregate(
+                min_date=Min('check_in_date'),
+                max_date=Max('check_in_date'),
+            )
+            result['nota'] = 'No se encontraron reservas aprobadas en este período.'
+            result['propiedades_existentes'] = all_props
+            result['rango_datos_disponibles'] = {
+                'desde': str(date_range['min_date']) if date_range['min_date'] else 'sin datos',
+                'hasta': str(date_range['max_date']) if date_range['max_date'] else 'sin datos',
+            }
+            result['total_reservas_historicas'] = all_reservations.count()
+
         return json.dumps(result, ensure_ascii=False)
 
     def _get_occupancy_rates(self, date_from=None, date_to=None):
