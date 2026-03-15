@@ -573,42 +573,90 @@ class ChatAnalysisView(APIView):
 
 
 class FollowupOpportunitiesView(APIView):
-    """GET /followups/ — Oportunidades de seguimiento pendientes"""
+    """GET /followups/ — Oportunidades de seguimiento
+    Query params opcionales:
+        from: fecha inicio (YYYY-MM-DD)
+        to: fecha fin (YYYY-MM-DD)
+    Sin params usa ventana deslizante de 22h (tiempo real).
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        from datetime import date as date_cls
         now = timezone.now()
-        min_age = now - timedelta(hours=22)
 
-        # Sesiones sin cotización (escribieron hace 1-22h)
-        no_quote = ChatSession.objects.filter(
-            deleted=False,
-            status__in=['active', 'ai_paused'],
-            quoted_at__isnull=True,
-            followup_count=0,
-            last_customer_message_at__isnull=False,
-            last_customer_message_at__gte=min_age,
-            last_customer_message_at__lte=now - timedelta(hours=1),
-            total_messages__gte=2,
-        ).order_by('-last_customer_message_at')
+        from_param = request.query_params.get('from')
+        to_param = request.query_params.get('to')
 
-        # Sesiones cotizadas sin conversión (cotizadas hace 2-22h)
-        quoted_no_conversion = ChatSession.objects.filter(
-            deleted=False,
-            status__in=['active', 'ai_paused'],
-            quoted_at__isnull=False,
-            followup_count=0,
-            last_customer_message_at__isnull=False,
-            last_customer_message_at__gte=min_age,
-            quoted_at__lte=now - timedelta(hours=2),
-        ).order_by('-quoted_at')
+        if from_param and to_param:
+            # Modo rango de fechas — consulta histórica
+            from_dt = timezone.make_aware(
+                timezone.datetime.combine(
+                    date_cls.fromisoformat(from_param),
+                    timezone.datetime.min.time()
+                )
+            )
+            to_dt = timezone.make_aware(
+                timezone.datetime.combine(
+                    date_cls.fromisoformat(to_param),
+                    timezone.datetime.max.time()
+                )
+            )
 
-        # Sesiones que ya recibieron follow-up (últimos 3 días)
-        followed_up = ChatSession.objects.filter(
-            deleted=False,
-            followup_count__gt=0,
-            followup_sent_at__gte=now - timedelta(days=3),
-        ).order_by('-followup_sent_at')
+            no_quote = ChatSession.objects.filter(
+                deleted=False,
+                quoted_at__isnull=True,
+                last_customer_message_at__isnull=False,
+                last_customer_message_at__gte=from_dt,
+                last_customer_message_at__lte=to_dt,
+                total_messages__gte=2,
+            ).order_by('-last_customer_message_at')
+
+            quoted_no_conversion = ChatSession.objects.filter(
+                deleted=False,
+                quoted_at__isnull=False,
+                followup_count=0,
+                last_customer_message_at__isnull=False,
+                last_customer_message_at__gte=from_dt,
+                last_customer_message_at__lte=to_dt,
+            ).order_by('-quoted_at')
+
+            followed_up = ChatSession.objects.filter(
+                deleted=False,
+                followup_count__gt=0,
+                followup_sent_at__gte=from_dt,
+                followup_sent_at__lte=to_dt,
+            ).order_by('-followup_sent_at')
+        else:
+            # Modo tiempo real — ventana deslizante
+            min_age = now - timedelta(hours=22)
+
+            no_quote = ChatSession.objects.filter(
+                deleted=False,
+                status__in=['active', 'ai_paused'],
+                quoted_at__isnull=True,
+                followup_count=0,
+                last_customer_message_at__isnull=False,
+                last_customer_message_at__gte=min_age,
+                last_customer_message_at__lte=now - timedelta(hours=1),
+                total_messages__gte=2,
+            ).order_by('-last_customer_message_at')
+
+            quoted_no_conversion = ChatSession.objects.filter(
+                deleted=False,
+                status__in=['active', 'ai_paused'],
+                quoted_at__isnull=False,
+                followup_count=0,
+                last_customer_message_at__isnull=False,
+                last_customer_message_at__gte=min_age,
+                quoted_at__lte=now - timedelta(hours=2),
+            ).order_by('-quoted_at')
+
+            followed_up = ChatSession.objects.filter(
+                deleted=False,
+                followup_count__gt=0,
+                followup_sent_at__gte=now - timedelta(days=3),
+            ).order_by('-followup_sent_at')
 
         def serialize_session(s, category):
             name = s.wa_profile_name or s.wa_id
