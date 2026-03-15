@@ -31,6 +31,7 @@ IMPORTANTE sobre consultas de datos:
 - SIEMPRE llama get_revenue_summary SIN filtrar por property_name para obtener el desglose completo de TODAS las propiedades. La herramienta ya devuelve desglose por propiedad.
 - NO llames la misma herramienta múltiples veces con diferentes nombres de propiedad. Una sola llamada sin filtro te da todo.
 - Si necesitas datos de varias métricas (ingresos + ocupación + reservas), llama las herramientas en paralelo en una sola ronda.
+- Para proyecciones de rentabilidad, precio promedio por noche, o análisis de ocupación weekday vs weekend, usa get_nightly_rate_analysis. Esta herramienta te da por cada casa y cada mes: tarifa configurada weekday/weekend, noches disponibles vs ocupadas por tipo, ingreso real, ingreso potencial, y captación %. Con estos datos puedes hacer proyecciones precisas.
 
 Propiedades de Casa Austin:
 {properties_info}

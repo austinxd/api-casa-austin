@@ -28,6 +28,7 @@ class AdminToolExecutor:
             'get_financial_projections': self._get_financial_projections,
             'get_client_analytics': self._get_client_analytics,
             'get_chatbot_performance': self._get_chatbot_performance,
+            'get_nightly_rate_analysis': self._get_nightly_rate_analysis,
         }
 
         handler = tool_map.get(tool_name)
@@ -503,5 +504,191 @@ class AdminToolExecutor:
             'conversiones': totals['conversions'] or 0,
             'costo_estimado_usd': float(totals['cost'] or 0),
             'tokens_usados': (totals['tokens_in'] or 0) + (totals['tokens_out'] or 0),
+        }
+        return json.dumps(result, ensure_ascii=False)
+
+    def _get_nightly_rate_analysis(self, months_back=6, months_forward=2, property_name=None):
+        from apps.reservation.models import Reservation
+        from apps.property.models import Property
+        from apps.property.pricing_models import PropertyPricing, SeasonPricing, SpecialDatePricing
+        from calendar import monthrange
+
+        today = date.today()
+
+        properties = Property.objects.filter(deleted=False)
+        if property_name:
+            properties = properties.filter(name__icontains=property_name)
+
+        # Generar lista de meses a analizar
+        months = []
+        start_month = today.month - months_back
+        start_year = today.year
+        while start_month <= 0:
+            start_month += 12
+            start_year -= 1
+
+        current = date(start_year, start_month, 1)
+        end_month_offset = months_forward
+        end_date = today.replace(day=1)
+        for _ in range(end_month_offset):
+            if end_date.month == 12:
+                end_date = end_date.replace(year=end_date.year + 1, month=1)
+            else:
+                end_date = end_date.replace(month=end_date.month + 1)
+
+        while current <= end_date:
+            months.append(current)
+            if current.month == 12:
+                current = current.replace(year=current.year + 1, month=1)
+            else:
+                current = current.replace(month=current.month + 1)
+
+        result_by_property = []
+
+        for prop in properties:
+            # Obtener tarifas configuradas
+            try:
+                pricing = PropertyPricing.objects.get(property=prop)
+                has_pricing = True
+            except PropertyPricing.DoesNotExist:
+                has_pricing = False
+
+            prop_months = []
+            for month_start in months:
+                days_in_month = monthrange(month_start.year, month_start.month)[1]
+                month_end = date(month_start.year, month_start.month, days_in_month)
+
+                # Contar noches weekday y weekend en el mes
+                weekday_nights = 0
+                weekend_nights = 0
+                d = month_start
+                while d <= month_end:
+                    # Vie=4, Sáb=5 son weekend
+                    if d.weekday() in (4, 5):
+                        weekend_nights += 1
+                    else:
+                        weekday_nights += 1
+                    d += timedelta(days=1)
+
+                # Determinar temporada predominante del mes
+                if has_pricing:
+                    mid_month = date(month_start.year, month_start.month, 15)
+                    is_high = SeasonPricing.is_high_season(mid_month)
+                    season_name = 'alta' if is_high else 'baja'
+                    if is_high:
+                        rate_weekday = float(pricing.weekday_high_season_usd)
+                        rate_weekend = float(pricing.weekend_high_season_usd)
+                    else:
+                        rate_weekday = float(pricing.weekday_low_season_usd)
+                        rate_weekend = float(pricing.weekend_low_season_usd)
+
+                    # Revisar si hay fechas especiales en el mes
+                    specials = SpecialDatePricing.objects.filter(
+                        property=prop,
+                        is_active=True,
+                        month=month_start.month,
+                    )
+                    special_dates_info = [
+                        {
+                            'dia': s.day,
+                            'descripcion': s.description,
+                            'precio_usd': float(s.price_usd),
+                            'minimo_noches': s.minimum_consecutive_nights,
+                        }
+                        for s in specials
+                    ]
+                else:
+                    season_name = 'sin configurar'
+                    rate_weekday = 0
+                    rate_weekend = 0
+                    special_dates_info = []
+
+                # Reservas reales de este mes para esta propiedad
+                reservations = Reservation.objects.filter(
+                    property=prop,
+                    status='approved',
+                    deleted=False,
+                    check_in_date__lte=month_end,
+                    check_out_date__gte=month_start,
+                )
+
+                occupied_weekday = 0
+                occupied_weekend = 0
+                month_revenue_sol = Decimal('0')
+                month_revenue_usd = Decimal('0')
+                reservation_count = 0
+
+                for r in reservations:
+                    # Solo contar noches dentro de este mes
+                    r_start = max(r.check_in_date, month_start)
+                    r_end = min(r.check_out_date, month_end)
+                    total_r_nights = (r.check_out_date - r.check_in_date).days
+                    nights_in_month = (r_end - r_start).days
+                    if nights_in_month <= 0:
+                        continue
+
+                    reservation_count += 1
+
+                    d = r_start
+                    while d < r_end:
+                        if d.weekday() in (4, 5):
+                            occupied_weekend += 1
+                        else:
+                            occupied_weekday += 1
+                        d += timedelta(days=1)
+
+                    # Prorratear ingreso si la reserva cruza meses
+                    if total_r_nights > 0:
+                        ratio = Decimal(str(nights_in_month)) / Decimal(str(total_r_nights))
+                        month_revenue_sol += (r.price_sol or Decimal('0')) * ratio
+                        month_revenue_usd += (r.price_usd or Decimal('0')) * ratio
+
+                total_occupied = occupied_weekday + occupied_weekend
+                total_available = weekday_nights + weekend_nights
+                occupancy_pct = round(total_occupied / total_available * 100, 1) if total_available > 0 else 0
+
+                month_data = {
+                    'mes': month_start.strftime('%Y-%m'),
+                    'temporada': season_name,
+                    'tarifa_weekday_usd': rate_weekday,
+                    'tarifa_weekend_usd': rate_weekend,
+                    'noches_weekday_disponibles': weekday_nights,
+                    'noches_weekend_disponibles': weekend_nights,
+                    'noches_weekday_ocupadas': occupied_weekday,
+                    'noches_weekend_ocupadas': occupied_weekend,
+                    'ocupacion_weekday_pct': round(occupied_weekday / weekday_nights * 100, 1) if weekday_nights > 0 else 0,
+                    'ocupacion_weekend_pct': round(occupied_weekend / weekend_nights * 100, 1) if weekend_nights > 0 else 0,
+                    'ocupacion_total_pct': occupancy_pct,
+                    'reservas': reservation_count,
+                    'ingreso_real_sol': round(float(month_revenue_sol), 2),
+                    'ingreso_real_usd': round(float(month_revenue_usd), 2),
+                    'precio_promedio_noche_sol': round(float(month_revenue_sol) / total_occupied, 2) if total_occupied > 0 else 0,
+                    'precio_promedio_noche_usd': round(float(month_revenue_usd) / total_occupied, 2) if total_occupied > 0 else 0,
+                }
+                if special_dates_info:
+                    month_data['fechas_especiales'] = special_dates_info
+
+                # Ingreso potencial (si estuviera 100% ocupado a tarifas configuradas)
+                if has_pricing:
+                    potential = (rate_weekday * weekday_nights) + (rate_weekend * weekend_nights)
+                    month_data['ingreso_potencial_usd'] = round(potential, 2)
+                    month_data['captacion_pct'] = round(float(month_revenue_usd) / potential * 100, 1) if potential > 0 else 0
+
+                prop_months.append(month_data)
+
+            # Precio extra por persona
+            extra_persona = float(prop.precio_extra_persona) if prop.precio_extra_persona else 0
+
+            result_by_property.append({
+                'propiedad': prop.name,
+                'capacidad_max': prop.capacity_max,
+                'precio_extra_persona_usd': extra_persona,
+                'meses': prop_months,
+            })
+
+        result = {
+            'periodo_analizado': f"{months[0].strftime('%Y-%m')} a {months[-1].strftime('%Y-%m')}" if months else 'sin datos',
+            'nota': 'Tarifas weekday=Dom-Jue, weekend=Vie-Sáb. Ingresos prorrateados para reservas que cruzan meses.',
+            'propiedades': result_by_property,
         }
         return json.dumps(result, ensure_ascii=False)

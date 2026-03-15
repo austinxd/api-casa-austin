@@ -208,4 +208,37 @@ ADMIN_TOOL_DEFINITIONS = [
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_nightly_rate_analysis",
+            "description": (
+                "Análisis detallado de tarifas por noche, desglosado por propiedad y mes. "
+                "Para cada casa y cada mes muestra: tarifa configurada de día de semana y fin de semana "
+                "(según temporada), noches disponibles vs ocupadas separadas por tipo (weekday/weekend), "
+                "ingreso real del mes, y precio promedio real por noche. "
+                "IMPRESCINDIBLE para proyecciones de rentabilidad y ocupación. "
+                "Usa esto cuando pregunten sobre precio promedio por noche, proyecciones de ingreso, "
+                "rentabilidad por casa, comparar meses, o análisis de ocupación weekday vs weekend."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "months_back": {
+                        "type": "integer",
+                        "description": "Meses hacia atrás a analizar (default: 6). Desde el mes actual."
+                    },
+                    "months_forward": {
+                        "type": "integer",
+                        "description": "Meses hacia adelante a incluir (default: 2). Muestra reservas futuras confirmadas."
+                    },
+                    "property_name": {
+                        "type": "string",
+                        "description": "Nombre de propiedad para filtrar. Opcional, si no se da analiza todas."
+                    }
+                },
+                "required": []
+            }
+        }
+    },
 ]
