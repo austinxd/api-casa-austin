@@ -645,10 +645,15 @@ class FollowupOpportunitiesView(APIView):
             [serialize_session(s, 'followed_up') for s in followed_up]
         )
 
+        followed_up_quoted = followed_up.filter(quoted_at__isnull=False)
+        followed_up_no_quote = followed_up.filter(quoted_at__isnull=True)
+
         return Response({
             'no_quote_count': no_quote.count(),
             'quoted_count': quoted_no_conversion.count(),
             'followed_up_count': followed_up.count(),
+            'followed_up_quoted_count': followed_up_quoted.count(),
+            'followed_up_no_quote_count': followed_up_no_quote.count(),
             'results': results,
         })
 
