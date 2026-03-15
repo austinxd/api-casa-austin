@@ -964,7 +964,7 @@ class PromoPreviewView(APIView):
 
 
 class ChatAnalyticsDetailView(APIView):
-    """GET /analytics/details/?from=date&to=date&type=leads|conversions|returning"""
+    """GET /analytics/details/?from=date&to=date&type=leads|conversions|returning|sessions"""
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -972,11 +972,55 @@ class ChatAnalyticsDetailView(APIView):
         to_date = request.query_params.get('to')
         detail_type = request.query_params.get('type')
 
-        if not detail_type or detail_type not in ('leads', 'conversions', 'returning'):
+        if not detail_type or detail_type not in ('leads', 'conversions', 'returning', 'sessions'):
             return Response(
-                {'error': 'Parámetro type requerido: leads, conversions, returning'},
+                {'error': 'Parámetro type requerido: leads, conversions, returning, sessions'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        if detail_type == 'sessions':
+            qs = ChatSession.objects.filter(
+                deleted=False,
+                last_message_at__isnull=False,
+            )
+            if from_date:
+                qs = qs.filter(last_message_at__date__gte=from_date)
+            if to_date:
+                qs = qs.filter(last_message_at__date__lte=to_date)
+
+            total = qs.count()
+            quoted = qs.filter(quoted_at__isnull=False).count()
+            not_quoted = qs.filter(quoted_at__isnull=True).count()
+            with_followup = qs.filter(followup_count__gt=0).count()
+
+            # Lista de sesiones cotizadas
+            quoted_sessions = qs.filter(quoted_at__isnull=False).order_by('-quoted_at')
+            not_quoted_sessions = qs.filter(
+                quoted_at__isnull=True, total_messages__gte=2,
+            ).order_by('-last_customer_message_at')
+
+            def serialize(s):
+                name = s.wa_profile_name or s.wa_id
+                if s.client:
+                    name = f"{s.client.first_name} {s.client.last_name or ''}".strip()
+                return {
+                    'session_id': str(s.id),
+                    'name': name,
+                    'wa_id': s.wa_id,
+                    'total_messages': s.total_messages,
+                    'quoted_at': s.quoted_at.isoformat() if s.quoted_at else None,
+                    'followup_count': s.followup_count,
+                    'last_message_at': s.last_message_at.isoformat() if s.last_message_at else None,
+                }
+
+            return Response({
+                'total': total,
+                'quoted': quoted,
+                'not_quoted': not_quoted,
+                'with_followup': with_followup,
+                'quoted_sessions': [serialize(s) for s in quoted_sessions[:50]],
+                'not_quoted_sessions': [serialize(s) for s in not_quoted_sessions[:50]],
+            })
 
         if detail_type == 'leads':
             qs = ChatSession.objects.filter(
