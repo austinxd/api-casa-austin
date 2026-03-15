@@ -686,28 +686,18 @@ class PromoListView(ListAPIView):
 
 
 class PromoPreviewView(APIView):
-    """GET /promos/preview/ — Preview de qué se enviaría hoy (dry-run)"""
+    """GET /promos/preview/ — Preview de qué se enviaría hoy (dry-run)
+    Query params:
+        num_days: int (default 1) — calcular preview para N días consecutivos
+    """
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
+    def _calculate_day(self, target_date, config, all_properties, clients_recent_chat):
+        """Calcula preview para un target_date específico."""
         import re
-        from datetime import date as date_cls
         from apps.clients.models import SearchTracking
         from apps.reservation.models import Reservation
         from apps.chatbot.management.commands.send_promo_dates import select_best_search
-
-        config = PromoDateConfig.get_config()
-        if not config.is_active:
-            return Response({
-                'active': False,
-                'target_date': None,
-                'all_candidates': [],
-                'qualified': [],
-                'message': 'Promo automática desactivada',
-            })
-
-        today = date_cls.today()
-        target_date = today + timedelta(days=config.days_before_checkin)
 
         # --- Clientes registrados ---
         searches = SearchTracking.objects.filter(
@@ -751,17 +741,6 @@ class PromoPreviewView(APIView):
             ).values_list('client_id', flat=True)
         )
 
-        clients_recent_chat = set()
-        if config.exclude_recent_chatters:
-            cutoff = timezone.now() - timedelta(hours=24)
-            clients_recent_chat = set(
-                ChatSession.objects.filter(
-                    deleted=False,
-                    client__isnull=False,
-                    last_customer_message_at__gte=cutoff,
-                ).values_list('client_id', flat=True)
-            )
-
         # wa_ids de promos ya enviadas (para anónimos)
         wa_ids_already_promo = set()
         anon_promos = PromoDateSent.objects.filter(
@@ -771,7 +750,7 @@ class PromoPreviewView(APIView):
         )
         for p in anon_promos:
             if p.message_content:
-                wa_ids_already_promo.add(p.message_content[:20])  # fallback
+                wa_ids_already_promo.add(p.message_content[:20])
 
         # wa_ids de clientes registrados (para dedup cruzado anónimos)
         registered_phones = set()
@@ -781,10 +760,7 @@ class PromoPreviewView(APIView):
                 digits = re.sub(r'\D', '', client.tel_number)
                 registered_phones.add(digits)
 
-        # --- Disponibilidad global para target_date ---
-        from apps.property.models import Property as PropModel
-        all_properties = list(PropModel.objects.filter(deleted=False))
-
+        # --- Disponibilidad para target_date ---
         occupied_property_ids = set(
             Reservation.objects.filter(
                 deleted=False,
@@ -862,11 +838,8 @@ class PromoPreviewView(APIView):
             if candidate['exclusion_reason'] is None:
                 qualified.append(candidate)
 
-        return Response({
-            'active': True,
+        return {
             'target_date': str(target_date),
-            'discount_config': config.discount_config.name if config.discount_config else None,
-            'discount_percentage': float(config.discount_config.discount_percentage) if config.discount_config else None,
             'all_candidates': all_candidates,
             'qualified': qualified,
             'total_candidates': len(all_candidates),
@@ -874,7 +847,67 @@ class PromoPreviewView(APIView):
             'available_properties': len(available_properties),
             'available_property_names': [p.name for p in available_properties],
             'total_properties': len(all_properties),
-        })
+        }
+
+    def get(self, request):
+        from datetime import date as date_cls
+        from apps.property.models import Property as PropModel
+
+        config = PromoDateConfig.get_config()
+        if not config.is_active:
+            return Response({
+                'active': False,
+                'target_date': None,
+                'all_candidates': [],
+                'qualified': [],
+                'message': 'Promo automática desactivada',
+            })
+
+        today = date_cls.today()
+        base_target = today + timedelta(days=config.days_before_checkin)
+
+        # Número de días a calcular (1 = solo el día configurado)
+        num_days = min(int(request.query_params.get('num_days', 1)), 14)
+        num_days = max(num_days, 1)
+
+        # Datos compartidos entre días
+        all_properties = list(PropModel.objects.filter(deleted=False))
+
+        clients_recent_chat = set()
+        if config.exclude_recent_chatters:
+            cutoff = timezone.now() - timedelta(hours=24)
+            clients_recent_chat = set(
+                ChatSession.objects.filter(
+                    deleted=False,
+                    client__isnull=False,
+                    last_customer_message_at__gte=cutoff,
+                ).values_list('client_id', flat=True)
+            )
+
+        discount_info = {
+            'discount_config': config.discount_config.name if config.discount_config else None,
+            'discount_percentage': float(config.discount_config.discount_percentage) if config.discount_config else None,
+        }
+
+        # Calcular preview del día principal (compatibilidad)
+        primary = self._calculate_day(base_target, config, all_properties, clients_recent_chat)
+
+        response_data = {
+            'active': True,
+            **discount_info,
+            **primary,
+        }
+
+        # Si pidieron múltiples días, agregar array
+        if num_days > 1:
+            days = [primary]
+            for i in range(1, num_days):
+                day_target = base_target + timedelta(days=i)
+                day_result = self._calculate_day(day_target, config, all_properties, clients_recent_chat)
+                days.append(day_result)
+            response_data['days'] = days
+
+        return Response(response_data)
 
 
 class ChatAnalyticsDetailView(APIView):
