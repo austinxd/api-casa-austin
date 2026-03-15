@@ -140,6 +140,7 @@ LOCAL_APPS = [
     'apps.reniec',
     'apps.tv',
     'apps.chatbot',
+    'apps.admin_ai',
 ]
 
 THIRD_APPS = [
