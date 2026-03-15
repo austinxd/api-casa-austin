@@ -580,7 +580,7 @@ class FollowupOpportunitiesView(APIView):
         now = timezone.now()
         min_age = now - timedelta(hours=22)
 
-        # Sesiones sin cotización (escribieron hace 2-22h)
+        # Sesiones sin cotización (escribieron hace 1-22h)
         no_quote = ChatSession.objects.filter(
             deleted=False,
             status__in=['active', 'ai_paused'],
@@ -590,9 +590,9 @@ class FollowupOpportunitiesView(APIView):
             last_customer_message_at__gte=min_age,
             last_customer_message_at__lte=now - timedelta(hours=1),
             total_messages__gte=2,
-        ).order_by('-last_customer_message_at')[:20]
+        ).order_by('-last_customer_message_at')
 
-        # Sesiones cotizadas sin conversión (cotizadas hace 4-22h)
+        # Sesiones cotizadas sin conversión (cotizadas hace 2-22h)
         quoted_no_conversion = ChatSession.objects.filter(
             deleted=False,
             status__in=['active', 'ai_paused'],
@@ -601,14 +601,14 @@ class FollowupOpportunitiesView(APIView):
             last_customer_message_at__isnull=False,
             last_customer_message_at__gte=min_age,
             quoted_at__lte=now - timedelta(hours=2),
-        ).order_by('-quoted_at')[:20]
+        ).order_by('-quoted_at')
 
-        # Sesiones que ya recibieron follow-up
+        # Sesiones que ya recibieron follow-up (últimos 3 días)
         followed_up = ChatSession.objects.filter(
             deleted=False,
             followup_count__gt=0,
             followup_sent_at__gte=now - timedelta(days=3),
-        ).order_by('-followup_sent_at')[:10]
+        ).order_by('-followup_sent_at')
 
         def serialize_session(s, category):
             name = s.wa_profile_name or s.wa_id
