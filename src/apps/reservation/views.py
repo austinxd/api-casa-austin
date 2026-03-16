@@ -429,6 +429,126 @@ class ReservationsApiView(viewsets.ModelViewSet):
             return Response({'error': str(e)}, status=400)
 ###### FIN MOD #######
 
+    @action(detail=False, methods=['get'], url_path='contratos-zip')
+    def contratos_zip(self, request):
+        """Genera un ZIP con todos los contratos PDF de un mes dado."""
+        import zipfile
+        import tempfile
+        import uuid
+
+        month = request.query_params.get('month')  # formato: YYYY-MM
+        if not month:
+            return Response({'error': 'Parámetro month requerido (YYYY-MM)'}, status=400)
+
+        try:
+            year, mon = month.split('-')
+            year, mon = int(year), int(mon)
+            _, last_day = calendar.monthrange(year, mon)
+        except (ValueError, TypeError):
+            return Response({'error': 'Formato de month inválido. Usar YYYY-MM'}, status=400)
+
+        from datetime import date
+        date_from = date(year, mon, 1)
+        date_to = date(year, mon, last_day)
+
+        reservations = Reservation.objects.filter(
+            check_in_date__gte=date_from,
+            check_in_date__lte=date_to,
+            status='approved',
+            deleted=False,
+            client__isnull=False,
+        ).select_related('client', 'property').order_by('check_in_date')
+
+        if not reservations.exists():
+            return Response({'error': 'No hay reservas aprobadas en ese mes'}, status=404)
+
+        document_type_map = {
+            'pas': 'pasaporte',
+            'cex': 'carnet de extranjería',
+            'dni': 'DNI',
+            'ruc': 'RUC',
+        }
+
+        # Crear directorio temporal único para este request
+        tmp_dir = os.path.join(tempfile.gettempdir(), f'contracts_{uuid.uuid4().hex[:8]}')
+        os.makedirs(tmp_dir, exist_ok=True)
+
+        pdf_files = []
+        errors = []
+
+        try:
+            for res in reservations:
+                client = res.client
+                prop = res.property
+
+                doc_type = document_type_map.get(client.document_type)
+                if not doc_type:
+                    errors.append(f'{client.first_name}: tipo documento desconocido')
+                    continue
+
+                checkin_date = format_date(res.check_in_date, format="d 'de' MMMM 'del' YYYY", locale='es')
+                checkout_date = format_date(res.check_out_date, format="d 'de' MMMM 'del' YYYY", locale='es')
+
+                if client.document_type == 'ruc':
+                    template_path = os.path.join(os.path.dirname(__file__), '../../plantilla_ruc.docx')
+                else:
+                    template_path = os.path.join(os.path.dirname(__file__), '../../plantilla.docx')
+
+                try:
+                    doc = DocxTemplate(template_path)
+                    context = {
+                        'nombre': f"{client.first_name.upper()} {(client.last_name or '').upper()}",
+                        'tipodocumento': doc_type.upper(),
+                        'dni': client.number_doc,
+                        'propiedad': prop.name,
+                        'checkin': checkin_date,
+                        'checkout': checkout_date,
+                        'preciodolares': f"${res.price_usd:.2f}",
+                        'numpax': str(res.guests),
+                    }
+                    doc.render(context)
+
+                    safe_name = slugify(f"{client.first_name}_{client.last_name or ''}")
+                    file_base = f"{res.check_in_date.strftime('%Y-%m-%d')}_{safe_name}_{prop.name}"
+                    docx_path = os.path.join(tmp_dir, f'{file_base}.docx')
+                    pdf_path = os.path.join(tmp_dir, f'{file_base}.pdf')
+
+                    doc.save(docx_path)
+                    subprocess.run(
+                        ['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', tmp_dir, docx_path],
+                        check=True, capture_output=True, timeout=30,
+                    )
+
+                    if os.path.exists(pdf_path):
+                        pdf_files.append((f'{file_base}.pdf', pdf_path))
+                    os.remove(docx_path)
+
+                except Exception as e:
+                    errors.append(f'{client.first_name} {res.check_in_date}: {str(e)}')
+                    continue
+
+            if not pdf_files:
+                return Response({'error': 'No se pudo generar ningún contrato', 'details': errors}, status=500)
+
+            # Crear ZIP en memoria
+            zip_path = os.path.join(tmp_dir, 'contratos.zip')
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+                for filename, filepath in pdf_files:
+                    zf.write(filepath, filename)
+
+            with open(zip_path, 'rb') as f:
+                zip_data = f.read()
+
+            month_name = format_date(date_from, format='MMMM_YYYY', locale='es')
+            response = HttpResponse(zip_data, content_type='application/zip')
+            response['Content-Disposition'] = f'attachment; filename="contratos_{month_name}.zip"'
+            return response
+
+        finally:
+            # Limpiar archivos temporales
+            import shutil
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
     @action(detail=True, methods=['get'], url_path='contrato-firma')
     def contrato_firma(self, request, pk=None):
         """Genera contrato PDF con la firma digitalizada del cliente (RENIEC)."""
