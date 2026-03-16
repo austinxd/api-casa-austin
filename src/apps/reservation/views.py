@@ -466,37 +466,38 @@ class ReservationsApiView(viewsets.ModelViewSet):
         if not valid_images:
             return
 
-        n = len(valid_images)
-        total_spacing = SPACING * (n - 1)
-        slot_h = (usable_h - total_spacing) / n
+        COLS = 2
+        GAP = 10
+        col_w = (usable_w - GAP * (COLS - 1)) / COLS
+        rows = (len(valid_images) + COLS - 1) // COLS
+        row_h = (usable_h - GAP * (rows - 1)) / rows
 
         # Abrir el contrato existente y agregar nueva página
         contract = fitz.open(contract_pdf_path)
         new_page = contract.new_page(width=A4_W, height=A4_H)
 
-        y = MARGIN
-        for img_path in valid_images:
+        for idx, img_path in enumerate(valid_images):
+            row = idx // COLS
+            col = idx % COLS
+            cell_x = MARGIN + col * (col_w + GAP)
+            cell_y = MARGIN + row * (row_h + GAP)
+
             try:
                 img_doc = fitz.open(img_path)
-                # Obtener dimensiones de la imagen
                 img_page = img_doc[0]
                 img_w = img_page.rect.width
                 img_h = img_page.rect.height
+                img_doc.close()
 
-                # Escalar para que quepa en el slot
-                ratio_w = usable_w / img_w
-                ratio_h = slot_h / img_h
-                ratio = min(ratio_w, ratio_h)
+                ratio = min(col_w / img_w, row_h / img_h)
                 new_w = img_w * ratio
                 new_h = img_h * ratio
 
-                # Centrar horizontalmente
-                x = MARGIN + (usable_w - new_w) / 2
+                # Centrar dentro de la celda
+                x = cell_x + (col_w - new_w) / 2
+                y = cell_y + (row_h - new_h) / 2
                 rect = fitz.Rect(x, y, x + new_w, y + new_h)
                 new_page.insert_image(rect, filename=img_path)
-
-                img_doc.close()
-                y += new_h + SPACING
             except Exception:
                 continue
 
