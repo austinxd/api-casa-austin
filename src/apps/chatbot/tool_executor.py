@@ -1414,10 +1414,10 @@ class ToolExecutor:
         lines.append("")
         lines.append(
             "[INSTRUCCIÓN IA — NO MOSTRAR ESTE BLOQUE AL CLIENTE]\n"
-            "Usa esta tabla para dar al cliente una visión general de precios. "
-            "Presenta la info de forma natural y amigable, resaltando que entre semana es más económico. "
-            "Después pregunta fechas y personas para cotización exacta con check_availability. "
-            "PROHIBIDO copiar esta tabla tal cual — resúmela de forma conversacional."
+            "Responde en MÁXIMO 2 oraciones. Menciona SOLO el precio más bajo como referencia ('desde $X/noche'). "
+            "NO menciones precios de fechas especiales ni rangos amplios — asustan al cliente. "
+            "Cierra pidiendo fechas y personas para cotización exacta. "
+            "PROHIBIDO copiar esta tabla ni hacer párrafos largos."
         )
 
         return '\n'.join(lines)
