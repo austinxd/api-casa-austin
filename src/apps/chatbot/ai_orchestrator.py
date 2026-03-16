@@ -464,6 +464,10 @@ class AIOrchestrator:
                 "Solo pide DNI si el cliente quiere consultar reservas o puntos."
             )
 
+        # Tipo de cambio actual
+        from apps.property.pricing_models import ExchangeRate
+        exchange_rate = ExchangeRate.get_current_rate()
+
         # Instrucciones técnicas (SIEMPRE presentes)
         context_parts.append(
             "\n\nREGLAS TÉCNICAS (obligatorias):"
@@ -479,6 +483,10 @@ class AIOrchestrator:
             "\n- PROHIBIDO mezclar resultados: si consultaste fecha A y luego fecha B, la respuesta de B debe "
             "ser SOLO con datos de la consulta B. Nunca combines datos de consultas diferentes."
             "\n- Para reservar: https://casaaustin.pe | Soporte: 📲 https://wa.me/51999902992 | 📞 +51 935 900 900"
+            f"\n\n💱 TIPO DE CAMBIO: 1 USD = S/{exchange_rate} SOL"
+            "\n- Si el cliente pregunta cuánto es en soles, multiplica el precio en USD por el tipo de cambio."
+            "\n- Si el cliente pregunta cuánto es en dólares desde soles, divide entre el tipo de cambio."
+            "\n- SIEMPRE muestra ambas monedas cuando hagas conversiones. Ejemplo: '$100 equivale a S/380 al tipo de cambio actual.'"
         )
 
         # === INSTRUCCIONES DINÁMICAS según estado de la conversación ===
