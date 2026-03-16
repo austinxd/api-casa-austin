@@ -457,7 +457,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
             status='approved',
             deleted=False,
             client__isnull=False,
-        ).select_related('client', 'property').order_by('check_in_date')
+        ).select_related('client', 'property').prefetch_related('rentalreceipt_set').order_by('check_in_date')
 
         if not reservations.exists():
             return Response({'error': 'No hay reservas aprobadas en ese mes'}, status=404)
@@ -473,7 +473,7 @@ class ReservationsApiView(viewsets.ModelViewSet):
         tmp_dir = os.path.join(tempfile.gettempdir(), f'contracts_{uuid.uuid4().hex[:8]}')
         os.makedirs(tmp_dir, exist_ok=True)
 
-        pdf_files = []
+        zip_entries = []  # (zip_path, local_path)
         errors = []
 
         try:
@@ -485,6 +485,9 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 if not doc_type:
                     errors.append(f'{client.first_name}: tipo documento desconocido')
                     continue
+
+                safe_name = slugify(f"{client.first_name}_{client.last_name or ''}")
+                folder_name = f"{res.check_in_date.strftime('%Y-%m-%d')}_{safe_name}_{prop.name}"
 
                 checkin_date = format_date(res.check_in_date, format="d 'de' MMMM 'del' YYYY", locale='es')
                 checkout_date = format_date(res.check_out_date, format="d 'de' MMMM 'del' YYYY", locale='es')
@@ -508,10 +511,8 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     }
                     doc.render(context)
 
-                    safe_name = slugify(f"{client.first_name}_{client.last_name or ''}")
-                    file_base = f"{res.check_in_date.strftime('%Y-%m-%d')}_{safe_name}_{prop.name}"
-                    docx_path = os.path.join(tmp_dir, f'{file_base}.docx')
-                    pdf_path = os.path.join(tmp_dir, f'{file_base}.pdf')
+                    docx_path = os.path.join(tmp_dir, f'{folder_name}.docx')
+                    pdf_path = os.path.join(tmp_dir, f'{folder_name}.pdf')
 
                     doc.save(docx_path)
                     subprocess.run(
@@ -520,21 +521,33 @@ class ReservationsApiView(viewsets.ModelViewSet):
                     )
 
                     if os.path.exists(pdf_path):
-                        pdf_files.append((f'{file_base}.pdf', pdf_path))
+                        zip_entries.append((f'{folder_name}/contrato.pdf', pdf_path))
                     os.remove(docx_path)
 
                 except Exception as e:
                     errors.append(f'{client.first_name} {res.check_in_date}: {str(e)}')
-                    continue
 
-            if not pdf_files:
+                # Incluir vouchers de depósito
+                receipts = res.rentalreceipt_set.filter(deleted=False)
+                for idx, receipt in enumerate(receipts, 1):
+                    try:
+                        if receipt.file and receipt.file.storage.exists(receipt.file.name):
+                            ext = os.path.splitext(receipt.file.name)[1] or '.jpg'
+                            zip_entries.append((
+                                f'{folder_name}/voucher_{idx}{ext}',
+                                receipt.file.path,
+                            ))
+                    except Exception:
+                        pass
+
+            if not zip_entries:
                 return Response({'error': 'No se pudo generar ningún contrato', 'details': errors}, status=500)
 
-            # Crear ZIP en memoria
+            # Crear ZIP
             zip_path = os.path.join(tmp_dir, 'contratos.zip')
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-                for filename, filepath in pdf_files:
-                    zf.write(filepath, filename)
+                for zip_name, local_path in zip_entries:
+                    zf.write(local_path, zip_name)
 
             with open(zip_path, 'rb') as f:
                 zip_data = f.read()
