@@ -430,59 +430,82 @@ class ReservationsApiView(viewsets.ModelViewSet):
 ###### FIN MOD #######
 
     @staticmethod
-    def _build_vouchers_page(image_paths, tmp_dir, name):
-        """Compone todas las imágenes de vouchers en una sola página PDF A4."""
-        from PIL import Image
+    def _append_vouchers_to_pdf(contract_pdf_path, image_paths, tmp_dir, name):
+        """Agrega una página con las imágenes de vouchers al PDF del contrato."""
+        import fitz
 
-        A4_W, A4_H = 2480, 3508  # A4 a 300 DPI
-        MARGIN = 80
-        SPACING = 40
+        # A4 en puntos (72 DPI): 595.28 x 841.89
+        A4_W, A4_H = 595.28, 841.89
+        MARGIN = 30
+        SPACING = 15
         usable_w = A4_W - 2 * MARGIN
         usable_h = A4_H - 2 * MARGIN
 
-        # Abrir y preparar imágenes
-        images = []
+        # Verificar qué imágenes se pueden abrir
+        valid_images = []
         for path in image_paths:
             try:
-                img = Image.open(path)
-                if img.mode in ('RGBA', 'P'):
-                    img = img.convert('RGB')
-                images.append(img)
+                test = fitz.open(path)
+                if test.page_count > 0:
+                    valid_images.append(path)
+                test.close()
+            except Exception:
+                # Intentar convertir con PIL si fitz no puede abrir directo
+                try:
+                    from PIL import Image as PILImage
+                    img = PILImage.open(path)
+                    if img.mode in ('RGBA', 'P'):
+                        img = img.convert('RGB')
+                    converted_path = os.path.join(tmp_dir, f'{name}_v{len(valid_images)}.jpg')
+                    img.save(converted_path, 'JPEG', quality=90)
+                    img.close()
+                    valid_images.append(converted_path)
+                except Exception:
+                    continue
+
+        if not valid_images:
+            return
+
+        n = len(valid_images)
+        total_spacing = SPACING * (n - 1)
+        slot_h = (usable_h - total_spacing) / n
+
+        # Abrir el contrato existente y agregar nueva página
+        contract = fitz.open(contract_pdf_path)
+        new_page = contract.new_page(width=A4_W, height=A4_H)
+
+        y = MARGIN
+        for img_path in valid_images:
+            try:
+                img_doc = fitz.open(img_path)
+                # Obtener dimensiones de la imagen
+                img_page = img_doc[0]
+                img_w = img_page.rect.width
+                img_h = img_page.rect.height
+
+                # Escalar para que quepa en el slot
+                ratio_w = usable_w / img_w
+                ratio_h = slot_h / img_h
+                ratio = min(ratio_w, ratio_h)
+                new_w = img_w * ratio
+                new_h = img_h * ratio
+
+                # Centrar horizontalmente
+                x = MARGIN + (usable_w - new_w) / 2
+                rect = fitz.Rect(x, y, x + new_w, y + new_h)
+                new_page.insert_image(rect, filename=img_path)
+
+                img_doc.close()
+                y += new_h + SPACING
             except Exception:
                 continue
 
-        if not images:
-            return None
+        # Guardar a un archivo nuevo y reemplazar el original
+        merged_path = os.path.join(tmp_dir, f'{name}_final.pdf')
+        contract.save(merged_path, deflate=True)
+        contract.close()
 
-        n = len(images)
-        total_spacing = SPACING * (n - 1)
-        slot_h = (usable_h - total_spacing) // n
-
-        # Crear página A4 blanca
-        page = Image.new('RGB', (A4_W, A4_H), 'white')
-        y = MARGIN
-
-        for img in images:
-            # Escalar para que quepa en el slot (usable_w x slot_h)
-            ratio_w = usable_w / img.width
-            ratio_h = slot_h / img.height
-            ratio = min(ratio_w, ratio_h)
-            new_w = int(img.width * ratio)
-            new_h = int(img.height * ratio)
-            img_resized = img.resize((new_w, new_h), Image.LANCZOS)
-
-            # Centrar horizontalmente
-            x = MARGIN + (usable_w - new_w) // 2
-            page.paste(img_resized, (x, y))
-            y += new_h + SPACING
-
-        pdf_path = os.path.join(tmp_dir, f'{name}_vouchers.pdf')
-        page.save(pdf_path, 'PDF', resolution=300)
-
-        for img in images:
-            img.close()
-
-        return pdf_path
+        os.replace(merged_path, contract_pdf_path)
 
     @action(detail=False, methods=['get'], url_path='contratos-zip')
     def contratos_zip(self, request):
@@ -586,18 +609,12 @@ class ReservationsApiView(viewsets.ModelViewSet):
                         except Exception:
                             pass
 
-                    # Fusionar contrato + vouchers en un solo PDF
+                    # Agregar vouchers como última página del contrato
                     if os.path.exists(pdf_path) and voucher_paths:
-                        voucher_page = self._build_vouchers_page(voucher_paths, tmp_dir, folder_name)
-                        if voucher_page:
-                            import fitz
-                            merged = fitz.open(pdf_path)
-                            voucher_doc = fitz.open(voucher_page)
-                            merged.insert_pdf(voucher_doc)
-                            voucher_doc.close()
-                            merged.save(pdf_path, incremental=False, deflate=True)
-                            merged.close()
-                            os.remove(voucher_page)
+                        try:
+                            self._append_vouchers_to_pdf(pdf_path, voucher_paths, tmp_dir, folder_name)
+                        except Exception as e:
+                            errors.append(f'{client.first_name} vouchers: {str(e)}')
 
                     if os.path.exists(pdf_path):
                         zip_entries.append((f'{folder_name}.pdf', pdf_path))
