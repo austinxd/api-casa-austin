@@ -15,6 +15,9 @@ _debounce_timers = {}
 _debounce_lock = threading.Lock()
 DEBOUNCE_SECONDS = 5
 
+# Session-level lock: previene llamadas AI concurrentes por sesión
+_session_processing = {}  # session_id -> True cuando AI está procesando
+
 
 class WebhookProcessor:
     """
@@ -469,32 +472,70 @@ class WebhookProcessor:
             self._notify_admins(session, chat_message)
 
     def _dispatch_to_ai_debounced(self, session, chat_message):
-        """Despacha a IA con debounce: espera 3s agrupando mensajes rápidos."""
+        """Despacha a IA con debounce: espera 5s agrupando mensajes rápidos.
+        Si la IA ya está procesando para esta sesión, NO dispara otra llamada
+        concurrente — encola el mensaje para que se procese al terminar."""
         session_id = str(session.id)
 
         def _do_dispatch():
             with _debounce_lock:
                 _debounce_timers.pop(session_id, None)
+
+                # Si ya hay una llamada AI en curso para esta sesión, no lanzar otra
+                if _session_processing.get(session_id):
+                    logger.info(
+                        f"AI busy for session {session_id}, "
+                        f"msg {chat_message.id} will be picked up after current call"
+                    )
+                    return
+
+                _session_processing[session_id] = True
+
             try:
                 from django.db import connection
                 connection.ensure_connection()
 
-                latest = ChatMessage.objects.filter(
-                    session_id=session.id,
-                    direction=ChatMessage.DirectionChoices.INBOUND,
-                    deleted=False,
-                ).order_by('-created').first()
+                # Procesar en loop: si llegan mensajes mientras AI trabaja,
+                # al terminar re-chequea si hay mensajes nuevos sin responder
+                while True:
+                    latest = ChatMessage.objects.filter(
+                        session_id=session.id,
+                        direction=ChatMessage.DirectionChoices.INBOUND,
+                        deleted=False,
+                    ).order_by('-created').first()
 
-                if latest and latest.id == chat_message.id:
-                    self._dispatch_to_ai(session, chat_message)
-                else:
+                    if not latest:
+                        break
+
+                    # Verificar que el último mensaje inbound no tenga respuesta AI posterior
+                    has_ai_reply = ChatMessage.objects.filter(
+                        session_id=session.id,
+                        direction=ChatMessage.DirectionChoices.OUTBOUND_AI,
+                        created__gt=latest.created,
+                        deleted=False,
+                    ).exists()
+
+                    if has_ai_reply:
+                        logger.info(
+                            f"Session {session_id}: latest inbound msg {latest.id} "
+                            f"already has AI reply, done."
+                        )
+                        break
+
                     logger.info(
-                        f"Debounce skip: session {session_id}, "
-                        f"msg {chat_message.id} superseded by "
-                        f"{latest.id if latest else 'none'}"
+                        f"Processing msg {latest.id} for session {session_id}"
                     )
+                    self._dispatch_to_ai(session, latest)
+
+                    # Pequeña pausa para que mensajes en vuelo se guarden en BD
+                    import time
+                    time.sleep(0.5)
+
             except Exception as e:
                 logger.error(f"Error in debounced dispatch: {e}", exc_info=True)
+            finally:
+                with _debounce_lock:
+                    _session_processing.pop(session_id, None)
 
         with _debounce_lock:
             old_timer = _debounce_timers.get(session_id)
