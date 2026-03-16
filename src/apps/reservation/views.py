@@ -574,31 +574,36 @@ class ReservationsApiView(viewsets.ModelViewSet):
                         ['libreoffice', '--headless', '--convert-to', 'pdf', '--outdir', tmp_dir, docx_path],
                         check=True, capture_output=True, timeout=30,
                     )
+                    if os.path.exists(docx_path):
+                        os.remove(docx_path)
+
+                    # Recopilar vouchers de depósito
+                    voucher_paths = []
+                    for receipt in res.rentalreceipt_set.filter(deleted=False):
+                        try:
+                            if receipt.file and receipt.file.storage.exists(receipt.file.name):
+                                voucher_paths.append(receipt.file.path)
+                        except Exception:
+                            pass
+
+                    # Fusionar contrato + vouchers en un solo PDF
+                    if os.path.exists(pdf_path) and voucher_paths:
+                        voucher_page = self._build_vouchers_page(voucher_paths, tmp_dir, folder_name)
+                        if voucher_page:
+                            import fitz
+                            merged = fitz.open(pdf_path)
+                            voucher_doc = fitz.open(voucher_page)
+                            merged.insert_pdf(voucher_doc)
+                            voucher_doc.close()
+                            merged.save(pdf_path, incremental=False, deflate=True)
+                            merged.close()
+                            os.remove(voucher_page)
 
                     if os.path.exists(pdf_path):
-                        zip_entries.append((f'{folder_name}/contrato.pdf', pdf_path))
-                    os.remove(docx_path)
+                        zip_entries.append((f'{folder_name}.pdf', pdf_path))
 
                 except Exception as e:
                     errors.append(f'{client.first_name} {res.check_in_date}: {str(e)}')
-
-                # Incluir vouchers de depósito en una sola página PDF
-                receipts = res.rentalreceipt_set.filter(deleted=False)
-                voucher_paths = []
-                for receipt in receipts:
-                    try:
-                        if receipt.file and receipt.file.storage.exists(receipt.file.name):
-                            voucher_paths.append(receipt.file.path)
-                    except Exception:
-                        pass
-
-                if voucher_paths:
-                    try:
-                        voucher_pdf = self._build_vouchers_page(voucher_paths, tmp_dir, folder_name)
-                        if voucher_pdf:
-                            zip_entries.append((f'{folder_name}/vouchers.pdf', voucher_pdf))
-                    except Exception as e:
-                        errors.append(f'{client.first_name} vouchers: {str(e)}')
 
             if not zip_entries:
                 return Response({'error': 'No se pudo generar ningún contrato', 'details': errors}, status=500)
