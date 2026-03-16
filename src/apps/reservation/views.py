@@ -429,6 +429,61 @@ class ReservationsApiView(viewsets.ModelViewSet):
             return Response({'error': str(e)}, status=400)
 ###### FIN MOD #######
 
+    @staticmethod
+    def _build_vouchers_page(image_paths, tmp_dir, name):
+        """Compone todas las imágenes de vouchers en una sola página PDF A4."""
+        from PIL import Image
+
+        A4_W, A4_H = 2480, 3508  # A4 a 300 DPI
+        MARGIN = 80
+        SPACING = 40
+        usable_w = A4_W - 2 * MARGIN
+        usable_h = A4_H - 2 * MARGIN
+
+        # Abrir y preparar imágenes
+        images = []
+        for path in image_paths:
+            try:
+                img = Image.open(path)
+                if img.mode in ('RGBA', 'P'):
+                    img = img.convert('RGB')
+                images.append(img)
+            except Exception:
+                continue
+
+        if not images:
+            return None
+
+        n = len(images)
+        total_spacing = SPACING * (n - 1)
+        slot_h = (usable_h - total_spacing) // n
+
+        # Crear página A4 blanca
+        page = Image.new('RGB', (A4_W, A4_H), 'white')
+        y = MARGIN
+
+        for img in images:
+            # Escalar para que quepa en el slot (usable_w x slot_h)
+            ratio_w = usable_w / img.width
+            ratio_h = slot_h / img.height
+            ratio = min(ratio_w, ratio_h)
+            new_w = int(img.width * ratio)
+            new_h = int(img.height * ratio)
+            img_resized = img.resize((new_w, new_h), Image.LANCZOS)
+
+            # Centrar horizontalmente
+            x = MARGIN + (usable_w - new_w) // 2
+            page.paste(img_resized, (x, y))
+            y += new_h + SPACING
+
+        pdf_path = os.path.join(tmp_dir, f'{name}_vouchers.pdf')
+        page.save(pdf_path, 'PDF', resolution=300)
+
+        for img in images:
+            img.close()
+
+        return pdf_path
+
     @action(detail=False, methods=['get'], url_path='contratos-zip')
     def contratos_zip(self, request):
         """Genera un ZIP con todos los contratos PDF de un mes dado."""
@@ -527,18 +582,23 @@ class ReservationsApiView(viewsets.ModelViewSet):
                 except Exception as e:
                     errors.append(f'{client.first_name} {res.check_in_date}: {str(e)}')
 
-                # Incluir vouchers de depósito
+                # Incluir vouchers de depósito en una sola página PDF
                 receipts = res.rentalreceipt_set.filter(deleted=False)
-                for idx, receipt in enumerate(receipts, 1):
+                voucher_paths = []
+                for receipt in receipts:
                     try:
                         if receipt.file and receipt.file.storage.exists(receipt.file.name):
-                            ext = os.path.splitext(receipt.file.name)[1] or '.jpg'
-                            zip_entries.append((
-                                f'{folder_name}/voucher_{idx}{ext}',
-                                receipt.file.path,
-                            ))
+                            voucher_paths.append(receipt.file.path)
                     except Exception:
                         pass
+
+                if voucher_paths:
+                    try:
+                        voucher_pdf = self._build_vouchers_page(voucher_paths, tmp_dir, folder_name)
+                        if voucher_pdf:
+                            zip_entries.append((f'{folder_name}/vouchers.pdf', voucher_pdf))
+                    except Exception as e:
+                        errors.append(f'{client.first_name} vouchers: {str(e)}')
 
             if not zip_entries:
                 return Response({'error': 'No se pudo generar ningún contrato', 'details': errors}, status=500)
