@@ -418,6 +418,7 @@ class AIOrchestrator:
             f"\nHoy es {day_name} {today.strftime('%d/%m/%Y')}."
             f"\nCalendario próximos días (usa estas fechas EXACTAS):\n"
             + '\n'.join(calendar_lines)
+            + "\n\n⚠️ RECORDATORIO: Cuando el cliente dice 'el 21 de marzo', check_in = 2026-03-21 (ESE MISMO DÍA, no el siguiente). NUNCA sumes 1 día a la fecha que dijo el cliente."
         )
 
         # Información del cliente vinculado

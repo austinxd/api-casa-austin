@@ -109,6 +109,20 @@ ANTES de llamar check_availability, hazte esta pregunta:
 NUNCA inventes, asumas ni deduzcas el número de personas. Si el cliente dice "precio por 2 noches", el "2" son NOCHES, no personas. Si dice "para el 15 de marzo", el "15" es una FECHA, no personas.
 Solo usa check_availability cuando el cliente haya dicho algo como "somos X", "X personas", "para X adultos", etc.
 
+## ⚠️ MAPEO DE FECHAS — REGLA CRÍTICA (NUNCA VIOLAR)
+Cuando el cliente dice una fecha, check_in es EXACTAMENTE ese día. NUNCA le sumes 1 día.
+Ejemplos OBLIGATORIOS:
+- "para el 21 de marzo" → check_in = 21 de marzo (NO el 22)
+- "del 21 al 22 de marzo" → check_in = 21 de marzo, check_out = 22 de marzo
+- "el 15 de abril, somos 8" → check_in = 15 de abril, check_out = 16 de abril
+- "este sábado" → check_in = la fecha del sábado del calendario (NO el domingo)
+- "del 5 al 8" → check_in = día 5, check_out = día 8
+Si el cliente CORRIGE una fecha ("no, es del 21 al 22, no del 22 al 23"):
+- ACEPTA la corrección sin cuestionar
+- Usa EXACTAMENTE las fechas que el cliente indicó en la corrección
+- Vuelve a llamar check_availability con las fechas corregidas
+- NUNCA repitas el error ni desplaces las fechas de nuevo
+
 ## DISAMBIGUACIÓN DE NÚMEROS
 Si el cliente menciona números que podrían ser FECHAS o PERSONAS:
 - "6, 7 y 8 de marzo" → son FECHAS (3 días: 6, 7 y 8 de marzo). NO son 6 personas.

@@ -24,11 +24,11 @@ TOOL_DEFINITIONS = [
                 "properties": {
                     "from_date": {
                         "type": "string",
-                        "description": "Fecha inicio del rango en formato YYYY-MM-DD. Si no se indica, usar hoy."
+                        "description": "Fecha inicio del rango en formato YYYY-MM-DD. Es EXACTAMENTE el día que el cliente dijo, sin sumar nada. Si no se indica, usar hoy."
                     },
                     "to_date": {
                         "type": "string",
-                        "description": "Fecha fin del rango en formato YYYY-MM-DD. Si no se indica, usar 30 días desde from_date."
+                        "description": "Fecha fin del rango en formato YYYY-MM-DD. Es EXACTAMENTE el día que el cliente dijo. Si no se indica, usar 30 días desde from_date."
                     },
                     "property_name": {
                         "type": "string",
@@ -43,17 +43,17 @@ TOOL_DEFINITIONS = [
         "type": "function",
         "function": {
             "name": "check_availability",
-            "description": "Consulta disponibilidad Y PRECIOS de propiedades para fechas específicas. Requiere fechas y número de huéspedes para calcular precio. Si el cliente no dijo cuántos huéspedes, usa 1 como default. Usa esta herramienta cuando ya tengas fechas Y personas para dar una cotización con precios. IMPORTANTE: SIEMPRE llama esta herramienta para cada consulta de fechas, NUNCA reutilices precios o disponibilidad de consultas anteriores en la conversación.",
+            "description": "Consulta disponibilidad Y PRECIOS de propiedades para fechas específicas. Requiere fechas y número de huéspedes para calcular precio. Si el cliente no dijo cuántos huéspedes, usa 1 como default. Usa esta herramienta cuando ya tengas fechas Y personas para dar una cotización con precios. IMPORTANTE: SIEMPRE llama esta herramienta para cada consulta de fechas, NUNCA reutilices precios o disponibilidad de consultas anteriores en la conversación. REGLA CRÍTICA DE FECHAS: check_in es EXACTAMENTE el día que el cliente mencionó. Ejemplos: 'para el 21 de marzo' → check_in='2026-03-21'. 'del 15 al 17' → check_in='2026-03-15', check_out='2026-03-17'. NUNCA sumes días a la fecha que dijo el cliente.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "check_in": {
                         "type": "string",
-                        "description": "Fecha de check-in en formato YYYY-MM-DD. Usa el calendario del sistema."
+                        "description": "Fecha de check-in en formato YYYY-MM-DD. Es EXACTAMENTE el día que el cliente dijo, sin sumar nada. Ejemplo: cliente dice '21 de marzo' → check_in='2026-03-21'. Usa el calendario del sistema para obtener el año correcto."
                     },
                     "check_out": {
                         "type": "string",
-                        "description": "Fecha de check-out en formato YYYY-MM-DD. Si no se indica, asumir 1 noche (check-in + 1 día)."
+                        "description": "Fecha de check-out en formato YYYY-MM-DD. Si el cliente no indicó fecha de salida, es check_in + 1 día. Ejemplo: cliente dice 'el 21 de marzo' sin salida → check_out='2026-03-22'."
                     },
                     "guests": {
                         "type": "integer",
