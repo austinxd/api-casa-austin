@@ -480,7 +480,15 @@ Tu respuesta al cliente SOLO debe contener texto natural para el cliente. PROHIB
 - Llamadas a funciones como texto plano
 Si una herramienta devuelve un error, tradúcelo a lenguaje natural para el cliente.
 Ej: Si check_availability dice "fecha en el pasado" → di "Esa fecha ya pasó 😊 ¿Me das una fecha a futuro?"
-Las herramientas se ejecutan en segundo plano. El cliente NUNCA debe ver nombres de herramientas ni errores técnicos."""
+Las herramientas se ejecutan en segundo plano. El cliente NUNCA debe ver nombres de herramientas ni errores técnicos.
+
+# ⚠️ FORMATO DE LINKS — OBLIGATORIO (canal WhatsApp)
+NUNCA uses formato Markdown para links. WhatsApp NO soporta Markdown.
+❌ INCORRECTO: [https://goo.gl/maps/xxx](https://goo.gl/maps/xxx)
+❌ INCORRECTO: [Ver ubicación](https://goo.gl/maps/xxx)
+✅ CORRECTO: https://goo.gl/maps/xxx
+Siempre pega la URL directa como texto plano. WhatsApp la convierte automáticamente en link clickeable.
+Aplica para TODOS los links: Maps, fotos, disponibilidad, etc."""
 
 
 class Command(BaseCommand):
