@@ -787,50 +787,66 @@ class WebhookProcessor:
         self._clear_review_flow(session)
         return True
 
+    def _get_level_discounts(self, achievement):
+        """Obtiene los descuentos de AutomaticDiscount para un nivel."""
+        from apps.property.pricing_models import AutomaticDiscount
+        discounts = {'returning': 0, 'birthday': 0, 'last_minute': 0}
+        if not achievement:
+            return discounts
+        for ad in AutomaticDiscount.objects.filter(
+            is_active=True, deleted=False,
+            required_achievements=achievement,
+        ):
+            if ad.trigger in discounts:
+                discounts[ad.trigger] = max(discounts[ad.trigger], int(ad.discount_percentage))
+        return discounts
+
     def _send_benefits_and_rating(self, session, review_req):
         """Envía detalles de beneficios y botones de rating."""
         from apps.chatbot.management.commands.send_promo_birthday import get_client_level_info
-        from apps.chatbot.models import PromoBirthdayConfig
+        from apps.clients.models import Achievement, ClientAchievement
         from .whatsapp_sender import WhatsAppSender
 
         client = review_req.client
-        nivel, discount_perm, siguiente_nivel, que_falta = get_client_level_info(client)
+        nivel, _, siguiente_nivel, que_falta = get_client_level_info(client)
         puntos = client.get_available_points()
         referral_code = client.get_referral_code()
 
-        # Obtener descuento de cumpleaños
-        try:
-            bday_config = PromoBirthdayConfig.get_config()
-            bday_discount = bday_config.birthday_discount_percentage if bday_config.is_active else 0
-        except Exception:
-            bday_discount = 0
+        # Obtener achievement actual del cliente
+        last_ca = ClientAchievement.objects.filter(
+            client=client, deleted=False,
+        ).select_related('achievement').order_by('-earned_at').first()
+        current_achievement = last_ca.achievement if last_ca else None
 
-        # Obtener descuento del siguiente nivel
-        next_level_discount = 0
+        # Descuentos del nivel actual desde AutomaticDiscount
+        discounts = self._get_level_discounts(current_achievement)
+
+        # Descuentos del siguiente nivel (para mostrar qué desbloquea)
+        next_discounts = {}
+        next_achievement = None
         if siguiente_nivel != "Máximo alcanzado":
-            try:
-                from apps.clients.models import Achievement
-                next_ach = Achievement.objects.filter(
-                    name=siguiente_nivel, is_active=True, deleted=False
-                ).first()
-                if next_ach:
-                    next_level_discount = int(next_ach.discount_percentage)
-            except Exception:
-                pass
+            next_achievement = Achievement.objects.filter(
+                name=siguiente_nivel, is_active=True, deleted=False
+            ).first()
+            if next_achievement:
+                next_discounts = self._get_level_discounts(next_achievement)
 
         # Construir mensaje de beneficios
         benefits_text = f"🏆 *Tu perfil Casa Austin*\n\n"
         benefits_text += f"📊 Nivel: *{nivel}*\n\n"
-
-        # Beneficios activos
         benefits_text += "✅ *Tus beneficios activos:*\n\n"
 
-        # Descuento permanente
-        benefits_text += f"🏷️ *{int(discount_perm)}%* de descuento en todas tus reservas\n"
+        # Descuento permanente (returning)
+        if discounts['returning'] > 0:
+            benefits_text += f"🏷️ *{discounts['returning']}%* de descuento en todas tus reservas\n"
 
         # Descuento de cumpleaños
-        if bday_discount > 0:
-            benefits_text += f"🎂 *{bday_discount}%* de descuento en tu mes de cumpleaños\n"
+        if discounts['birthday'] > 0:
+            benefits_text += f"🎂 *{discounts['birthday']}%* de descuento en tu mes de cumpleaños\n"
+
+        # Descuento último minuto
+        if discounts['last_minute'] > 0:
+            benefits_text += f"⚡ *{discounts['last_minute']}%* de descuento en reservas de último minuto\n"
 
         # Puntos
         if int(puntos) > 0:
@@ -841,12 +857,21 @@ class WebhookProcessor:
         # Código de referido
         benefits_text += f"👥 Tu código: *{referral_code}* — compártelo y gana puntos por cada amigo que reserve\n"
 
-        # Siguiente nivel
+        # Siguiente nivel y qué mejora
         if siguiente_nivel != "Máximo alcanzado":
             benefits_text += f"\n🚀 *Siguiente nivel: {siguiente_nivel}*\n"
             benefits_text += f"Te falta: {que_falta}\n"
-            if next_level_discount > 0:
-                benefits_text += f"🔓 Desbloqueas: *{next_level_discount}% de descuento permanente*\n"
+
+            # Mostrar mejoras del siguiente nivel
+            upgrades = []
+            if next_discounts.get('returning', 0) > discounts['returning']:
+                upgrades.append(f"{next_discounts['returning']}% en todas tus reservas")
+            if next_discounts.get('birthday', 0) > discounts['birthday']:
+                upgrades.append(f"{next_discounts['birthday']}% en cumpleaños")
+            if next_discounts.get('last_minute', 0) > discounts['last_minute']:
+                upgrades.append(f"{next_discounts['last_minute']}% en último minuto")
+            if upgrades:
+                benefits_text += f"🔓 Desbloqueas: {', '.join(upgrades)}\n"
         else:
             benefits_text += f"\n🚀 *¡Felicidades! Ya eres del nivel más alto* 🎉\n"
 
