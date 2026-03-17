@@ -790,6 +790,7 @@ class WebhookProcessor:
     def _send_benefits_and_rating(self, session, review_req):
         """Envía detalles de beneficios y botones de rating."""
         from apps.chatbot.management.commands.send_promo_birthday import get_client_level_info
+        from apps.chatbot.models import PromoBirthdayConfig
         from .whatsapp_sender import WhatsAppSender
 
         client = review_req.client
@@ -797,23 +798,56 @@ class WebhookProcessor:
         puntos = client.get_available_points()
         referral_code = client.get_referral_code()
 
-        # Construir mensaje de beneficios
-        benefits_text = (
-            f"🏆 *Tu perfil Casa Austin*\n\n"
-            f"📊 Nivel actual: *{nivel}*\n"
-            f"💰 Puntos disponibles: *{int(puntos)} pts* (= S/{int(puntos)})\n"
-            f"🎯 Descuento permanente: *{int(discount_perm)}%*\n"
-        )
+        # Obtener descuento de cumpleaños
+        try:
+            bday_config = PromoBirthdayConfig.get_config()
+            bday_discount = bday_config.birthday_discount_percentage if bday_config.is_active else 0
+        except Exception:
+            bday_discount = 0
 
+        # Obtener descuento del siguiente nivel
+        next_level_discount = 0
         if siguiente_nivel != "Máximo alcanzado":
-            benefits_text += f"🚀 Siguiente nivel: *{siguiente_nivel}* — Te falta: {que_falta}\n"
-        else:
-            benefits_text += f"🚀 *¡Ya eres del nivel más alto!*\n"
+            try:
+                from apps.clients.models import Achievement
+                next_ach = Achievement.objects.filter(
+                    name=siguiente_nivel, is_active=True, deleted=False
+                ).first()
+                if next_ach:
+                    next_level_discount = int(next_ach.discount_percentage)
+            except Exception:
+                pass
 
-        benefits_text += (
-            f"\n👥 Tu código de referido: *{referral_code}*\n"
-            f"Compártelo y gana puntos cuando tus amigos reserven."
-        )
+        # Construir mensaje de beneficios
+        benefits_text = f"🏆 *Tu perfil Casa Austin*\n\n"
+        benefits_text += f"📊 Nivel: *{nivel}*\n\n"
+
+        # Beneficios activos
+        benefits_text += "✅ *Tus beneficios activos:*\n"
+
+        if int(puntos) > 0:
+            benefits_text += f"💰 *{int(puntos)} puntos* disponibles (canjeables por S/{int(puntos)})\n"
+
+        if int(discount_perm) > 0:
+            benefits_text += f"🏷️ *{int(discount_perm)}% de descuento permanente* en todas tus reservas\n"
+
+        if bday_discount > 0:
+            benefits_text += f"🎂 *{bday_discount}% de descuento* en tu mes de cumpleaños\n"
+
+        benefits_text += f"👥 Código de referido: *{referral_code}* — compártelo y gana puntos por cada amigo que reserve\n"
+
+        # Si no tiene descuento permanente ni puntos, mostrar que acumula
+        if int(discount_perm) == 0 and int(puntos) == 0:
+            benefits_text += "💡 Acumulas *5% en puntos* con cada reserva\n"
+
+        # Siguiente nivel
+        if siguiente_nivel != "Máximo alcanzado":
+            benefits_text += f"\n🚀 *Siguiente nivel: {siguiente_nivel}*\n"
+            benefits_text += f"Te falta: {que_falta}\n"
+            if next_level_discount > 0:
+                benefits_text += f"🔓 Desbloqueas: *{next_level_discount}% de descuento permanente*\n"
+        else:
+            benefits_text += f"\n🚀 *¡Felicidades! Ya eres del nivel más alto* 🎉\n"
 
         sender = WhatsAppSender()
 
