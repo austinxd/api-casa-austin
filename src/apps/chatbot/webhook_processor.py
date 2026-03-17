@@ -826,10 +826,7 @@ class WebhookProcessor:
         benefits_text += "✅ *Tus beneficios activos:*\n\n"
 
         # Descuento permanente
-        if int(discount_perm) > 0:
-            benefits_text += f"🏷️ *{int(discount_perm)}%* de descuento en todas tus reservas\n"
-        else:
-            benefits_text += "🏷️ Descuento permanente: _disponible desde el siguiente nivel_\n"
+        benefits_text += f"🏷️ *{int(discount_perm)}%* de descuento en todas tus reservas\n"
 
         # Descuento de cumpleaños
         if bday_discount > 0:
