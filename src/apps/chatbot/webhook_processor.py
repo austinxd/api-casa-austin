@@ -686,7 +686,7 @@ class WebhookProcessor:
 
     def _handle_awaiting_benefits(self, session, chat_message, text):
         """Maneja estado awaiting_benefits_click."""
-        # Detectar botón "VER MIS BENEFICIOS" (button reply o texto exacto)
+        # Detectar botón "Ver Beneficios" (button reply o texto exacto)
         benefits_triggers = ['ver mis beneficios', 'ver beneficios', 'mis beneficios']
         is_benefits_click = any(t in text for t in benefits_triggers)
 
@@ -998,7 +998,7 @@ class WebhookProcessor:
             if review_state == 'awaiting_benefits_click':
                 body = "Por cierto, ¿quieres ver tus beneficios de cliente frecuente? 👇"
                 buttons = [
-                    {'id': 'view_benefits', 'title': 'VER MIS BENEFICIOS'},
+                    {'id': 'view_benefits', 'title': 'Ver Beneficios'},
                 ]
                 wa_btn_id = sender.send_interactive_buttons(
                     to=session.wa_id, body=body, buttons=buttons
