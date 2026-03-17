@@ -823,22 +823,26 @@ class WebhookProcessor:
         benefits_text += f"📊 Nivel: *{nivel}*\n\n"
 
         # Beneficios activos
-        benefits_text += "✅ *Tus beneficios activos:*\n"
+        benefits_text += "✅ *Tus beneficios activos:*\n\n"
 
-        if int(puntos) > 0:
-            benefits_text += f"💰 *{int(puntos)} puntos* disponibles (canjeables por S/{int(puntos)})\n"
-
+        # Descuento permanente
         if int(discount_perm) > 0:
-            benefits_text += f"🏷️ *{int(discount_perm)}% de descuento permanente* en todas tus reservas\n"
+            benefits_text += f"🏷️ *{int(discount_perm)}%* de descuento en todas tus reservas\n"
+        else:
+            benefits_text += "🏷️ Descuento permanente: _disponible desde el siguiente nivel_\n"
 
+        # Descuento de cumpleaños
         if bday_discount > 0:
-            benefits_text += f"🎂 *{bday_discount}% de descuento* en tu mes de cumpleaños\n"
+            benefits_text += f"🎂 *{bday_discount}%* de descuento en tu mes de cumpleaños\n"
 
-        benefits_text += f"👥 Código de referido: *{referral_code}* — compártelo y gana puntos por cada amigo que reserve\n"
+        # Puntos
+        if int(puntos) > 0:
+            benefits_text += f"💰 *{int(puntos)} puntos* acumulados (canjeables por S/{int(puntos)} en tu próxima reserva)\n"
+        else:
+            benefits_text += "💰 Acumulas *5% en puntos* con cada reserva\n"
 
-        # Si no tiene descuento permanente ni puntos, mostrar que acumula
-        if int(discount_perm) == 0 and int(puntos) == 0:
-            benefits_text += "💡 Acumulas *5% en puntos* con cada reserva\n"
+        # Código de referido
+        benefits_text += f"👥 Tu código: *{referral_code}* — compártelo y gana puntos por cada amigo que reserve\n"
 
         # Siguiente nivel
         if siguiente_nivel != "Máximo alcanzado":
