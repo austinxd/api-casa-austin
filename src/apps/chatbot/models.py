@@ -593,3 +593,104 @@ class UnresolvedQuestion(BaseModel):
 
     def __str__(self):
         return f"{self.question[:60]}... ({self.status})"
+
+
+class ReviewRequestConfig(BaseModel):
+    """Configuración para review requests post-estadía (singleton)"""
+
+    is_active = models.BooleanField(
+        default=False,
+        help_text="Activar/desactivar envío automático de review requests"
+    )
+    google_review_url = models.URLField(
+        default='https://g.page/r/CcNlH9Rd7qyqEBM/review',
+        help_text="URL de Google Reviews"
+    )
+    wa_template_name = models.CharField(
+        max_length=100, default='post_stay_level_update',
+        help_text="Nombre de la plantilla aprobada en Meta"
+    )
+    wa_template_language = models.CharField(
+        max_length=10, default='es',
+        help_text="Código de idioma de la plantilla"
+    )
+
+    class Meta:
+        verbose_name = '⭐ Config Review Post-Estadía'
+        verbose_name_plural = '⭐ Config Review Post-Estadía'
+
+    def __str__(self):
+        status = "Activo" if self.is_active else "Inactivo"
+        return f"Review Request Config ({status})"
+
+    def save(self, *args, **kwargs):
+        if not self.pk and ReviewRequestConfig.objects.exists():
+            existing = ReviewRequestConfig.objects.first()
+            self.pk = existing.pk
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_config(cls):
+        config, _ = cls.objects.get_or_create(
+            defaults={'is_active': False}
+        )
+        return config
+
+
+class ReviewRequest(BaseModel):
+    """Tracking de review request por reserva"""
+
+    class StatusChoices(models.TextChoices):
+        SENT = 'sent', 'Template enviado'
+        BENEFITS_VIEWED = 'benefits_viewed', 'Vio beneficios'
+        RATING_POSITIVE = 'rating_positive', 'Rating positivo (4-5)'
+        RATING_NEGATIVE = 'rating_negative', 'Rating negativo'
+        FEEDBACK_RECEIVED = 'feedback_received', 'Feedback recibido'
+        REVIEW_LINK_SENT = 'review_link_sent', 'Link Google enviado'
+        FAILED = 'failed', 'Error al enviar'
+
+    client = models.ForeignKey(
+        'clients.Clients', on_delete=models.CASCADE,
+        related_name='review_requests'
+    )
+    reservation = models.OneToOneField(
+        'reservation.Reservation', on_delete=models.CASCADE,
+        related_name='review_request',
+        help_text="Una review request por reserva"
+    )
+    session = models.ForeignKey(
+        ChatSession, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='review_requests'
+    )
+    wa_message_id = models.CharField(
+        max_length=500, null=True, blank=True,
+        help_text="ID del template enviado"
+    )
+    status = models.CharField(
+        max_length=20, choices=StatusChoices.choices,
+        default=StatusChoices.SENT
+    )
+    rating = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        help_text="Rating del cliente (1-5)"
+    )
+    feedback_text = models.TextField(
+        blank=True, default='',
+        help_text="Feedback del cliente si calificó negativo"
+    )
+    achievement_at_send = models.CharField(
+        max_length=100, blank=True, default='',
+        help_text="Nivel del cliente al momento del envío"
+    )
+    review_retries = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Reintentos de botones tras texto libre (máx 2)"
+    )
+
+    class Meta:
+        verbose_name = '⭐ Review Request'
+        verbose_name_plural = '⭐ Review Requests'
+        ordering = ['-created']
+
+    def __str__(self):
+        return f"Review {self.client} - {self.reservation} ({self.get_status_display()})"

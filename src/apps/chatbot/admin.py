@@ -3,6 +3,7 @@ from .models import (
     ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics,
     PropertyVisit, PromoDateConfig, PromoDateSent,
     PromoBirthdayConfig, PromoBirthdaySent,
+    ReviewRequestConfig, ReviewRequest,
 )
 
 
@@ -65,6 +66,20 @@ class PromoBirthdaySentAdmin(admin.ModelAdmin):
     list_filter = ['status', 'year']
     search_fields = ['client__first_name', 'client__last_name', 'client__tel_number']
     readonly_fields = ['created', 'updated']
+
+
+@admin.register(ReviewRequestConfig)
+class ReviewRequestConfigAdmin(admin.ModelAdmin):
+    list_display = ['is_active', 'google_review_url', 'wa_template_name']
+
+
+@admin.register(ReviewRequest)
+class ReviewRequestAdmin(admin.ModelAdmin):
+    list_display = ['client', 'reservation', 'status', 'rating', 'achievement_at_send', 'created']
+    list_filter = ['status', 'rating']
+    search_fields = ['client__first_name', 'client__last_name', 'client__tel_number']
+    readonly_fields = ['created', 'updated']
+    date_hierarchy = 'created'
 
 
 @admin.register(ChatAnalytics)

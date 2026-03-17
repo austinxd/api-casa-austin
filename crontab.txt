@@ -1,0 +1,62 @@
+# ═══════════════════════════════════════════════════════════════
+# Casa Austin — Cron Jobs
+# Servidor: /srv/casaaustin/api-casa-austin/
+# Entorno: env
+# Instalar: crontab crontab.txt (o copiar contenido con crontab -e)
+# ═══════════════════════════════════════════════════════════════
+
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+PROJECT=/srv/casaaustin/api-casa-austin
+MANAGE=/srv/casaaustin/api-casa-austin/env/bin/python /srv/casaaustin/api-casa-austin/src/manage.py
+
+# ── CHATBOT ───────────────────────────────────────────────────
+
+# Reactivar IA en sesiones pausadas - cada 5 min
+*/5 * * * * $MANAGE resume_ai_sessions >> $PROJECT/logs/cron.log 2>&1
+
+# Follow-ups a conversaciones sin conversión - cada 2h (8am-10pm)
+0 8,10,12,14,16,18,20,22 * * * $MANAGE send_followups >> $PROJECT/logs/cron.log 2>&1
+
+# Analíticas diarias del chat - diario 1am
+0 1 * * * $MANAGE compute_chat_analytics >> $PROJECT/logs/cron.log 2>&1
+
+# Promo por fechas buscadas - diario 9am
+0 9 * * * $MANAGE send_promo_dates >> $PROJECT/logs/cron.log 2>&1
+
+# Promo de cumpleaños - diario 9am
+5 9 * * * $MANAGE send_promo_birthday >> $PROJECT/logs/cron.log 2>&1
+
+# Review requests post-checkout - diario 2pm Lima (19:00 UTC)
+0 19 * * * $MANAGE send_review_requests >> $PROJECT/logs/cron.log 2>&1
+
+# Renovar token Instagram - 1ro y 15 de cada mes 3am
+0 3 1,15 * * $MANAGE refresh_ig_token >> $PROJECT/logs/cron.log 2>&1
+
+# ── CLIENTES / FIDELIZACIÓN ──────────────────────────────────
+
+# Asignar puntos a reservas post-checkout - diario 2am
+0 2 * * * $MANAGE auto_assign_points >> $PROJECT/logs/cron.log 2>&1
+
+# Expirar puntos vencidos - diario 3am
+0 3 * * * $MANAGE expire_points >> $PROJECT/logs/cron.log 2>&1
+
+# Ranking mensual de referidos - 1ro de cada mes 4am
+0 4 1 * * $MANAGE calculate_referral_ranking >> $PROJECT/logs/cron.log 2>&1
+
+# Recordatorios push de check-in/check-out - diario 8am
+0 8 * * * $MANAGE send_reservation_reminders >> $PROJECT/logs/cron.log 2>&1
+
+# Sync búsquedas a Google Sheets - diario 5am
+0 5 * * * $MANAGE sync_google_sheets >> $PROJECT/logs/cron.log 2>&1
+
+# ── RESERVAS / STAFF / EVENTOS ───────────────────────────────
+
+# Eliminar reservas sin voucher expiradas - diario 6am
+0 6 * * * $MANAGE delete_expired_reservations >> $PROJECT/logs/cron.log 2>&1
+
+# Crear tareas de limpieza automáticas - diario 7am
+0 7 * * * $MANAGE create_missing_cleaning_tasks >> $PROJECT/logs/cron.log 2>&1
+
+# Notificar ganadores de eventos - diario 10am
+0 10 * * * $MANAGE notify_event_winners >> $PROJECT/logs/cron.log 2>&1

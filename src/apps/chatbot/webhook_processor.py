@@ -5,7 +5,7 @@ import threading
 import requests
 from django.utils import timezone
 
-from .models import ChatSession, ChatMessage, ChatbotConfiguration
+from .models import ChatSession, ChatMessage, ChatbotConfiguration, ReviewRequest
 from .channel_sender import get_sender
 
 logger = logging.getLogger(__name__)
@@ -462,10 +462,28 @@ class WebhookProcessor:
     # Dispatch
     # =============================================
 
+    # =============================================
+    # Review flow constants
+    # =============================================
+
+    EXIT_KEYWORDS = [
+        "no gracias", "después", "despues", "no me interesa",
+        "luego", "ahora no",
+    ]
+    MAX_REVIEW_RETRIES = 2
+
     def _dispatch(self, session, chat_message):
         """Despacha al AI o notifica admins.
         - IA activa: el bot responde solo, NO se notifica (el bot usa notify_team cuando necesita).
         - IA pausada: el admin gestiona, se le notifica cada mensaje del cliente."""
+        # Interceptar review flow
+        ctx = session.conversation_context or {}
+        review_state = ctx.get('review_flow')
+        if review_state:
+            handled = self._handle_review_flow(session, chat_message, review_state)
+            if handled:
+                return
+
         if session.ai_enabled:
             self._dispatch_to_ai_debounced(session, chat_message)
         else:
@@ -558,6 +576,9 @@ class WebhookProcessor:
             orchestrator = AIOrchestrator(config)
             orchestrator.process_message(session, chat_message)
 
+            # Después de AI responder, re-enviar botones de review si aplica
+            self._post_ai_review_retry(session)
+
         except Exception as e:
             logger.error(f"Error en AI dispatch: {e}", exc_info=True)
 
@@ -615,3 +636,369 @@ class WebhookProcessor:
                 msg.save(update_fields=['wa_status'])
         except Exception as e:
             logger.error(f"Error actualizando status de {wa_message_id}: {e}")
+
+    # =============================================
+    # Review flow handling
+    # =============================================
+
+    def _clear_review_flow(self, session):
+        """Limpia el review flow del contexto de la sesión."""
+        ctx = session.conversation_context or {}
+        ctx.pop('review_flow', None)
+        ctx.pop('review_request_id', None)
+        session.conversation_context = ctx
+        session.save(update_fields=['conversation_context'])
+
+    def _get_review_request(self, session):
+        """Obtiene el ReviewRequest activo para esta sesión."""
+        ctx = session.conversation_context or {}
+        rr_id = ctx.get('review_request_id')
+        if not rr_id:
+            return None
+        try:
+            return ReviewRequest.objects.get(id=rr_id, deleted=False)
+        except ReviewRequest.DoesNotExist:
+            return None
+
+    def _handle_review_flow(self, session, chat_message, state):
+        """
+        Intercepta mensajes durante el review flow.
+        Returns True si el mensaje fue manejado completamente (no pasa a AI).
+        Returns False si el AI debe procesar el mensaje.
+        """
+        text = (chat_message.content or '').strip().lower()
+
+        # Verificar exit keywords (aplica en todos los estados)
+        for kw in self.EXIT_KEYWORDS:
+            if kw in text:
+                logger.info(f"Review flow: exit keyword '{kw}' detected, clearing flow")
+                self._clear_review_flow(session)
+                return False  # AI retoma limpio
+
+        if state == 'awaiting_benefits_click':
+            return self._handle_awaiting_benefits(session, chat_message, text)
+        elif state == 'awaiting_rating':
+            return self._handle_awaiting_rating(session, chat_message, text)
+        elif state == 'awaiting_feedback':
+            return self._handle_awaiting_feedback(session, chat_message, text)
+
+        return False
+
+    def _handle_awaiting_benefits(self, session, chat_message, text):
+        """Maneja estado awaiting_benefits_click."""
+        # Detectar botón "VER MIS BENEFICIOS" (button reply o texto exacto)
+        benefits_triggers = ['ver mis beneficios', 'ver beneficios', 'mis beneficios']
+        is_benefits_click = any(t in text for t in benefits_triggers)
+
+        if is_benefits_click:
+            review_req = self._get_review_request(session)
+            if not review_req:
+                self._clear_review_flow(session)
+                return False
+
+            self._send_benefits_and_rating(session, review_req)
+            return True
+
+        # Texto libre: verificar retries
+        review_req = self._get_review_request(session)
+        if review_req and review_req.review_retries >= self.MAX_REVIEW_RETRIES:
+            logger.info("Review flow: max retries reached in awaiting_benefits, clearing")
+            self._clear_review_flow(session)
+            return False  # AI retoma limpio
+
+        # AI procesará, luego _post_ai_review_retry re-envía botones
+        return False
+
+    def _handle_awaiting_rating(self, session, chat_message, text):
+        """Maneja estado awaiting_rating."""
+        review_req = self._get_review_request(session)
+        if not review_req:
+            self._clear_review_flow(session)
+            return False
+
+        # Detectar botones de rating
+        if 'excelente' in text:
+            self._process_positive_rating(session, review_req, rating=5)
+            return True
+        elif 'muy buena' in text:
+            self._process_positive_rating(session, review_req, rating=4)
+            return True
+        elif 'mejorar' in text:
+            self._process_negative_rating(session, review_req)
+            return True
+
+        # Texto libre: verificar retries
+        if review_req.review_retries >= self.MAX_REVIEW_RETRIES:
+            logger.info("Review flow: max retries reached in awaiting_rating, clearing")
+            self._clear_review_flow(session)
+            return False
+
+        # AI procesará, luego _post_ai_review_retry re-envía botones
+        return False
+
+    def _handle_awaiting_feedback(self, session, chat_message, text):
+        """Maneja estado awaiting_feedback: cualquier texto es feedback."""
+        review_req = self._get_review_request(session)
+        if not review_req:
+            self._clear_review_flow(session)
+            return False
+
+        # Guardar feedback
+        review_req.feedback_text = chat_message.content
+        review_req.status = 'feedback_received'
+        review_req.save(update_fields=['feedback_text', 'status'])
+
+        # Notificar al equipo por Telegram
+        try:
+            from apps.core.telegram_notifier import send_telegram_message, CHAT_ID
+            client_name = f"{review_req.client.first_name} {review_req.client.last_name or ''}".strip()
+            telegram_msg = (
+                f"⚠️ Review negativa de {client_name} "
+                f"({review_req.client.tel_number}):\n\n"
+                f"{chat_message.content}"
+            )
+            if CHAT_ID:
+                send_telegram_message(telegram_msg, CHAT_ID)
+        except Exception as e:
+            logger.error(f"Error notificando feedback por Telegram: {e}")
+
+        # Responder al cliente
+        from .whatsapp_sender import WhatsAppSender
+        sender = WhatsAppSender()
+        wa_msg_id = sender.send_text_message(
+            to=session.wa_id,
+            text="Gracias por tu feedback, lo tomaremos muy en cuenta para mejorar 🙏"
+        )
+
+        # Registrar mensaje
+        ChatMessage.objects.create(
+            session=session,
+            direction='outbound_ai',
+            message_type='text',
+            content="Gracias por tu feedback, lo tomaremos muy en cuenta para mejorar 🙏",
+            wa_message_id=wa_msg_id,
+            intent_detected='review_feedback',
+        )
+        session.total_messages += 1
+        session.last_message_at = timezone.now()
+        session.save(update_fields=['total_messages', 'last_message_at'])
+
+        # Limpiar review flow
+        self._clear_review_flow(session)
+        return True
+
+    def _send_benefits_and_rating(self, session, review_req):
+        """Envía detalles de beneficios y botones de rating."""
+        from apps.chatbot.management.commands.send_promo_birthday import get_client_level_info
+        from .whatsapp_sender import WhatsAppSender
+
+        client = review_req.client
+        nivel, discount_perm, siguiente_nivel, que_falta = get_client_level_info(client)
+        puntos = client.get_available_points()
+        referral_code = client.get_referral_code()
+
+        # Construir mensaje de beneficios
+        benefits_text = (
+            f"🏆 *Tu perfil Casa Austin*\n\n"
+            f"📊 Nivel actual: *{nivel}*\n"
+            f"💰 Puntos disponibles: *{int(puntos)} pts* (= S/{int(puntos)})\n"
+            f"🎯 Descuento permanente: *{int(discount_perm)}%*\n"
+        )
+
+        if siguiente_nivel != "Máximo alcanzado":
+            benefits_text += f"🚀 Siguiente nivel: *{siguiente_nivel}* — Te falta: {que_falta}\n"
+        else:
+            benefits_text += f"🚀 *¡Ya eres del nivel más alto!*\n"
+
+        benefits_text += (
+            f"\n👥 Tu código de referido: *{referral_code}*\n"
+            f"Compártelo y gana puntos cuando tus amigos reserven."
+        )
+
+        sender = WhatsAppSender()
+
+        # Enviar texto de beneficios
+        wa_msg_id = sender.send_text_message(to=session.wa_id, text=benefits_text)
+        ChatMessage.objects.create(
+            session=session,
+            direction='outbound_ai',
+            message_type='text',
+            content=benefits_text,
+            wa_message_id=wa_msg_id,
+            intent_detected='review_benefits',
+        )
+
+        # Enviar botones de rating
+        rating_body = "¿Cómo calificarías tu experiencia en Casa Austin?"
+        rating_buttons = [
+            {'id': 'rating_excellent', 'title': '⭐⭐⭐⭐⭐ Excelente'},
+            {'id': 'rating_good', 'title': '⭐⭐⭐⭐ Muy buena'},
+            {'id': 'rating_improve', 'title': 'Podría mejorar'},
+        ]
+        wa_btn_id = sender.send_interactive_buttons(
+            to=session.wa_id, body=rating_body, buttons=rating_buttons
+        )
+        ChatMessage.objects.create(
+            session=session,
+            direction='outbound_ai',
+            message_type='interactive',
+            content=rating_body,
+            wa_message_id=wa_btn_id,
+            intent_detected='review_rating_ask',
+        )
+
+        session.total_messages += 2
+        session.last_message_at = timezone.now()
+        session.save(update_fields=['total_messages', 'last_message_at'])
+
+        # Actualizar review request
+        review_req.status = 'benefits_viewed'
+        review_req.review_retries = 0
+        review_req.save(update_fields=['status', 'review_retries'])
+
+        # Cambiar estado del flow
+        ctx = session.conversation_context or {}
+        ctx['review_flow'] = 'awaiting_rating'
+        session.conversation_context = ctx
+        session.save(update_fields=['conversation_context'])
+
+    def _process_positive_rating(self, session, review_req, rating):
+        """Procesa rating positivo (4-5): envía link de Google Review."""
+        from .models import ReviewRequestConfig
+        from .whatsapp_sender import WhatsAppSender
+
+        config = ReviewRequestConfig.get_config()
+
+        review_req.rating = rating
+        review_req.status = 'review_link_sent'
+        review_req.save(update_fields=['rating', 'status'])
+
+        sender = WhatsAppSender()
+        rating_label = "⭐⭐⭐⭐⭐" if rating == 5 else "⭐⭐⭐⭐"
+        text = (
+            f"¡Muchas gracias por tu calificación {rating_label}! 🎉\n\n"
+            f"Nos encantaría que compartieras tu experiencia con otros viajeros. "
+            f"¿Podrías dejarnos una reseña en Google? Solo toma 1 minuto:\n\n"
+            f"👉 {config.google_review_url}\n\n"
+            f"¡Tu opinión nos ayuda muchísimo! 🙏"
+        )
+
+        wa_msg_id = sender.send_text_message(to=session.wa_id, text=text)
+        ChatMessage.objects.create(
+            session=session,
+            direction='outbound_ai',
+            message_type='text',
+            content=text,
+            wa_message_id=wa_msg_id,
+            intent_detected='review_google_link',
+        )
+
+        session.total_messages += 1
+        session.last_message_at = timezone.now()
+        session.save(update_fields=['total_messages', 'last_message_at'])
+
+        # Limpiar review flow
+        self._clear_review_flow(session)
+
+    def _process_negative_rating(self, session, review_req):
+        """Procesa rating negativo: pide feedback."""
+        from .whatsapp_sender import WhatsAppSender
+
+        review_req.rating = 3
+        review_req.status = 'rating_negative'
+        review_req.save(update_fields=['rating', 'status'])
+
+        sender = WhatsAppSender()
+        text = (
+            "Lamentamos que tu experiencia no haya sido la mejor 😔\n\n"
+            "Tu opinión es muy importante para nosotros. "
+            "¿Podrías contarnos qué podríamos mejorar?"
+        )
+
+        wa_msg_id = sender.send_text_message(to=session.wa_id, text=text)
+        ChatMessage.objects.create(
+            session=session,
+            direction='outbound_ai',
+            message_type='text',
+            content=text,
+            wa_message_id=wa_msg_id,
+            intent_detected='review_feedback_ask',
+        )
+
+        session.total_messages += 1
+        session.last_message_at = timezone.now()
+        session.save(update_fields=['total_messages', 'last_message_at'])
+
+        # Cambiar estado a awaiting_feedback
+        ctx = session.conversation_context or {}
+        ctx['review_flow'] = 'awaiting_feedback'
+        session.conversation_context = ctx
+        session.save(update_fields=['conversation_context'])
+
+    def _post_ai_review_retry(self, session):
+        """
+        Después de que el AI responde, re-envía botones del review flow si aplica.
+        Incrementa review_retries.
+        """
+        try:
+            # Refrescar sesión desde BD
+            session.refresh_from_db()
+            ctx = session.conversation_context or {}
+            review_state = ctx.get('review_flow')
+
+            if not review_state or review_state == 'awaiting_feedback':
+                return
+
+            review_req = self._get_review_request(session)
+            if not review_req:
+                return
+
+            # Incrementar retries
+            review_req.review_retries += 1
+            review_req.save(update_fields=['review_retries'])
+
+            from .whatsapp_sender import WhatsAppSender
+            sender = WhatsAppSender()
+
+            if review_state == 'awaiting_benefits_click':
+                body = "Por cierto, ¿quieres ver tus beneficios de cliente frecuente? 👇"
+                buttons = [
+                    {'id': 'view_benefits', 'title': 'VER MIS BENEFICIOS'},
+                ]
+                wa_btn_id = sender.send_interactive_buttons(
+                    to=session.wa_id, body=body, buttons=buttons
+                )
+                ChatMessage.objects.create(
+                    session=session,
+                    direction='outbound_ai',
+                    message_type='interactive',
+                    content=body,
+                    wa_message_id=wa_btn_id,
+                    intent_detected='review_benefits_retry',
+                )
+
+            elif review_state == 'awaiting_rating':
+                body = "¿Cómo calificarías tu experiencia en Casa Austin? 👇"
+                buttons = [
+                    {'id': 'rating_excellent', 'title': '⭐⭐⭐⭐⭐ Excelente'},
+                    {'id': 'rating_good', 'title': '⭐⭐⭐⭐ Muy buena'},
+                    {'id': 'rating_improve', 'title': 'Podría mejorar'},
+                ]
+                wa_btn_id = sender.send_interactive_buttons(
+                    to=session.wa_id, body=body, buttons=buttons
+                )
+                ChatMessage.objects.create(
+                    session=session,
+                    direction='outbound_ai',
+                    message_type='interactive',
+                    content=body,
+                    wa_message_id=wa_btn_id,
+                    intent_detected='review_rating_retry',
+                )
+
+            session.total_messages += 1
+            session.last_message_at = timezone.now()
+            session.save(update_fields=['total_messages', 'last_message_at'])
+
+        except Exception as e:
+            logger.error(f"Error en _post_ai_review_retry: {e}", exc_info=True)
