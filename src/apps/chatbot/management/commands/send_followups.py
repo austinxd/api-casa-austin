@@ -96,6 +96,15 @@ class Command(BaseCommand):
             return
 
         now = timezone.now()
+
+        # Respetar horario de negocio (8am-21pm hora Lima = UTC-5)
+        import pytz
+        lima_tz = pytz.timezone('America/Lima')
+        lima_hour = now.astimezone(lima_tz).hour
+        if lima_hour < 8 or lima_hour >= 21:
+            self.stdout.write(f'Fuera de horario ({lima_hour}h Lima), saltando follow-ups.')
+            return
+
         # Ventana: mensajes del cliente entre 2h y 22h atrás
         # (2h mínimo para no ser invasivo, 22h para respetar ventana 24h de WA)
         min_age = now - timedelta(hours=22)

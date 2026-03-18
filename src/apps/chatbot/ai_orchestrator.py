@@ -40,15 +40,23 @@ def sanitize_response(text):
     if not text:
         return text
 
-    # Eliminar bloques completos [INSTRUCCIÓN ...] incluyendo multi-línea
+    # Eliminar bloques completos [INSTRUCCIÓN ...] + todas sus líneas siguientes
+    # hasta un doble salto de línea o fin de texto
     text = re.sub(
-        r'\[INSTRUCCI[ÓO]N[^\]]*\]',
+        r'\[INSTRUCCI[ÓO]N[^\]]*\].*?(?=\n\s*\n|\Z)',
         '',
         text,
         flags=re.IGNORECASE | re.DOTALL,
     )
+    # Eliminar marcadores internos de herramientas
+    text = re.sub(
+        r'^---\s*SIN ALTERNATIVAS CERCANAS\s*---.*$',
+        '',
+        text,
+        flags=re.MULTILINE,
+    )
     # Eliminar líneas sueltas que son continuación de instrucciones IA
-    # (empiezan con PROHIBIDO:, Tu respuesta DEBE, Solo agrega, NOTA INTERNA:)
+    # (por si GPT copió instrucciones sin el tag [INSTRUCCIÓN])
     text = re.sub(
         r'^(?:PROHIBIDO:|Tu respuesta DEBE|Solo agrega UNA|NOTA INTERNA:).*$',
         '',
@@ -263,11 +271,19 @@ class AIOrchestrator:
                 })
 
             # Segunda llamada con resultados de herramientas
+            # Usar más tokens si hay cotización (la cotización formateada ocupa ~350 tokens)
+            pricing_tools = {'check_availability', 'check_late_checkout', 'get_property_info'}
+            has_pricing = bool(pricing_tools & set(used_tools))
+            second_max_tokens = (
+                max(self.config.max_tokens_per_response, 1200) if has_pricing
+                else self.config.max_tokens_per_response
+            )
+
             response2 = client.chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=self.config.temperature,
-                max_tokens=self.config.max_tokens_per_response,
+                max_tokens=second_max_tokens,
             )
 
             response_text = response2.choices[0].message.content or ""
@@ -311,7 +327,18 @@ class AIOrchestrator:
         # Mensaje actual
         messages.append({"role": "user", "content": msg_content})
 
-        return messages
+        # Consolidar mensajes consecutivos del mismo usuario
+        # (cuando el cliente envía ráfagas: "Hola" + "para el sábado" + "somos 10")
+        consolidated = [messages[0]]  # system prompt
+        for msg in messages[1:]:
+            if (msg["role"] == "user"
+                    and consolidated
+                    and consolidated[-1]["role"] == "user"):
+                consolidated[-1]["content"] += "\n" + msg["content"]
+            else:
+                consolidated.append(msg)
+
+        return consolidated
 
     def _build_property_context(self):
         """Construye secciones dinámicas de propiedades desde la BD."""

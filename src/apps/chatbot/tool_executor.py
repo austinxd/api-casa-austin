@@ -1087,6 +1087,10 @@ class ToolExecutor:
                 if chars:
                     info += f"\n✨ {', '.join(str(c) for c in chars)}\n"
 
+            # Link de fotos y detalles
+            if prop.slug:
+                info += f"\n📸 Fotos y detalles: https://casaaustin.pe/casas-en-alquiler/{prop.slug}\n"
+
             lines.append(info)
 
         return '\n'.join(lines)
@@ -1342,13 +1346,15 @@ class ToolExecutor:
         return "Pregunta registrada. Responde al cliente que consultarás con el equipo y le darás una respuesta pronto."
 
     def _get_pricing_table(self, property_name=None):
-        """Obtiene tabla consolidada de precios desde la base de datos."""
+        """Obtiene resumen de precios contextualizado por temporada actual."""
         from apps.property.models import Property
         from apps.property.pricing_models import (
-            PropertyPricing, SeasonPricing, SpecialDatePricing, ExchangeRate
+            PropertyPricing, SeasonPricing, ExchangeRate
         )
+        from datetime import date
 
         rate = ExchangeRate.get_current_rate()
+        today = date.today()
 
         properties = Property.objects.filter(deleted=False).order_by('name')
         if property_name:
@@ -1359,65 +1365,93 @@ class ToolExecutor:
         if not properties.exists():
             return "No hay propiedades registradas."
 
-        lines = ["📊 *TABLA DE PRECIOS — CASA AUSTIN*", ""]
+        # Determinar temporada actual
+        is_high = SeasonPricing.is_high_season(today)
+        current_season = SeasonPricing.get_season_for_date(today)
+        season_label = "ALTA" if is_high else "BAJA"
+        season_name = current_season.name if current_season else ("Temporada alta" if is_high else "Temporada baja")
+
+        # Encontrar próximo cambio de temporada (el más cercano)
+        next_change_info = ""
+        closest_days = None
+        all_seasons = SeasonPricing.objects.filter(is_active=True)
+        for s in all_seasons:
+            try:
+                start = date(today.year, s.start_month, s.start_day)
+                if start <= today:
+                    start = date(today.year + 1, s.start_month, s.start_day)
+                days_until = (start - today).days
+                if days_until <= 90 and (closest_days is None or days_until < closest_days):
+                    closest_days = days_until
+                    tipo = "alta" if s.season_type == 'high' else "baja"
+                    next_change_info = f"Próximo cambio: temporada {tipo} ({s.name}) inicia en {days_until} días ({start.strftime('%d/%m')})"
+            except ValueError:
+                continue
+
+        # Calcular rangos de precios por temporada (mín entre todas las casas)
+        mins = {
+            'weekday_low': None, 'weekend_low': None,
+            'weekday_high': None, 'weekend_high': None,
+        }
+        min_extra = None
 
         for prop in properties:
-            lines.append(f"🏠 *{prop.name}* (hasta {prop.capacity_max} personas)")
-
             try:
                 pricing = PropertyPricing.objects.get(property=prop)
-                extra_pp = prop.precio_extra_persona
-
-                lines.append("  💰 Tarifa base (1 persona/noche):")
-                lines.append(f"    Entre semana (Lun-Jue):")
-                lines.append(f"      Temp. baja: ${pricing.weekday_low_season_usd:.0f}")
-                lines.append(f"      Temp. alta: ${pricing.weekday_high_season_usd:.0f}")
-                lines.append(f"    Fin de semana (Vie-Sáb):")
-                lines.append(f"      Temp. baja: ${pricing.weekend_low_season_usd:.0f}")
-                lines.append(f"      Temp. alta: ${pricing.weekend_high_season_usd:.0f}")
-
-                if extra_pp:
-                    lines.append(f"  👥 Extra por persona adicional: ${extra_pp:.0f}/noche")
-                else:
-                    lines.append("  👥 Sin cargo extra por persona configurado")
+                for key, field in [
+                    ('weekday_low', pricing.weekday_low_season_usd),
+                    ('weekend_low', pricing.weekend_low_season_usd),
+                    ('weekday_high', pricing.weekday_high_season_usd),
+                    ('weekend_high', pricing.weekend_high_season_usd),
+                ]:
+                    if field and (mins[key] is None or field < mins[key]):
+                        mins[key] = field
             except PropertyPricing.DoesNotExist:
-                if prop.precio_desde:
-                    lines.append(f"  💰 Precio desde: ${prop.precio_desde:.0f}/noche")
-                else:
-                    lines.append("  ⚠️ Sin tarifas configuradas")
-                extra_pp = prop.precio_extra_persona
-                if extra_pp:
-                    lines.append(f"  👥 Extra por persona adicional: ${extra_pp:.0f}/noche")
+                pass
 
-            # Fechas especiales de esta propiedad
-            special_dates = SpecialDatePricing.objects.filter(
-                property=prop, is_active=True
-            ).order_by('month', 'day')
-            if special_dates.exists():
-                lines.append("  🎉 Fechas especiales:")
-                for sd in special_dates:
-                    min_nights = f" (mín. {sd.minimum_consecutive_nights} noches)" if sd.minimum_consecutive_nights > 1 else ""
-                    lines.append(f"    {sd.get_date_display()}: ${sd.price_usd:.0f}/noche — {sd.description or 'Fecha especial'}{min_nights}")
+            extra = prop.precio_extra_persona
+            if extra and (min_extra is None or extra < min_extra):
+                min_extra = extra
 
-            lines.append("")
+        # Construir respuesta concisa
+        lines = [f"TEMPORADA ACTUAL: {season_label} ({season_name})"]
+        if next_change_info:
+            lines.append(next_change_info)
 
-        # Temporadas globales
-        seasons = SeasonPricing.objects.filter(is_active=True).order_by('start_month', 'start_day')
-        if seasons.exists():
-            lines.append("📅 *TEMPORADAS*")
-            for s in seasons:
-                tipo = "🔴 Alta" if s.season_type == 'high' else "🟢 Baja"
-                lines.append(f"  {tipo}: {s.name} ({s.get_date_range_display()})")
-            lines.append("")
+        lines.append("")
+        lines.append("PRECIOS BASE (1 persona/noche, casa más económica):")
+        if mins['weekday_low'] is not None:
+            lines.append(f"  Temp. baja entre semana: desde ${mins['weekday_low']:.0f}")
+        if mins['weekend_low'] is not None:
+            lines.append(f"  Temp. baja fin de semana: desde ${mins['weekend_low']:.0f}")
+        if mins['weekday_high'] is not None:
+            lines.append(f"  Temp. alta entre semana: desde ${mins['weekday_high']:.0f}")
+        if mins['weekend_high'] is not None:
+            lines.append(f"  Temp. alta fin de semana: desde ${mins['weekend_high']:.0f}")
+        if min_extra:
+            lines.append(f"  Extra por persona adicional: desde ${min_extra:.0f}/noche")
 
-        lines.append(f"💱 Tipo de cambio: 1 USD = S/{rate} SOL")
+        lines.append(f"\nTipo de cambio: 1 USD = S/{rate} SOL")
+
+        # Determinar precio "desde" para la respuesta según temporada actual
+        if is_high:
+            desde_semana = mins.get('weekday_high')
+            desde_finde = mins.get('weekend_high')
+        else:
+            desde_semana = mins.get('weekday_low')
+            desde_finde = mins.get('weekend_low')
+
         lines.append("")
         lines.append(
-            "[INSTRUCCIÓN IA — NO MOSTRAR ESTE BLOQUE AL CLIENTE]\n"
-            "Responde en MÁXIMO 2 oraciones. Menciona SOLO el precio más bajo como referencia ('desde $X/noche'). "
-            "NO menciones precios de fechas especiales ni rangos amplios — asustan al cliente. "
-            "Cierra pidiendo fechas y personas para cotización exacta. "
-            "PROHIBIDO copiar esta tabla ni hacer párrafos largos."
+            "[INSTRUCCIÓN IA — NO MOSTRAR AL CLIENTE]\n"
+            f"Estamos en temporada {season_label}. Responde con los precios de ESTA temporada.\n"
+            "Ejemplo de respuesta:\n"
+            f"'Nuestros precios van desde ${desde_semana:.0f}/noche entre semana "
+            f"y desde ${desde_finde:.0f}/noche en fin de semana 💰 "
+            "Para darte el precio exacto, ¿qué fechas tienes en mente y cuántas personas serían? 😊'\n"
+            "Máximo 2-3 oraciones. NO menciones fechas especiales (Año Nuevo, Fiestas Patrias, etc.).\n"
+            "Si el cliente pregunta por fechas en OTRA temporada, menciona que los precios cambian según la fecha.\n"
+            "PROHIBIDO copiar la tabla completa. Solo da el rango 'desde $X' de la temporada actual."
         )
 
         return '\n'.join(lines)
