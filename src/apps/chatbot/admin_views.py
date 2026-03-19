@@ -1007,11 +1007,14 @@ class ChatAnalyticsDetailView(APIView):
             promo = qs.filter(is_promo=True).count()
             organic = qs.filter(is_promo=False).count()
 
-            # Lista de sesiones cotizadas
-            quoted_sessions = qs.filter(quoted_at__isnull=False).order_by('-quoted_at')
-            not_quoted_sessions = qs.filter(
-                quoted_at__isnull=True, total_messages__gte=2,
-            ).order_by('-last_customer_message_at')
+            # Listas separadas por fuente y estado de cotización
+            organic_qs = qs.filter(is_promo=False)
+            promo_qs = qs.filter(is_promo=True)
+
+            organic_quoted = organic_qs.filter(quoted_at__isnull=False).count()
+            organic_not_quoted = organic_qs.filter(quoted_at__isnull=True).count()
+            promo_quoted = promo_qs.filter(quoted_at__isnull=False).count()
+            promo_not_quoted = promo_qs.filter(quoted_at__isnull=True).count()
 
             def serialize(s):
                 name = s.wa_profile_name or s.wa_id
@@ -1035,8 +1038,14 @@ class ChatAnalyticsDetailView(APIView):
                 'with_followup': with_followup,
                 'promo': promo,
                 'organic': organic,
-                'quoted_sessions': [serialize(s) for s in quoted_sessions[:50]],
-                'not_quoted_sessions': [serialize(s) for s in not_quoted_sessions[:50]],
+                'organic_quoted': organic_quoted,
+                'organic_not_quoted': organic_not_quoted,
+                'promo_quoted': promo_quoted,
+                'promo_not_quoted': promo_not_quoted,
+                'organic_quoted_sessions': [serialize(s) for s in organic_qs.filter(quoted_at__isnull=False).order_by('-quoted_at')[:50]],
+                'organic_not_quoted_sessions': [serialize(s) for s in organic_qs.filter(quoted_at__isnull=True, total_messages__gte=2).order_by('-last_customer_message_at')[:50]],
+                'promo_quoted_sessions': [serialize(s) for s in promo_qs.filter(quoted_at__isnull=False).order_by('-quoted_at')[:50]],
+                'promo_not_quoted_sessions': [serialize(s) for s in promo_qs.filter(quoted_at__isnull=True, total_messages__gte=2).order_by('-last_customer_message_at')[:50]],
             })
 
         if detail_type == 'leads':
