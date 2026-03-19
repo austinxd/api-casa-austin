@@ -1,7 +1,7 @@
 import logging
 from datetime import timedelta
 
-from django.db.models import Count, Exists, F, Q, Subquery, OuterRef
+from django.db.models import Count, Exists, F, Min, Q, Subquery, OuterRef
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import ListAPIView, RetrieveAPIView
@@ -989,11 +989,17 @@ class ChatAnalyticsDetailView(APIView):
                 intent_detected__startswith='promo_',
             )
 
+            # Fecha más antigua de promo enviada a la sesión
+            first_promo_at = PromoDateSent.objects.filter(
+                session=OuterRef('pk'), deleted=False,
+            ).order_by('created').values('created')[:1]
+
             qs = ChatSession.objects.filter(
                 deleted=False,
                 last_message_at__isnull=False,
             ).annotate(
                 is_promo=Exists(has_promo_date) | Exists(has_promo_msg),
+                first_promo_sent_at=Subquery(first_promo_at),
             )
             if from_date:
                 qs = qs.filter(last_message_at__date__gte=from_date)
@@ -1013,8 +1019,10 @@ class ChatAnalyticsDetailView(APIView):
 
             organic_quoted = organic_qs.filter(quoted_at__isnull=False).count()
             organic_not_quoted = organic_qs.filter(quoted_at__isnull=True).count()
-            promo_quoted = promo_qs.filter(quoted_at__isnull=False).count()
-            promo_not_quoted = promo_qs.filter(quoted_at__isnull=True).count()
+            # Para promo: "cotizada" = quoted_at posterior al envío de la promo
+            promo_quoted_filter = Q(quoted_at__isnull=False, quoted_at__gt=F('first_promo_sent_at'))
+            promo_quoted = promo_qs.filter(promo_quoted_filter).count()
+            promo_not_quoted = promo_qs.exclude(promo_quoted_filter).count()
 
             def serialize(s):
                 name = s.wa_profile_name or s.wa_id
@@ -1044,8 +1052,8 @@ class ChatAnalyticsDetailView(APIView):
                 'promo_not_quoted': promo_not_quoted,
                 'organic_quoted_sessions': [serialize(s) for s in organic_qs.filter(quoted_at__isnull=False).order_by('-quoted_at')[:50]],
                 'organic_not_quoted_sessions': [serialize(s) for s in organic_qs.filter(quoted_at__isnull=True, total_messages__gte=2).order_by('-last_customer_message_at')[:50]],
-                'promo_quoted_sessions': [serialize(s) for s in promo_qs.filter(quoted_at__isnull=False).order_by('-quoted_at')[:50]],
-                'promo_not_quoted_sessions': [serialize(s) for s in promo_qs.filter(quoted_at__isnull=True, total_messages__gte=2).order_by('-last_customer_message_at')[:50]],
+                'promo_quoted_sessions': [serialize(s) for s in promo_qs.filter(promo_quoted_filter).order_by('-quoted_at')[:50]],
+                'promo_not_quoted_sessions': [serialize(s) for s in promo_qs.exclude(promo_quoted_filter).order_by('-last_customer_message_at')[:50]],
             })
 
         if detail_type == 'leads':
