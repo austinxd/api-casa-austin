@@ -164,6 +164,9 @@ class AIOrchestrator:
         # Sanitizar respuesta antes de enviar
         response_text = sanitize_response(response_text)
 
+        # Guardia: eliminar precios fabricados si no se usó herramienta de precios
+        response_text = self._guard_fabricated_prices(response_text, tool_calls_data)
+
         # Enviar por el canal correspondiente
         wa_message_id = None
         if send_wa:
@@ -241,6 +244,40 @@ class AIOrchestrator:
                     })
                     continue
                 seen_calls.add(dedup_key)
+
+                # Guardia: bloquear check_availability con guests=1 sin confirmación
+                if func_name == 'check_availability' and arguments.get('guests') == 1:
+                    user_text = ' '.join(
+                        m.get('content', '') for m in messages
+                        if m.get('role') == 'user'
+                    ).lower()
+                    solo_indicators = [
+                        r'\b1\s*persona', r'\buna\s*persona',
+                        r'\bsol[oó]?\s*yo\b', r'\bsoy\s*sol[oa]\b',
+                        r'\bvoy\s*sol[oa]\b', r'\biré?\s*sol[oa]\b',
+                        r'\bsomos\s*1\b', r'\bsoy\s*1\b',
+                    ]
+                    if not any(re.search(p, user_text) for p in solo_indicators):
+                        logger.warning(
+                            f"Blocked check_availability(guests=1) — "
+                            f"no explicit single-person intent"
+                        )
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": (
+                                "⚠️ BLOQUEADO: No puedes cotizar para 1 persona. "
+                                "El cliente NO confirmó que es solo 1 persona. "
+                                "Pregúntale: '¿Cuántas personas serían para "
+                                "darte el precio exacto?' ANTES de cotizar."
+                            ),
+                        })
+                        tool_calls_data.append({
+                            'name': func_name,
+                            'arguments': arguments,
+                            'result_preview': 'BLOCKED: guests=1 without confirmation',
+                        })
+                        continue
 
                 logger.info(f"Ejecutando herramienta: {func_name}({arguments})")
                 result = executor.execute(func_name, arguments)
@@ -447,6 +484,36 @@ class AIOrchestrator:
             + '\n'.join(calendar_lines)
             + "\n\n⚠️ RECORDATORIO: Cuando el cliente dice 'el 21 de marzo', check_in = 2026-03-21 (ESE MISMO DÍA, no el siguiente). NUNCA sumes 1 día a la fecha que dijo el cliente."
         )
+
+        # Feriados próximos (Semana Santa, Fiestas Patrias, etc.)
+        upcoming_holidays = self._get_upcoming_holidays(today)
+        if upcoming_holidays:
+            holiday_lines = []
+            for h_date, h_name in upcoming_holidays:
+                holiday_lines.append(
+                    f"  {h_name}: {days_es[h_date.weekday()]} "
+                    f"{h_date.strftime('%d/%m/%Y')} = {h_date.strftime('%Y-%m-%d')}"
+                )
+            context_parts.append(
+                "\nFeriados y fechas especiales próximos:\n"
+                + '\n'.join(holiday_lines)
+            )
+
+        # Disambiguation de meses
+        context_parts.append(
+            "\n⚠️ MESES: Si el cliente dice un mes diferente al actual "
+            "(ej: 'agosto', 'julio', 'diciembre'), usa ESE mes exacto. "
+            "NO lo confundas con el mes actual. Fechas de cualquier mes "
+            "futuro son válidas."
+        )
+
+        # Formato según canal
+        if session.channel == 'instagram':
+            context_parts.append(
+                "\n⚠️ FORMATO INSTAGRAM: Estás en Instagram Direct. "
+                "NO uses asteriscos (*bold*) — no funcionan en IG. "
+                "Usa MAYÚSCULAS para énfasis en vez de asteriscos."
+            )
 
         # Información del cliente vinculado
         if session.client:
@@ -719,6 +786,49 @@ class AIOrchestrator:
 
         return ''.join(parts)
 
+    @staticmethod
+    def _guard_fabricated_prices(text, tool_calls_data):
+        """Elimina precios fabricados cuando no se usó herramienta de precios.
+
+        El modelo a veces inventa precios sin llamar check_availability.
+        Esta guardia elimina esos precios para evitar desinformación.
+        """
+        pricing_tools = {'check_availability', 'check_late_checkout', 'get_pricing_table'}
+        if any(tc['name'] in pricing_tools for tc in tool_calls_data):
+            return text
+
+        # Detectar montos en $ o S/ (2+ dígitos para evitar falsos positivos)
+        price_re = re.compile(r'(?:\$|S/)\s*\d{2,}')
+        if not price_re.search(text):
+            return text
+
+        logger.warning("Fabricated prices detected — stripping (no pricing tool used)")
+
+        # Eliminar líneas que contienen precios fabricados
+        lines = text.split('\n')
+        cleaned = [line for line in lines if not price_re.search(line)]
+        text = '\n'.join(cleaned).strip()
+        text = re.sub(r'\n{3,}', '\n\n', text)
+
+        # Si la mayor parte del mensaje eran precios, reemplazar completo
+        if len(text.strip()) < 30:
+            return (
+                "Los precios van desde $65 por noche para 2 personas "
+                "(toda la casa) y varían según la fecha, temporada y "
+                "cantidad de personas 😊 ¿Para qué fechas y cuántas "
+                "personas necesitas? Te doy el precio exacto al instante 🏖️"
+            )
+
+        # Si el mensaje no pide fechas, agregar redirect
+        if not any(w in text.lower() for w in ['fecha', 'cuándo', 'cuando', 'cuántas', 'cuantas']):
+            text += (
+                "\n\nLos precios van desde $65/noche y varían según fecha, "
+                "temporada y personas. ¿Me confirmas tus fechas y cuántas "
+                "personas serían? 😊"
+            )
+
+        return text
+
     def _detect_intent(self, tool_calls_data):
         """Detecta la intención principal basada en las herramientas usadas"""
         if not tool_calls_data:
@@ -741,3 +851,46 @@ class AIOrchestrator:
             return 'visit_scheduled'
 
         return ''
+
+    @staticmethod
+    def _get_upcoming_holidays(today):
+        """Calcula feriados peruanos próximos incluyendo Semana Santa."""
+        from datetime import timedelta as td
+
+        def _easter(year):
+            """Algoritmo de Computus para calcular Domingo de Pascua."""
+            a = year % 19
+            b = year // 100
+            c = year % 100
+            d = b // 4
+            e = b % 4
+            f = (b + 8) // 25
+            g = (b - f + 1) // 3
+            h = (19 * a + b - d - g + 15) % 30
+            i = c // 4
+            k = c % 4
+            el = (32 + 2 * e + 2 * i - h - k) % 7
+            m = (a + 11 * h + 22 * el) // 451
+            month = (h + el - 7 * m + 114) // 31
+            day = ((h + el - 7 * m + 114) % 31) + 1
+            return date(year, month, day)
+
+        holidays = []
+        for year in (today.year, today.year + 1):
+            easter = _easter(year)
+            holidays.extend([
+                (easter - td(days=3), "Jueves Santo"),
+                (easter - td(days=2), "Viernes Santo"),
+                (date(year, 5, 1), "Día del Trabajo"),
+                (date(year, 6, 29), "San Pedro y San Pablo"),
+                (date(year, 7, 28), "Fiestas Patrias"),
+                (date(year, 7, 29), "Fiestas Patrias"),
+                (date(year, 8, 30), "Santa Rosa de Lima"),
+                (date(year, 10, 8), "Combate de Angamos"),
+                (date(year, 12, 25), "Navidad"),
+                (date(year, 12, 31), "Año Nuevo (mín 3 noches)"),
+            ])
+
+        return sorted(
+            (d, name) for d, name in holidays if 0 < (d - today).days <= 90
+        )
