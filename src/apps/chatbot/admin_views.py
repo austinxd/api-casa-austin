@@ -1,7 +1,7 @@
 import logging
 from datetime import timedelta
 
-from django.db.models import Count, F, Q, Subquery, OuterRef
+from django.db.models import Count, Exists, F, Q, Subquery, OuterRef
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import ListAPIView, RetrieveAPIView
@@ -979,9 +979,21 @@ class ChatAnalyticsDetailView(APIView):
             )
 
         if detail_type == 'sessions':
+            # Subqueries para detectar sesiones originadas por promo
+            has_promo_date = PromoDateSent.objects.filter(
+                session=OuterRef('pk'), deleted=False,
+            )
+            has_promo_msg = ChatMessage.objects.filter(
+                session=OuterRef('pk'), deleted=False,
+                direction=ChatMessage.DirectionChoices.SYSTEM,
+                intent_detected__startswith='promo_',
+            )
+
             qs = ChatSession.objects.filter(
                 deleted=False,
                 last_message_at__isnull=False,
+            ).annotate(
+                is_promo=Exists(has_promo_date) | Exists(has_promo_msg),
             )
             if from_date:
                 qs = qs.filter(last_message_at__date__gte=from_date)
@@ -992,6 +1004,8 @@ class ChatAnalyticsDetailView(APIView):
             quoted = qs.filter(quoted_at__isnull=False).count()
             not_quoted = qs.filter(quoted_at__isnull=True).count()
             with_followup = qs.filter(followup_count__gt=0).count()
+            promo = qs.filter(is_promo=True).count()
+            organic = qs.filter(is_promo=False).count()
 
             # Lista de sesiones cotizadas
             quoted_sessions = qs.filter(quoted_at__isnull=False).order_by('-quoted_at')
@@ -1011,6 +1025,7 @@ class ChatAnalyticsDetailView(APIView):
                     'quoted_at': s.quoted_at.isoformat() if s.quoted_at else None,
                     'followup_count': s.followup_count,
                     'last_message_at': s.last_message_at.isoformat() if s.last_message_at else None,
+                    'source': 'promo' if s.is_promo else 'organic',
                 }
 
             return Response({
@@ -1018,6 +1033,8 @@ class ChatAnalyticsDetailView(APIView):
                 'quoted': quoted,
                 'not_quoted': not_quoted,
                 'with_followup': with_followup,
+                'promo': promo,
+                'organic': organic,
                 'quoted_sessions': [serialize(s) for s in quoted_sessions[:50]],
                 'not_quoted_sessions': [serialize(s) for s in not_quoted_sessions[:50]],
             })
