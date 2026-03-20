@@ -793,7 +793,7 @@ class AIOrchestrator:
         El modelo a veces inventa precios sin llamar check_availability.
         Esta guardia elimina esos precios para evitar desinformación.
         """
-        pricing_tools = {'check_availability', 'check_late_checkout', 'get_pricing_table'}
+        pricing_tools = {'check_availability', 'check_late_checkout'}
         if any(tc['name'] in pricing_tools for tc in tool_calls_data):
             return text
 

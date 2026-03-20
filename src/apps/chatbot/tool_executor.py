@@ -1433,25 +1433,15 @@ class ToolExecutor:
 
         lines.append(f"\nTipo de cambio: 1 USD = S/{rate} SOL")
 
-        # Determinar precio "desde" para la respuesta según temporada actual
-        if is_high:
-            desde_semana = mins.get('weekday_high')
-            desde_finde = mins.get('weekend_high')
-        else:
-            desde_semana = mins.get('weekday_low')
-            desde_finde = mins.get('weekend_low')
-
         lines.append("")
         lines.append(
             "[INSTRUCCIÓN IA — NO MOSTRAR AL CLIENTE]\n"
-            f"Estamos en temporada {season_label}. Responde con los precios de ESTA temporada.\n"
-            "Ejemplo de respuesta:\n"
-            f"'Nuestros precios van desde ${desde_semana:.0f}/noche entre semana "
-            f"y desde ${desde_finde:.0f}/noche en fin de semana 💰 "
-            "Para darte el precio exacto, ¿qué fechas tienes en mente y cuántas personas serían? 😊'\n"
-            "Máximo 2-3 oraciones. NO menciones fechas especiales (Año Nuevo, Fiestas Patrias, etc.).\n"
-            "Si el cliente pregunta por fechas en OTRA temporada, menciona que los precios cambian según la fecha.\n"
-            "PROHIBIDO copiar la tabla completa. Solo da el rango 'desde $X' de la temporada actual."
+            "PROHIBIDO mencionar precios específicos de esta tabla al cliente.\n"
+            "Responde SIEMPRE: 'Los precios van desde $65/noche para 2 personas (toda la casa) "
+            "y varían según la fecha, temporada y cantidad de personas. "
+            "¿Para qué fechas y cuántas personas sería? Te doy el precio exacto al instante 😊'\n"
+            "Para dar el precio EXACTO, usa check_availability() con fechas y personas específicas.\n"
+            "NUNCA menciones montos de la tabla de precios directamente."
         )
 
         return '\n'.join(lines)
