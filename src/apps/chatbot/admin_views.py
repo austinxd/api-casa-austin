@@ -40,6 +40,11 @@ class ChatSessionListView(ListAPIView):
         if status_filter:
             qs = qs.filter(status=status_filter)
 
+        # Filtro por cliente identificado
+        client_filter = self.request.query_params.get('client_filter')
+        if client_filter == 'clients':
+            qs = qs.filter(client__isnull=False)
+
         # Búsqueda por nombre/teléfono
         search = self.request.query_params.get('search', '').strip()
         if search:
