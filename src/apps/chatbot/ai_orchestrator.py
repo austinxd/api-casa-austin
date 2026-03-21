@@ -507,6 +507,17 @@ class AIOrchestrator:
             "futuro son válidas."
         )
 
+        # Reglas de interpretación de mensajes ambiguos
+        context_parts.append(
+            "\n⚠️ NÚMEROS SUELTOS EN MENSAJES:"
+            "\nSi el cliente envía una fecha junto con un número suelto (ej: 'fecha 13 de junio 10', "
+            "'para el 5 de abril 8', '20 de mayo, 15'), ese número suelto SIEMPRE es la cantidad "
+            "de PERSONAS, NO parte de la fecha. Pregunta para confirmar: '¿Son 10 personas?'"
+            "\nSi el cliente da personas y un mes sin fecha exacta (ej: 'para 15 personas para abril', "
+            "'somos 8 en mayo'), PREGUNTA la fecha exacta. NUNCA respondas sin cotizar — "
+            "pide el día específico y luego usa check_availability()."
+        )
+
         # Formato según canal
         if session.channel == 'instagram':
             context_parts.append(
