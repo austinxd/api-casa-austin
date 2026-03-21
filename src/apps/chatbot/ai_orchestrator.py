@@ -797,8 +797,8 @@ class AIOrchestrator:
         if any(tc['name'] in pricing_tools for tc in tool_calls_data):
             return text
 
-        # Detectar montos en $ o S/ (2+ dígitos para evitar falsos positivos)
-        price_re = re.compile(r'(?:\$|S/)\s*\d{2,}')
+        # Detectar montos en $ o S/ (con o sin comas/puntos de miles, mínimo 2 dígitos)
+        price_re = re.compile(r'(?:\$|S/\.?)\s*\d[\d,]*\d(?:\.\d+)?')
         if not price_re.search(text):
             return text
 
