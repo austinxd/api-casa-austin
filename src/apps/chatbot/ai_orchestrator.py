@@ -245,8 +245,10 @@ class AIOrchestrator:
                     continue
                 seen_calls.add(dedup_key)
 
-                # Guardia: bloquear check_availability con guests=1 sin confirmación
-                if func_name == 'check_availability' and arguments.get('guests') == 1:
+                # Guardia: bloquear check_availability sin guests o con guests=1 sin confirmación
+                if func_name == 'check_availability' and (
+                    not arguments.get('guests') or arguments.get('guests') == 1
+                ):
                     user_text = ' '.join(
                         m.get('content', '') for m in messages
                         if m.get('role') == 'user'
@@ -327,6 +329,119 @@ class AIOrchestrator:
             total_tokens += response2.usage.total_tokens if response2.usage else 0
         else:
             response_text = choice.message.content or ""
+
+            # Guardia: si el bot promete consultar/verificar pero no llamó herramientas,
+            # forzar una segunda llamada para que ejecute la acción prometida
+            promise_patterns = [
+                r'voy a (?:consultar|verificar|revisar|checar|buscar)',
+                r'(?:déjame|dejame|permíteme|permiteme) (?:consultar|verificar|revisar|checar|buscar)',
+                r'(?:por favor|espera|dame) un momento',
+                r'voy a (?:cotizar|revisar la disponibilidad)',
+            ]
+            if any(re.search(p, response_text, re.IGNORECASE) for p in promise_patterns):
+                logger.warning(
+                    f"Bot promised to check but made no tool call: {response_text[:100]}"
+                )
+                messages.append(choice.message)
+                messages.append({
+                    "role": "system",
+                    "content": (
+                        "⚠️ ERROR: Dijiste que ibas a consultar/verificar algo pero NO "
+                        "llamaste ninguna herramienta. DEBES usar check_availability() "
+                        "o la herramienta correspondiente AHORA. NO respondas con texto — "
+                        "ejecuta la acción que prometiste."
+                    ),
+                })
+                retry = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    tools=TOOL_DEFINITIONS,
+                    tool_choice="auto",
+                    temperature=self.config.temperature,
+                    max_tokens=self.config.max_tokens_per_response,
+                )
+                retry_choice = retry.choices[0]
+                total_tokens += retry.usage.total_tokens if retry.usage else 0
+
+                if retry_choice.message.tool_calls:
+                    # Ejecutar las herramientas del retry
+                    messages.append(retry_choice.message)
+                    executor = ToolExecutor(session)
+                    for tool_call in retry_choice.message.tool_calls:
+                        func_name = tool_call.function.name
+                        try:
+                            arguments = json.loads(tool_call.function.arguments)
+                        except json.JSONDecodeError:
+                            arguments = {}
+
+                        # Aplicar misma guardia de guests
+                        if func_name == 'check_availability' and (
+                            not arguments.get('guests') or arguments.get('guests') == 1
+                        ):
+                            user_text = ' '.join(
+                                m.get('content', '') for m in messages
+                                if m.get('role') == 'user'
+                            ).lower()
+                            solo_indicators = [
+                                r'\b1\s*persona', r'\buna\s*persona',
+                                r'\bsol[oó]?\s*yo\b', r'\bsoy\s*sol[oa]\b',
+                                r'\bvoy\s*sol[oa]\b', r'\biré?\s*sol[oa]\b',
+                                r'\bsomos\s*1\b', r'\bsoy\s*1\b',
+                            ]
+                            if not any(re.search(p, user_text) for p in solo_indicators):
+                                messages.append({
+                                    "role": "tool",
+                                    "tool_call_id": tool_call.id,
+                                    "content": (
+                                        "⚠️ BLOQUEADO: No puedes cotizar para 1 persona. "
+                                        "Pregúntale cuántas personas serían."
+                                    ),
+                                })
+                                tool_calls_data.append({
+                                    'name': func_name, 'arguments': arguments,
+                                    'result_preview': 'BLOCKED: guests missing/1',
+                                })
+                                continue
+
+                        result = executor.execute(func_name, arguments)
+                        tool_calls_data.append({
+                            'name': func_name, 'arguments': arguments,
+                            'result_preview': str(result)[:200],
+                        })
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": tool_call.id,
+                            "content": str(result),
+                        })
+
+                    # Respuesta final con los resultados
+                    used_tools = [tc['name'] for tc in tool_calls_data]
+                    if 'check_availability' in used_tools or 'check_late_checkout' in used_tools:
+                        messages.append({
+                            "role": "system",
+                            "content": (
+                                "RECORDATORIO CRÍTICO: La herramienta devolvió una cotización FORMATEADA. "
+                                "DEBES copiar y pegar ese texto EXACTAMENTE en tu respuesta."
+                            ),
+                        })
+
+                    pricing_tools = {'check_availability', 'check_late_checkout', 'get_property_info'}
+                    has_pricing = bool(pricing_tools & set(used_tools))
+                    final_max = (
+                        max(self.config.max_tokens_per_response, 1200) if has_pricing
+                        else self.config.max_tokens_per_response
+                    )
+                    final_resp = client.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                        temperature=self.config.temperature,
+                        max_tokens=final_max,
+                    )
+                    response_text = final_resp.choices[0].message.content or ""
+                    total_tokens += final_resp.usage.total_tokens if final_resp.usage else 0
+                else:
+                    # Retry tampoco llamó herramientas, usar su texto
+                    response_text = retry_choice.message.content or response_text
 
         return response_text, tool_calls_data, model, total_tokens
 
