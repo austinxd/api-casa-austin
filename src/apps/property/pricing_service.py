@@ -117,6 +117,11 @@ class PricingCalculationService:
         # Verificar disponibilidad
         available, availability_message = self._check_availability(property, check_in_date, check_out_date)
 
+        # Verificar capacidad máxima
+        if available and property.capacity_max and guests > property.capacity_max:
+            available = False
+            availability_message = f"Capacidad máxima excedida ({property.capacity_max} personas)"
+
         # Obtener precios noche por noche (ya incluye huéspedes adicionales)
         nightly_prices, subtotal_usd = self._get_nightly_prices(property, check_in_date, check_out_date, guests)
 
