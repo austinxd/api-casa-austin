@@ -141,6 +141,7 @@ LOCAL_APPS = [
     'apps.tv',
     'apps.chatbot',
     'apps.admin_ai',
+    'apps.blog',
 ]
 
 THIRD_APPS = [
