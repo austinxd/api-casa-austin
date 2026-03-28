@@ -100,7 +100,7 @@ class BlogContentGenerator:
         image_file = self._handle_image(topic, selected_property)
 
         # 7. Crear blog post como draft
-        blog_post = self._create_blog_post(parsed, image_file)
+        blog_post = self._create_blog_post(parsed, image_file, topic_type=topic['topic_type'])
 
         # 8. Registrar en BlogTopicPlan
         self._create_topic_plan(topic, keyword_data, blog_post)
@@ -157,11 +157,30 @@ class BlogContentGenerator:
             .values('title', 'slug', 'category__name')
         )
 
+    # Keywords que indican zonas/temas fuera del scope de Casa Austin
+    IRRELEVANT_TERMS = [
+        'cieneguilla', 'cusco', 'cuzco', 'arequipa', 'trujillo', 'piura',
+        'máncora', 'mancora', 'huaraz', 'iquitos', 'cajamarca', 'ayacucho',
+        'tacna', 'puno', 'titicaca', 'selva', 'sierra', 'chosica', 'chaclacayo',
+        'canta', 'matucana', 'oxapampa', 'tarma', 'huancayo', 'nazca',
+        'paracas', 'ica', 'chancay',
+    ]
+
+    def _is_relevant_keyword(self, query_lower):
+        """Filtra keywords que no son relevantes para playas del sur de Lima."""
+        return not any(term in query_lower for term in self.IRRELEVANT_TERMS)
+
     def _analyze_keywords(self, existing_posts):
         """
         Analiza datos de Search Console cacheados y elige la mejor keyword.
-        Prioriza keywords no cubiertas por posts existentes.
+
+        Mejoras sobre el scoring base:
+        - Excluye keywords ya usadas en posts generados (BlogTopicPlan)
+        - Filtra keywords geográficamente irrelevantes
+        - Decay temporal: keywords usadas recientemente se penalizan gradualmente
+        - Pool amplio (top 15) con selección ponderada por score
         """
+        from apps.blog.models import BlogTopicPlan
         from apps.blog.search_console import SearchConsoleClient
 
         opportunities = SearchConsoleClient.get_cached_opportunities()
@@ -170,29 +189,57 @@ class BlogContentGenerator:
             logger.info("No hay datos de Search Console cacheados. Usando solo templates.")
             return None
 
-        # Filtrar keywords ya cubiertas por posts existentes
-        existing_slugs = {p['slug'] for p in existing_posts}
+        # Keywords ya usadas en generaciones previas (con fecha para decay)
+        used_keywords = {}
+        for tp in BlogTopicPlan.objects.filter(
+            target_keyword__gt='',
+        ).order_by('-generated_at').values('target_keyword', 'generated_at')[:100]:
+            kw = tp['target_keyword'].lower().strip()
+            if kw not in used_keywords:
+                used_keywords[kw] = tp['generated_at']
+
         existing_titles_lower = {p['title'].lower() for p in existing_posts}
 
+        now = timezone.now()
         scored_keywords = []
         for opp in opportunities:
             query = opp.query if hasattr(opp, 'query') else opp['query']
-            query_lower = query.lower()
+            query_lower = query.lower().strip()
 
-            # Penalizar si ya hay un post con palabras muy similares
-            already_covered = any(
-                query_lower in title or title in query_lower
-                for title in existing_titles_lower
-            )
+            # Filtrar keywords irrelevantes geográficamente
+            if not self._is_relevant_keyword(query_lower):
+                continue
 
             impressions = opp.impressions if hasattr(opp, 'impressions') else opp['impressions']
             position = opp.position if hasattr(opp, 'position') else opp['position']
             ctr = opp.ctr if hasattr(opp, 'ctr') else opp['ctr']
 
-            # Score: impresiones altas + posición media = más oportunidad
+            # Score base: impresiones altas + CTR bajo + posición media
             score = impressions * (1 - ctr / 100) * (50 - position) / 50
+
+            # Penalizar si ya hay un post con título muy similar
+            already_covered = any(
+                query_lower in title or title in query_lower
+                for title in existing_titles_lower
+            )
             if already_covered:
-                score *= 0.1  # Fuerte penalización
+                score *= 0.1
+
+            # Penalizar keywords ya usadas en generaciones, con decay temporal
+            # Más reciente = más penalización, se recupera gradualmente
+            if query_lower in used_keywords:
+                days_ago = (now - used_keywords[query_lower]).days
+                if days_ago < 7:
+                    score *= 0.0   # Bloquear totalmente en la primera semana
+                elif days_ago < 30:
+                    score *= 0.05  # Casi bloqueada el primer mes
+                elif days_ago < 90:
+                    score *= 0.3   # Penalización moderada hasta 3 meses
+                else:
+                    score *= 0.7   # Penalización leve después de 3 meses
+
+            if score <= 0:
+                continue
 
             scored_keywords.append({
                 'query': query,
@@ -205,16 +252,19 @@ class BlogContentGenerator:
             })
 
         if not scored_keywords:
+            logger.info("No hay keywords válidas después de filtrar. Usando solo templates.")
             return None
 
-        # Elegir top keyword (con algo de aleatoriedad en top 5)
+        # Selección ponderada del top 15 (no uniforme del top 5)
         scored_keywords.sort(key=lambda x: x['score'], reverse=True)
-        top_candidates = scored_keywords[:5]
-        selected = random.choice(top_candidates)
+        top_candidates = scored_keywords[:15]
+        weights = [kw['score'] for kw in top_candidates]
+        selected = random.choices(top_candidates, weights=weights, k=1)[0]
 
         logger.info(
             f"Keyword seleccionada: '{selected['query']}' "
-            f"(imp={selected['impressions']}, pos={selected['position']}, score={selected['score']:.1f})"
+            f"(imp={selected['impressions']}, pos={selected['position']}, "
+            f"score={selected['score']:.1f}, pool={len(scored_keywords)})"
         )
 
         return selected
@@ -539,19 +589,43 @@ Incluye al menos 2 enlaces internos de forma natural en el contenido.""")
             logger.warning(f"Error generando imagen DALL-E: {e}")
             return None
 
-    def _create_blog_post(self, parsed_content, image_file=None):
-        """Crea el BlogPost como borrador."""
-        from apps.blog.models import BlogPost, BlogCategory
+    # Mapeo de topic_type a categoría real del blog
+    TOPIC_CATEGORY_MAP = {
+        'property': ('casas', 'Casas', 'Propiedades y casas de playa para alquilar'),
+        'search_console': ('casas', 'Casas', 'Propiedades y casas de playa para alquilar'),
+        'beaches': ('playas', 'Playas', 'Guías de playas del sur de Lima'),
+        'lima_travel': ('turismo', 'Turismo', 'Turismo y actividades en Lima'),
+        'seasonal': ('temporada', 'Temporada', 'Contenido estacional y feriados'),
+        'tips': ('consejos', 'Consejos', 'Tips y consejos para viajeros'),
+        'events': ('eventos', 'Eventos', 'Celebraciones y eventos en la playa'),
+        'gastronomy': ('gastronomia', 'Gastronomía', 'Restaurantes y comida en Lima Sur'),
+        'family': ('familia', 'Familia', 'Viajes y actividades en familia'),
+    }
 
-        # Buscar o crear categoría general para posts generados
+    def _get_category_for_topic(self, topic_type):
+        """Obtiene o crea la categoría adecuada según el tipo de tema."""
+        from apps.blog.models import BlogCategory
+
+        slug, name, description = self.TOPIC_CATEGORY_MAP.get(
+            topic_type,
+            ('general', 'General', 'Artículos sobre Casa Austin y playas del sur de Lima'),
+        )
+
         category, _ = BlogCategory.objects.get_or_create(
-            slug='ai-generated',
+            slug=slug,
             defaults={
-                'name': 'Generado por IA',
-                'description': 'Posts generados automáticamente con IA',
-                'order': 99,
+                'name': name,
+                'description': description,
+                'order': 10,
             }
         )
+        return category
+
+    def _create_blog_post(self, parsed_content, image_file=None, topic_type=None):
+        """Crea el BlogPost como borrador."""
+        from apps.blog.models import BlogPost
+
+        category = self._get_category_for_topic(topic_type)
 
         post = BlogPost(
             title=parsed_content['title'],
@@ -559,7 +633,7 @@ Incluye al menos 2 enlaces internos de forma natural en el contenido.""")
             excerpt=parsed_content['excerpt'],
             meta_description=parsed_content['meta_description'],
             category=category,
-            author='Casa Austin (IA)',
+            author='Casa Austin',
             status='draft',
         )
 
