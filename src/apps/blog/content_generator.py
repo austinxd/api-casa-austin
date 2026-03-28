@@ -348,7 +348,7 @@ class BlogContentGenerator:
                 f"- **{p['name']}** ({p['location']}): "
                 f"{p['dormitorios']} dormitorios, {p['banos']} baños, "
                 f"hasta {p['capacity_max']} huéspedes. "
-                f"Desde S/{p['precio_desde']:.0f}/noche. "
+                f"Desde ${p['precio_desde']:.0f} USD/noche. "
                 f"Amenities: {features}\n"
             )
 
@@ -420,7 +420,7 @@ y en la meta description. Densidad natural, NO keyword stuffing.""")
 - **Ubicación**: {selected_property['location']}
 - **Capacidad**: {selected_property['capacity_max']} huéspedes
 - **Dormitorios**: {selected_property['dormitorios']} | Baños: {selected_property['banos']}
-- **Precio desde**: S/{selected_property['precio_desde']:.0f}/noche
+- **Precio desde**: ${selected_property['precio_desde']:.0f} USD/noche
 - **Amenities**: {features}
 - **URL Airbnb**: {selected_property['airbnb_url'] or 'N/A'}
 
