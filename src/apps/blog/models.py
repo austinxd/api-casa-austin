@@ -165,3 +165,61 @@ class BlogPost(BaseModel):
     def delete(self, *args, **kwargs):
         self.deleted = True
         self.save()
+
+
+class SearchConsoleData(BaseModel):
+    """Cache de datos de Google Search Console para análisis de keywords."""
+    query = models.CharField(max_length=500, verbose_name="Keyword")
+    clicks = models.IntegerField(default=0, verbose_name="Clicks")
+    impressions = models.IntegerField(default=0, verbose_name="Impresiones")
+    ctr = models.FloatField(default=0, verbose_name="CTR %")
+    position = models.FloatField(default=0, verbose_name="Posición promedio")
+    page_url = models.URLField(max_length=500, blank=True, default="", verbose_name="URL de página")
+    date_range_start = models.DateField(verbose_name="Inicio del rango")
+    date_range_end = models.DateField(verbose_name="Fin del rango")
+    synced_at = models.DateTimeField(auto_now=True, verbose_name="Última sincronización")
+
+    class Meta:
+        ordering = ['-impressions']
+        unique_together = ['query', 'date_range_start', 'date_range_end']
+        verbose_name = "Dato de Search Console"
+        verbose_name_plural = "Datos de Search Console"
+
+    def __str__(self):
+        return f"{self.query} ({self.impressions} imp, pos {self.position:.1f})"
+
+
+class BlogTopicPlan(BaseModel):
+    """Registro de temas generados para rotación y tracking."""
+    TOPIC_TYPES = [
+        ('search_console', 'Basado en Search Console'),
+        ('property', 'Propiedad Destacada'),
+        ('lima_travel', 'Turismo Lima'),
+        ('beaches', 'Playas'),
+        ('seasonal', 'Estacional'),
+        ('tips', 'Tips de Viaje'),
+        ('events', 'Eventos'),
+        ('gastronomy', 'Gastronomía'),
+        ('family', 'Familia'),
+    ]
+
+    topic_type = models.CharField(max_length=20, choices=TOPIC_TYPES, verbose_name="Tipo de tema")
+    topic_key = models.CharField(max_length=100, verbose_name="Clave del tema")
+    topic_description = models.TextField(verbose_name="Descripción del tema")
+    target_keyword = models.CharField(max_length=200, blank=True, default="", verbose_name="Keyword objetivo")
+    blog_post = models.ForeignKey(
+        BlogPost,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='topic_plans',
+        verbose_name="Post generado"
+    )
+    generated_at = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de generación")
+
+    class Meta:
+        ordering = ['-generated_at']
+        verbose_name = "Plan de Tema del Blog"
+        verbose_name_plural = "Planes de Temas del Blog"
+
+    def __str__(self):
+        return f"[{self.get_topic_type_display()}] {self.topic_key}"

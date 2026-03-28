@@ -450,6 +450,13 @@ RENIEC_LEGACY_DB_NAME = env('RENIEC_LEGACY_DB_NAME', default='rutificador_bd')
 
 # OpenAI Configuration (Chatbot IA)
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
+
+# Anthropic Configuration (Blog AI Generator)
+ANTHROPIC_API_KEY = env('ANTHROPIC_API_KEY', default='')
+
+# Google Search Console Configuration (Blog SEO)
+GOOGLE_SEARCH_CONSOLE_KEY_FILE = env('GOOGLE_SEARCH_CONSOLE_KEY_FILE', default='')
+GOOGLE_SEARCH_CONSOLE_SITE_URL = env('GOOGLE_SEARCH_CONSOLE_SITE_URL', default='https://casaaustin.pe')
 WHATSAPP_WEBHOOK_VERIFY_TOKEN = env('WHATSAPP_WEBHOOK_VERIFY_TOKEN', default='casa_austin_webhook_2024')
 
 # Instagram Messaging API

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import BlogCategory, BlogPost
+from .models import BlogCategory, BlogPost, SearchConsoleData, BlogTopicPlan
 
 
 @admin.register(BlogCategory)
@@ -52,3 +52,21 @@ class BlogPostAdmin(admin.ModelAdmin):
             )
         return "Sin imagen"
     image_preview_large.short_description = "Vista previa"
+
+
+@admin.register(SearchConsoleData)
+class SearchConsoleDataAdmin(admin.ModelAdmin):
+    list_display = ('query', 'clicks', 'impressions', 'ctr', 'position', 'date_range_start', 'date_range_end', 'synced_at')
+    list_filter = ('date_range_start', 'date_range_end')
+    search_fields = ('query', 'page_url')
+    ordering = ['-impressions']
+    readonly_fields = ('synced_at',)
+
+
+@admin.register(BlogTopicPlan)
+class BlogTopicPlanAdmin(admin.ModelAdmin):
+    list_display = ('topic_type', 'topic_key', 'target_keyword', 'blog_post', 'generated_at')
+    list_filter = ('topic_type', 'generated_at')
+    search_fields = ('topic_key', 'topic_description', 'target_keyword')
+    ordering = ['-generated_at']
+    raw_id_fields = ('blog_post',)
