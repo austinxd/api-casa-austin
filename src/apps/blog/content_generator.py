@@ -128,8 +128,8 @@ class BlogContentGenerator:
         properties = Property.objects.filter(deleted=False)
         data = []
         for prop in properties:
-            photos = prop.photos.filter(deleted=False).order_by('order')
-            main_photo = photos.filter(is_main=True).first() or photos.first()
+            photos = list(prop.photos.filter(deleted=False).order_by('order'))
+            main_photo = next((p for p in photos if p.is_main), photos[0] if photos else None)
 
             data.append({
                 'id': str(prop.id),
@@ -146,7 +146,8 @@ class BlogContentGenerator:
                 'slug': prop.slug or '',
                 'main_photo_url': main_photo.get_image_url() if main_photo else None,
                 'main_photo_obj': main_photo,
-                'photo_count': photos.count(),
+                'all_photos': photos,
+                'photo_count': len(photos),
             })
 
         return data
@@ -516,32 +517,37 @@ Incluye al menos 2 enlaces internos de forma natural en el contenido.""")
     def _handle_image(self, topic, selected_property):
         """
         Selecciona imagen según el tipo de tema.
-        - property/family/events: foto real de la propiedad
-        - otros: genera con DALL-E
+        - property/family/events: 70% foto real aleatoria, 30% DALL-E
+        - otros: siempre DALL-E
         """
         image_source = topic.get('image_source', 'dalle')
 
         if image_source == 'property' and selected_property:
-            return self._get_property_image(selected_property)
-        elif image_source == 'dalle':
+            # Mix: mayoría fotos reales, pero a veces DALL-E para variedad
+            if random.random() < 0.7:
+                image = self._get_property_image(selected_property)
+                if image:
+                    return image
+            # Fallback o 30% de las veces: DALL-E
             return self._generate_dalle_image(topic)
 
-        return None
+        return self._generate_dalle_image(topic)
 
     def _get_property_image(self, property_data):
-        """Obtiene la imagen principal de una propiedad."""
-        photo = property_data.get('main_photo_obj')
-        if not photo:
+        """Obtiene una foto aleatoria de la propiedad (no siempre la principal)."""
+        photos = property_data.get('all_photos', [])
+        if not photos:
             return None
+
+        photo = random.choice(photos)
 
         try:
             if photo.image_file:
-                # Leer el archivo de imagen existente
                 photo.image_file.open('rb')
                 content = photo.image_file.read()
                 photo.image_file.close()
 
-                filename = f"blog_{slugify(property_data['name'])}.jpg"
+                filename = f"blog_{slugify(property_data['name'])}_{photo.id}.jpg"
                 return ContentFile(content, name=filename)
         except Exception as e:
             logger.warning(f"Error obteniendo imagen de propiedad: {e}")
