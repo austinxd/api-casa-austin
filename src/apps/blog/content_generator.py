@@ -100,7 +100,11 @@ class BlogContentGenerator:
         image_file = self._handle_image(topic, selected_property)
 
         # 7. Crear blog post como draft
-        blog_post = self._create_blog_post(parsed, image_file, topic_type=topic['topic_type'])
+        blog_post = self._create_blog_post(
+            parsed, image_file,
+            topic_type=topic['topic_type'],
+            keyword=keyword_data['query'] if keyword_data else None,
+        )
 
         # 8. Registrar en BlogTopicPlan
         self._create_topic_plan(topic, keyword_data, blog_post)
@@ -589,35 +593,69 @@ Incluye al menos 2 enlaces internos de forma natural en el contenido.""")
             logger.warning(f"Error generando imagen DALL-E: {e}")
             return None
 
-    # Mapeo de topic_type a slug de categoría existente en la BD
-    TOPIC_CATEGORY_MAP = {
-        'property': 'alquiler-casas-de-playa',
-        'search_console': 'alquiler-casas-de-playa',
-        'beaches': 'alquiler-casas-de-playa',
-        'lima_travel': 'vacaciones-y-festividades',
-        'seasonal': 'alquileres-de-temporada',
-        'tips': 'blog',
-        'events': 'vacaciones-y-festividades',
-        'gastronomy': 'blog',
-        'family': 'vacaciones-y-festividades',
-    }
+    # Reglas de clasificación: (slug_categoría, [palabras_clave])
+    # Se evalúan en orden, la primera que matchee gana
+    CATEGORY_RULES = [
+        ('alquileres-de-temporada', [
+            'verano', 'invierno', 'temporada', 'fiestas patrias', 'año nuevo',
+            'semana santa', 'feriado', 'navidad', 'fin de año',
+        ]),
+        ('vacaciones-y-festividades', [
+            'vacacion', 'turismo', 'visitar', 'conocer', 'qué hacer',
+            'actividad', 'familia', 'niño', 'hijo', 'kid', 'cumpleaños',
+            'fiesta', 'celebra', 'retiro', 'team building', 'evento',
+        ]),
+        ('ofertas-y-promociones', [
+            'oferta', 'promocion', 'descuento', 'precio', 'barato',
+            'económico', 'ahorrar', 'ahorro', 'temporada baja',
+        ]),
+        ('alquiler-casas-de-playa', [
+            'alquiler', 'casa', 'hospedaje', 'hotel', 'hostal',
+            'piscina', 'playa', 'surf', 'ola', 'arena', 'mar',
+            'punta hermosa', 'san bartolo', 'santa maria', 'asia',
+            'propiedad', 'dormitorio', 'habitacion',
+        ]),
+    ]
 
-    def _get_category_for_topic(self, topic_type):
-        """Obtiene la categoría existente según el tipo de tema."""
+    def _classify_category(self, keyword, topic_type):
+        """
+        Clasifica la categoría analizando la keyword y el topic_type.
+        Evalúa reglas en orden de prioridad; fallback a 'blog'.
+        """
         from apps.blog.models import BlogCategory
 
-        slug = self.TOPIC_CATEGORY_MAP.get(topic_type, 'blog')
+        text = (keyword or '').lower()
+
+        # Primero intentar por keyword
+        for slug, terms in self.CATEGORY_RULES:
+            if any(term in text for term in terms):
+                try:
+                    return BlogCategory.objects.get(slug=slug, deleted=False)
+                except BlogCategory.DoesNotExist:
+                    continue
+
+        # Si no matcheó keyword, usar topic_type como fallback
+        topic_fallback = {
+            'property': 'alquiler-casas-de-playa',
+            'beaches': 'alquiler-casas-de-playa',
+            'seasonal': 'alquileres-de-temporada',
+            'lima_travel': 'vacaciones-y-festividades',
+            'events': 'vacaciones-y-festividades',
+            'family': 'vacaciones-y-festividades',
+            'gastronomy': 'blog',
+            'tips': 'blog',
+        }
+        slug = topic_fallback.get(topic_type, 'blog')
         try:
             return BlogCategory.objects.get(slug=slug, deleted=False)
         except BlogCategory.DoesNotExist:
-            # Fallback a la categoría "blog" genérica
             return BlogCategory.objects.filter(deleted=False).first()
 
-    def _create_blog_post(self, parsed_content, image_file=None, topic_type=None):
+    def _create_blog_post(self, parsed_content, image_file=None, topic_type=None, keyword=None):
         """Crea el BlogPost como borrador."""
         from apps.blog.models import BlogPost
 
-        category = self._get_category_for_topic(topic_type)
+        category = self._classify_category(keyword, topic_type)
 
         post = BlogPost(
             title=parsed_content['title'],
