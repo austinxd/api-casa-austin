@@ -70,7 +70,7 @@ class BlogPostAdminViewSet(viewsets.ModelViewSet):
         post.status = 'published'
         post.published_date = timezone.now()
         post.save(update_fields=['status', 'published_date'])
-        return Response(BlogPostAdminSerializer(post).data)
+        return Response(BlogPostAdminSerializer(post, context={'request': request}).data)
 
     @action(detail=True, methods=['post'])
     def unpublish(self, request, pk=None):
@@ -78,7 +78,7 @@ class BlogPostAdminViewSet(viewsets.ModelViewSet):
         post.status = 'draft'
         post.published_date = None
         post.save(update_fields=['status', 'published_date'])
-        return Response(BlogPostAdminSerializer(post).data)
+        return Response(BlogPostAdminSerializer(post, context={'request': request}).data)
 
 
 @api_view(['GET'])

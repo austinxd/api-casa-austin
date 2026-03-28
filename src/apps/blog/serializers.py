@@ -81,15 +81,21 @@ class BlogPostAdminSerializer(serializers.ModelSerializer):
                             'thumbnail_url', 'author', 'published_date',
                             'created', 'updated']
 
+    def _absolute_url(self, relative_url):
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(relative_url)
+        return relative_url
+
     def get_category_name(self, obj):
         return obj.category.name if obj.category else None
 
     def get_featured_image_url(self, obj):
         if obj.featured_image:
-            return obj.featured_image.url
+            return self._absolute_url(obj.featured_image.url)
         return None
 
     def get_thumbnail_url(self, obj):
         if obj.thumbnail:
-            return obj.thumbnail.url
+            return self._absolute_url(obj.thumbnail.url)
         return None
