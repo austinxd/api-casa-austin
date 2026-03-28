@@ -1,7 +1,9 @@
 from django.http import HttpResponse
-from rest_framework import viewsets, filters
-from rest_framework.decorators import api_view, permission_classes as perm_classes
-from rest_framework.permissions import AllowAny
+from django.utils import timezone
+from rest_framework import viewsets, filters, status
+from rest_framework.decorators import api_view, permission_classes as perm_classes, action
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 
 from apps.core.paginator import CustomPagination
 from .models import BlogCategory, BlogPost
@@ -9,6 +11,7 @@ from .serializers import (
     BlogCategorySerializer,
     BlogPostListSerializer,
     BlogPostDetailSerializer,
+    BlogPostAdminSerializer,
 )
 
 
@@ -44,6 +47,38 @@ class BlogCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = BlogCategorySerializer
     queryset = BlogCategory.objects.filter(deleted=False)
     pagination_class = None
+
+
+class BlogPostAdminViewSet(viewsets.ModelViewSet):
+    """API admin para gestión de posts del blog."""
+    permission_classes = [IsAuthenticated]
+    serializer_class = BlogPostAdminSerializer
+    pagination_class = CustomPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['title', 'excerpt']
+
+    def get_queryset(self):
+        qs = BlogPost.objects.filter(deleted=False).select_related('category').order_by('-created')
+        status_filter = self.request.query_params.get('status')
+        if status_filter in ('draft', 'published'):
+            qs = qs.filter(status=status_filter)
+        return qs
+
+    @action(detail=True, methods=['post'])
+    def publish(self, request, pk=None):
+        post = self.get_object()
+        post.status = 'published'
+        post.published_date = timezone.now()
+        post.save(update_fields=['status', 'published_date'])
+        return Response(BlogPostAdminSerializer(post).data)
+
+    @action(detail=True, methods=['post'])
+    def unpublish(self, request, pk=None):
+        post = self.get_object()
+        post.status = 'draft'
+        post.published_date = None
+        post.save(update_fields=['status', 'published_date'])
+        return Response(BlogPostAdminSerializer(post).data)
 
 
 @api_view(['GET'])

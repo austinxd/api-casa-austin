@@ -62,3 +62,34 @@ class BlogPostDetailSerializer(serializers.ModelSerializer):
         if obj.thumbnail:
             return obj.thumbnail.url
         return None
+
+
+class BlogPostAdminSerializer(serializers.ModelSerializer):
+    """Serializer para administración de posts (lectura + edición parcial)."""
+    category_name = serializers.SerializerMethodField()
+    featured_image_url = serializers.SerializerMethodField()
+    thumbnail_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BlogPost
+        fields = [
+            'id', 'title', 'slug', 'content', 'excerpt', 'meta_description',
+            'featured_image_url', 'thumbnail_url', 'category', 'category_name',
+            'author', 'status', 'published_date', 'created', 'updated',
+        ]
+        read_only_fields = ['id', 'slug', 'content', 'featured_image_url',
+                            'thumbnail_url', 'author', 'published_date',
+                            'created', 'updated']
+
+    def get_category_name(self, obj):
+        return obj.category.name if obj.category else None
+
+    def get_featured_image_url(self, obj):
+        if obj.featured_image:
+            return obj.featured_image.url
+        return None
+
+    def get_thumbnail_url(self, obj):
+        if obj.thumbnail:
+            return obj.thumbnail.url
+        return None
