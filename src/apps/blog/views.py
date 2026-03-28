@@ -1,4 +1,6 @@
+from django.http import HttpResponse
 from rest_framework import viewsets, filters
+from rest_framework.decorators import api_view, permission_classes as perm_classes
 from rest_framework.permissions import AllowAny
 
 from apps.core.paginator import CustomPagination
@@ -42,3 +44,32 @@ class BlogCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = BlogCategorySerializer
     queryset = BlogCategory.objects.filter(deleted=False)
     pagination_class = None
+
+
+@api_view(['GET'])
+@perm_classes([AllowAny])
+def blog_sitemap(request):
+    """Genera sitemap XML dinámico con todos los blog posts publicados."""
+    posts = BlogPost.objects.filter(
+        deleted=False, status='published'
+    ).order_by('-published_date').values_list('slug', 'updated')
+
+    urls = []
+    for slug, updated in posts:
+        lastmod = updated.strftime('%Y-%m-%d') if updated else ''
+        urls.append(
+            f'  <url>\n'
+            f'    <loc>https://casaaustin.pe/blog/{slug}</loc>\n'
+            f'    <lastmod>{lastmod}</lastmod>\n'
+            f'    <changefreq>monthly</changefreq>\n'
+            f'    <priority>0.7</priority>\n'
+            f'  </url>'
+        )
+
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + '\n'.join(urls) + '\n'
+        '</urlset>'
+    )
+    return HttpResponse(xml, content_type='application/xml')
