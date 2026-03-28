@@ -116,6 +116,13 @@ class Command(BaseCommand):
                 content
             )
 
+            # Also catch /blog/casas-en-alquiler/ with sub-paths (property detail pages)
+            content = re.sub(
+                r'(href=["\'])https://casaaustin\.pe/blog/(casas-en-alquiler/[^"\']+)(["\'])',
+                fix_blog_spa_route,
+                content
+            )
+
             # --- FIX 3: /blog/listings/... and /blog/action/... → remove or redirect ---
             for wp_route in WP_ONLY_ROUTES:
                 pattern = rf'(href=["\'])https://casaaustin\.pe/blog/{re.escape(wp_route)}[^"\']*(["\'])'
