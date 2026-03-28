@@ -589,37 +589,29 @@ Incluye al menos 2 enlaces internos de forma natural en el contenido.""")
             logger.warning(f"Error generando imagen DALL-E: {e}")
             return None
 
-    # Mapeo de topic_type a categoría real del blog
+    # Mapeo de topic_type a slug de categoría existente en la BD
     TOPIC_CATEGORY_MAP = {
-        'property': ('casas', 'Casas', 'Propiedades y casas de playa para alquilar'),
-        'search_console': ('casas', 'Casas', 'Propiedades y casas de playa para alquilar'),
-        'beaches': ('playas', 'Playas', 'Guías de playas del sur de Lima'),
-        'lima_travel': ('turismo', 'Turismo', 'Turismo y actividades en Lima'),
-        'seasonal': ('temporada', 'Temporada', 'Contenido estacional y feriados'),
-        'tips': ('consejos', 'Consejos', 'Tips y consejos para viajeros'),
-        'events': ('eventos', 'Eventos', 'Celebraciones y eventos en la playa'),
-        'gastronomy': ('gastronomia', 'Gastronomía', 'Restaurantes y comida en Lima Sur'),
-        'family': ('familia', 'Familia', 'Viajes y actividades en familia'),
+        'property': 'alquiler-casas-de-playa',
+        'search_console': 'alquiler-casas-de-playa',
+        'beaches': 'alquiler-casas-de-playa',
+        'lima_travel': 'vacaciones-y-festividades',
+        'seasonal': 'alquileres-de-temporada',
+        'tips': 'blog',
+        'events': 'vacaciones-y-festividades',
+        'gastronomy': 'blog',
+        'family': 'vacaciones-y-festividades',
     }
 
     def _get_category_for_topic(self, topic_type):
-        """Obtiene o crea la categoría adecuada según el tipo de tema."""
+        """Obtiene la categoría existente según el tipo de tema."""
         from apps.blog.models import BlogCategory
 
-        slug, name, description = self.TOPIC_CATEGORY_MAP.get(
-            topic_type,
-            ('general', 'General', 'Artículos sobre Casa Austin y playas del sur de Lima'),
-        )
-
-        category, _ = BlogCategory.objects.get_or_create(
-            slug=slug,
-            defaults={
-                'name': name,
-                'description': description,
-                'order': 10,
-            }
-        )
-        return category
+        slug = self.TOPIC_CATEGORY_MAP.get(topic_type, 'blog')
+        try:
+            return BlogCategory.objects.get(slug=slug, deleted=False)
+        except BlogCategory.DoesNotExist:
+            # Fallback a la categoría "blog" genérica
+            return BlogCategory.objects.filter(deleted=False).first()
 
     def _create_blog_post(self, parsed_content, image_file=None, topic_type=None):
         """Crea el BlogPost como borrador."""
