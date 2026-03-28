@@ -47,6 +47,5 @@ homeassistant-api==5.0.2.post1
 django-simple-history==3.7.0
 openai>=1.0.0
 PyMuPDF>=1.24.0
-anthropic>=0.39.0
 google-api-python-client>=2.100.0
 google-auth>=2.25.0

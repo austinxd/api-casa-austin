@@ -26,7 +26,6 @@ class BlogContentGenerator:
     """Orquestador principal de generación de blog posts."""
 
     def __init__(self):
-        self.api_key = getattr(settings, 'ANTHROPIC_API_KEY', '')
         self.openai_key = getattr(settings, 'OPENAI_API_KEY', '')
 
     def generate(self, dry_run=False, force_topic_type=None, force_keyword=None,
@@ -94,7 +93,7 @@ class BlogContentGenerator:
             existing_posts=existing_posts,
         )
 
-        response = self._call_claude(system_prompt, generation_prompt)
+        response = self._call_llm(system_prompt, generation_prompt)
         parsed = self._parse_response(response)
 
         # 6. Manejar imagen
@@ -390,33 +389,33 @@ Incluye al menos 2 enlaces internos de forma natural en el contenido.""")
 
         return "\n\n".join(parts)
 
-    def _call_claude(self, system_prompt, user_prompt):
-        """Llama a la API de Anthropic (Claude) para generar contenido."""
-        if not self.api_key:
+    def _call_llm(self, system_prompt, user_prompt):
+        """Llama a la API de OpenAI (GPT-4o) para generar contenido."""
+        if not self.openai_key:
             raise ValueError(
-                "ANTHROPIC_API_KEY no está configurado. "
-                "Agrega tu API key de Anthropic al .env"
+                "OPENAI_API_KEY no está configurado. "
+                "Agrega tu API key de OpenAI al .env"
             )
 
-        import anthropic
+        import openai
 
-        client = anthropic.Anthropic(api_key=self.api_key)
+        client = openai.OpenAI(api_key=self.openai_key)
 
-        logger.info("Llamando a Claude API para generar contenido...")
+        logger.info("Llamando a OpenAI API para generar contenido...")
 
-        message = client.messages.create(
-            model="claude-sonnet-4-20250514",
+        response = client.chat.completions.create(
+            model="gpt-4o",
             max_tokens=4096,
             temperature=0.7,
-            system=system_prompt,
             messages=[
-                {"role": "user", "content": user_prompt}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
             ],
         )
 
-        response_text = message.content[0].text
-        logger.info(f"Respuesta recibida de Claude ({message.usage.input_tokens} in, "
-                     f"{message.usage.output_tokens} out)")
+        response_text = response.choices[0].message.content
+        logger.info(f"Respuesta recibida de OpenAI ({response.usage.prompt_tokens} in, "
+                     f"{response.usage.completion_tokens} out)")
 
         return response_text
 
