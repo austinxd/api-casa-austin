@@ -225,7 +225,7 @@ class ChatbotConfiguration(BaseModel):
         max_length=50, default='gpt-4o-mini'
     )
     temperature = models.FloatField(default=0.7)
-    max_tokens_per_response = models.PositiveIntegerField(default=500)
+    max_tokens_per_response = models.PositiveIntegerField(default=700)
     ai_auto_resume_minutes = models.PositiveIntegerField(
         default=30,
         help_text="Minutos para reactivar IA automáticamente tras pausa"
@@ -512,6 +512,32 @@ class PromoBirthdaySent(BaseModel):
 
     def __str__(self):
         return f"Promo cumpleaños a {self.client} - {self.year} ({self.status})"
+
+
+class ChatAnalysisCheckpoint(BaseModel):
+    """Checkpoint (watermark) para análisis incremental de conversaciones.
+    Guarda hasta dónde se revisó en el último análisis."""
+
+    last_analyzed_message_id = models.PositiveIntegerField(
+        help_text="ID numérico del último mensaje analizado"
+    )
+    last_analyzed_session_id = models.PositiveIntegerField(
+        help_text="ID numérico de la última sesión analizada"
+    )
+    last_analyzed_at = models.DateTimeField(
+        help_text="Timestamp del análisis"
+    )
+    total_sessions_analyzed = models.PositiveIntegerField(default=0)
+    total_messages_analyzed = models.PositiveIntegerField(default=0)
+    notes = models.TextField(blank=True, default='')
+
+    class Meta:
+        verbose_name = '📌 Checkpoint de Análisis'
+        verbose_name_plural = '📌 Checkpoints de Análisis'
+        ordering = ['-last_analyzed_at']
+
+    def __str__(self):
+        return f"Checkpoint {self.last_analyzed_at:%Y-%m-%d %H:%M} — {self.total_sessions_analyzed} sesiones"
 
 
 class ChatAnalytics(BaseModel):

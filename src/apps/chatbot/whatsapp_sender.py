@@ -1,5 +1,6 @@
 import os
 import re
+import time
 import requests
 import logging
 
@@ -24,15 +25,32 @@ class WhatsAppSender:
 
     def send_text_message(self, to, text):
         """
-        Envía un mensaje de texto simple.
+        Envía un mensaje de texto simple. Si el texto excede 4000 caracteres,
+        lo divide en chunks inteligentes para evitar truncamiento por Meta.
 
         Args:
             to: Número WhatsApp (formato 51XXXXXXXXX)
             text: Contenido del mensaje
 
         Returns:
-            str|None: wa_message_id del mensaje enviado
+            str|None: wa_message_id del último mensaje enviado
         """
+        if len(text) > 4000:
+            chunks = self._split_message(text, max_len=4000)
+            logger.info(f"Mensaje largo ({len(text)} chars) → {len(chunks)} chunks para {to}")
+            wa_message_id = None
+            for i, chunk in enumerate(chunks):
+                if i > 0:
+                    time.sleep(0.3)
+                wa_message_id = self._send_single_text(to, chunk)
+                if not wa_message_id:
+                    logger.error(f"Falló chunk {i+1}/{len(chunks)} para {to}")
+            return wa_message_id
+
+        return self._send_single_text(to, text)
+
+    def _send_single_text(self, to, text):
+        """Envía un único mensaje de texto por WhatsApp Cloud API."""
         payload = {
             'messaging_product': 'whatsapp',
             'recipient_type': 'individual',
@@ -55,6 +73,54 @@ class WhatsAppSender:
         except requests.exceptions.RequestException as e:
             logger.error(f"Error enviando WhatsApp a {to}: {e}")
             return None
+
+    @staticmethod
+    def _split_message(text, max_len=4000):
+        """Divide texto largo en chunks respetando párrafos y líneas.
+
+        Estrategia:
+        1. Dividir por párrafos (\\n\\n), manteniendo cada chunk ≤ max_len
+        2. Si un párrafo solo excede max_len, dividir por líneas (\\n)
+        3. Si una línea sola excede max_len, cortar por max_len
+        """
+        paragraphs = text.split('\n\n')
+        chunks = []
+        current = ''
+
+        for para in paragraphs:
+            candidate = (current + '\n\n' + para) if current else para
+
+            if len(candidate) <= max_len:
+                current = candidate
+            else:
+                # El párrafo no cabe con el chunk actual
+                if current:
+                    chunks.append(current)
+                    current = ''
+
+                # ¿El párrafo solo cabe?
+                if len(para) <= max_len:
+                    current = para
+                else:
+                    # Dividir el párrafo por líneas
+                    lines = para.split('\n')
+                    for line in lines:
+                        candidate = (current + '\n' + line) if current else line
+                        if len(candidate) <= max_len:
+                            current = candidate
+                        else:
+                            if current:
+                                chunks.append(current)
+                            # Si la línea sola excede, cortar por max_len
+                            while len(line) > max_len:
+                                chunks.append(line[:max_len])
+                                line = line[max_len:]
+                            current = line
+
+        if current:
+            chunks.append(current)
+
+        return chunks
 
     def send_interactive_buttons(self, to, body, buttons):
         """

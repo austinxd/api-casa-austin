@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import (
     ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics,
+    ChatAnalysisCheckpoint,
     PropertyVisit, PromoDateConfig, PromoDateSent,
     PromoBirthdayConfig, PromoBirthdaySent,
     ReviewRequestConfig, ReviewRequest,
@@ -80,6 +81,13 @@ class ReviewRequestAdmin(admin.ModelAdmin):
     search_fields = ['client__first_name', 'client__last_name', 'client__tel_number']
     readonly_fields = ['created', 'updated']
     date_hierarchy = 'created'
+
+
+@admin.register(ChatAnalysisCheckpoint)
+class ChatAnalysisCheckpointAdmin(admin.ModelAdmin):
+    list_display = ['last_analyzed_at', 'total_sessions_analyzed', 'total_messages_analyzed', 'notes']
+    readonly_fields = ['created', 'updated']
+    ordering = ['-last_analyzed_at']
 
 
 @admin.register(ChatAnalytics)

@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from apps.core.paginator import CustomPagination
 from .models import (
     ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics,
+    ChatAnalysisCheckpoint,
     PropertyVisit, PromoDateConfig, PromoDateSent, UnresolvedQuestion,
 )
 from .serializers import (
@@ -1168,3 +1169,63 @@ class UnresolvedQuestionUpdateView(APIView):
 
         question.save(update_fields=['status', 'resolution', 'updated'])
         return Response(UnresolvedQuestionSerializer(question).data)
+
+
+class ChatAnalysisCheckpointView(APIView):
+    """
+    GET  /analysis/checkpoint/ — Último checkpoint de análisis
+    POST /analysis/checkpoint/ — Crear nuevo checkpoint
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        checkpoint = ChatAnalysisCheckpoint.objects.filter(
+            deleted=False
+        ).order_by('-last_analyzed_at').first()
+
+        if not checkpoint:
+            return Response(
+                {'detail': 'No hay checkpoints registrados'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response({
+            'id': str(checkpoint.id),
+            'last_analyzed_message_id': checkpoint.last_analyzed_message_id,
+            'last_analyzed_session_id': checkpoint.last_analyzed_session_id,
+            'last_analyzed_at': checkpoint.last_analyzed_at.isoformat(),
+            'total_sessions_analyzed': checkpoint.total_sessions_analyzed,
+            'total_messages_analyzed': checkpoint.total_messages_analyzed,
+            'notes': checkpoint.notes,
+            'created': checkpoint.created.isoformat(),
+        })
+
+    def post(self, request):
+        last_message_id = request.data.get('last_message_id')
+        last_session_id = request.data.get('last_session_id')
+
+        if not last_message_id or not last_session_id:
+            return Response(
+                {'error': 'last_message_id y last_session_id son requeridos'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        checkpoint = ChatAnalysisCheckpoint.objects.create(
+            last_analyzed_message_id=last_message_id,
+            last_analyzed_session_id=last_session_id,
+            last_analyzed_at=timezone.now(),
+            total_sessions_analyzed=request.data.get('total_sessions_analyzed', 0),
+            total_messages_analyzed=request.data.get('total_messages_analyzed', 0),
+            notes=request.data.get('notes', ''),
+        )
+
+        return Response({
+            'id': str(checkpoint.id),
+            'last_analyzed_message_id': checkpoint.last_analyzed_message_id,
+            'last_analyzed_session_id': checkpoint.last_analyzed_session_id,
+            'last_analyzed_at': checkpoint.last_analyzed_at.isoformat(),
+            'total_sessions_analyzed': checkpoint.total_sessions_analyzed,
+            'total_messages_analyzed': checkpoint.total_messages_analyzed,
+            'notes': checkpoint.notes,
+            'created': checkpoint.created.isoformat(),
+        }, status=status.HTTP_201_CREATED)

@@ -622,6 +622,16 @@ class AIOrchestrator:
             "futuro son válidas."
         )
 
+        # Disambiguation de fechas consecutivas
+        context_parts.append(
+            "\n⚠️ FECHAS CONSECUTIVAS: Si el cliente dice 'el 30 y 31', "
+            "'15, 16 y 17', o similar, interpretar como rango de estadía: "
+            "check_in = primer día, check_out = último día + 1. "
+            "Ejemplo: '30 y 31 de marzo' → check_in=2026-03-30, check_out=2026-04-01 (2 noches). "
+            "'15, 16 y 17 de abril' → check_in=2026-04-15, check_out=2026-04-18 (3 noches). "
+            "NO interpretar como fechas sueltas separadas."
+        )
+
         # Reglas de interpretación de mensajes ambiguos
         context_parts.append(
             "\n⚠️ NÚMEROS SUELTOS EN MENSAJES:"
@@ -913,12 +923,30 @@ class AIOrchestrator:
         return ''.join(parts)
 
     @staticmethod
+    def _get_min_price_usd():
+        """Obtiene la menor tarifa base en USD de PropertyPricing."""
+        from apps.property.pricing_models import PropertyPricing
+        try:
+            from django.db.models import Min
+            result = PropertyPricing.objects.aggregate(
+                min_price=Min('weekday_low_season_usd')
+            )
+            price = result.get('min_price')
+            if price and price > 0:
+                return int(price)
+        except Exception:
+            pass
+        return 65  # fallback
+
+    @staticmethod
     def _guard_fabricated_prices(text, tool_calls_data):
         """Elimina precios fabricados cuando no se usó herramienta de precios.
 
         El modelo a veces inventa precios sin llamar check_availability.
         Esta guardia elimina esos precios para evitar desinformación.
         """
+        import random
+
         pricing_tools = {'check_availability', 'check_late_checkout'}
         if any(tc['name'] in pricing_tools for tc in tool_calls_data):
             return text
@@ -930,28 +958,54 @@ class AIOrchestrator:
 
         logger.warning("Fabricated prices detected — stripping (no pricing tool used)")
 
+        min_price = AIOrchestrator._get_min_price_usd()
+
         # Eliminar líneas que contienen precios fabricados
         lines = text.split('\n')
         cleaned = [line for line in lines if not price_re.search(line)]
         text = '\n'.join(cleaned).strip()
         text = re.sub(r'\n{3,}', '\n\n', text)
 
-        # Si la mayor parte del mensaje eran precios, reemplazar completo
-        if len(text.strip()) < 30:
-            return (
-                "Los precios van desde $65 por noche para 2 personas "
-                "(toda la casa) y varían según la fecha, temporada y "
-                "cantidad de personas 😊 ¿Para qué fechas y cuántas "
-                "personas necesitas? Te doy el precio exacto al instante 🏖️"
-            )
+        # Variaciones de fallback cuando casi todo el mensaje eran precios
+        fallback_variations = [
+            (
+                f"Nuestros precios arrancan desde ${min_price}/noche para 2 personas "
+                f"(toda la casa) y varían según la fecha, temporada y cantidad de personas 😊 "
+                f"¿Para qué fechas y cuántas personas necesitas? Te doy el precio exacto al instante 🏖️"
+            ),
+            (
+                f"Las tarifas van desde ${min_price} por noche para 2 personas y dependen "
+                f"de la fecha y el tamaño del grupo. Para darte el precio exacto, "
+                f"¿me confirmas tus fechas y cuántas personas serían? 😊"
+            ),
+            (
+                f"¡Con gusto te cotizo! Los precios parten desde ${min_price}/noche "
+                f"y cambian según fecha, temporada y número de personas. "
+                f"¿Qué fechas tienes en mente y cuántos serían? 🏖️"
+            ),
+        ]
 
-        # Si el mensaje no pide fechas, agregar redirect
+        if len(text.strip()) < 30:
+            return random.choice(fallback_variations)
+
+        # Si el mensaje no pide fechas, agregar redirect con variación
         if not any(w in text.lower() for w in ['fecha', 'cuándo', 'cuando', 'cuántas', 'cuantas']):
-            text += (
-                "\n\nLos precios van desde $65/noche y varían según fecha, "
-                "temporada y personas. ¿Me confirmas tus fechas y cuántas "
-                "personas serían? 😊"
-            )
+            redirect_variations = [
+                (
+                    f"\n\nLos precios van desde ${min_price}/noche y varían según fecha, "
+                    f"temporada y personas. ¿Me confirmas tus fechas y cuántas "
+                    f"personas serían? 😊"
+                ),
+                (
+                    f"\n\nPara darte el precio exacto necesito tus fechas y número de personas. "
+                    f"Las tarifas arrancan desde ${min_price}/noche 🏖️"
+                ),
+                (
+                    f"\n\nNuestras tarifas parten desde ${min_price}/noche. "
+                    f"¿Qué fechas y cuántas personas serían para cotizarte? 😊"
+                ),
+            ]
+            text += random.choice(redirect_variations)
 
         return text
 
