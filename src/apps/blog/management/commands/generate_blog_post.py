@@ -2,22 +2,26 @@
 Management command para generar blog posts con IA.
 
 Uso:
-    python manage.py generate_blog_post                          # auto (SC + fallback)
+    python manage.py generate_blog_post                          # genera siempre
     python manage.py generate_blog_post --dry-run                # preview sin crear nada
     python manage.py generate_blog_post --topic-type property    # forzar tipo
     python manage.py generate_blog_post --keyword "casa playa"   # forzar keyword
     python manage.py generate_blog_post --no-search-console      # solo templates
+    python manage.py generate_blog_post --auto                   # decide aleatoriamente (para cron diario)
 
-Cron recomendado (L/Mi/Vi a las 8am):
-    0 8 * * 1,3,5 cd /path/to/src && python manage.py generate_blog_post
+Cron recomendado (diario, el --auto decide si genera o no):
+    0 8 * * * cd /path/to/src && python manage.py generate_blog_post --auto
 """
 import json
+import random
+from datetime import timedelta
 
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 
 class Command(BaseCommand):
-    help = 'Genera un blog post con IA (Claude) como borrador'
+    help = 'Genera un blog post con IA como borrador'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -46,12 +50,63 @@ class Command(BaseCommand):
             action='store_true',
             help='No usar datos de Search Console (solo templates)',
         )
+        parser.add_argument(
+            '--auto',
+            action='store_true',
+            help='Modo automático: decide aleatoriamente si genera (3-4 posts/semana, sin patrón fijo)',
+        )
+
+    def _should_generate(self):
+        """
+        Decide si generar hoy basándose en:
+        - Probabilidad ~50% (3-4 de 7 días)
+        - Mínimo 24h desde el último post generado
+        - Máximo 3 días sin generar (fuerza generación)
+        - No generar domingos (baja actividad)
+        """
+        from apps.blog.models import BlogTopicPlan
+
+        now = timezone.now()
+
+        # No generar domingos
+        if now.weekday() == 6:
+            self.stdout.write("Domingo — descansando.")
+            return False
+
+        # Ver cuándo fue el último post generado
+        last = BlogTopicPlan.objects.order_by('-generated_at').first()
+        if last:
+            hours_since_last = (now - last.generated_at).total_seconds() / 3600
+
+            # Mínimo 24h entre posts
+            if hours_since_last < 24:
+                self.stdout.write(f"Último post hace {hours_since_last:.0f}h — muy pronto, saltando.")
+                return False
+
+            # Si pasaron más de 3 días, forzar generación
+            if hours_since_last > 72:
+                self.stdout.write(f"Último post hace {hours_since_last:.0f}h — forzando generación.")
+                return True
+
+        # Probabilidad base ~50% (ajustada para ~3.5 posts/semana sin domingos)
+        roll = random.random()
+        if roll < 0.55:
+            self.stdout.write(f"Hoy sí toca generar (roll={roll:.2f})")
+            return True
+        else:
+            self.stdout.write(f"Hoy no toca (roll={roll:.2f}) — saltando.")
+            return False
 
     def handle(self, *args, **options):
         dry_run = options['dry_run']
         topic_type = options['topic_type']
         keyword = options['keyword']
         use_sc = not options['no_search_console']
+        auto = options['auto']
+
+        # Modo auto: decidir si generar
+        if auto and not self._should_generate():
+            return
 
         if dry_run:
             self.stdout.write("Modo DRY RUN — no se creará nada\n")
