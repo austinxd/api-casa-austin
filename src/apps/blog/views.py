@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.db.models import Sum, Avg, Count
 from django.http import HttpResponse
 from django.utils import timezone
@@ -89,6 +91,12 @@ class SearchConsoleStatsView(APIView):
 
     def get(self, request):
         qs = SearchConsoleData.objects.filter(deleted=False)
+
+        # Filtro por días: ?days=7|30|90 (default: todos)
+        days = request.query_params.get('days')
+        if days and days.isdigit():
+            cutoff = timezone.now().date() - timedelta(days=int(days))
+            qs = qs.filter(date_range_end__gte=cutoff)
 
         if not qs.exists():
             return Response({
