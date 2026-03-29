@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.db import models
 from django.db.models import Sum, Avg, Count
 from django.http import HttpResponse
 from django.utils import timezone
@@ -92,11 +93,14 @@ class SearchConsoleStatsView(APIView):
     def get(self, request):
         qs = SearchConsoleData.objects.filter(deleted=False)
 
-        # Filtro por días: ?days=7|30|90 (default: todos)
-        days = request.query_params.get('days')
-        if days and days.isdigit():
-            cutoff = timezone.now().date() - timedelta(days=int(days))
-            qs = qs.filter(date_range_end__gte=cutoff)
+        # Límite de keywords/páginas: ?limit=15|30|50 (default: 15)
+        limit_param = request.query_params.get('limit', '15')
+        kw_limit = min(int(limit_param), 100) if limit_param.isdigit() else 15
+
+        # Filtro por mínimo de impresiones: ?min_imp=10|50|100
+        min_imp = request.query_params.get('min_imp', '0')
+        if min_imp.isdigit() and int(min_imp) > 0:
+            qs = qs.filter(impressions__gte=int(min_imp))
 
         if not qs.exists():
             return Response({
@@ -105,7 +109,14 @@ class SearchConsoleStatsView(APIView):
                 'top_pages': [],
                 'opportunities': [],
                 'last_synced': None,
+                'date_range': None,
             })
+
+        # Rango de fechas real de la data
+        date_info = qs.aggregate(
+            start=models.Min('date_range_start'),
+            end=models.Max('date_range_end'),
+        )
 
         # Totales
         totals = qs.aggregate(
@@ -117,25 +128,25 @@ class SearchConsoleStatsView(APIView):
         totals['avg_ctr'] = round(totals['avg_ctr'] or 0, 2)
         totals['avg_position'] = round(totals['avg_position'] or 0, 1)
 
-        # Top 15 keywords por impresiones
+        # Top keywords por impresiones
         top_keywords = list(
             qs.order_by('-impressions').values(
                 'query', 'clicks', 'impressions', 'ctr', 'position'
-            )[:15]
+            )[:kw_limit]
         )
 
-        # Top 10 páginas por clicks
+        # Top páginas por clicks
         top_pages = list(
             qs.exclude(page_url='').values('page_url')
             .annotate(clicks=Sum('clicks'), impressions=Sum('impressions'))
-            .order_by('-clicks')[:10]
+            .order_by('-clicks')[:kw_limit]
         )
 
         # Oportunidades: alta impresión + bajo CTR (posición > 10 = margen de mejora)
         opportunities = list(
             qs.filter(impressions__gte=100, ctr__lt=2.0, position__gt=10)
             .order_by('-impressions')
-            .values('query', 'impressions', 'ctr', 'position')[:10]
+            .values('query', 'impressions', 'ctr', 'position')[:kw_limit]
         )
 
         last_synced = qs.order_by('-synced_at').values_list('synced_at', flat=True).first()
@@ -146,6 +157,10 @@ class SearchConsoleStatsView(APIView):
             'top_pages': top_pages,
             'opportunities': opportunities,
             'last_synced': last_synced,
+            'date_range': {
+                'start': date_info['start'],
+                'end': date_info['end'],
+            } if date_info['start'] else None,
         })
 
 
