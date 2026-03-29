@@ -1,12 +1,14 @@
+from django.db.models import Sum, Avg, Count
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import api_view, permission_classes as perm_classes, action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.core.paginator import CustomPagination
-from .models import BlogCategory, BlogPost
+from .models import BlogCategory, BlogPost, SearchConsoleData
 from .serializers import (
     BlogCategorySerializer,
     BlogPostListSerializer,
@@ -79,6 +81,64 @@ class BlogPostAdminViewSet(viewsets.ModelViewSet):
         post.published_date = None
         post.save(update_fields=['status', 'published_date'])
         return Response(BlogPostAdminSerializer(post, context={'request': request}).data)
+
+
+class SearchConsoleStatsView(APIView):
+    """Estadísticas agregadas de Search Console para el dashboard."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        qs = SearchConsoleData.objects.filter(deleted=False)
+
+        if not qs.exists():
+            return Response({
+                'totals': {'clicks': 0, 'impressions': 0, 'avg_ctr': 0, 'avg_position': 0},
+                'top_keywords': [],
+                'top_pages': [],
+                'opportunities': [],
+                'last_synced': None,
+            })
+
+        # Totales
+        totals = qs.aggregate(
+            clicks=Sum('clicks'),
+            impressions=Sum('impressions'),
+            avg_ctr=Avg('ctr'),
+            avg_position=Avg('position'),
+        )
+        totals['avg_ctr'] = round(totals['avg_ctr'] or 0, 2)
+        totals['avg_position'] = round(totals['avg_position'] or 0, 1)
+
+        # Top 15 keywords por impresiones
+        top_keywords = list(
+            qs.order_by('-impressions').values(
+                'query', 'clicks', 'impressions', 'ctr', 'position'
+            )[:15]
+        )
+
+        # Top 10 páginas por clicks
+        top_pages = list(
+            qs.exclude(page_url='').values('page_url')
+            .annotate(clicks=Sum('clicks'), impressions=Sum('impressions'))
+            .order_by('-clicks')[:10]
+        )
+
+        # Oportunidades: alta impresión + bajo CTR (posición > 10 = margen de mejora)
+        opportunities = list(
+            qs.filter(impressions__gte=100, ctr__lt=2.0, position__gt=10)
+            .order_by('-impressions')
+            .values('query', 'impressions', 'ctr', 'position')[:10]
+        )
+
+        last_synced = qs.order_by('-synced_at').values_list('synced_at', flat=True).first()
+
+        return Response({
+            'totals': totals,
+            'top_keywords': top_keywords,
+            'top_pages': top_pages,
+            'opportunities': opportunities,
+            'last_synced': last_synced,
+        })
 
 
 @api_view(['GET'])
