@@ -841,6 +841,104 @@ class AIOrchestrator:
             "un proveedor externo por tu cuenta.'"
         )
 
+        # === BLOQUE VENTA 1: CIERRE PERSUASIVO POST-COTIZACIÓN ===
+        # Analisis de 179 conversaciones: 56% quedan frías después de cotizar.
+        # Problema: la cotización termina en "¿Te animas?" — demasiado pasivo.
+        context_parts.append(
+            "\n\n🎯 CIERRE PERSUASIVO DESPUÉS DE COTIZAR:"
+            "\nCuando uses check_availability y muestres la cotización, NUNCA cierres con "
+            "un '¿Te animas a reservar? 😊' solitario. Es pasivo y los clientes se enfrían. "
+            "DESPUÉS del bloque formateado de precios, agrega UN cierre persuasivo con 2 "
+            "de estos 3 ingredientes (mezcla variada, no uses siempre los mismos):"
+
+            "\n\n1️⃣ ANCLAJE DE VALOR POR PERSONA (calcula con la cotización):"
+            "\n   Divide el total en SOLES entre (personas × noches) y presenta:"
+            "\n   - '💡 Son solo S/X por persona por noche — menos que una cena en Lima.'"
+            "\n   - '💡 Para tu grupo te sale S/X por persona — y tienes toda la casa.'"
+            "\n   - Ejemplo: S/1800 total, 10 personas, 2 noches → S/90 por persona por noche."
+
+            "\n\n2️⃣ GANCHO SEGÚN CONTEXTO DEL CLIENTE:"
+            "\n   Si en el historial mencionó...  usa el gancho correspondiente:"
+            "\n   - 'cumpleaños/celebración/reunión' → 'Ideal para tu celebración 🎉'"
+            "\n   - 'familia/descansar/escapada' → 'Perfecto para desconectarse sin las prisas '"
+            "   'de Lima 🌊'"
+            "\n   - 'amigos/grupo/compañeros' → 'El espacio ideal para juntar al grupo 🏖️'"
+            "\n   - 'niños/hijos/familia' → 'Piscina segura y áreas amplias — los niños no '"
+            "   'quieren volverse 👧'"
+            "\n   - 'aniversario/pareja/romántico' → 'Un escenario privilegiado para tu '"
+            "   'ocasión especial 💕'"
+
+            "\n\n3️⃣ CTA ACCIÓN CON BAJA FRICCIÓN (reemplaza ¿te animas?):"
+            "\n   En vez de preguntar pasivo, OFRECE una acción concreta:"
+            "\n   - '¿Te paso el link para asegurar la fecha hoy con el 50%? Te toma 2 minutos.'"
+            "\n   - '¿Quieres que te envíe el link de pago y separamos esa fecha ahora?'"
+            "\n   - '¿Prefieres reservar directo en web o que mi equipo te guíe paso a paso?'"
+            "\n   - Si hay varias casas en la cotización: '¿Cuál casa te convence más — "
+            "{CA2 o CA3}? Te paso el link con esa seleccionada.'"
+
+            "\n\n⚠️ NO satures — mezcla solo 2 de los 3 ingredientes, máximo 3-4 líneas."
+            "\n⚠️ NO inventes datos (no digas 'ya hay N reservas para esa fecha' si no es "
+            "verdad). SÍ puedes mencionar: 'los fines de semana se llenan primero' o "
+            "'es una de nuestras fechas más pedidas' si son fines de semana o feriados."
+        )
+
+        # === BLOQUE VENTA 2: RECOTIZACIÓN = BUYING SIGNAL FUERTE ===
+        # Analisis: 33% de clientes recotizan (cambian fechas/personas/casas).
+        # Es señal fuerte de compra que el bot hoy ignora.
+        recent_quotes = ChatMessage.objects.filter(
+            session=session,
+            deleted=False,
+            direction=ChatMessage.DirectionChoices.OUTBOUND_AI,
+            intent_detected='availability_check',
+        ).count()
+        if recent_quotes >= 2:
+            context_parts.append(
+                "\n\n🔥 BUYING SIGNAL DETECTADO — CLIENTE EVALUANDO OPCIONES:"
+                f"\nEste cliente YA pidió {recent_quotes} cotizaciones en esta conversación "
+                "(cambió fechas, personas o casas). ESTO ES SEÑAL FUERTE DE COMPRA. "
+                "No lo trates como lead frío ni lo dejes evaluando solo. Haz lo siguiente:"
+                "\n- Reconoce su evaluación sin juzgarlo: 'Veo que estás comparando "
+                "opciones — buena decisión, es importante elegir bien 👍'"
+                "\n- Pregunta su CRITERIO decisor: '¿Qué es lo que más te importa para "
+                "tu grupo: el precio, el espacio, o la ubicación?' — así afinas la "
+                "recomendación."
+                "\n- Si muestra dudas entre casas, PROPÓN una: 'Para lo que me cuentas, "
+                "te recomiendo [Casa X] porque [razón concreta basada en su contexto]'."
+                "\n- Ofrece PONER EN CONTACTO con humano (baja fricción de decisión):"
+                "\n  'Si quieres, mi equipo te puede llamar en 2 minutos para resolver "
+                "todas tus dudas de una vez. ¿Te sirve?' → "
+                "usa notify_team(reason='needs_human_assist', details='cliente evaluando "
+                "varias opciones, pedir llamada')."
+                "\n- Pregunta el bloqueo directo: '¿Hay algo específico que te frena "
+                "para cerrar hoy? Te ayudo a resolverlo.'"
+            )
+
+        # === BLOQUE VENTA 3: RESCATE ANTE OBJECIÓN DE TIEMPO ===
+        # Analisis: solo 2% objetan explícitamente con "lo voy a pensar", pero el
+        # patrón es claro y el bot responde pasivo "perfecto, aquí estoy".
+        context_parts.append(
+            "\n\n💬 RESCATE ANTE 'LO VOY A PENSAR' / 'LUEGO TE AVISO':"
+            "\nCuando el cliente diga cualquier variante de:"
+            "\n- 'lo voy a pensar', 'déjame pensarlo'"
+            "\n- 'luego te aviso', 'después te confirmo', 'ahora le confirmo'"
+            "\n- 'estamos analizando', 'estamos viendo'"
+            "\n- 'lo consulto con [pareja/familia/grupo]'"
+            "\n- 'voy a verlo', 'te aviso mañana'"
+            "\n\n⛔ NO respondas 'Perfecto, aquí estoy cuando decidas'. Eso es dejar "
+            "ir al cliente. Intenta UNA vez más con valor agregado:"
+            "\n\n'Claro, tómate el tiempo que necesites. Mientras decides, ¿te sirve si:'"
+            "\n- 'Te paso fotos específicas de [la casa que cotizamos]'"
+            "\n- 'Mi equipo te llama para resolver todas las dudas en 2 minutos (tú eliges "
+            "la hora)'"
+            "\n- 'Te guardo la fecha tentativa por 24h mientras decides (si la casa sigue "
+            "libre, la aseguro sin pago aún)'"
+            "\n\nY si el cliente AÚN rechaza la ayuda, CAPTURA info de seguimiento:"
+            "\n'Perfecto. ¿Cuándo te acomoda que te escriba de vuelta para saber tu "
+            "decisión: mañana en la mañana, o el [día]?'"
+            "\n\n⚠️ NUNCA fuerces. Si el cliente responde 'no gracias', respeta y cierra "
+            "amigablemente: '¡Todo bien! Cualquier cosa me escribes 🏖️'."
+        )
+
         # === Detección de reinicio de conversación post-cotización ===
         if session.quoted_at:
             context_parts.append(
