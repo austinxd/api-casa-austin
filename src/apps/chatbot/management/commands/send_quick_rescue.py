@@ -73,6 +73,10 @@ class Command(BaseCommand):
             help='Solo muestra qué haría, sin enviar mensajes',
         )
         parser.add_argument(
+            '--force', action='store_true',
+            help='Ignora el check de horario Lima 8am-21pm (útil para pruebas)',
+        )
+        parser.add_argument(
             '--min-minutes', type=int, default=25,
             help='Edad mínima de la cotización en minutos (default 25)',
         )
@@ -83,6 +87,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         dry_run = options['dry_run']
+        force = options['force']
         min_minutes = options['min_minutes']
         max_minutes = options['max_minutes']
 
@@ -93,15 +98,17 @@ class Command(BaseCommand):
 
         now = timezone.now()
 
-        # Respetar horario Lima 8am-21pm
-        import pytz
-        lima_tz = pytz.timezone('America/Lima')
-        lima_hour = now.astimezone(lima_tz).hour
-        if lima_hour < 8 or lima_hour >= 21:
-            self.stdout.write(
-                f'Fuera de horario ({lima_hour}h Lima), saltando rescate rápido.'
-            )
-            return
+        # Respetar horario Lima 8am-21pm (salvo --force)
+        if not force:
+            import pytz
+            lima_tz = pytz.timezone('America/Lima')
+            lima_hour = now.astimezone(lima_tz).hour
+            if lima_hour < 8 or lima_hour >= 21:
+                self.stdout.write(
+                    f'Fuera de horario ({lima_hour}h Lima), saltando rescate rápido. '
+                    f'Usa --force para ignorar el check.'
+                )
+                return
 
         # Ventana: cotización entre `max_minutes` y `min_minutes` atrás
         quoted_before = now - timedelta(minutes=min_minutes)
