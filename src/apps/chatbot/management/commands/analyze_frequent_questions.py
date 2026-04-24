@@ -99,17 +99,27 @@ CLASSIFIER_SYSTEM_PROMPT = """Eres un analizador de conversaciones del chatbot d
 
 Tu tarea: leer una conversación WhatsApp entre un cliente y Valeria (asesora) e identificar SOLO las preguntas o consultas genuinas que hizo el cliente.
 
-IGNORA:
-- Saludos ("Hola", "Buenas tardes")
-- Confirmaciones ("sí", "ok", "listo", "gracias")
-- Datos que el cliente da como respuesta a preguntas del bot ("20 personas", "el 25 de abril")
-- Declaraciones sin intención de preguntar ("Estoy interesada", "Me animo")
-- Mensajes con typos ambiguos o muy cortos sin contexto
+IGNORA solo lo siguiente:
+- Saludos aislados sin contenido ("Hola" solo, "Buenas tardes" solo)
+- Confirmaciones o respuestas a Valeria ("sí", "ok", "listo", "gracias", "claro")
+- Datos que el cliente da como respuesta a preguntas del bot ("20 personas", "el 25 de abril", "casa 3")
+- Mensajes muy cortos sin contexto claro (emojis solos, "?")
 
-EXTRAE:
-- Preguntas explícitas ("¿Aceptan mascotas?", "¿Cuál es el precio?")
-- Consultas implícitas ("Quisiera información sobre la piscina", "Necesito saber el horario de ingreso")
-- Dudas que el cliente expresa sobre políticas, servicios o proceso
+EXTRAE (enfoque AGRESIVO — capturamos intención del cliente, no solo preguntas):
+1. Preguntas explícitas: "¿Aceptan mascotas?", "¿Cuál es el precio?"
+2. Consultas implícitas: "Quisiera información sobre la piscina", "Necesito saber el horario"
+3. EXPRESIONES DE INTENCIÓN (importantes — se consideran consulta):
+   - "Quisiera reservar" / "Quiero reservar una casa" → tema: cómo reservar
+   - "Me interesa conocer más sobre las casas" → tema: información general
+   - "Quiero información" / "Información por favor" → tema: información general
+   - "Necesito ayuda con casaaustin.pe" → tema: ayuda con sitio/reserva
+   - "Estoy interesada en alquilar" → tema: alquiler general
+   - "Busco una casa para..." → tema: búsqueda con contexto
+   Estas cuentan como "consulta" porque revelan duda del cliente.
+4. Dudas sobre políticas, servicios o proceso.
+
+La regla práctica: ¿el cliente está BUSCANDO una respuesta/información?
+Si sí → captúralo. Si solo está confirmando o respondiendo al bot → ignóralo.
 
 CATEGORÍAS DISPONIBLES:
 """ + "\n".join(f"- {k}: {v}" for k, v in CATEGORIES.items()) + """
