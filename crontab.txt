@@ -15,6 +15,9 @@ MANAGE=/srv/casaaustin/api-casa-austin/env/bin/python /srv/casaaustin/api-casa-a
 # Reactivar IA en sesiones pausadas - cada 5 min
 */5 * * * * $MANAGE resume_ai_sessions >> $PROJECT/logs/cron.log 2>&1
 
+# Rescate rápido 25-90min post-cotización - cada 15 min
+*/15 * * * * $MANAGE send_quick_rescue >> $PROJECT/logs/cron.log 2>&1
+
 # Follow-ups a conversaciones sin conversión - cada 2h (8am-10pm)
 0 8,10,12,14,16,18,20,22 * * * $MANAGE send_followups >> $PROJECT/logs/cron.log 2>&1
 
