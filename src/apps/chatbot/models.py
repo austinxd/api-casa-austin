@@ -258,7 +258,13 @@ class ChatbotConfiguration(BaseModel):
     )
     max_consecutive_ai_messages = models.PositiveIntegerField(
         default=10,
-        help_text="Máximo de respuestas IA consecutivas antes de escalar"
+        verbose_name="[⚠️ NO IMPLEMENTADO] Max respuestas IA consecutivas",
+        help_text=(
+            "⚠️ CAMPO NO IMPLEMENTADO ACTUALMENTE — el valor NO afecta el "
+            "comportamiento del chatbot. Ignorar hasta nuevo aviso. "
+            "Los guards determinísticos (escalation_keywords, callback_keywords, "
+            "ready_to_book, promise guard) se encargan del cierre automático."
+        ),
     )
 
     class Meta:
