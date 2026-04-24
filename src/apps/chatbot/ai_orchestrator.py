@@ -161,11 +161,19 @@ class AIOrchestrator:
                 model_used = 'error'
                 tokens = 0
 
+        # Guardia determinística: detectar intención de compra explícita en el mensaje
+        # entrante y forzar notify_team(ready_to_book) si el modelo no lo hizo.
+        self._force_ready_to_book_if_intent(session, inbound_message, tool_calls_data)
+
         # Sanitizar respuesta antes de enviar
         response_text = sanitize_response(response_text)
 
         # Guardia: eliminar precios fabricados si no se usó herramienta de precios
         response_text = self._guard_fabricated_prices(response_text, tool_calls_data)
+
+        # Inyector: si el turno llamó check_availability pero la respuesta no incluye
+        # la cotización formateada, inyectarla automáticamente.
+        response_text = self._inject_missing_quote(response_text, tool_calls_data)
 
         # Enviar por el canal correspondiente
         wa_message_id = None
@@ -176,6 +184,12 @@ class AIOrchestrator:
         # Detectar intención basada en herramientas usadas
         intent = self._detect_intent(tool_calls_data)
 
+        # Quitar campos _prefixed antes de persistir (uso solo in-memory)
+        tool_calls_for_db = [
+            {k: v for k, v in tc.items() if not k.startswith('_')}
+            for tc in tool_calls_data
+        ]
+
         ChatMessage.objects.create(
             session=session,
             direction=ChatMessage.DirectionChoices.OUTBOUND_AI,
@@ -184,7 +198,7 @@ class AIOrchestrator:
             wa_message_id=wa_message_id,
             ai_model=model_used,
             tokens_used=tokens,
-            tool_calls=tool_calls_data,
+            tool_calls=tool_calls_for_db,
             intent_detected=intent,
         )
 
@@ -288,6 +302,7 @@ class AIOrchestrator:
                     'name': func_name,
                     'arguments': arguments,
                     'result_preview': str(result)[:200],
+                    '_result_full': str(result),  # in-memory; no se persiste en BD
                 })
 
                 messages.append({
@@ -330,27 +345,51 @@ class AIOrchestrator:
         else:
             response_text = choice.message.content or ""
 
-            # Guardia: si el bot promete consultar/verificar pero no llamó herramientas,
+            # Guardia: si el bot promete consultar/verificar/escalar pero no llamó herramientas,
             # forzar una segunda llamada para que ejecute la acción prometida
-            promise_patterns = [
+            check_patterns = [
                 r'voy a (?:consultar|verificar|revisar|checar|buscar)',
                 r'(?:déjame|dejame|permíteme|permiteme) (?:consultar|verificar|revisar|checar|buscar)',
                 r'(?:por favor|espera|dame) un momento',
                 r'voy a (?:cotizar|revisar la disponibilidad)',
             ]
-            if any(re.search(p, response_text, re.IGNORECASE) for p in promise_patterns):
+            escalate_patterns = [
+                r'voy a (?:escalar|contactar|avisar|coordinar|transferir|derivar)',
+                r'(?:voy a|vamos a) (?:pedir|solicitar) que te (?:llamen|contacten)',
+                r'(?:te|lo) (?:voy a|vamos a) (?:contactar|llamar)',
+                r'en breve te (?:llamarán|contactarán|atenderán)',
+                r'nuestro equipo te (?:contactará|llamará|atenderá)',
+                r'lo escalo (?:de inmediato|al equipo|ahora)',
+            ]
+            promised_check = any(re.search(p, response_text, re.IGNORECASE) for p in check_patterns)
+            promised_escalate = any(re.search(p, response_text, re.IGNORECASE) for p in escalate_patterns)
+
+            if promised_check or promised_escalate:
                 logger.warning(
-                    f"Bot promised to check but made no tool call: {response_text[:100]}"
+                    f"Bot promised ({'escalate' if promised_escalate else 'check'}) "
+                    f"but made no tool call: {response_text[:100]}"
                 )
                 messages.append(choice.message)
-                messages.append({
-                    "role": "system",
-                    "content": (
+                if promised_escalate:
+                    guard_msg = (
+                        "⚠️ ERROR: Dijiste que ibas a escalar/contactar/avisar al equipo "
+                        "pero NO llamaste ninguna herramienta. DEBES llamar "
+                        "escalate_to_human() si el cliente necesita soporte humano, "
+                        "o notify_team(reason='needs_human_assist', details='...') "
+                        "o notify_team(reason='ready_to_book', details='...') si "
+                        "está listo para reservar. NO respondas con texto — ejecuta "
+                        "la acción que prometiste AHORA."
+                    )
+                else:
+                    guard_msg = (
                         "⚠️ ERROR: Dijiste que ibas a consultar/verificar algo pero NO "
                         "llamaste ninguna herramienta. DEBES usar check_availability() "
                         "o la herramienta correspondiente AHORA. NO respondas con texto — "
                         "ejecuta la acción que prometiste."
-                    ),
+                    )
+                messages.append({
+                    "role": "system",
+                    "content": guard_msg,
                 })
                 retry = client.chat.completions.create(
                     model=model,
@@ -407,6 +446,7 @@ class AIOrchestrator:
                         tool_calls_data.append({
                             'name': func_name, 'arguments': arguments,
                             'result_preview': str(result)[:200],
+                            '_result_full': str(result),
                         })
                         messages.append({
                             "role": "tool",
@@ -632,6 +672,16 @@ class AIOrchestrator:
             "NO interpretar como fechas sueltas separadas."
         )
 
+        # Día sin mes — debe preguntar antes de ejecutar tools
+        context_parts.append(
+            "\n⚠️ DÍA SIN MES: Si el cliente da un día de la semana o un número sin mes "
+            "(ej: 'sábado 16', 'el 5', 'el 20', 'este fin de semana'), "
+            "PREGUNTA EXPLÍCITAMENTE el mes ANTES de ejecutar check_calendar o "
+            "check_availability. NO asumas el mes actual ni el siguiente. "
+            "Ejemplo: cliente dice 'sábado 16 a domingo 17' → responde "
+            "'¿De qué mes serían esas fechas? Así te confirmo disponibilidad.'"
+        )
+
         # Reglas de interpretación de mensajes ambiguos
         context_parts.append(
             "\n⚠️ NÚMEROS SUELTOS EN MENSAJES:"
@@ -719,6 +769,43 @@ class AIOrchestrator:
             "\n- Si el cliente pregunta cuánto es en dólares desde soles, divide entre el tipo de cambio."
             "\n- SIEMPRE muestra ambas monedas cuando hagas conversiones. Ejemplo: '$100 equivale a S/380 al tipo de cambio actual.'"
         )
+
+        # === Reglas ANTI-ALUCINACIÓN (políticas no documentadas) ===
+        context_parts.append(
+            "\n\n🚫 POLÍTICAS QUE NO PUEDES INVENTAR:"
+            "\nNunca afirmes reglas, políticas o beneficios que no vengan explícitamente de "
+            "una herramienta o del contexto del sistema. En particular:"
+            "\n- MASCOTAS: NO afirmes que Casa Austin es pet-friendly ni inventes reglas "
+            "sobre mascotas (cargos, limpieza, tipos de animales). Si el cliente pregunta, "
+            "responde: 'Déjame confirmar la política de mascotas con el equipo' y llama "
+            "notify_team(reason='needs_human_assist', details='consulta política mascotas')."
+            "\n- DESCUENTOS: NO inventes porcentajes de descuento (15%, 20%, etc.) ni "
+            "promociones automáticas. Solo menciona descuentos validados por "
+            "validate_discount_code() o promos ya comunicadas en el historial."
+            "\n- REGLAS DE PRECIO: NUNCA afirmes 'el precio es el mismo para X personas' "
+            "o 'las tarifas no cambian si son menos de X'. SIEMPRE re-ejecuta "
+            "check_availability cuando cambie el número de personas. Los precios varían "
+            "con los guests."
+            "\n- POLÍTICAS DE CASA: eventos, ruido, fumadores, menores de edad, "
+            "horarios especiales — si no está en el contexto del sistema, di: "
+            "'Déjame confirmar esa política con el equipo' y escala con notify_team."
+            "\n- INVITADOS ADICIONALES / VISITAS DE DÍA: usa los datos del tool "
+            "check_availability (ya incluye la advertencia estándar). No inventes tarifas."
+        )
+
+        # === Detección de reinicio de conversación post-cotización ===
+        if session.quoted_at:
+            context_parts.append(
+                "\n\n🔁 CONVERSACIÓN EXISTENTE CON COTIZACIÓN PREVIA:"
+                "\nEste cliente YA recibió una cotización antes. Si el mensaje actual parece "
+                "un saludo genérico o reinicio ('Hola', 'Me interesa conocer más…', "
+                "'Quiero más información'), NO reinicies el funnel desde cero. En su lugar:"
+                "\n- Retoma el contexto: '¡Hola de nuevo! Retomando tu consulta anterior, "
+                "¿seguimos con la reserva o prefieres revisar otras fechas?'"
+                "\n- Si ya hubo intención de compra o link enviado, pregunta directamente: "
+                "'¿Necesitas ayuda para completar el pago o tienes alguna duda?'"
+                "\n- NO pidas fechas ni personas otra vez si ya están en el historial; úsalas."
+            )
 
         # === INSTRUCCIONES DINÁMICAS según estado de la conversación ===
         context_parts.append(self._build_sales_context(session, today))
@@ -939,21 +1026,220 @@ class AIOrchestrator:
         return 65  # fallback
 
     @staticmethod
+    def _extract_user_text(inbound_message):
+        if isinstance(inbound_message, ChatMessage):
+            return (inbound_message.content or '').strip()
+        return str(inbound_message or '').strip()
+
+    # Patrones de intención de compra explícita. Si el cliente escribe una de
+    # estas frases, forzamos notify_team(ready_to_book) aunque el modelo no lo
+    # haya hecho. Visto en producción: David Tafur ("aceptan tarjeta"),
+    # Ignacio Vidal ("Quiero pagar") — 0 notificaciones automáticas en 21 conv.
+    READY_TO_BOOK_PATTERNS = [
+        r'\bquiero\s+(?:pagar|reservar|confirmar|separar)\b',
+        r'\bdeseo\s+(?:pagar|reservar|confirmar|alquilar)\b',
+        r'\bme\s+anim[oa]\b',
+        r'\baceptan?\s+tarjeta\b',
+        r'\bc[oó]mo\s+(?:pago|reservo|hago\s+el\s+pago|hago\s+la\s+reserva)\b',
+        r'\benv[ií]a(?:me)?\s+(?:el\s+)?(?:link|enlace)',
+        r'\b(?:dame|p[aá]same|manda(?:me)?)\s+(?:el\s+)?(?:link|enlace)\b',
+        r'\blist[oa]\s+(?:para\s+)?(?:pagar|reservar)\b',
+        r'\bvamos\s+a\s+reservar\b',
+        r'\bya\s+voy\s+a\s+(?:pagar|reservar)\b',
+        r'\bnecesito\s+ayuda\s+(?:con|para)\s+(?:el\s+)?pago\b',
+    ]
+
+    def _force_ready_to_book_if_intent(self, session, inbound_message, tool_calls_data):
+        """Si el mensaje entrante contiene intención de compra explícita y el
+        modelo NO llamó notify_team(ready_to_book) ni escalate_to_human,
+        disparamos notify_team directamente para alertar al equipo."""
+        user_text = self._extract_user_text(inbound_message).lower()
+        if not user_text:
+            return
+
+        if not any(re.search(p, user_text) for p in self.READY_TO_BOOK_PATTERNS):
+            return
+
+        # ¿El modelo ya alertó?
+        already_alerted = False
+        for tc in tool_calls_data or []:
+            name = tc.get('name')
+            args = tc.get('arguments') or {}
+            if name == 'escalate_to_human':
+                already_alerted = True
+                break
+            if name == 'notify_team' and args.get('reason') in (
+                'ready_to_book', 'needs_human_assist'
+            ):
+                already_alerted = True
+                break
+        if already_alerted:
+            return
+
+        logger.warning(
+            f"ready_to_book intent detected in inbound but model did not notify_team. "
+            f"Forcing notify_team for session {session.id}. Text: {user_text[:100]}"
+        )
+        try:
+            executor = ToolExecutor(session)
+            result = executor.execute('notify_team', {
+                'reason': 'ready_to_book',
+                'details': f"Intención de compra detectada automáticamente: \"{user_text[:200]}\"",
+            })
+            tool_calls_data.append({
+                'name': 'notify_team',
+                'arguments': {'reason': 'ready_to_book', 'auto_triggered': True},
+                'result_preview': str(result)[:200],
+            })
+        except Exception as e:
+            logger.error(f"Error forcing notify_team: {e}", exc_info=True)
+
+    @staticmethod
+    def _inject_missing_quote(text, tool_calls_data):
+        """Si el turno ejecutó check_availability y la respuesta del modelo no
+        contiene el bloque formateado de cotización, lo inyecta directamente
+        desde el result_preview.
+
+        Visto en producción: Rosamia — el bot llamó check_availability y
+        respondió solo "¿Te animas a reservar? 😊" sin pegar la cotización.
+        """
+        if not text:
+            text = ''
+
+        # Marcadores del bloque de cotización (ver _check_availability en tool_executor)
+        has_price_block = (
+            ('PRECIO PARA' in text and 'PERSONA' in text)
+            or 'Late checkout disponible' in text
+        )
+        if has_price_block:
+            return text
+
+        # Buscar el último result completo de check_availability / check_late_checkout
+        quote_text = None
+        for tc in reversed(tool_calls_data or []):
+            name = tc.get('name')
+            if name not in ('check_availability', 'check_late_checkout'):
+                continue
+            full = tc.get('_result_full') or ''
+            if not full or 'BLOCKED' in full:
+                continue
+            # Solo inyectamos si el result parece realmente una cotización formateada
+            if 'PRECIO PARA' in full or 'Late checkout disponible' in full:
+                quote_text = full.strip()
+                break
+
+        if not quote_text:
+            return text
+
+        logger.warning(
+            "Model did not echo quote after check_availability — "
+            "injecting formatted quote automatically"
+        )
+
+        # Si el texto del modelo es muy corto (tipo "¿Te animas?"), lo usamos
+        # como pregunta de cierre después de la cotización. Si es largo,
+        # anteponemos la cotización y mantenemos el texto.
+        stripped = text.strip()
+        if len(stripped) < 80:
+            closer = stripped or "¿Te animas a reservar? 😊"
+            return f"{quote_text}\n\n{closer}"
+        return f"{quote_text}\n\n{stripped}"
+
+    @staticmethod
+    def _extract_numbers_from_tool_outputs(tool_calls_data):
+        """Extrae todos los números monetarios de los outputs de tools ejecutadas
+        en el turno actual. Se usa para whitelistar precios legítimos y evitar
+        falsos positivos del guard (p.ej. sumas de cotización + late checkout)."""
+        whitelist = set()
+        num_re = re.compile(r'\d[\d,]*(?:\.\d+)?')
+        for tc in tool_calls_data or []:
+            full = tc.get('_result_full') or tc.get('result_preview') or ''
+            for match in num_re.finditer(full):
+                raw = match.group(0)
+                # Normalizar (quitar comas, dejar punto decimal)
+                try:
+                    val = float(raw.replace(',', ''))
+                except ValueError:
+                    continue
+                if val >= 10:  # ignora dígitos pequeños (1, 2, 3 personas, etc.)
+                    whitelist.add(round(val, 2))
+                    # También sin decimales para que $370.00 matchee $370
+                    whitelist.add(round(val))
+        return whitelist
+
+    @staticmethod
+    def _price_in_whitelist(price_str, whitelist):
+        """Devuelve True si el precio string está en la whitelist (con tolerancia
+        a decimales y sumas aproximadas)."""
+        raw = re.sub(r'[^\d.,]', '', price_str).replace(',', '')
+        try:
+            val = float(raw)
+        except ValueError:
+            return False
+        if round(val, 2) in whitelist or round(val) in whitelist:
+            return True
+        # Tolerancia: sumas de 2 elementos de la whitelist (ej. noche + late checkout)
+        vals = list(whitelist)
+        for i, a in enumerate(vals):
+            for b in vals[i:]:
+                if abs((a + b) - val) < 1.0:
+                    return True
+        return False
+
+    @staticmethod
     def _guard_fabricated_prices(text, tool_calls_data):
         """Elimina precios fabricados cuando no se usó herramienta de precios.
 
         El modelo a veces inventa precios sin llamar check_availability.
         Esta guardia elimina esos precios para evitar desinformación.
+
+        Excepción: si se usó una herramienta de precios en este turno, los
+        números que correspondan a outputs reales (o sumas razonables de ellos)
+        son válidos y NO se tachan. Esto evita el falso positivo donde el bot
+        suma cotización + late checkout (aritmética legítima).
         """
         import random
 
-        pricing_tools = {'check_availability', 'check_late_checkout'}
-        if any(tc['name'] in pricing_tools for tc in tool_calls_data):
-            return text
+        pricing_tools = {'check_availability', 'check_late_checkout', 'get_pricing_table'}
+        used_pricing = any(tc.get('name') in pricing_tools for tc in tool_calls_data or [])
 
         # Detectar montos en $ o S/ (con o sin comas/puntos de miles, mínimo 2 dígitos)
         price_re = re.compile(r'(?:\$|S/\.?)\s*\d[\d,]*\d(?:\.\d+)?')
         if not price_re.search(text):
+            return text
+
+        # Si se usó herramienta de precios, whitelistar los números del output y
+        # solo tachar precios que NO estén en esa lista (ni sumas razonables).
+        if used_pricing:
+            whitelist = AIOrchestrator._extract_numbers_from_tool_outputs(tool_calls_data)
+            if whitelist:
+                bad_prices = [
+                    m.group(0) for m in price_re.finditer(text)
+                    if not AIOrchestrator._price_in_whitelist(m.group(0), whitelist)
+                ]
+                if not bad_prices:
+                    # Todos los precios son legítimos → no tocar el texto
+                    return text
+                logger.warning(
+                    f"Partial price guard: found {len(bad_prices)} prices "
+                    f"outside tool-output whitelist: {bad_prices[:3]}"
+                )
+                # Tachar solo líneas con precios no whitelistados
+                lines = text.split('\n')
+                cleaned_lines = []
+                for line in lines:
+                    bad_in_line = any(
+                        not AIOrchestrator._price_in_whitelist(m.group(0), whitelist)
+                        for m in price_re.finditer(line)
+                    )
+                    has_price = bool(price_re.search(line))
+                    if has_price and bad_in_line:
+                        continue  # Drop la línea
+                    cleaned_lines.append(line)
+                text = '\n'.join(cleaned_lines).strip()
+                text = re.sub(r'\n{3,}', '\n\n', text)
+                return text or ""
+            # Si se usó tool pero no extrajimos nada, ser conservador y no tachar
             return text
 
         logger.warning("Fabricated prices detected — stripping (no pricing tool used)")

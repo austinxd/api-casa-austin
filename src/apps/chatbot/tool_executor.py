@@ -203,9 +203,16 @@ TOOL_DEFINITIONS = [
         "function": {
             "name": "check_late_checkout",
             "description": (
-                "Consulta precio y disponibilidad de late checkout (salida tardía hasta las 8PM). "
-                "Requiere el nombre de la propiedad y la fecha de checkout. "
-                "El precio es DINÁMICO y depende del día de la semana y disponibilidad. "
+                "Consulta precio de late checkout (salida tardía hasta las 8PM). "
+                "⚠️ El late checkout es una EXTENSIÓN de una reserva o cotización existente — "
+                "NUNCA una cotización independiente. El backend toma automáticamente "
+                "property, guests y checkout_date de la reserva activa del cliente o de la "
+                "última cotización de la sesión. "
+                "PRE-REQUISITO: debe existir previamente una reserva del cliente o una "
+                "cotización (check_availability) en la conversación. Si no hay ninguna, "
+                "PRIMERO cotiza con check_availability. "
+                "Los argumentos son hints opcionales; si se pasan pero no coinciden con el "
+                "contexto, se ignoran y se usa el contexto como fuente de verdad. "
                 "NUNCA inventes el precio — SIEMPRE usa esta herramienta cuando el cliente pregunte por late checkout."
             ),
             "parameters": {
@@ -213,18 +220,18 @@ TOOL_DEFINITIONS = [
                 "properties": {
                     "property_name": {
                         "type": "string",
-                        "description": "Nombre de la propiedad (ej: Casa Austin 2)"
+                        "description": "(Opcional) Nombre de propiedad solo como hint — el backend usa la del contexto."
                     },
                     "checkout_date": {
                         "type": "string",
-                        "description": "Fecha de checkout en formato YYYY-MM-DD"
+                        "description": "(Opcional) Fecha checkout solo como hint — el backend usa la del contexto."
                     },
                     "guests": {
                         "type": "integer",
-                        "description": "Número de huéspedes (por defecto 1)"
+                        "description": "(Opcional) Guests solo como hint — el backend usa el de la reserva/cotización del contexto."
                     }
                 },
-                "required": ["property_name", "checkout_date"]
+                "required": []
             }
         }
     },
@@ -377,12 +384,25 @@ class ToolExecutor:
 
         today = date.today()
 
+        # Guard: si no viene ninguna fecha, rechazar con instrucción al modelo.
+        # Visto en producción (Ricardo Vasquez): el bot llamó check_calendar
+        # sin fechas en los primeros turnos, gastando tokens sin valor.
+        if not from_date and not to_date:
+            return (
+                "⚠️ BLOQUEADO: check_calendar requiere al menos una fecha (from_date). "
+                "PRIMERO pregúntale al cliente: '¿Para qué fechas te gustaría alquilar?'. "
+                "NO ejecutes check_calendar sin fechas."
+            )
+
         # Parsear fechas
         if from_date:
             try:
                 start = datetime.strptime(from_date, '%Y-%m-%d').date()
             except ValueError:
-                start = today
+                return (
+                    "⚠️ BLOQUEADO: from_date no tiene formato YYYY-MM-DD válido. "
+                    "Pídele al cliente una fecha clara (día y mes)."
+                )
         else:
             start = today
 
@@ -1178,25 +1198,127 @@ class ToolExecutor:
             f"El equipo de Casa Austin confirmará tu visita pronto."
         )
 
-    def _check_late_checkout(self, property_name, checkout_date, guests=1):
-        """Consulta precio y disponibilidad de late checkout."""
+    def _check_late_checkout(self, property_name=None, checkout_date=None, guests=None):
+        """Consulta precio y disponibilidad de late checkout.
+
+        REGLA DE NEGOCIO: el late checkout es una EXTENSIÓN de una reserva o
+        cotización existente. Por tanto `property` y `guests` DEBEN venir del
+        contexto (reserva activa del cliente o último check_availability de la
+        sesión), NO de lo que el modelo proponga. Los argumentos del modelo
+        se usan solo como hint/verificación.
+
+        Resolución en orden:
+          1. Reserva activa aprobada del cliente vinculado (property + guests).
+          2. Último check_availability de la sesión (property + guests + checkout).
+          3. Si nada existe → error: el cliente debe cotizar primero.
+        """
         from apps.property.models import Property
         from apps.property.pricing_service import PricingCalculationService
 
-        try:
-            checkout_dt = datetime.strptime(checkout_date, '%Y-%m-%d').date()
-        except ValueError:
-            return "Error: formato de fecha inválido. Usar YYYY-MM-DD"
+        # --- Resolver contexto: reserva activa del cliente ---
+        ctx_property = None
+        ctx_guests = None
+        ctx_checkout = None
+        ctx_source = None
 
-        prop = Property.objects.filter(
-            name__icontains=property_name, deleted=False
-        ).first()
+        if self.session and self.session.client:
+            from apps.reservation.models import Reservation
+            today = date.today()
+            active_res = Reservation.objects.filter(
+                client=self.session.client,
+                check_out_date__gte=today,
+                status='approved',
+                deleted=False,
+            ).order_by('check_in_date').first()
+            if active_res:
+                ctx_property = active_res.property
+                ctx_guests = active_res.guests
+                ctx_checkout = active_res.check_out_date
+                ctx_source = 'active_reservation'
+
+        # --- Fallback: último check_availability de la sesión ---
+        if not ctx_property or not ctx_guests:
+            hist = self._recover_last_availability_context()
+            if hist:
+                if not ctx_property:
+                    hist_prop_name = hist.get('property_name')
+                    if hist_prop_name:
+                        ctx_property = Property.objects.filter(
+                            name__icontains=hist_prop_name, deleted=False
+                        ).first()
+                if not ctx_guests and hist.get('guests'):
+                    ctx_guests = int(hist['guests'])
+                if not ctx_checkout and hist.get('check_out'):
+                    try:
+                        ctx_checkout = datetime.strptime(hist['check_out'], '%Y-%m-%d').date()
+                    except ValueError:
+                        pass
+                ctx_source = ctx_source or 'last_check_availability'
+
+        # --- Si el modelo pasó property_name explícito pero no hay contexto,
+        # y NO hay reserva ni cotización previa, bloquear. ---
+        if not ctx_property and not ctx_guests:
+            return (
+                "⚠️ BLOQUEADO: No se puede cotizar late checkout sin una reserva "
+                "o cotización previa en esta conversación. El late checkout es "
+                "una extensión de una reserva existente. "
+                "PRIMERO cotiza con check_availability o verifica la reserva activa "
+                "del cliente, luego ofrece el late checkout."
+            )
+
+        # --- Si el modelo pasó property_name pero NO coincide con el contexto,
+        # lo sobrescribimos con el del contexto (fuente de verdad). ---
+        model_prop = None
+        if property_name:
+            model_prop = Property.objects.filter(
+                name__icontains=property_name, deleted=False
+            ).first()
+
+        prop = ctx_property or model_prop
         if not prop:
-            return f"No se encontró propiedad con nombre '{property_name}'"
+            return (
+                f"No se encontró propiedad. Cotiza primero con check_availability."
+            )
+
+        if (model_prop and ctx_property
+                and model_prop.id != ctx_property.id):
+            logger.warning(
+                f"check_late_checkout: modelo pasó property='{property_name}' "
+                f"pero contexto indica '{ctx_property.name}' (source={ctx_source}). "
+                f"Usando la del contexto."
+            )
+
+        # --- Resolver checkout_date: contexto > argumento del modelo ---
+        checkout_dt = None
+        if ctx_checkout:
+            checkout_dt = ctx_checkout
+        elif checkout_date:
+            try:
+                checkout_dt = datetime.strptime(checkout_date, '%Y-%m-%d').date()
+            except ValueError:
+                return "Error: formato de fecha inválido. Usar YYYY-MM-DD"
+        else:
+            return (
+                "⚠️ BLOQUEADO: No hay fecha de checkout en el contexto ni en los "
+                "argumentos. El cliente debe tener una reserva o cotización previa."
+            )
+
+        # --- Resolver guests: contexto SIEMPRE gana sobre lo que pase el modelo ---
+        final_guests = ctx_guests
+        if guests and ctx_guests and int(guests) != int(ctx_guests):
+            logger.warning(
+                f"check_late_checkout: modelo pasó guests={guests} pero contexto "
+                f"indica guests={ctx_guests} (source={ctx_source}). "
+                f"Usando el del contexto para coherencia con la reserva/cotización."
+            )
+        if not final_guests:
+            final_guests = int(guests) if guests and int(guests) >= 1 else 1
 
         service = PricingCalculationService()
         try:
-            result = service.calculate_late_checkout_pricing(prop, checkout_dt, int(guests))
+            result = service.calculate_late_checkout_pricing(
+                prop, checkout_dt, int(final_guests)
+            )
         except Exception as e:
             logger.error(f"Error en check_late_checkout: {e}", exc_info=True)
             return f"Error consultando late checkout: {str(e)}"
@@ -1204,7 +1326,8 @@ class ToolExecutor:
         if not result.get('is_available'):
             message = result.get('message', 'Late checkout no disponible')
             return (
-                f"Late checkout no disponible para {prop.name} el {checkout_date}.\n"
+                f"Late checkout no disponible para {prop.name} el "
+                f"{checkout_dt.strftime('%Y-%m-%d')}.\n"
                 f"Motivo: {message}"
             )
 
@@ -1213,10 +1336,14 @@ class ToolExecutor:
         final_usd = result.get('late_checkout_price_usd', base_usd)
         final_sol = result.get('late_checkout_price_sol', base_sol)
         discount_pct = result.get('discount_percentage', 0)
+        guests_used = int(final_guests)
 
         text = (
             f"✅ *Late checkout disponible* — {prop.name}\n"
-            f"📅 Fecha: {checkout_date} ({result.get('checkout_day', '')})\n"
+            f"📅 Fecha: {checkout_dt.strftime('%Y-%m-%d')} "
+            f"({result.get('checkout_day', '')})\n"
+            f"👥 Para {guests_used} persona{'s' if guests_used != 1 else ''} "
+            f"(de tu {'reserva' if ctx_source == 'active_reservation' else 'cotización'})\n"
             f"🕐 Salida extendida hasta las 8:00 PM\n"
         )
 
@@ -1232,6 +1359,31 @@ class ToolExecutor:
         text += "\n⚠️ El late checkout se solicita después de reservar, sujeto a disponibilidad."
 
         return text
+
+    def _recover_last_availability_context(self):
+        """Recupera property + guests + check_out del último check_availability
+        o check_late_checkout de la sesión. Se usa para mantener coherencia
+        entre cotización y late checkout (misma reserva = mismas personas)."""
+        from .models import ChatMessage
+        if not self.session:
+            return None
+        recent_ai = ChatMessage.objects.filter(
+            session=self.session,
+            deleted=False,
+            direction=ChatMessage.DirectionChoices.OUTBOUND_AI,
+        ).exclude(tool_calls=[]).order_by('-created')[:10]
+        for msg in recent_ai:
+            for tc in (msg.tool_calls or []):
+                if tc.get('name') in ('check_availability', 'check_late_checkout'):
+                    args = tc.get('arguments') or {}
+                    guests = args.get('guests')
+                    if guests and int(guests) >= 1:
+                        return {
+                            'property_name': args.get('property_name'),
+                            'guests': int(guests),
+                            'check_out': args.get('check_out') or args.get('checkout_date'),
+                        }
+        return None
 
     def _escalate_to_human(self, reason):
         """Escala la conversación a un agente humano"""

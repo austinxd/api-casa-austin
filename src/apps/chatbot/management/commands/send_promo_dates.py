@@ -276,12 +276,17 @@ class Command(BaseCommand):
 
             discount_pct = int(config.discount_config.discount_percentage)
 
+            # Primer nombre con fallback para evitar saludo vacío
+            client_fn = (client.first_name or '').split()[0] if client.first_name else ''
+            if not client_fn or client_fn.lower() in ('hola', 'hello', 'hi'):
+                client_fn = 'amig@'
+
             # Construir componentes del template
             components = [
                 {
                     'type': 'body',
                     'parameters': [
-                        {'type': 'text', 'text': client.first_name},
+                        {'type': 'text', 'text': client_fn},
                         {'type': 'text', 'text': fechas_str},
                         {'type': 'text', 'text': str(guests)},
                         {'type': 'text', 'text': casas_text},
@@ -555,8 +560,17 @@ class Command(BaseCommand):
 
                 discount_pct = int(config.discount_config.discount_percentage)
 
-                # Usar primer nombre del perfil WA o "Hola"
-                first_name = (contact_name or 'Hola').split()[0]
+                # Usar primer nombre del perfil WA. Si no hay nombre real o el
+                # perfil contiene literalmente "Hola" (evita "Hola Hola 👋"),
+                # intentar el first_name del cliente; sino usar placeholder neutro.
+                raw = (contact_name or '').strip()
+                first_name = raw.split()[0] if raw else ''
+                if not first_name or first_name.lower() in ('hola', 'hello', 'hi'):
+                    client_obj = session.client if session else None
+                    if client_obj and getattr(client_obj, 'first_name', None):
+                        first_name = client_obj.first_name.split()[0]
+                    else:
+                        first_name = 'amig@'
 
                 components = [
                     {
