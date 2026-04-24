@@ -519,16 +519,42 @@ class AIOrchestrator:
         # Mensaje actual
         messages.append({"role": "user", "content": msg_content})
 
-        # Consolidar mensajes consecutivos del mismo usuario
-        # (cuando el cliente envía ráfagas: "Hola" + "para el sábado" + "somos 10")
+        # Consolidar mensajes consecutivos del mismo usuario (ráfagas buffereadas).
+        # En vez de unir con "\n" (que el modelo nano tiende a ignorar y leer solo
+        # la última línea), marcamos explícitamente cada pieza y agregamos una
+        # nota para forzar al modelo a leerlas TODAS como una sola intención.
         consolidated = [messages[0]]  # system prompt
-        for msg in messages[1:]:
-            if (msg["role"] == "user"
-                    and consolidated
-                    and consolidated[-1]["role"] == "user"):
-                consolidated[-1]["content"] += "\n" + msg["content"]
+        burst_buffer = []  # acumulador temporal de mensajes consecutivos del user
+
+        def flush_burst():
+            """Combina los mensajes acumulados en un solo 'user' message con
+            marcadores explícitos si son 2 o más."""
+            if not burst_buffer:
+                return
+            if len(burst_buffer) == 1:
+                consolidated.append(burst_buffer[0])
             else:
+                lines = [
+                    f"[Mensaje {i+1}] {m['content']}"
+                    for i, m in enumerate(burst_buffer)
+                ]
+                combined = (
+                    "\n".join(lines)
+                    + "\n\n⚠️ NOTA: estos son mensajes consecutivos del cliente "
+                    "enviados en ráfaga (ej. mientras escribía en varios toques). "
+                    "Forman UNA sola intención — considera TODOS juntos, no solo "
+                    "el último."
+                )
+                consolidated.append({"role": "user", "content": combined})
+            burst_buffer.clear()
+
+        for msg in messages[1:]:
+            if msg["role"] == "user":
+                burst_buffer.append(msg)
+            else:
+                flush_burst()
                 consolidated.append(msg)
+        flush_burst()
 
         return consolidated
 
@@ -680,6 +706,28 @@ class AIOrchestrator:
             "check_availability. NO asumas el mes actual ni el siguiente. "
             "Ejemplo: cliente dice 'sábado 16 a domingo 17' → responde "
             "'¿De qué mes serían esas fechas? Así te confirmo disponibilidad.'"
+        )
+
+        # Mensajes agrupados (ráfagas buffereadas)
+        context_parts.append(
+            "\n⚠️ MENSAJES AGRUPADOS EN RÁFAGA: Cuando el último mensaje del usuario "
+            "contenga marcadores [Mensaje 1], [Mensaje 2], [Mensaje 3]…, significa "
+            "que el cliente envió varios mensajes cortos seguidos (por ejemplo: "
+            "'Del 29.04 al 01.05' + 'Somos 2 personas'). DEBES leer TODAS las líneas "
+            "como una sola intención combinada, NO responder solo a la última. "
+            "Ejemplos:"
+            "\n- '[Mensaje 1] Del 29 al 01 de mayo\\n[Mensaje 2] Somos 2 personas' "
+            "→ cotizar esas fechas para 2 personas. NO volver a preguntar las personas."
+            "\n- '[Mensaje 1] Pero para la casa Austin 1\\n[Mensaje 2] ??' "
+            "→ responder específicamente sobre Casa Austin 1 (cotizar esa casa si "
+            "ya tienes fechas+personas en el historial)."
+            "\n- '[Mensaje 1] Hola necesito ayuda con casaaustin.pe\\n[Mensaje 2] Buenas tardes' "
+            "→ ofrecer ayuda con el sitio/reserva, NO preguntar fechas."
+            "\n- '[Mensaje 1] 25 de abril 30 personas aprox\\n[Mensaje 2] Oh menos quizás' "
+            "→ reconocer la duda y preguntar '¿Entonces cuántas serían? Puedo cotizar "
+            "para 25, 30 o el número que me confirmes.' NO ignorar el '30'."
+            "\n⚠️ Si NO entiendes alguna parte del mensaje agrupado, pregúntalo "
+            "explícitamente en vez de ignorarlo."
         )
 
         # Reglas de interpretación de mensajes ambiguos
