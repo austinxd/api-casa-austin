@@ -165,6 +165,21 @@ class AIOrchestrator:
         # entrante y forzar notify_team(ready_to_book) si el modelo no lo hizo.
         self._force_ready_to_book_if_intent(session, inbound_message, tool_calls_data)
 
+        # Guardia determinística: detectar keywords configuradas en admin
+        # (escalation_keywords → pausa IA, callback_keywords → solo notifica).
+        # Puede pausar la sesión, lo cual hace que la próxima línea NO envíe.
+        pause_ai = self._force_escalation_if_keyword(
+            session, inbound_message, tool_calls_data
+        )
+        if pause_ai:
+            # La sesión fue escalada, el bot NO debe responder.
+            # Dejamos el mensaje del bot (si hubo) pero NO lo enviamos.
+            logger.info(
+                f"Session {session.id} escalated by keyword guard — "
+                f"AI response suppressed."
+            )
+            send_wa = False
+
         # Sanitizar respuesta antes de enviar
         response_text = sanitize_response(response_text)
 
@@ -1283,6 +1298,103 @@ class AIOrchestrator:
             })
         except Exception as e:
             logger.error(f"Error forcing notify_team: {e}", exc_info=True)
+
+    def _force_escalation_if_keyword(self, session, inbound_message, tool_calls_data):
+        """Detecta keywords configuradas en ChatbotConfiguration y dispara la
+        acción correspondiente.
+
+        - escalation_keywords (reclamos/quejas/emergencias): PAUSA la IA y
+          crea escalación con escalate_to_human.
+        - callback_keywords (pedidos de llamada, hablar con humano):
+          NOTIFICA al equipo pero la IA sigue respondiendo.
+
+        Returns:
+            bool: True si se PAUSÓ la IA (el caller debe evitar enviar la
+            respuesta del bot).
+        """
+        user_text = self._extract_user_text(inbound_message).lower().strip()
+        if not user_text:
+            return False
+
+        esc_list = [
+            k.lower() for k in (self.config.escalation_keywords or [])
+            if isinstance(k, str) and k.strip()
+        ]
+        cb_list = [
+            k.lower() for k in (getattr(self.config, 'callback_keywords', None) or [])
+            if isinstance(k, str) and k.strip()
+        ]
+
+        matched_esc = next((k for k in esc_list if k in user_text), None)
+        matched_cb = next((k for k in cb_list if k in user_text), None)
+
+        # Si ya se escaló o notificó en este turno (via tools del modelo), no duplicar
+        already_escalated = any(
+            tc.get('name') == 'escalate_to_human' for tc in (tool_calls_data or [])
+        )
+        already_notified = any(
+            tc.get('name') == 'notify_team'
+            and (tc.get('arguments') or {}).get('reason') in (
+                'needs_human_assist', 'ready_to_book'
+            )
+            for tc in (tool_calls_data or [])
+        )
+
+        # --- PRIORIDAD 1: ESCALATION (pausa IA) ---
+        if matched_esc and not already_escalated:
+            logger.warning(
+                f"Escalation keyword detected in session {session.id}: "
+                f"'{matched_esc}' — pausing AI and escalating."
+            )
+            try:
+                executor = ToolExecutor(session)
+                result = executor.execute('escalate_to_human', {
+                    'reason': (
+                        f"Keyword '{matched_esc}' detectada automáticamente. "
+                        f"Mensaje: \"{user_text[:200]}\""
+                    ),
+                })
+                tool_calls_data.append({
+                    'name': 'escalate_to_human',
+                    'arguments': {
+                        'reason': f"auto: keyword '{matched_esc}'",
+                        'auto_triggered': True,
+                    },
+                    'result_preview': str(result)[:200],
+                })
+                return True  # IA pausada
+            except Exception as e:
+                logger.error(f"Error forcing escalate_to_human: {e}", exc_info=True)
+                return False
+
+        # --- PRIORIDAD 2: CALLBACK (notifica, IA sigue) ---
+        if matched_cb and not already_notified:
+            logger.warning(
+                f"Callback keyword detected in session {session.id}: "
+                f"'{matched_cb}' — notifying team (AI continues)."
+            )
+            try:
+                executor = ToolExecutor(session)
+                result = executor.execute('notify_team', {
+                    'reason': 'needs_human_assist',
+                    'details': (
+                        f"Keyword '{matched_cb}' detectada automáticamente. "
+                        f"Cliente pide contacto humano. Mensaje: \"{user_text[:200]}\""
+                    ),
+                })
+                tool_calls_data.append({
+                    'name': 'notify_team',
+                    'arguments': {
+                        'reason': 'needs_human_assist',
+                        'auto_triggered': True,
+                        'matched_keyword': matched_cb,
+                    },
+                    'result_preview': str(result)[:200],
+                })
+            except Exception as e:
+                logger.error(f"Error forcing notify_team: {e}", exc_info=True)
+
+        return False
 
     @staticmethod
     def _inject_missing_quote(text, tool_calls_data):

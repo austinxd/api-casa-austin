@@ -242,7 +242,19 @@ class ChatbotConfiguration(BaseModel):
     )
     escalation_keywords = models.JSONField(
         default=list, blank=True,
-        help_text="Palabras clave que disparan escalación a humano"
+        help_text=(
+            "Palabras clave que PAUSAN la IA y escalan a humano "
+            "(usar para reclamos/quejas/emergencias). Lista de strings. "
+            "Match es case-insensitive por substring."
+        )
+    )
+    callback_keywords = models.JSONField(
+        default=list, blank=True,
+        help_text=(
+            "Palabras clave que NOTIFICAN al equipo pero la IA sigue respondiendo "
+            "(usar para pedidos de llamada). Lista de strings. "
+            "Match es case-insensitive por substring."
+        )
     )
     max_consecutive_ai_messages = models.PositiveIntegerField(
         default=10,
