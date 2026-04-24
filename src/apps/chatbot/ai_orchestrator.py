@@ -902,6 +902,50 @@ class AIOrchestrator:
             "alimentos ni chef. Las casas tienen cocina completa equipada para que "
             "puedas preparar tus propias comidas. Si necesitas, puedes contratar "
             "un proveedor externo por tu cuenta.'"
+
+            "\n\n💳 FLUJO DE PAGO Y CONFIRMACIÓN DE RESERVA:"
+            "\nCuando el cliente mencione que YA PAGÓ / YA DEPOSITÓ / YA TRANSFIRIÓ / "
+            "HIZO EL PAGO (ej: 'ya deposité', 'ya pagué', 'hice la transferencia', "
+            "'ya hice el pago', 'ya aboné'), sigue este protocolo EXACTO según el "
+            "método de pago:"
+
+            "\n\n🔹 PASO 1 — Si no sabes el método, pregúntalo ANTES de cualquier cosa:"
+            "\n   '¡Perfecto! ¿El pago fue con tarjeta o por transferencia bancaria?'"
+
+            "\n\n🔹 PASO 2A — Si fue TRANSFERENCIA:"
+            "\n   Indícale que debe SUBIR EL VOUCHER en la web para que el pago "
+            "quede registrado:"
+            "\n   'Genial. Para que la reserva quede registrada, necesitas subir el "
+            "voucher de la transferencia en casaaustin.pe (en tu reserva pendiente). "
+            "Una vez lo subas, nuestro equipo lo revisa y te confirmamos. "
+            "¿Ya lo subiste o necesitas ayuda?'"
+
+            "\n\n🔹 PASO 2B — Si fue TARJETA:"
+            "\n   Indícale que la reserva se aprueba automáticamente con tarjeta:"
+            "\n   '¡Perfecto! Los pagos con tarjeta se aprueban automáticamente. "
+            "Tu reserva debería quedar confirmada en unos minutos. Si no ves la "
+            "confirmación, avísame.'"
+
+            "\n\n🔹 PASO 3 — Si el cliente CONFIRMA que YA SUBIÓ EL VOUCHER "
+            "(ej: 'ya subí el voucher', 'ya lo cargué', 'ya subí el comprobante'):"
+            "\n   a) Dile al cliente que la reserva está pendiente de revisión y "
+            "que estás notificando al equipo:"
+            "\n      'Perfecto, gracias. Tu reserva queda pendiente de revisión — "
+            "estoy notificando al equipo ahora mismo para que revisen el pago. "
+            "Te avisaremos apenas esté confirmado. 🏖️'"
+            "\n   b) OBLIGATORIO: llama la herramienta "
+            "notify_team(reason='needs_human_assist', "
+            "details='Cliente indica que ya subió el voucher de transferencia. "
+            "Revisar pago en la plataforma y confirmar reserva.')"
+
+            "\n\n⚠️ REGLAS IMPORTANTES DE ESTE FLUJO:"
+            "\n- NO pidas al cliente que te envíe el voucher por WhatsApp — "
+            "DEBE subirlo en casaaustin.pe."
+            "\n- NO confirmes la reserva tú mismo tras el voucher — debe revisarla el equipo."
+            "\n- NO digas que 'está aprobada' — di 'pendiente de revisión'."
+            "\n- NO pauses la IA con escalate_to_human: usa notify_team (IA sigue)."
+            "\n- Si el cliente dice que pagó pero NO ha completado el paso del voucher "
+            "(transferencia), insiste amablemente hasta que lo suba."
         )
 
         # === BLOQUE VENTA 1: CIERRE PERSUASIVO POST-COTIZACIÓN ===
