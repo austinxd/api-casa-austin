@@ -1148,13 +1148,63 @@ class AIOrchestrator:
         is_new = msg_count <= 2
 
         if is_new:
-            # Primer contacto — modo bienvenida
-            parts.append(
-                "\n\nETAPA: PRIMER CONTACTO"
-                "\n- Dale la bienvenida cálida y pregunta por sus fechas."
-                "\n- Si el cliente ya mencionó fechas, usa check_calendar para mostrar disponibilidad inmediata."
-                "\n- Si dio fechas + personas, usa check_availability directo para cotizar."
-            )
+            # Primer contacto — modo asesora. Se bifurca entre cliente CLARO
+            # (ya dio fechas o personas) y cliente VAGO (solo saludó / pidió info).
+            # Detección de vaguedad: buscar en el último mensaje del usuario.
+            last_user = ChatMessage.objects.filter(
+                session=session,
+                deleted=False,
+                direction=ChatMessage.DirectionChoices.INBOUND,
+            ).order_by('-created').first()
+            last_text = ((last_user.content if last_user else '') or '').lower()
+
+            # "CLARO" si el mensaje contiene números/fechas/nombres de casa/personas
+            claro_patterns = [
+                r'\b\d+\s*(?:personas?|pax|amigos?|adultos?)',
+                r'\b(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|'
+                r'septiembre|setiembre|octubre|noviembre|diciembre)\b',
+                r'\b\d{1,2}\s*(?:/|-|de)',
+                r'\b(?:este|próximo|proximo)\s+(?:sábado|sabado|domingo|finde|'
+                r'fin\s+de\s+semana)\b',
+                r'\bcasa\s+(?:austin\s+)?[1234]\b',
+                r'\bpara\s+\d+\b',
+                r'\bsomos\s+\d+\b',
+            ]
+            is_claro = any(re.search(p, last_text) for p in claro_patterns)
+
+            if is_claro:
+                parts.append(
+                    "\n\nETAPA: PRIMER CONTACTO — CLIENTE CLARO 🎯"
+                    "\nEl cliente ya dio datos específicos (fechas, personas, o casa). "
+                    "NO preguntes cosas obvias — sé eficiente:"
+                    "\n- Saluda brevemente presentándote: 'Hola! Soy Valeria 😊' "
+                    "y procede."
+                    "\n- Si dio fechas + personas → ejecuta check_availability "
+                    "DIRECTO y cotiza."
+                    "\n- Si dio fechas sin personas → check_calendar + pregunta personas."
+                    "\n- Si dio personas sin fechas → pregunta fechas."
+                    "\n- NO preguntes por ocasión si no es relevante para lo que necesitas."
+                )
+            else:
+                parts.append(
+                    "\n\nETAPA: PRIMER CONTACTO — CLIENTE VAGO 🗺️"
+                    "\nEl cliente solo saludó o pidió 'info' sin dar datos específicos. "
+                    "Este es el momento para ser ASESORA, no cotizadora. Haz UNA pregunta "
+                    "cualificadora antes de pedir fechas. Ejemplos:"
+                    "\n- 'Hola! Soy Valeria de Casa Austin 😊 Cuéntame un poco más — "
+                    "¿es para una escapada con amigos, celebración especial o descanso "
+                    "en familia? Así te recomiendo la casa ideal y fechas con mejor clima 🏖️'"
+                    "\n- 'Hola! Soy Valeria 😊 ¿Qué tipo de experiencia buscas — "
+                    "un fin de semana tranquilo, una celebración con amigos, o un evento "
+                    "más grande? Así te armo la mejor opción.'"
+                    "\n- 'Hola! Valeria de Casa Austin 😊 Cuéntame para quién sería — "
+                    "¿familia, amigos, celebración? Así te oriento mejor 🏖️'"
+                    "\n\n⚠️ Solo UNA pregunta cualificadora, breve. NO bombardees con "
+                    "varias preguntas. Después de la respuesta, sigue con fechas/personas."
+                    "\n⚠️ Si el cliente responde con algo NO relacionado (ej. 'hola' "
+                    "otra vez, 'dime'), pasa a pedir fechas directamente — no insistas "
+                    "con la cualificación."
+                )
         elif not has_quote:
             # Verificar si ya hubo intentos de check_availability (fechas dadas pero sin disponibilidad)
             had_availability_check = ChatMessage.objects.filter(
