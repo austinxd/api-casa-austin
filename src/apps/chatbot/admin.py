@@ -5,6 +5,7 @@ from .models import (
     PropertyVisit, PromoDateConfig, PromoDateSent,
     PromoBirthdayConfig, PromoBirthdaySent,
     ReviewRequestConfig, ReviewRequest,
+    FrequentQuestion, FrequentQuestionCheckpoint,
 )
 
 
@@ -88,6 +89,26 @@ class ChatAnalysisCheckpointAdmin(admin.ModelAdmin):
     list_display = ['last_analyzed_at', 'total_sessions_analyzed', 'total_messages_analyzed', 'notes']
     readonly_fields = ['created', 'updated']
     ordering = ['-last_analyzed_at']
+
+
+@admin.register(FrequentQuestion)
+class FrequentQuestionAdmin(admin.ModelAdmin):
+    list_display = ['count', 'category_label', 'label_short', 'last_seen_at', 'first_seen_at']
+    list_filter = ['category']
+    search_fields = ['label', 'category']
+    readonly_fields = ['created', 'updated', 'first_seen_at', 'last_seen_at', 'count', 'sample_messages']
+    ordering = ['-count', '-last_seen_at']
+    list_per_page = 50
+
+    def label_short(self, obj):
+        return (obj.label[:120] + '…') if len(obj.label) > 120 else obj.label
+    label_short.short_description = 'Pregunta'
+
+
+@admin.register(FrequentQuestionCheckpoint)
+class FrequentQuestionCheckpointAdmin(admin.ModelAdmin):
+    list_display = ['last_analyzed_message_created', 'total_messages_analyzed', 'last_run_at']
+    readonly_fields = ['created', 'updated', 'last_run_at']
 
 
 @admin.register(ChatAnalytics)

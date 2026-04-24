@@ -24,6 +24,9 @@ MANAGE=/srv/casaaustin/api-casa-austin/env/bin/python /srv/casaaustin/api-casa-a
 # Analíticas diarias del chat - diario 1am
 0 1 * * * $MANAGE compute_chat_analytics >> $PROJECT/logs/cron.log 2>&1
 
+# Análisis incremental de preguntas frecuentes - diario 2am Lima
+0 2 * * * $MANAGE analyze_frequent_questions >> $PROJECT/logs/cron.log 2>&1
+
 # Promo por fechas buscadas - diario 9am
 0 9 * * * $MANAGE send_promo_dates >> $PROJECT/logs/cron.log 2>&1
 

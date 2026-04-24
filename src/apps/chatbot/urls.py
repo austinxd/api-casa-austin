@@ -21,6 +21,7 @@ from .admin_views import (
     PromoPreviewView,
     UnresolvedQuestionListView,
     UnresolvedQuestionUpdateView,
+    FrequentQuestionListView,
 )
 
 urlpatterns = [
@@ -55,4 +56,7 @@ urlpatterns = [
     # Preguntas sin resolver
     path('unresolved-questions/', UnresolvedQuestionListView.as_view(), name='chatbot-unresolved-questions'),
     path('unresolved-questions/<uuid:pk>/', UnresolvedQuestionUpdateView.as_view(), name='chatbot-unresolved-question-update'),
+
+    # Preguntas frecuentes (analizadas automáticamente)
+    path('frequent-questions/', FrequentQuestionListView.as_view(), name='chatbot-frequent-questions'),
 ]

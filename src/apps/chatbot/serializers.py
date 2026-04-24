@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import (
     ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics,
     PropertyVisit, PromoDateConfig, PromoDateSent, UnresolvedQuestion,
+    FrequentQuestion,
 )
 
 
@@ -232,3 +233,13 @@ class UnresolvedQuestionSerializer(serializers.ModelSerializer):
         if s.client:
             return f"{s.client.first_name} {s.client.last_name or ''}".strip()
         return s.wa_profile_name or s.wa_id
+
+
+class FrequentQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FrequentQuestion
+        fields = [
+            'id', 'category', 'category_label', 'label', 'count',
+            'sample_messages', 'first_seen_at', 'last_seen_at',
+        ]
+        read_only_fields = fields

@@ -14,6 +14,7 @@ from .models import (
     ChatSession, ChatMessage, ChatbotConfiguration, ChatAnalytics,
     ChatAnalysisCheckpoint,
     PropertyVisit, PromoDateConfig, PromoDateSent, UnresolvedQuestion,
+    FrequentQuestion,
 )
 from .serializers import (
     ChatSessionListSerializer, ChatSessionDetailSerializer,
@@ -21,6 +22,7 @@ from .serializers import (
     ChatAnalyticsSerializer, PropertyVisitSerializer,
     PromoDateConfigSerializer, PromoDateSentSerializer,
     UnresolvedQuestionSerializer,
+    FrequentQuestionSerializer,
 )
 from .channel_sender import get_sender
 
@@ -1143,6 +1145,36 @@ class UnresolvedQuestionListView(ListAPIView):
         if category:
             qs = qs.filter(category=category)
         return qs.order_by('-created')
+
+
+class FrequentQuestionListView(ListAPIView):
+    """GET /frequent-questions/ — Preguntas frecuentes detectadas por el analizador
+
+    Query params:
+      - category=<key>      filtra por categoría
+      - min_count=<int>     solo preguntas con count >= N (default 1)
+      - ordering=count|-count|last_seen_at|-last_seen_at
+    """
+    serializer_class = FrequentQuestionSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        qs = FrequentQuestion.objects.filter(deleted=False)
+        category = self.request.query_params.get('category')
+        if category:
+            qs = qs.filter(category=category)
+        min_count = self.request.query_params.get('min_count')
+        if min_count and str(min_count).isdigit():
+            qs = qs.filter(count__gte=int(min_count))
+        ordering = self.request.query_params.get('ordering', '-count')
+        allowed = {'count', '-count', 'last_seen_at', '-last_seen_at',
+                   'first_seen_at', '-first_seen_at'}
+        if ordering in allowed:
+            qs = qs.order_by(ordering, '-last_seen_at')
+        else:
+            qs = qs.order_by('-count', '-last_seen_at')
+        return qs
 
 
 class UnresolvedQuestionUpdateView(APIView):

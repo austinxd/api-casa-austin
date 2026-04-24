@@ -532,6 +532,82 @@ class PromoBirthdaySent(BaseModel):
         return f"Promo cumpleaños a {self.client} - {self.year} ({self.status})"
 
 
+class FrequentQuestion(BaseModel):
+    """Pregunta frecuente detectada automáticamente por el analizador de
+    mensajes inbound. Cada registro representa un tema único (frase
+    descriptiva) y acumula cuántas veces los clientes lo preguntaron.
+    """
+
+    category = models.CharField(
+        max_length=50,
+        db_index=True,
+        help_text="Categoría general: how_to_book, pricing, amenities, etc.",
+    )
+    category_label = models.CharField(
+        max_length=100,
+        help_text="Etiqueta legible de la categoría (ej: '¿Cómo reservo?')",
+    )
+    label = models.TextField(
+        help_text=(
+            "Frase descriptiva del tema, ej: "
+            "'Los usuarios preguntaron por mesas de billar'"
+        ),
+    )
+    count = models.PositiveIntegerField(default=1)
+    sample_messages = models.JSONField(
+        default=list, blank=True,
+        help_text="Hasta 5 mensajes originales de ejemplo",
+    )
+    first_seen_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = '❓ Pregunta Frecuente'
+        verbose_name_plural = '❓ Preguntas Frecuentes'
+        ordering = ['-count', '-last_seen_at']
+        indexes = [
+            models.Index(fields=['category', '-count']),
+            models.Index(fields=['-count']),
+        ]
+
+    def __str__(self):
+        return f"[{self.category}] {self.label[:60]} (×{self.count})"
+
+
+class FrequentQuestionCheckpoint(BaseModel):
+    """Watermark singleton para el análisis incremental de preguntas
+    frecuentes. Guarda hasta qué timestamp se analizaron mensajes inbound
+    para no reprocesarlos en la siguiente corrida del cron.
+    """
+
+    last_analyzed_message_created = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Timestamp del último mensaje inbound analizado",
+    )
+    total_messages_analyzed = models.PositiveIntegerField(default=0)
+    last_run_at = models.DateTimeField(auto_now=True)
+    notes = models.TextField(blank=True, default='')
+
+    class Meta:
+        verbose_name = '📌 Checkpoint — Preguntas Frecuentes'
+        verbose_name_plural = '📌 Checkpoint — Preguntas Frecuentes'
+
+    def __str__(self):
+        ts = (
+            self.last_analyzed_message_created.strftime('%Y-%m-%d %H:%M')
+            if self.last_analyzed_message_created else 'nunca'
+        )
+        return f"Checkpoint FAQ (hasta {ts}, {self.total_messages_analyzed} msgs)"
+
+    @classmethod
+    def get_singleton(cls):
+        """Devuelve el único registro, creándolo si no existe."""
+        obj = cls.objects.first()
+        if obj is None:
+            obj = cls.objects.create()
+        return obj
+
+
 class ChatAnalysisCheckpoint(BaseModel):
     """Checkpoint (watermark) para análisis incremental de conversaciones.
     Guarda hasta dónde se revisó en el último análisis."""
