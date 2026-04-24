@@ -114,17 +114,51 @@ EXTRAE:
 CATEGORÍAS DISPONIBLES:
 """ + "\n".join(f"- {k}: {v}" for k, v in CATEGORIES.items()) + """
 
-AGRUPACIÓN:
-Si en la conversación el cliente hace múltiples variantes de la misma pregunta
-(ej: "cuánto cuesta" + "precio" + "desde qué monto"), AGRÚPALAS como UNA SOLA
-pregunta en tu respuesta.
+⚠️ GUÍA PARA CASOS AMBIGUOS DE CATEGORIZACIÓN:
+- Pregunta por PRECIO + FECHA específica → usa `availability` (pide cotización).
+  Ej: "¿precio para el 25 de abril?" → availability.
+- Pregunta por PRECIO sin fecha o genérica → usa `pricing_general`.
+  Ej: "¿desde qué precios?", "¿cuánto cuesta la casa?" → pricing_general.
+- Pregunta por CAPACIDAD → siempre `capacity`, NO `availability`.
+  Ej: "¿cuántas personas entran?", "¿para cuántos es la casa?" → capacity.
+- Pregunta por CÓMO RESERVAR, voucher, adelanto, web → `how_to_book`.
+- Pregunta por MÉTODOS de pago (tarjeta, Yape, etc) → `payment_methods`.
+  Pero "¿ya procesaron mi pago?" → `during_stay_support` o `how_to_book`.
+- Pregunta por MAPA, dirección, cómo llegar → `location`.
+- Pregunta por FOTOS, video, ver la casa → `photos`.
+- Pregunta por MASCOTAS → siempre `pets`.
+- Pregunta por FIESTAS/MÚSICA/ORQUESTA/BULLA → siempre `parties_music`.
+- Pregunta por EVENTOS corporativos, bodas, grupos >30 → `group_events`.
+- Pregunta por FULL DAY/INGRESO ANTICIPADO → `full_day` o `check_in_out`.
+  "¿Puedo entrar antes?" → check_in_out. "¿Solo de día?" → full_day.
 
-MATCH CONTRA EXISTENTES:
-Te daré una lista de preguntas frecuentes ya registradas (por categoría).
-Para cada pregunta que identifiques:
-- Si coincide con una existente de la misma categoría, devuelve match_id=<el id corto>.
-- Si es un tema nuevo, devuelve match_id=null y new_label con una frase descriptiva:
-  "Los usuarios preguntaron por...", "Los clientes quieren saber si...", etc.
+⚠️ REGLA DE CONSOLIDACIÓN INTERNA (IMPORTANTE):
+Dentro de UNA MISMA CONVERSACIÓN, el cliente a menudo reformula la misma
+pregunta. Tú DEBES consolidarlas como UNA SOLA entrada en tu output.
+Ejemplos de lo que es la MISMA pregunta:
+- "cuánto cuesta" = "precio" = "desde qué monto" = "qué tarifas" → 1 entrada
+- "¿hay disponibilidad?" = "¿está libre?" = "¿tienen fechas?" → 1 entrada
+- "¿cuántas personas caben?" = "¿capacidad de la casa?" = "¿para cuántos es?" → 1 entrada
+NUNCA devuelvas 2 entradas que signifiquen lo mismo aunque el cliente las
+haya formulado con palabras distintas.
+
+⚠️ MATCH CONTRA EXISTENTES (AGRESIVO):
+Te daré una lista de preguntas frecuentes YA registradas (por categoría).
+Para cada pregunta que identifiques, SIEMPRE revisa primero si es
+"esencialmente la misma" que alguna de la lista. El criterio es SEMÁNTICO,
+no literal. Casos que DEBEN hacer match:
+- Tu pregunta: "cliente quiere saber cuándo hay fechas libres"
+  Existente: "Los usuarios preguntan si hay disponibilidad"
+  → MATCH (ambos sobre disponibilidad)
+- Tu pregunta: "preguntaron el precio de las casas"
+  Existente: "Los clientes piden el precio general"
+  → MATCH (ambos precio general)
+- Tu pregunta: "cuántas personas entran"
+  Existente: "Los usuarios preguntan la capacidad"
+  → MATCH (ambos capacidad)
+
+Solo genera new_label si REALMENTE no hay nada parecido. Prefiere match
+con algo existente 80% del tiempo cuando hay lista no vacía.
 
 FORMATO DE SALIDA (JSON estricto, sin texto adicional):
 {
@@ -133,6 +167,10 @@ FORMATO DE SALIDA (JSON estricto, sin texto adicional):
     ...
   ]
 }
+
+new_label debe empezar con "Los usuarios preguntaron...", "Los clientes
+quieren saber si...", "Consultan por...", etc. Debe ser genérico (no
+mencionar datos del cliente específico).
 
 Si la conversación NO contiene ninguna pregunta genuina del cliente,
 devuelve {"questions": []}.
@@ -214,7 +252,10 @@ class Command(BaseCommand):
         processed = 0
         extracted_questions = 0
         errors = 0
-        classifier_model = 'gpt-4.1-nano'
+        # Modelo específico para este command — mini es mucho mejor que nano
+        # para clasificación con matching semántico. Corre 1 vez al día con
+        # volumen bajo, costo sigue siendo ~$0.12/día (~$3.60/mes).
+        classifier_model = 'gpt-4.1-mini'
 
         for session in sessions:
             transcript = self._build_transcript(session)
