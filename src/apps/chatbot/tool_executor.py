@@ -725,10 +725,12 @@ class ToolExecutor:
                 formatted += "\n\n".join(alternatives)
                 formatted += (
                     "\n\n[INSTRUCCIÓN IA — OBLIGATORIO — NO MOSTRAR AL CLIENTE]"
-                    "\nPresenta las fechas alternativas de arriba TAL CUAL con sus precios formateados."
-                    "\nNO repitas que las fechas originales están ocupadas — enfócate en las opciones disponibles."
-                    "\nPregunta si alguna de esas fechas le interesa."
+                    "\nLa fecha que pidió el cliente NO está disponible (ya está reservada)."
+                    "\nDi CLARAMENTE al cliente: 'Lo siento, esas fechas ya están reservadas.'"
+                    "\nLuego presenta las fechas alternativas de arriba TAL CUAL con sus precios formateados."
+                    "\nPregunta si alguna le interesa: '¿Alguna de estas fechas te acomoda?'"
                     "\nSi dice que sí, confirma la cantidad exacta de personas y la fecha elegida para recotizar."
+                    "\nNO digas 'muy pedidas' ni 'demanda alta' — sé directo: la fecha está reservada."
                     "\nNO inventes otras fechas ni busques más opciones por tu cuenta."
                     "\nNO incluyas texto que empiece con [INSTRUCCIÓN o ⚠️ PRECIO BASE."
                 )
@@ -876,7 +878,10 @@ class ToolExecutor:
                 )
             lines.append(ia_instruction)
         else:
-            lines.append("Esas fechas están muy pedidas 🔥 ¡Pero tenemos opciones cercanas!")
+            lines.append(
+                "Lo siento, esas fechas ya están reservadas. "
+                "Aquí te dejo las opciones libres más cercanas:"
+            )
 
         return '\n'.join(lines)
 
@@ -1585,11 +1590,20 @@ class ToolExecutor:
 
         lines.append(f"\nTipo de cambio: 1 USD = S/{rate} SOL")
 
+        # Precio mínimo dinámico desde la BD (consistente con _guard_fabricated_prices
+        # → _get_min_price_usd). Evita mostrar precios contradictorios al cliente.
+        min_price = mins['weekday_low']
+        if min_price is None:
+            # Fallback si no hay datos de PropertyPricing
+            min_price = 65
+        else:
+            min_price = int(min_price)
+
         lines.append("")
         lines.append(
             "[INSTRUCCIÓN IA — NO MOSTRAR AL CLIENTE]\n"
             "PROHIBIDO mencionar precios específicos de esta tabla al cliente.\n"
-            "Responde SIEMPRE: 'Los precios van desde $65/noche para 2 personas (toda la casa) "
+            f"Responde SIEMPRE: 'Los precios van desde ${min_price}/noche para 2 personas (toda la casa) "
             "y varían según la fecha, temporada y cantidad de personas. "
             "¿Para qué fechas y cuántas personas sería? Te doy el precio exacto al instante 😊'\n"
             "Para dar el precio EXACTO, usa check_availability() con fechas y personas específicas.\n"
