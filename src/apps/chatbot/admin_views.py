@@ -1261,3 +1261,122 @@ class ChatAnalysisCheckpointView(APIView):
             'notes': checkpoint.notes,
             'created': checkpoint.created.isoformat(),
         }, status=status.HTTP_201_CREATED)
+
+
+class ChatSessionsExportView(APIView):
+    """
+    GET /api/v1/chatbot/sessions/export/?limit=200&min_messages=4
+
+    Exporta las últimas N conversaciones en texto plano para análisis con
+    herramientas externas (ej. ChatGPT). Solo incluye sesiones con AI activa
+    y al menos `min_messages` mensajes.
+
+    Query params:
+      - limit: cuántas sesiones (default 200, max 500)
+      - min_messages: mínimo de mensajes totales (default 4)
+      - channel: whatsapp | instagram | messenger (opcional)
+
+    Respuesta: text/plain, descarga con Content-Disposition.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from django.http import HttpResponse
+
+        try:
+            limit = min(int(request.query_params.get('limit', 200)), 500)
+        except (ValueError, TypeError):
+            limit = 200
+        try:
+            min_messages = max(int(request.query_params.get('min_messages', 4)), 1)
+        except (ValueError, TypeError):
+            min_messages = 4
+        channel = request.query_params.get('channel') or None
+
+        qs = ChatSession.objects.filter(
+            deleted=False,
+            total_messages__gte=min_messages,
+        ).order_by('-last_message_at')
+        if channel:
+            qs = qs.filter(channel=channel)
+        sessions = list(qs[:limit])
+
+        # Construir texto exportable
+        lines = []
+        lines.append('=' * 80)
+        lines.append(f'EXPORT DE CONVERSACIONES — Casa Austin Chatbot')
+        lines.append(f'Generado: {timezone.now().strftime("%Y-%m-%d %H:%M:%S %Z")}')
+        lines.append(f'Total sesiones: {len(sessions)}')
+        lines.append(f'Filtros: limit={limit}, min_messages={min_messages}'
+                     + (f', channel={channel}' if channel else ''))
+        lines.append('=' * 80)
+        lines.append('')
+
+        for idx, session in enumerate(sessions, start=1):
+            client_name = (
+                f'{session.client.first_name} {session.client.last_name or ""}'.strip()
+                if session.client else (session.wa_profile_name or session.wa_id)
+            )
+            lines.append('')
+            lines.append('=' * 80)
+            lines.append(f'CONVERSACIÓN #{idx} — {client_name}')
+            lines.append(f'Canal: {session.channel} | wa_id: {session.wa_id}')
+            lines.append(f'Estado: {session.status} | AI: {"on" if session.ai_enabled else "off"}')
+            lines.append(
+                f'Mensajes totales: {session.total_messages} '
+                f'(IA: {session.ai_messages}, humano: {session.human_messages})'
+            )
+            if session.quoted_at:
+                lines.append(f'Cotizado: {session.quoted_at.strftime("%Y-%m-%d %H:%M")}')
+            lines.append(
+                f'Inicio: {session.created.strftime("%Y-%m-%d %H:%M")} | '
+                f'Último msg: {session.last_message_at.strftime("%Y-%m-%d %H:%M") if session.last_message_at else "-"}'
+            )
+            if session.client:
+                lines.append(f'Cliente registrado: ID {session.client.id}')
+            lines.append('-' * 80)
+
+            # Mensajes en orden cronológico
+            msgs = ChatMessage.objects.filter(
+                session=session, deleted=False,
+            ).order_by('created')
+
+            role_labels = {
+                'inbound': 'Cliente',
+                'outbound_ai': 'Valeria (IA)',
+                'outbound_human': 'Admin',
+                'system': 'Sistema',
+            }
+
+            for m in msgs:
+                role = role_labels.get(m.direction, m.direction)
+                ts = m.created.strftime('%Y-%m-%d %H:%M')
+                content = (m.content or '').strip()
+                if not content:
+                    continue
+
+                # Truncar mensajes muy largos
+                if len(content) > 2000:
+                    content = content[:2000] + '... [TRUNCADO]'
+
+                # Tools usadas (solo para AI)
+                tools_str = ''
+                if m.tool_calls:
+                    tns = []
+                    for tc in m.tool_calls:
+                        if isinstance(tc, dict) and tc.get('name'):
+                            tns.append(tc['name'])
+                    if tns:
+                        tools_str = f' [tools: {", ".join(tns)}]'
+
+                lines.append(f'[{ts}] {role}{tools_str}:')
+                # Indentar contenido para legibilidad
+                for line in content.split('\n'):
+                    lines.append(f'  {line}')
+                lines.append('')
+
+        body = '\n'.join(lines)
+        response = HttpResponse(body, content_type='text/plain; charset=utf-8')
+        filename = f'casa_austin_conversaciones_{timezone.now().strftime("%Y%m%d_%H%M")}.txt'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response

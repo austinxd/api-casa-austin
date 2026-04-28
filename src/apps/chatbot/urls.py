@@ -22,6 +22,7 @@ from .admin_views import (
     UnresolvedQuestionListView,
     UnresolvedQuestionUpdateView,
     FrequentQuestionListView,
+    ChatSessionsExportView,
 )
 
 urlpatterns = [
@@ -30,6 +31,7 @@ urlpatterns = [
 
     # API Admin (requiere auth)
     path('sessions/', ChatSessionListView.as_view(), name='chatbot-sessions'),
+    path('sessions/export/', ChatSessionsExportView.as_view(), name='chatbot-sessions-export'),
     path('sessions/poll/', ChatSessionPollView.as_view(), name='chatbot-poll'),
     path('sessions/<uuid:pk>/', ChatSessionDetailView.as_view(), name='chatbot-session-detail'),
     path('sessions/<uuid:session_id>/messages/', ChatMessagesView.as_view(), name='chatbot-messages'),
