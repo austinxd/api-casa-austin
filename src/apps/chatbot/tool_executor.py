@@ -1601,13 +1601,24 @@ class ToolExecutor:
 
         lines.append("")
         lines.append(
-            "[INSTRUCCIÓN IA — NO MOSTRAR AL CLIENTE]\n"
-            "PROHIBIDO mencionar precios específicos de esta tabla al cliente.\n"
-            f"Responde SIEMPRE: 'Los precios van desde ${min_price}/noche para 2 personas (toda la casa) "
-            "y varían según la fecha, temporada y cantidad de personas. "
-            "¿Para qué fechas y cuántas personas sería? Te doy el precio exacto al instante 😊'\n"
-            "Para dar el precio EXACTO, usa check_availability() con fechas y personas específicas.\n"
-            "NUNCA menciones montos de la tabla de precios directamente."
+            f"[INSTRUCCIÓN IA — NO MOSTRAR AL CLIENTE]\n"
+            f"PROHIBIDO mencionar precios específicos de esta tabla al cliente.\n"
+            f"\n"
+            f"⚠️ REGLA DE PRESENTACIÓN OBLIGATORIA:\n"
+            f"Si es la PRIMERA respuesta de la conversación (cliente nuevo, "
+            f"sin mensajes anteriores en el historial), tu respuesta DEBE empezar "
+            f"presentándote como Valeria. Formato:\n"
+            f"  '¡Hola! Soy Valeria de Casa Austin 😊\\n[texto del precio aquí]'\n"
+            f"Si el cliente YA tiene historial previo (mensajes anteriores), "
+            f"NO te presentes — ve directo al texto del precio.\n"
+            f"\n"
+            f"TEXTO DEL PRECIO (úsalo SIEMPRE, ya sea solo o después de la presentación):\n"
+            f"'Los precios van desde ${min_price}/noche para 2 personas (toda la casa) "
+            f"y varían según la fecha, temporada y cantidad de personas. "
+            f"¿Para qué fechas y cuántas personas sería? Te doy el precio exacto al instante 😊'\n"
+            f"\n"
+            f"Para dar el precio EXACTO, usa check_availability() con fechas y personas específicas.\n"
+            f"NUNCA menciones montos de la tabla de precios directamente."
         )
 
         return '\n'.join(lines)
