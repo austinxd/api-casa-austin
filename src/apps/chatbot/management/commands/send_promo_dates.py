@@ -450,7 +450,6 @@ class Command(BaseCommand):
             for client_id in client_searches:
                 c = client_searches[client_id][0].client
                 if c.tel_number:
-                    import re
                     digits = re.sub(r'\D', '', c.tel_number)
                     processed_phones.add(digits)
                     if digits.startswith('51') and len(digits) > 9:
