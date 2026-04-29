@@ -799,6 +799,10 @@ class ToolExecutor:
 
         capacity_warnings = []
 
+        # Datos estructurados de cada casa disponible (para recomendar la más
+        # económica al final). Paralelo a available_lines, no afecta render.
+        houses_data = []
+
         for prop in properties:
             name = prop.get('property_name', 'Propiedad')
             available = prop.get('available', False)
@@ -835,17 +839,27 @@ class ToolExecutor:
             # Precio por persona (solo grupos >= 4) — calculado en backend con
             # cast seguro para evitar problemas Decimal/float. Redondeado sin
             # decimales. Útil para anclar el valor de la oferta en grupos.
+            pp_value = None
             try:
                 guests_int = int(guests)
                 final_sol_float = float(final_sol or 0)
                 if guests_int >= 4 and final_sol_float > 0:
-                    pp = round(final_sol_float / guests_int)
-                    if pp > 0:
+                    pp_value = round(final_sol_float / guests_int)
+                    if pp_value > 0:
                         available_lines.append(
-                            f"💰 Aprox S/{pp} por persona por toda la estadía"
+                            f"💰 Aprox S/{pp_value} por persona por toda la estadía"
                         )
             except (TypeError, ValueError):
-                pass
+                guests_int = 0
+                final_sol_float = 0.0
+
+            # Guardar datos para identificar la opción más económica al final
+            if final_sol_float > 0:
+                houses_data.append({
+                    'name': name,
+                    'final_sol': final_sol_float,
+                    'pp': pp_value,
+                })
 
         # Construir cotización
         lines = [f"📅 {fecha_display}", ""]
@@ -879,6 +893,34 @@ class ToolExecutor:
                 f"https://casaaustin.pe/disponibilidad?checkIn={url_ci}&checkOut={url_co}&guests={guests}"
             )
 
+            # Construir bloque de recomendación + cierre comercial (texto que
+            # el modelo debe copiar literal). Si hay 2+ casas disponibles,
+            # identificamos la más económica en SOL y la recomendamos.
+            recommendation_text = ""
+            if len(houses_data) >= 2:
+                cheapest = min(houses_data, key=lambda h: h['final_sol'])
+                if cheapest.get('pp'):
+                    recommendation_text = (
+                        f"Para {guests} personas, la opción más económica es "
+                        f"{cheapest['name']}: aprox S/{cheapest['pp']} por persona "
+                        f"por toda la estadía."
+                    )
+                else:
+                    recommendation_text = (
+                        f"La opción más económica es {cheapest['name']}: "
+                        f"S/{cheapest['final_sol']:.0f} total."
+                    )
+
+            # Cierres comerciales válidos (variar para no sonar repetitivo)
+            closing_options = [
+                "Si te acomoda, puedes separarla con el 50% para asegurar la fecha. "
+                "¿Te paso el link directo?",
+                "Si esta opción te acomoda, lo mejor es separarla con el 50% para "
+                "dejarla asegurada. ¿Te paso el link?",
+                "Para asegurar esa fecha, solo necesitas separarla con el 50% desde "
+                "la web. ¿Te paso el link?",
+            ]
+
             # Instrucción para la IA (NO visible al cliente)
             lines.append("")
             ia_instruction = (
@@ -887,8 +929,30 @@ class ToolExecutor:
                 "\nPROHIBIDO: resumir, parafrasear, cambiar formato, quitar emojis, quitar asteriscos, juntar líneas."
                 "\nPROHIBIDO: escribir algo como 'el precio sería $X ó S/X' en prosa. La cotización YA está formateada."
                 "\nPROHIBIDO: incluir CUALQUIER texto que empiece con [INSTRUCCIÓN o ⚠️ PRECIO BASE en tu respuesta."
-                "\nSolo agrega UNA pregunta de cierre breve DESPUÉS (ej: '¿Te animas a reservar? 😊')."
+                "\n\n⛔ NO uses cierres antiguos como '¿Te animas a reservar? 😊' o "
+                "'¿Quieres que te pase el link para separar la fecha con el 50%?'."
             )
+
+            if recommendation_text:
+                ia_instruction += (
+                    f"\n\n✅ DESPUÉS de la cotización, agrega EXACTAMENTE este "
+                    f"bloque de cierre (puedes variar muy ligeramente el fraseo "
+                    f"del cierre, pero NO el contenido):\n\n"
+                    f"💡 {recommendation_text}\n\n"
+                    f"{closing_options[0]}"
+                )
+                ia_instruction += (
+                    f"\n\nVariantes válidas del cierre (alterna entre conversaciones "
+                    f"para no sonar repetitiva):\n"
+                    + "\n".join(f"- {c}" for c in closing_options)
+                )
+            else:
+                ia_instruction += (
+                    f"\n\n✅ DESPUÉS de la cotización, agrega un cierre comercial. "
+                    f"Usa UNA de estas variantes (varía entre conversaciones):\n"
+                    + "\n".join(f"- {c}" for c in closing_options)
+                )
+
             if guests <= 1:
                 ia_instruction += (
                     "\n\nNOTA INTERNA: Este es precio base para 1 persona. "
