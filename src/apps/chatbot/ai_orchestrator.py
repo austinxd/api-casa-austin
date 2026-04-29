@@ -40,45 +40,78 @@ def sanitize_response(text):
     if not text:
         return text
 
-    # Eliminar bloques completos [INSTRUCCIÓN ...] hasta encontrar el siguiente
-    # marcador legítimo del cliente (cierre comercial, otro bloque cotización,
-    # o fin del texto). El regex anterior usaba lookahead a doble salto que se
-    # detenía en el primer párrafo de la instrucción y dejaba pasar las
-    # prohibiciones, variantes, y demás contenido interno al cliente.
-    instruction_terminators = (
-        r'\n📅\b'                                      # otro bloque de cotización
-        r'|\n¿\s*Te\s+paso'                            # cierre comercial directo
-        r'|\n¿\s*Quieres\s+que\s+te\s+(?:pase|env[íi]e|paso)'
-        r'|\n¿\s*Te\s+animas'                          # cierre antiguo (por si lo escapa)
-        r'|\nPara\s+asegurar\s+esa\s+fecha\s+solo'     # variante 3 del cierre
-        r'|\n¿\s*Cu[aá]l\s+de\s+estas\s+opciones'      # cierre tras alternativas
-        r'|\Z'                                          # fin del texto
+    # --- Filtro línea por línea: eliminar bloques [INSTRUCCIÓN] ---
+    # Cuando encontramos una línea que abre un bloque de instrucción IA,
+    # entramos en "modo skip" y descartamos TODAS las líneas siguientes
+    # hasta encontrar una línea que claramente es contenido legítimo del
+    # cliente (cotización, cierre, saludo, etc.).
+    instruction_open_re = re.compile(
+        r'^\s*\[INSTRUCCI[ÓO]N',
+        re.IGNORECASE,
     )
-    text = re.sub(
-        r'\[INSTRUCCI[ÓO]N[^\]]*\].*?(?=' + instruction_terminators + r')',
-        '',
-        text,
-        flags=re.IGNORECASE | re.DOTALL,
+    legitimate_resume_patterns = [
+        r'^\s*📅\b',                                  # bloque cotización
+        r'^\s*¿\s*Te\s+paso\b',                       # cierre comercial
+        r'^\s*¿\s*Quieres\s+que\s+te\s+(?:pase|env[íi]e|paso)',
+        r'^\s*¿\s*Te\s+animas\b',
+        r'^\s*¿\s*Cu[aá]l\s+(?:de\s+estas\s+opciones|casa\s+te\s+convence)',
+        r'^\s*Para\s+asegurar\s+esa\s+fecha\s+solo',
+        r'^\s*¡?\s*Hola\b',
+        r'^\s*¡?\s*Buen[oa]s\b',
+        r'^\s*Soy\s+Valeria\b',
+        r'^\s*Lo\s+siento[,\s]',
+        r'^\s*Perfecto[,\s]',
+        r'^\s*Claro[,\s]',
+    ]
+    legitimate_resume_re = re.compile(
+        '|'.join(legitimate_resume_patterns),
+        re.IGNORECASE,
     )
-    # Eliminar marcadores internos de herramientas
-    text = re.sub(
-        r'^---\s*SIN ALTERNATIVAS CERCANAS\s*---.*$',
-        '',
-        text,
-        flags=re.MULTILINE,
-    )
-    # Eliminar líneas sueltas que son continuación de instrucciones IA
-    # (por si GPT copió instrucciones sin el tag [INSTRUCCIÓN])
-    text = re.sub(
+
+    # Patrón para detectar líneas internas obvias de la instrucción IA,
+    # incluso fuera del bloque marcado (por si GPT las dispersa).
+    instruction_internal_re = re.compile(
         r'^\s*(?:'
-        r'PROHIBIDO:|Tu respuesta DEBE|Solo agrega UNA|NOTA INTERNA:'
-        r'|⛔\s*NO\s+uses|✅\s*DESPU[ÉE]S\s+(?:de|del)|Variantes\s+v[aá]lidas'
-        r'|Para\s+dar\s+el\s+precio\s+EXACTO|NUNCA\s+menciones\s+montos'
-        r').*$',
-        '',
-        text,
-        flags=re.MULTILINE | re.IGNORECASE,
+        r'PROHIBIDO\s*:'
+        r'|Tu\s+respuesta\s+DEBE'
+        r'|Solo\s+agrega\s+UNA'
+        r'|NOTA\s+INTERNA\s*:'
+        r'|⛔\s*NO\s+uses'
+        r'|✅\s*DESPU[ÉE]S\s+(?:de|del)'
+        r'|Variantes\s+v[aá]lidas'
+        r'|Para\s+dar\s+el\s+precio\s+EXACTO'
+        r'|NUNCA\s+menciones\s+montos'
+        r'|---\s*SIN\s+ALTERNATIVAS\s+CERCANAS\s*---'
+        r')',
+        re.IGNORECASE,
     )
+
+    out_lines = []
+    skipping = False
+    for line in text.split('\n'):
+        # Si estamos saltando, vemos si la línea actual es contenido legítimo
+        if skipping:
+            if legitimate_resume_re.match(line):
+                skipping = False
+                out_lines.append(line)
+            # else: seguimos saltando esta línea (descartar)
+            continue
+
+        # ¿Esta línea ABRE un bloque de instrucción?
+        if instruction_open_re.match(line):
+            skipping = True
+            continue
+
+        # ¿Es una línea interna típica de instrucción que el modelo dispersó?
+        if instruction_internal_re.match(line):
+            continue
+
+        out_lines.append(line)
+
+    text = '\n'.join(out_lines)
+
+    # Colapsar 3+ saltos de línea consecutivos a doble salto
+    text = re.sub(r'\n{3,}', '\n\n', text)
 
     lines = text.split('\n')
     cleaned = []
