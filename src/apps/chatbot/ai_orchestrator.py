@@ -979,16 +979,25 @@ class AIOrchestrator:
             "\n   - 'aniversario/pareja/romántico' → 'Un escenario privilegiado para tu '"
             "   'ocasión especial 💕'"
 
-            "\n\n2️⃣ CTA ACCIÓN CON BAJA FRICCIÓN (reemplaza ¿te animas?):"
-            "\n   En vez de preguntar pasivo, OFRECE una acción concreta:"
-            "\n   - '¿Te paso el link para asegurar la fecha hoy con el 50%? Te toma 2 minutos.'"
-            "\n   - '¿Quieres que te envíe el link de pago y separamos esa fecha ahora?'"
-            "\n   - '¿Prefieres reservar directo en web o que mi equipo te guíe paso a paso?'"
+            "\n\n2️⃣ CTA ACCIÓN CON URGENCIA REALISTA (reemplaza ¿te animas?):"
+            "\n   En vez de preguntar pasivo, OFRECE una acción concreta. VARÍA el "
+            "fraseo entre estos ejemplos (NO uses siempre el mismo):"
+            "\n   - 'Si te gusta esta opción, puedes separarla con el 50% para asegurar "
+            "la fecha. ¿Te paso el link directo?'"
+            "\n   - 'Si esta opción te acomoda, lo mejor es separarla con el 50% para "
+            "dejarla asegurada.'"
+            "\n   - 'Para asegurar esa fecha, solo necesitas separarla con el 50% desde "
+            "la web. ¿Te paso el link?'"
             "\n   - Si hay varias casas en la cotización: '¿Cuál casa te convence más — "
             "{CA2 o CA3}? Te paso el link con esa seleccionada.'"
 
-            "\n\n⚠️ NO calcules ni menciones 'precio por persona' / 'precio dividido' — "
-            "mantén el precio tal cual lo entregó la cotización formateada."
+            "\n\n⚠️ NO calcules precio por persona en el texto — el tool ya lo "
+            "incluye automáticamente cuando corresponde."
+            "\n⚠️ NO uses presión agresiva. Frases como 'antes de que se reserve' o "
+            "'apúrate' suenan invasivas. Prefiere urgencia natural: 'asegurar la fecha', "
+            "'la disponibilidad puede cambiar', 'lo mejor es separarla'."
+            "\n⚠️ NUNCA prometas guardar/bloquear/reservar la fecha sin pago. La fecha "
+            "solo queda asegurada al separar con el 50%."
             "\n⚠️ NO satures — 2-3 líneas máximo después de la cotización."
             "\n⚠️ NO inventes datos (no digas 'ya hay N reservas para esa fecha' si no es "
             "verdad). SÍ puedes mencionar: 'los fines de semana se llenan primero' o "
@@ -1027,29 +1036,34 @@ class AIOrchestrator:
             )
 
         # === BLOQUE VENTA 3: RESCATE ANTE OBJECIÓN DE TIEMPO ===
-        # Analisis: solo 2% objetan explícitamente con "lo voy a pensar", pero el
-        # patrón es claro y el bot responde pasivo "perfecto, aquí estoy".
+        # El bot debe responder con scarcity REALISTA, sin prometer guardar fecha.
         context_parts.append(
-            "\n\n💬 RESCATE ANTE 'LO VOY A PENSAR' / 'LUEGO TE AVISO':"
+            "\n\n💬 RESCATE ANTE 'LO VOY A PENSAR' / 'LO CONSULTO CON MI GRUPO':"
             "\nCuando el cliente diga cualquier variante de:"
             "\n- 'lo voy a pensar', 'déjame pensarlo'"
-            "\n- 'luego te aviso', 'después te confirmo', 'ahora le confirmo'"
-            "\n- 'estamos analizando', 'estamos viendo'"
-            "\n- 'lo consulto con [pareja/familia/grupo]'"
-            "\n- 'voy a verlo', 'te aviso mañana'"
-            "\n\n⛔ NO respondas 'Perfecto, aquí estoy cuando decidas'. Eso es dejar "
-            "ir al cliente. Intenta UNA vez más con valor agregado:"
-            "\n\n'Claro, tómate el tiempo que necesites. Mientras decides, ¿te sirve si:'"
-            "\n- 'Te paso fotos específicas de [la casa que cotizamos]'"
-            "\n- 'Mi equipo te llama para resolver todas las dudas en 2 minutos (tú eliges "
-            "la hora)'"
-            "\n- 'Te guardo la fecha tentativa por 24h mientras decides (si la casa sigue "
-            "libre, la aseguro sin pago aún)'"
-            "\n\nY si el cliente AÚN rechaza la ayuda, CAPTURA info de seguimiento:"
-            "\n'Perfecto. ¿Cuándo te acomoda que te escriba de vuelta para saber tu "
-            "decisión: mañana en la mañana, o el [día]?'"
-            "\n\n⚠️ NUNCA fuerces. Si el cliente responde 'no gracias', respeta y cierra "
-            "amigablemente: '¡Todo bien! Cualquier cosa me escribes 🏖️'."
+            "\n- 'luego te aviso', 'después te confirmo', 'te confirmo'"
+            "\n- 'ahora le confirmo', 'estamos analizando', 'estamos viendo'"
+            "\n- 'lo consulto', 'lo veo con mi grupo', 'voy a coordinar'"
+            "\n- 'voy a verlo', 'déjame preguntar', 'te aviso mañana'"
+            "\n\n⛔ NO respondas pasivo 'Perfecto, aquí estoy cuando decidas' — eso "
+            "es dejar ir al cliente."
+            "\n⛔ NUNCA prometas guardar / bloquear / reservar la fecha sin pago. "
+            "PROHIBIDO decir: 'te guardo la fecha 24h', 'te la reservo sin pago', "
+            "'queda bloqueada por unas horas', 'te la mantengo'."
+            "\n\n✅ RESPONDE con scarcity REALISTA. Variantes válidas (no copies "
+            "literal — adapta al contexto):"
+            "\n- 'Perfecto 🙌 Te dejo el link para que lo revises con tu grupo. "
+            "La fecha no queda asegurada hasta separar con el 50%. Si les "
+            "interesa, lo mejor es separarla.'"
+            "\n- 'Claro 😊 Revísalo con tu grupo. La opción que vimos era válida "
+            "al momento de cotizar, pero la disponibilidad puede cambiar hasta "
+            "que se separe con el 50%.'"
+            "\n- 'Por supuesto. Para asegurar esa fecha, solo necesitan separarla "
+            "con el 50% desde la web. ¿Te dejo el link a la mano para cuando "
+            "confirmen?'"
+            "\n\n⚠️ NUNCA fuerces. Si el cliente responde 'no gracias' o similar, "
+            "respeta y cierra amigablemente: '¡Todo bien! Cualquier cosa me "
+            "escribes 🏖️'."
         )
 
         # === Detección de reinicio de conversación post-cotización ===
@@ -1251,16 +1265,20 @@ class AIOrchestrator:
                     '\n  "¿Ya tienes fechas en mente? Te cotizo al instante 🏖️"'
                 )
         else:
-            # Ya tiene cotización — modo cierre
+            # Ya tiene cotización — modo cierre con scarcity natural
             parts.append(
                 "\n\nETAPA: POST-COTIZACIÓN (ya recibió precios)"
-                "\n- Prioridad #1: Guiar al cliente a reservar en casaaustin.pe"
-                "\n- Recuérdale: 'Solo necesitas el 50% de adelanto para separar tu fecha'"
+                "\n- Prioridad #1: Guiar al cliente a separar la fecha en casaaustin.pe."
+                "\n- Usa scarcity REALISTA, no agresiva. Variantes (no copies literal):"
+                "\n  • 'Si te acomoda, lo mejor es separarla con el 50% para asegurar la fecha.'"
+                "\n  • 'Esa fecha puede cambiar de disponibilidad — si te gusta, te recomiendo separarla.'"
+                "\n  • 'Para dejarla asegurada, solo necesitas separarla con el 50% desde la web.'"
+                "\n- ⛔ NUNCA prometas guardar/bloquear/reservar la fecha sin pago."
                 "\n- Si tiene dudas, resuélvelas rápido y vuelve al cierre."
-                "\n- Si dice que quiere reservar, usa notify_team(ready_to_book) Y guíalo a casaaustin.pe"
+                "\n- Si dice que quiere reservar, usa notify_team(ready_to_book) Y guíalo a casaaustin.pe."
                 "\n- ⚠️ Si el cliente pregunta por NUEVAS FECHAS o DIFERENTES fechas (incluyendo 'hoy', 'mañana', "
                 "otra fecha distinta a la cotizada), DEBES llamar check_availability o check_calendar DE NUEVO. "
-                "NUNCA asumas disponibilidad ni reutilices la cotización anterior. La disponibilidad cambia en tiempo real."
+                "NUNCA asumas disponibilidad ni reutilices la cotización anterior."
             )
 
         # Detectar urgencia por fechas cercanas (si hay contexto de fechas)
@@ -1345,17 +1363,30 @@ class AIOrchestrator:
     # haya hecho. Visto en producción: David Tafur ("aceptan tarjeta"),
     # Ignacio Vidal ("Quiero pagar") — 0 notificaciones automáticas en 21 conv.
     READY_TO_BOOK_PATTERNS = [
+        # Intención directa de reservar/pagar
         r'\bquiero\s+(?:pagar|reservar|confirmar|separar)\b',
         r'\bdeseo\s+(?:pagar|reservar|confirmar|alquilar)\b',
         r'\bme\s+anim[oa]\b',
         r'\baceptan?\s+tarjeta\b',
-        r'\bc[oó]mo\s+(?:pago|reservo|hago\s+el\s+pago|hago\s+la\s+reserva)\b',
-        r'\benv[ií]a(?:me)?\s+(?:el\s+)?(?:link|enlace)',
-        r'\b(?:dame|p[aá]same|manda(?:me)?)\s+(?:el\s+)?(?:link|enlace)\b',
+        r'\bc[oó]mo\s+(?:pago|reservo|separo|hago\s+el\s+pago|hago\s+la\s+reserva)\b',
         r'\blist[oa]\s+(?:para\s+)?(?:pagar|reservar)\b',
         r'\bvamos\s+a\s+reservar\b',
         r'\bya\s+voy\s+a\s+(?:pagar|reservar)\b',
         r'\bnecesito\s+ayuda\s+(?:con|para)\s+(?:el\s+)?pago\b',
+        # Pedir el link
+        r'\benv[ií]a(?:me)?\s+(?:el\s+)?(?:link|enlace)',
+        r'\b(?:dame|p[aá]same|manda(?:me)?|m[aá]ndame)\s+(?:el\s+)?(?:link|enlace)\b',
+        # Bancos / wallets / método de pago
+        r'\b(?:bcp|bbva|interbank|scotiabank|banbif|pichincha)\b',
+        r'\byape\b',
+        r'\bplin\b',
+        r'\bcuenta\s+(?:bancaria|de|del)\b',
+        r'\bn[uú]mero\s+de\s+cuenta\b',
+        r'\bd[oó]nde\s+(?:dep[oó]sito|deposito|transfiero|pago|transferir)\b',
+        # Confirmación de pago realizado
+        r'\bya\s+(?:pagu[eé]|transfer[ií]|dep[oó]sit[eé])\b',
+        r'\bya\s+sub[ií]\s+el\s+voucher\b',
+        r'\bvoucher\b',
     ]
 
     def _force_ready_to_book_if_intent(self, session, inbound_message, tool_calls_data):

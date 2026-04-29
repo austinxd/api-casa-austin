@@ -728,8 +728,11 @@ class ToolExecutor:
                     "\nLa fecha que pidió el cliente NO está disponible (ya está reservada)."
                     "\nDi CLARAMENTE al cliente: 'Lo siento, esas fechas ya están reservadas.'"
                     "\nLuego presenta las fechas alternativas de arriba TAL CUAL con sus precios formateados."
-                    "\nPregunta si alguna le interesa: '¿Alguna de estas fechas te acomoda?'"
-                    "\nSi dice que sí, confirma la cantidad exacta de personas y la fecha elegida para recotizar."
+                    "\nOBLIGATORIO terminar pidiendo elección. Variantes (no copies literal):"
+                    "\n  • '¿Cuál de estas opciones te acomoda más? Te paso el link al toque.'"
+                    "\n  • 'De estas opciones, ¿cuál te gustaría revisar para tu grupo?'"
+                    "\n  • 'Si alguna te acomoda, te paso el link directo para separarla.'"
+                    "\nSi el cliente elige una, confirma personas y fecha elegida y recotiza."
                     "\nNO digas 'muy pedidas' ni 'demanda alta' — sé directo: la fecha está reservada."
                     "\nNO inventes otras fechas ni busques más opciones por tu cuenta."
                     "\nNO incluyas texto que empiece con [INSTRUCCIÓN o ⚠️ PRECIO BASE."
@@ -828,6 +831,21 @@ class ToolExecutor:
 
             line = f"🏠 {name}: *${final_usd:.2f}* ó *S/{final_sol:.2f}*"
             available_lines.append(line)
+
+            # Precio por persona (solo grupos >= 4) — calculado en backend con
+            # cast seguro para evitar problemas Decimal/float. Redondeado sin
+            # decimales. Útil para anclar el valor de la oferta en grupos.
+            try:
+                guests_int = int(guests)
+                final_sol_float = float(final_sol or 0)
+                if guests_int >= 4 and final_sol_float > 0:
+                    pp = round(final_sol_float / guests_int)
+                    if pp > 0:
+                        available_lines.append(
+                            f"💰 Aprox S/{pp} por persona por toda la estadía"
+                        )
+            except (TypeError, ValueError):
+                pass
 
         # Construir cotización
         lines = [f"📅 {fecha_display}", ""]
