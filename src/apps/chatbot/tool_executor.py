@@ -1,7 +1,27 @@
 import logging
 from datetime import date, datetime, timedelta
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 logger = logging.getLogger(__name__)
+
+
+def _safe_round_int(value):
+    """Redondea un valor (Decimal, float, int, str) a entero con ROUND_HALF_UP.
+    Evita errores de redondeo de float y maneja inputs None/inválidos.
+    Devuelve 0 si no se puede convertir.
+    """
+    if value is None:
+        return 0
+    try:
+        if isinstance(value, Decimal):
+            d = value
+        elif isinstance(value, (int, float)):
+            d = Decimal(str(value))
+        else:
+            d = Decimal(str(value))
+        return int(d.quantize(Decimal('1'), rounding=ROUND_HALF_UP))
+    except (TypeError, ValueError, InvalidOperation, ArithmeticError):
+        return 0
 
 
 # Definiciones de herramientas para OpenAI Function Calling
@@ -840,41 +860,49 @@ class ToolExecutor:
             extra_guests_count = prop.get('extra_guests', 0)
             extra_total_usd = prop.get('extra_person_total_usd', 0)
 
-            # Capturar descuento (se muestra una sola vez al final)
+            # Capturar descuento (se muestra una sola vez al final).
+            # Solo guardamos el "tipo" del descuento (la parte antes del ":")
+            # en minúscula para usar en el formato compacto. Si no hay
+            # descripción, queda vacío y se mostrará un mensaje genérico.
             discount = prop.get('discount_applied')
             if discount and discount.get('type') not in ('none', None):
-                disc_pct = discount.get('discount_percentage', 0)
-                disc_desc = discount.get('description', '')
-                if disc_pct and not discount_label:
-                    discount_label = f"{disc_desc} (-{disc_pct}%)" if disc_desc else f"-{disc_pct}%"
+                disc_desc = (discount.get('description') or '').strip()
+                if disc_desc and not discount_label:
+                    short = disc_desc.split(':')[0].strip().lower()
+                    discount_label = short
+                elif not disc_desc and discount_label is None:
+                    discount_label = ''  # marca de "hay descuento sin descripción"
 
-            # Precio total redondeado en soles, sin decimales, sin dólares.
+            # Precios redondeados con Decimal/ROUND_HALF_UP (consistente,
+            # sin errores de float). Acepta Decimal, float, int o str.
+            total_usd = _safe_round_int(final_usd)
+            total_sol = _safe_round_int(final_sol)
+
             try:
-                final_sol_float = float(final_sol or 0)
                 guests_int = int(guests)
             except (TypeError, ValueError):
-                final_sol_float = 0.0
                 guests_int = 0
-            total_sol = int(round(final_sol_float))
 
-            # Bloque de la casa: línea principal + sub-línea opcional con pp
-            block_lines = [f"{name} — S/{total_sol}"]
+            # Bloque de la casa: línea principal con USD + SOL + sub-línea
+            # opcional con precio por persona en soles.
+            block_lines = [f"{name} — ${total_usd} · S/{total_sol}"]
 
-            # Precio por persona (solo grupos >= 4). Calculado en backend
-            # con cast seguro, redondeado sin decimales.
+            # Precio por persona (solo grupos >= 4), en soles, redondeado
+            # con el mismo helper para consistencia.
             pp_value = None
-            if guests_int >= 4 and final_sol_float > 0:
-                pp_value = round(final_sol_float / guests_int)
+            if guests_int >= 4 and total_sol > 0:
+                pp_dec = Decimal(total_sol) / Decimal(guests_int)
+                pp_value = _safe_round_int(pp_dec)
                 if pp_value > 0:
                     block_lines.append(f"↳ S/{pp_value} por persona")
 
             available_blocks.append('\n'.join(block_lines))
 
             # Guardar datos para identificar la opción más económica al final
-            if final_sol_float > 0:
+            if total_sol > 0:
                 houses_data.append({
                     'name': name,
-                    'final_sol': final_sol_float,
+                    'final_sol': total_sol,
                     'pp': pp_value,
                 })
 
@@ -895,16 +923,21 @@ class ToolExecutor:
                 lines.append("")
                 lines.extend(capacity_warnings)
 
-            # Descuento aplicado (si hay)
+            # Descuento aplicado (si hay) — formato compacto.
+            # discount_label puede ser:
+            #   - string con el tipo en minúscula (ej: "cliente frecuente")
+            #   - "" si hay descuento pero sin descripción
+            #   - None si no hay descuento
             if discount_label:
                 lines.append("")
-                lines.append(f"🎁 Descuento aplicado: {discount_label}")
+                lines.append(f"🎁 Incluye descuento de {discount_label}")
+            elif discount_label == '':
+                lines.append("")
+                lines.append("🎁 Descuento aplicado")
 
             # Nota legal de visitantes (compacta)
             lines.append("")
-            lines.append(
-                "⚠️ Cualquier visitante adicional cuenta como persona en la reserva."
-            )
+            lines.append("⚠️ Visitantes cuentan como personas adicionales.")
 
             # Más económica (solo si hay 2+ casas)
             if len(houses_data) >= 2:
@@ -931,10 +964,11 @@ class ToolExecutor:
             ia_instruction = (
                 "[INSTRUCCIÓN IA — OBLIGATORIO — NO MOSTRAR AL CLIENTE]"
                 "\nTu respuesta DEBE ser EXACTAMENTE el texto de arriba copiado tal cual, carácter por carácter."
-                "\nPROHIBIDO: resumir, parafrasear, cambiar formato, juntar líneas, agregar dólares."
+                "\nPROHIBIDO: resumir, parafrasear, cambiar formato, juntar líneas, agregar decimales."
                 "\nPROHIBIDO: escribir algo como 'el precio sería S/X' en prosa. La cotización YA está formateada."
                 "\nPROHIBIDO: incluir CUALQUIER texto que empiece con [INSTRUCCIÓN en tu respuesta."
                 "\nPROHIBIDO: agregar 'PRECIO PARA X PERSONAS', emoji 🏠 antes del nombre, ni emoji 💰 en el precio por persona."
+                "\nPROHIBIDO: usar 'ó' entre el USD y los soles. El formato correcto es '$578 · S/2081' con · centrado."
                 "\n\n⛔ NO uses cierres antiguos como '¿Te animas a reservar? 😊' ni "
                 "'¿Quieres que te pase el link para separar la fecha con el 50%?'."
                 "\n\n✅ DESPUÉS del bloque de cotización, agrega UNA pregunta corta de cierre. "
