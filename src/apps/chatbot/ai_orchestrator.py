@@ -239,6 +239,11 @@ class AIOrchestrator:
         # la cotización formateada, inyectarla automáticamente.
         response_text = self._inject_missing_quote(response_text, tool_calls_data)
 
+        # Red de seguridad: pasar de nuevo por sanitize_response después del
+        # inject. El _result_full del tool incluye INSTRUCCIÓN IA al final;
+        # si por alguna ruta llegara hasta aquí, este pase final lo elimina.
+        response_text = sanitize_response(response_text)
+
         # Enviar por el canal correspondiente
         wa_message_id = None
         if send_wa:
@@ -1592,12 +1597,21 @@ class AIOrchestrator:
         if not text:
             text = ''
 
-        # Marcadores del bloque de cotización (ver _check_availability en tool_executor)
-        has_price_block = (
+        # Detectar si el texto del modelo YA contiene el bloque de cotización.
+        # Reconocemos AMBOS formatos: el viejo (PRECIO PARA / 🏠) y el nuevo
+        # (📅 con · y casas con ↳ o "Más económica:"). Si no detectamos ningún
+        # marcador, asumimos que falta y lo inyectamos.
+        has_quote_old_format = (
             ('PRECIO PARA' in text and 'PERSONA' in text)
             or 'Late checkout disponible' in text
         )
-        if has_price_block:
+        has_quote_new_format = (
+            ('📅' in text and ' · ' in text and 'Casa Austin' in text)
+            or '↳' in text
+            or 'Más económica:' in text
+            or 'Fotos: https://casaaustin.pe/disponibilidad' in text
+        )
+        if has_quote_old_format or has_quote_new_format:
             return text
 
         # Buscar el último result completo de check_availability / check_late_checkout
@@ -1609,8 +1623,12 @@ class AIOrchestrator:
             full = tc.get('_result_full') or ''
             if not full or 'BLOCKED' in full:
                 continue
-            # Solo inyectamos si el result parece realmente una cotización formateada
-            if 'PRECIO PARA' in full or 'Late checkout disponible' in full:
+            # Aceptar ambos formatos como cotización válida
+            if (
+                'PRECIO PARA' in full
+                or 'Late checkout disponible' in full
+                or ('📅' in full and 'Casa Austin' in full)
+            ):
                 quote_text = full.strip()
                 break
 
@@ -1622,12 +1640,16 @@ class AIOrchestrator:
             "injecting formatted quote automatically"
         )
 
+        # Sanitizar el quote_text antes de inyectarlo (el _result_full incluye
+        # la INSTRUCCIÓN IA al final que NUNCA debe ver el cliente).
+        quote_text = sanitize_response(quote_text)
+
         # Si el texto del modelo es muy corto (tipo "¿Te animas?"), lo usamos
         # como pregunta de cierre después de la cotización. Si es largo,
         # anteponemos la cotización y mantenemos el texto.
         stripped = text.strip()
         if len(stripped) < 80:
-            closer = stripped or "¿Te animas a reservar? 😊"
+            closer = stripped or "¿Te paso el link para separarla con el 50%?"
             return f"{quote_text}\n\n{closer}"
         return f"{quote_text}\n\n{stripped}"
 
