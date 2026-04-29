@@ -40,10 +40,22 @@ def sanitize_response(text):
     if not text:
         return text
 
-    # Eliminar bloques completos [INSTRUCCIÓN ...] + todas sus líneas siguientes
-    # hasta un doble salto de línea o fin de texto
+    # Eliminar bloques completos [INSTRUCCIÓN ...] hasta encontrar el siguiente
+    # marcador legítimo del cliente (cierre comercial, otro bloque cotización,
+    # o fin del texto). El regex anterior usaba lookahead a doble salto que se
+    # detenía en el primer párrafo de la instrucción y dejaba pasar las
+    # prohibiciones, variantes, y demás contenido interno al cliente.
+    instruction_terminators = (
+        r'\n📅\b'                                      # otro bloque de cotización
+        r'|\n¿\s*Te\s+paso'                            # cierre comercial directo
+        r'|\n¿\s*Quieres\s+que\s+te\s+(?:pase|env[íi]e|paso)'
+        r'|\n¿\s*Te\s+animas'                          # cierre antiguo (por si lo escapa)
+        r'|\nPara\s+asegurar\s+esa\s+fecha\s+solo'     # variante 3 del cierre
+        r'|\n¿\s*Cu[aá]l\s+de\s+estas\s+opciones'      # cierre tras alternativas
+        r'|\Z'                                          # fin del texto
+    )
     text = re.sub(
-        r'\[INSTRUCCI[ÓO]N[^\]]*\].*?(?=\n\s*\n|\Z)',
+        r'\[INSTRUCCI[ÓO]N[^\]]*\].*?(?=' + instruction_terminators + r')',
         '',
         text,
         flags=re.IGNORECASE | re.DOTALL,
@@ -58,7 +70,11 @@ def sanitize_response(text):
     # Eliminar líneas sueltas que son continuación de instrucciones IA
     # (por si GPT copió instrucciones sin el tag [INSTRUCCIÓN])
     text = re.sub(
-        r'^(?:PROHIBIDO:|Tu respuesta DEBE|Solo agrega UNA|NOTA INTERNA:).*$',
+        r'^\s*(?:'
+        r'PROHIBIDO:|Tu respuesta DEBE|Solo agrega UNA|NOTA INTERNA:'
+        r'|⛔\s*NO\s+uses|✅\s*DESPU[ÉE]S\s+(?:de|del)|Variantes\s+v[aá]lidas'
+        r'|Para\s+dar\s+el\s+precio\s+EXACTO|NUNCA\s+menciones\s+montos'
+        r').*$',
         '',
         text,
         flags=re.MULTILINE | re.IGNORECASE,

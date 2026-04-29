@@ -778,17 +778,30 @@ class ToolExecutor:
         try:
             ci = datetime.strptime(str(check_in), '%Y-%m-%d').date()
             co = datetime.strptime(str(check_out), '%Y-%m-%d').date()
+            today_year = date.today().year
+            # Mostrar año solo si NO es el año actual (más limpio para
+            # reservas del año en curso)
+            year_in = f" {ci.year}" if ci.year != today_year else ""
+            year_out = f" {co.year}" if co.year != today_year else ""
             if ci.month == co.month and ci.year == co.year:
-                fecha_display = f"Del {ci.day} al {co.day} de {months_es[ci.month]} de {ci.year}"
+                fecha_display = (
+                    f"{ci.day} al {co.day} de {months_es[ci.month]}{year_in}"
+                )
             elif ci.year == co.year:
-                fecha_display = f"Del {ci.day} de {months_es[ci.month]} al {co.day} de {months_es[co.month]} de {ci.year}"
+                fecha_display = (
+                    f"{ci.day} de {months_es[ci.month]} al "
+                    f"{co.day} de {months_es[co.month]}{year_in}"
+                )
             else:
-                fecha_display = f"Del {ci.day} de {months_es[ci.month]} de {ci.year} al {co.day} de {months_es[co.month]} de {co.year}"
+                fecha_display = (
+                    f"{ci.day} de {months_es[ci.month]}{year_in} al "
+                    f"{co.day} de {months_es[co.month]}{year_out}"
+                )
             # URL con formato D/MM/YYYY
             url_ci = f"{ci.day}/{ci.month:02d}/{ci.year}"
             url_co = f"{co.day}/{co.month:02d}/{co.year}"
         except (ValueError, KeyError):
-            fecha_display = f"Del {check_in} al {check_out}"
+            fecha_display = f"{check_in} al {check_out}"
             url_ci = str(check_in)
             url_co = str(check_out)
 
