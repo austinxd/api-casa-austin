@@ -831,6 +831,7 @@ class ToolExecutor:
         available_blocks = []
         unavailable_lines = []
         discount_label = None  # Descuento compartido (se muestra una sola vez)
+        discount_pct = None    # Porcentaje del descuento (entero, ej: 15)
 
         capacity_warnings = []
 
@@ -861,17 +862,22 @@ class ToolExecutor:
             extra_total_usd = prop.get('extra_person_total_usd', 0)
 
             # Capturar descuento (se muestra una sola vez al final).
-            # Solo guardamos el "tipo" del descuento (la parte antes del ":")
-            # en minúscula para usar en el formato compacto. Si no hay
-            # descripción, queda vacío y se mostrará un mensaje genérico.
+            # Guardamos:
+            #   - discount_label: el "tipo" del descuento en minúscula
+            #     ("cliente frecuente"). '' si hay descuento sin descripción.
+            #     None si no hay descuento.
+            #   - discount_pct: el porcentaje aplicado (int redondeado).
             discount = prop.get('discount_applied')
             if discount and discount.get('type') not in ('none', None):
                 disc_desc = (discount.get('description') or '').strip()
-                if disc_desc and not discount_label:
-                    short = disc_desc.split(':')[0].strip().lower()
-                    discount_label = short
-                elif not disc_desc and discount_label is None:
-                    discount_label = ''  # marca de "hay descuento sin descripción"
+                disc_pct_raw = discount.get('discount_percentage', 0)
+                if discount_label is None:
+                    if disc_desc:
+                        discount_label = disc_desc.split(':')[0].strip().lower()
+                    else:
+                        discount_label = ''
+                if discount_pct is None and disc_pct_raw:
+                    discount_pct = _safe_round_int(disc_pct_raw)
 
             # Precios redondeados con Decimal/ROUND_HALF_UP (consistente,
             # sin errores de float). Acepta Decimal, float, int o str.
@@ -923,27 +929,29 @@ class ToolExecutor:
                 lines.append("")
                 lines.extend(capacity_warnings)
 
-            # Descuento aplicado (si hay) — formato compacto.
-            # discount_label puede ser:
-            #   - string con el tipo en minúscula (ej: "cliente frecuente")
-            #   - "" si hay descuento pero sin descripción
-            #   - None si no hay descuento
-            if discount_label:
+            # Descuento aplicado (si hay) — formato compacto con porcentaje.
+            # Combinaciones:
+            #   label="cliente frecuente", pct=15 → "🎁 Cliente frecuente · 15% de descuento aplicado"
+            #   label="",                pct=10 → "🎁 10% de descuento aplicado"
+            #   label="cliente frecuente", pct=None → "🎁 Incluye descuento de cliente frecuente"
+            #   label="",                pct=None → "🎁 Descuento aplicado"
+            if discount_label or discount_label == '':
                 lines.append("")
-                lines.append(f"🎁 Incluye descuento de {discount_label}")
-            elif discount_label == '':
-                lines.append("")
-                lines.append("🎁 Descuento aplicado")
+                if discount_label and discount_pct:
+                    lines.append(
+                        f"🎁 {discount_label.capitalize()} · "
+                        f"{discount_pct}% de descuento aplicado"
+                    )
+                elif discount_pct:
+                    lines.append(f"🎁 {discount_pct}% de descuento aplicado")
+                elif discount_label:
+                    lines.append(f"🎁 Incluye descuento de {discount_label}")
+                else:
+                    lines.append("🎁 Descuento aplicado")
 
             # Nota legal de visitantes (compacta)
             lines.append("")
             lines.append("⚠️ Visitantes cuentan como personas adicionales.")
-
-            # Más económica (solo si hay 2+ casas)
-            if len(houses_data) >= 2:
-                cheapest = min(houses_data, key=lambda h: h['final_sol'])
-                lines.append("")
-                lines.append(f"Más económica: {cheapest['name']}")
 
             # Link de fotos (sin emoji, formato simple)
             lines.append(
