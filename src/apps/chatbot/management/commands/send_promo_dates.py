@@ -131,6 +131,32 @@ class Command(BaseCommand):
             ).values_list('client_id', flat=True)
         )
 
+        # COOLDOWN: clientes que recibieron CUALQUIER promo en los últimos
+        # cooldown_days días. Evita spam si el cliente buscó múltiples fechas.
+        cooldown_days = max(0, int(getattr(config, 'cooldown_days', 7) or 0))
+        clients_in_cooldown = set()
+        anon_phones_in_cooldown = set()
+        if cooldown_days > 0:
+            cooldown_cutoff = timezone.now() - timedelta(days=cooldown_days)
+            recent_promos = PromoDateSent.objects.filter(
+                created__gte=cooldown_cutoff,
+                deleted=False,
+            )
+            clients_in_cooldown = set(
+                recent_promos.filter(client__isnull=False)
+                .values_list('client_id', flat=True)
+            )
+            # También trackear teléfonos para anónimos del chatbot
+            anon_phones_in_cooldown = set()
+            for p in recent_promos.filter(client__isnull=False).select_related('client'):
+                if p.client and p.client.tel_number:
+                    digits = re.sub(r'\D', '', p.client.tel_number)
+                    if digits:
+                        anon_phones_in_cooldown.add(digits)
+                        # Añadir variante sin el "51" inicial por si el wa_id no lo trae
+                        if digits.startswith('51') and len(digits) > 9:
+                            anon_phones_in_cooldown.add(digits[2:])
+
         # Opcionalmente excluir clientes con chat activo < 24h
         clients_recent_chat = set()
         if config.exclude_recent_chatters:
@@ -158,6 +184,14 @@ class Command(BaseCommand):
 
             if client_id in clients_already_promo:
                 self.stdout.write(f'  SKIP {client_name}: ya recibió promo')
+                skipped_count += 1
+                continue
+
+            if client_id in clients_in_cooldown:
+                self.stdout.write(
+                    f'  SKIP {client_name}: cooldown ({cooldown_days}d) — '
+                    f'recibió promo recientemente para otra fecha'
+                )
                 skipped_count += 1
                 continue
 
@@ -458,6 +492,20 @@ class Command(BaseCommand):
 
                 if wa_digits in already_promo_phones:
                     self.stdout.write(f'  SKIP {wa_id}: ya recibió promo')
+                    skipped_count += 1
+                    continue
+
+                # COOLDOWN para anónimos: si el teléfono coincide con uno que
+                # ya recibió promo (vía cliente registrado) en la ventana, skip.
+                wa_digits_short = wa_digits[2:] if wa_digits.startswith('51') else wa_digits
+                if (
+                    wa_digits in anon_phones_in_cooldown
+                    or wa_digits_short in anon_phones_in_cooldown
+                ):
+                    self.stdout.write(
+                        f'  SKIP {wa_id}: cooldown ({cooldown_days}d) — '
+                        f'cliente recibió promo recientemente'
+                    )
                     skipped_count += 1
                     continue
 

@@ -371,7 +371,20 @@ class PromoDateConfig(BaseModel):
     )
     max_promos_per_client = models.PositiveIntegerField(
         default=1,
-        help_text="Máximo de promos por cliente para una misma fecha"
+        verbose_name="[⚠️ NO IMPLEMENTADO] Max promos por cliente",
+        help_text=(
+            "⚠️ CAMPO NO IMPLEMENTADO — la deduplicación por fecha se "
+            "garantiza por PromoDateSent (1 por client_id+check_in_date). "
+            "Para limitar promos en una ventana de tiempo, usar 'cooldown_days'."
+        ),
+    )
+    cooldown_days = models.PositiveIntegerField(
+        default=7,
+        help_text=(
+            "No reenviar otra promo al mismo cliente en menos de N días. "
+            "Por ejemplo, si el cliente buscó 5 fechas distintas y ya recibió "
+            "una promo en los últimos N días, NO se le envía otra."
+        ),
     )
     min_search_count = models.PositiveIntegerField(
         default=1,
