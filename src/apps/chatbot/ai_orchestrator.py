@@ -1134,19 +1134,140 @@ class AIOrchestrator:
                 "\n- NO pidas fechas ni personas otra vez si ya están en el historial; úsalas."
             )
 
+        # === Detección de duda de moneda (USD vs SOL) post-cotización ===
+        # Si el cliente pregunta sobre la equivalencia o el formato del precio
+        # cuando ya recibió cotización, NO debe re-pedir fechas/personas.
+        last_user_msg = ChatMessage.objects.filter(
+            session=session,
+            deleted=False,
+            direction=ChatMessage.DirectionChoices.INBOUND,
+        ).order_by('-created').first()
+        last_user_text = ((last_user_msg.content if last_user_msg else '') or '').lower()
+
+        currency_patterns = [
+            r'\bc[oó]mo\s+es\s+(?:eso\s+de\s+)?(?:los\s+)?d[oó]lares?\b',
+            r'\b(?:o\s+sea\s+)?\d+\s*d[oó]lares?\s+y\s+(?:en\s+)?soles\b',
+            r'\b(?:en\s+)?soles?\s+cu[aá]nto\s+(?:es|ser[íi]a|sale)\b',
+            r'\bcu[aá]nto\s+(?:es|son|ser[íi]a)\s+(?:eso\s+)?en\s+soles?\b',
+            r'\bson\s+d[oó]lares?\??$',
+            r'\bes\s+en\s+d[oó]lares?\??$',
+            r'\bse\s+paga\s+en\s+soles?\??',
+            r'\bel\s+precio\s+es\s+en\s+(?:d[oó]lares?|soles?)',
+            r'\bno\s+entiendo\s+(?:el|los)\s+precios?\b',
+            r'\btipo\s+de\s+cambio\b',
+            r'^\s*\d+\s*soles?\s*\??\s*$',
+            r'\bcu[aá]nto\s+(?:son|es)\s+\$?\s*\d+\s+en\s+soles?\b',
+        ]
+        currency_question = any(re.search(p, last_user_text) for p in currency_patterns)
+
+        if currency_question and session.quoted_at:
+            context_parts.append(
+                "\n\n💱 DUDA DE MONEDA (USD ↔ SOLES):"
+                "\nEl cliente ya recibió cotización antes y ahora pregunta por la moneda "
+                "o la equivalencia del precio. Tu tarea AHORA es ACLARAR la duda usando "
+                "la última cotización del historial, NO volver a pedir datos."
+                "\n- ⛔ PROHIBIDO volver a preguntar fechas, personas o casa."
+                "\n- ⛔ PROHIBIDO pedir que el cliente repita información."
+                "\n- ⛔ PROHIBIDO ejecutar check_availability."
+                "\n- ✅ Mira la última cotización en el historial y explica:"
+                "\n  'Sí, correcto 😊 El precio se muestra en dólares y al lado te indicamos "
+                "el equivalente en soles según el tipo de cambio vigente. "
+                "En tu cotización: $X · S/Y. Puedes pagar en soles desde la web.'"
+                "\n- Usa el tipo de cambio actual para reforzar la conversión si ayuda."
+                "\n- Después de aclarar, ofrece continuar: '¿Avanzamos con la reserva?'"
+            )
+
+        # === Anti-presentación repetida ===
+        # Si el bot ya respondió antes en esta sesión, NO debe presentarse otra vez
+        # como Valeria. Solo en el primer turno (cuando no hay outbound_ai previo).
+        prior_ai_count = ChatMessage.objects.filter(
+            session=session,
+            deleted=False,
+            direction=ChatMessage.DirectionChoices.OUTBOUND_AI,
+        ).count()
+
+        if prior_ai_count > 0:
+            context_parts.append(
+                "\n\n🚫 NO TE PRESENTES DE NUEVO:"
+                "\nYa estás en una conversación abierta con este cliente — ya hay respuestas "
+                "previas tuyas en el historial. PROHIBIDO empezar tu mensaje con "
+                "'Hola, soy Valeria...', 'Soy Valeria de Casa Austin', o cualquier "
+                "presentación. Solo continúa la conversación. Puedes saludar corto si "
+                "encaja ('Claro 😊', 'Por supuesto', 'Perfecto'), pero NO te presentes."
+            )
+
+        # === Detección de cliente que pide precio sin fecha (insistencia) ===
+        # Si el cliente insiste en saber el precio sin dar fecha y el bot ya pidió
+        # fechas 2+ veces, da un rango orientativo en vez de seguir pidiendo lo mismo.
+        no_date_patterns = [
+            r'\bla\s+fecha\s+no\s+importa\b',
+            r'\bsin\s+fecha\b',
+            r'\bdime\s+a\s+cu[aá]nto\b',
+            r'\bcu[aá]nto\s+(?:lo\s+)?(?:alquila|cuesta|sale)\b',
+            r'\bsolo\s+(?:dime|d[ií]me)\s+(?:el\s+)?precio',
+            r'\bun\s+aproximado\b',
+            r'\bun\s+estimado\b',
+            r'\bprecio\s+aproximado\b',
+            r'\bprecio\s+general\b',
+            r'\bs[oó]lo\s+(?:yo|nosotros)\b',
+        ]
+        client_insists_no_date = any(re.search(p, last_user_text) for p in no_date_patterns)
+
+        # Contar cuántas veces el bot pidió "fecha" en mensajes recientes
+        recent_ai_msgs = ChatMessage.objects.filter(
+            session=session,
+            deleted=False,
+            direction=ChatMessage.DirectionChoices.OUTBOUND_AI,
+        ).order_by('-created')[:6]
+        date_asks = sum(
+            1 for m in recent_ai_msgs
+            if re.search(r'\b(?:fecha|d[ií]a|cu[aá]ndo|qu[eé] d[ií]a)', (m.content or '').lower())
+        )
+
+        if client_insists_no_date and date_asks >= 2:
+            # Buscar precio_desde de las propiedades para dar rango
+            from apps.property.models import Property
+            min_desde = Property.objects.filter(
+                deleted=False, precio_desde__isnull=False, precio_desde__gt=0,
+            ).order_by('precio_desde').values_list('precio_desde', flat=True).first()
+            range_hint = ""
+            if min_desde:
+                range_hint = (
+                    f"\n- Rango orientativo: las casas pueden partir desde ${float(min_desde):.0f} "
+                    "entre semana, pero el monto exacto depende del día."
+                )
+
+            context_parts.append(
+                "\n\n📏 CLIENTE INSISTE SIN DAR FECHA:"
+                "\nYa pediste fechas varias veces y el cliente sigue sin darlas. "
+                "NO repitas la misma pregunta. Da un rango orientativo y aclara "
+                "que el monto exacto requiere fecha:"
+                f"{range_hint}"
+                "\n- Ejemplo: 'Para 1 o 2 personas, las casas parten desde $55 entre semana, "
+                "pero en fines de semana sube según fecha. Para darte el monto exacto sí "
+                "necesito el día. Si me das una fecha tentativa, te cotizo al toque.'"
+                "\n- Sé directo y honesto. Después de dar el rango, intenta una vez más "
+                "obtener una fecha pero sin presionar."
+            )
+
         # === INSTRUCCIONES DINÁMICAS según estado de la conversación ===
         context_parts.append(self._build_sales_context(session, today))
 
         return '\n'.join(context_parts)
 
     def _get_active_reservation(self, client, today):
-        """Busca la reserva activa más próxima del cliente (en curso o futura)"""
+        """Busca la reserva activa más próxima del cliente (en curso o futura).
+
+        Incluye reservas en cualquier estado relevante (aprobada, pendiente de pago,
+        en revisión) para que el bot tenga contexto incluso cuando el cliente todavía
+        no completó el pago.
+        """
         from apps.reservation.models import Reservation
 
         return Reservation.objects.filter(
             client=client,
             check_out_date__gte=today,
-            status='approved',
+            status__in=['approved', 'pending', 'under_review'],
             deleted=False,
         ).order_by('check_in_date').first()
 
@@ -1156,6 +1277,8 @@ class AIOrchestrator:
             "\n\nETAPA: SOPORTE DURANTE ESTADÍA 🏠"
             f"\n- El cliente está AHORA MISMO alojado en {res.property.name}."
             "\n- Modo: SOPORTE (no vender). Ayúdale con lo que necesite de la casa."
+            "\n- ⛔ PROHIBIDO cerrar con '¿quieres reservar?' o '¿te ayudo a elegir casa?'. "
+            "El cliente YA reservó y está hospedado. NO ofrezcas otras casas a menos que él pregunte."
             "\n- Si tiene un PROBLEMA (algo roto, falta algo, emergencia), usa notify_team(reason='needs_human_assist', details='[describe el problema]') para alertar al equipo."
             "\n- Comparte las instrucciones de la casa si pregunta (WiFi, dirección, estacionamiento, etc.)."
             "\n- Si pregunta por disponibilidad para OTRAS fechas, atiende con check_availability normalmente (modo venta para nueva reserva)."
@@ -1179,6 +1302,8 @@ class AIOrchestrator:
                 if not res.full_payment else ""
             )
             + "\n- Si pregunta por OTRAS fechas, atiende con check_availability normalmente."
+            "\n- ⛔ PROHIBIDO cerrar con '¿quieres reservar?' o '¿te ayudo a elegir?'. "
+            "El cliente YA reservó. NO ofrezcas otras casas. Trátalo como huésped, no como lead."
             "\n- Tono: entusiasta. '¡Ya falta poco para tu escapada! 🏖️'"
         )
 
@@ -1191,7 +1316,75 @@ class AIOrchestrator:
             "\n- Menciona: 'La llave digital se activa al completar el pago al 100%.'"
             "\n- Opciones de pago: tarjeta o transferencia en casaaustin.pe"
             "\n- Si pregunta por OTRAS fechas, atiende con check_availability normalmente."
+            "\n- ⛔ PROHIBIDO ofrecer otras casas o cerrar con '¿quieres reservar?'. "
+            "El cliente YA tiene una reserva: tu trabajo es ayudarlo a completarla, no venderle otra."
             "\n- Tono: amigable pero claro sobre la importancia de completar el pago."
+        )
+
+    def _build_modify_reservation_context(self, res):
+        """Contexto cuando el cliente quiere AJUSTAR su reserva existente
+        (agregar personas, cambiar algo). NO debe ofrecer alternativas ni
+        revaluar disponibilidad. Debe escalar al equipo."""
+
+        # Capacidad y precio de persona adicional para dar referencia
+        prop = res.property
+        extra_price = prop.precio_extra_persona
+        capacity = prop.capacity_max
+        price_ref_lines = ""
+        if extra_price and float(extra_price) > 0:
+            price_ref_lines = (
+                f"\n- 💵 Referencia: cada persona adicional cuesta ~${float(extra_price):.0f}/noche. "
+                "Puedes mencionarlo como referencia, pero ACLARA que el monto exacto lo confirma el equipo."
+            )
+        if capacity:
+            price_ref_lines += f"\n- 👥 Capacidad máxima de {prop.name}: {capacity} personas."
+
+        check_in = res.check_in_date.strftime('%d/%m/%Y')
+        check_out = res.check_out_date.strftime('%d/%m/%Y')
+
+        return (
+            "\n\nETAPA: MODIFICAR RESERVA EXISTENTE 🔧"
+            f"\n- El cliente YA tiene una reserva activa en {prop.name} "
+            f"({check_in} → {check_out}, {res.guests} huéspedes, status={res.status})."
+            "\n- El cliente quiere AJUSTAR esa reserva (agregar personas, modificar algo)."
+            "\n- ⛔ PROHIBIDO interpretar esto como nueva consulta de disponibilidad."
+            "\n- ⛔ PROHIBIDO llamar check_availability ni check_calendar."
+            "\n- ⛔ PROHIBIDO decir 'esa fecha está reservada' u ofrecer fechas alternativas. "
+            "La fecha está reservada POR ESTE MISMO CLIENTE."
+            "\n- ⛔ PROHIBIDO tratarlo como lead nuevo."
+            f"{price_ref_lines}"
+            "\n- ✅ Reconoce su reserva: 'Claro, como ya tienes una reserva activa, "
+            "el equipo debe ajustar el total para incluir [lo que pide].'"
+            "\n- ✅ Ejecuta notify_team(reason='needs_human_assist', "
+            "details='Cliente quiere modificar reserva existente: [resumen breve, "
+            "incluyendo casa, fechas, y qué cambio pide]')."
+            "\n- ✅ Cierra con: 'Te aviso al equipo para que te confirme el monto exacto "
+            "y actualice tu reserva. Te responden por aquí mismo en breve.'"
+            "\n- Tono: servicial, sin presión de venta. Ya es cliente."
+        )
+
+    def _build_post_booking_far_context(self, res, days_until):
+        """Contexto cuando la reserva está confirmada y pagada, pero falta >7 días
+        para el check-in. NO debe seguir vendiendo como lead nuevo — debe ofrecer soporte."""
+        return (
+            "\n\nETAPA: POST-RESERVA CONFIRMADA 🎫"
+            f"\n- El cliente ya reservó {res.property.name} ({res.check_in_date.strftime('%d/%m/%Y')} "
+            f"→ {res.check_out_date.strftime('%d/%m/%Y')}, {res.guests} huéspedes). "
+            f"Faltan {days_until} días para el check-in."
+            "\n- Modo: SOPORTE post-reserva. NO vender."
+            "\n- ⛔ PROHIBIDO cerrar con '¿quieres reservar?' o '¿te ayudo a elegir casa?'. "
+            "El cliente YA reservó."
+            "\n- ⛔ PROHIBIDO ofrecer otras casas o intentar upselling agresivo a menos "
+            "que el cliente lo pida explícitamente."
+            "\n- ✅ Puedes ayudar con: confirmar detalles de su reserva, hora de check-in/out, "
+            "instrucciones de llegada, llave digital, qué traer, info de la casa, reglas, "
+            "contacto del equipo."
+            "\n- ✅ Si pregunta por modificar su reserva (agregar personas, cambiar fechas) → "
+            "usa notify_team(needs_human_assist) con el detalle. NO ofrezcas alternativas."
+            "\n- ✅ Si pregunta por OTRAS fechas para una NUEVA reserva, ahí sí atiendes con "
+            "check_availability normalmente."
+            "\n- Tono: entusiasta pero servicial. '¡Ya tienes tu escapada lista! 🏖️ "
+            "¿En qué te ayudo?'"
         )
 
     def _build_sales_context(self, session, today):
@@ -1200,11 +1393,46 @@ class AIOrchestrator:
 
         parts = []
 
+        # Último mensaje del cliente (lo necesitamos para varios detectores)
+        last_user = ChatMessage.objects.filter(
+            session=session,
+            deleted=False,
+            direction=ChatMessage.DirectionChoices.INBOUND,
+        ).order_by('-created').first()
+        last_user_text = ((last_user.content if last_user else '') or '').lower()
+
         # === DETECTAR RESERVA ACTIVA (post-venta) ===
         if session.client:
             active_res = self._get_active_reservation(session.client, today)
             if active_res:
                 days_until = (active_res.check_in_date - today).days
+
+                # PRIORIDAD: Detectar intención de MODIFICAR la reserva existente
+                # (agregar personas, cambiar fechas, etc). Aplica en CUALQUIER etapa.
+                modify_patterns = [
+                    r'\ba(?:ñ|n)adir\s+(?:a\s+)?(?:una?\s+|m[aá]s\s+)?(?:persona|gente|hu[eé]sped|invitad[oa])',
+                    r'\bagregar\s+(?:a\s+)?(?:una?\s+|m[aá]s\s+)?(?:persona|gente|hu[eé]sped|invitad[oa])',
+                    r'\bsumar\s+(?:una?\s+|m[aá]s\s+)?(?:persona|gente|hu[eé]sped|invitad[oa])',
+                    r'\bllevar\s+(?:una?\s+|m[aá]s\s+)?(?:persona|gente|hu[eé]sped|invitad[oa])',
+                    r'\bincluir\s+(?:una?\s+|m[aá]s\s+)?(?:persona|gente|hu[eé]sped|invitad[oa])',
+                    r'\bun[oa]?\s+m[aá]s\b',
+                    r'\bpersona\s+adicional\b',
+                    r'\bhu[eé]sped\s+adicional\b',
+                    r'\binvitad[oa]\s+adicional\b',
+                    r'\b(?:ahora\s+)?(?:somos|ser[íi]amos)\s+\d+\b',
+                    r'\b[eé]ramos\s+\d+\s*,?\s*ahora\b',
+                    r'\baumenta(?:r|mos)?\s+(?:el\s+|la\s+)?(?:n[uú]mero|cantidad|gente|personas?)',
+                    r'\bmodificar\s+(?:la\s+|mi\s+)?reserva',
+                    r'\bcambiar\s+(?:la\s+|mi\s+)?reserva',
+                    r'\bcosto\s+(?:de|por)\s+(?:una\s+)?persona\s+adicional',
+                    r'\bcu[aá]nto\s+(?:cuesta|ser[íi]a|es)\s+(?:una\s+)?(?:persona|hu[eé]sped|invitad[oa])\s+(?:adicional|m[aá]s|extra)',
+                    r'\bcu[aá]nto\s+(?:cuesta|ser[íi]a|es)\s+(?:el\s+)?adicional\b',
+                ]
+                wants_to_modify = any(re.search(p, last_user_text) for p in modify_patterns)
+
+                if wants_to_modify:
+                    parts.append(self._build_modify_reservation_context(active_res))
+                    return ''.join(parts)
 
                 if days_until <= 0:
                     # EN CURSO: check_in ya pasó o es hoy, check_out >= hoy
@@ -1218,7 +1446,10 @@ class AIOrchestrator:
                     # PAGO PENDIENTE: >7 días, sin pago 100%
                     parts.append(self._build_pending_payment_context(active_res))
                     return ''.join(parts)
-                # CONFIRMADA LEJANA: >7 días, pagada → flujo normal de ventas
+                else:
+                    # CONFIRMADA LEJANA pagada: dar soporte, no seguir vendiendo
+                    parts.append(self._build_post_booking_far_context(active_res, days_until))
+                    return ''.join(parts)
 
         # Detectar etapa del embudo
         has_quote = session.quoted_at is not None

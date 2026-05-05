@@ -424,6 +424,12 @@ class WebhookProcessor:
             'last_customer_message_at', 'status', 'ai_enabled',
         ])
 
+        # Re-intentar vincular cliente si aún no se ha logrado.
+        # Cubre el caso en que el cliente se registró DESPUÉS de iniciar la sesión
+        # (ej: hizo una reserva por la web mid-conversación).
+        if session.client_id is None and session.channel == 'whatsapp':
+            self._try_link_client(session)
+
     def _try_link_client(self, session):
         """Intenta vincular la sesión con un cliente existente por teléfono"""
         from apps.clients.models import Clients
