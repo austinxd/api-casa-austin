@@ -1154,8 +1154,9 @@ class AIOrchestrator:
                 "todas tus dudas de una vez. ¿Te sirve?' → "
                 "usa notify_team(reason='needs_human_assist', details='cliente evaluando "
                 "varias opciones, pedir llamada')."
-                "\n- Pregunta el bloqueo directo: '¿Hay algo específico que te frena "
-                "para cerrar hoy? Te ayudo a resolverlo.'"
+                "\n- Cierra con un check-in amable y sin presión: "
+                "'Te dejo a la mano la cotización por si la estás revisando con tu grupo.' "
+                "o 'Si te interesa, te paso el link para separarla con el 50%.'"
             )
 
         # === BLOQUE VENTA 3: RESCATE ANTE OBJECIÓN DE TIEMPO ===
