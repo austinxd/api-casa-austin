@@ -289,7 +289,7 @@ def _suggested_action(priority, has_active_reservation, fecha_disponible,
     Overrides comerciales:
         - ticket >= 60 AND check-in 0-3 días → Contactar hoy
         - guests >= 20 AND check-in 0-3 días AND ticket >= 50 → Contactar hoy
-        - ticket >= 50 AND date >= 50 → mínimo Follow-up personalizado
+        - ticket >= 45 AND date >= 50 → mínimo Follow-up personalizado
         - guests >= 20 AND date >= 50 → mínimo Follow-up personalizado
     """
     if has_active_reservation:
@@ -308,8 +308,8 @@ def _suggested_action(priority, has_active_reservation, fecha_disponible,
     if big_group and days_close and ticket_s >= 50:
         return "Contactar hoy"
 
-    # Override #3: ticket + date suficientes
-    if ticket_s >= 50 and date_s >= 50:
+    # Override #3: ticket+ + date suficientes (umbral ticket bajado a 45)
+    if ticket_s >= 45 and date_s >= 50:
         if priority >= 70:
             return "Contactar hoy"
         return "Follow-up personalizado"
@@ -479,7 +479,7 @@ def _build_recommended_message(name, search, last_quote, signals, priority,
 
     # === Línea 3 opcional: beneficio especial ===
     if can_offer_benefit:
-        msg += "\n\nSi están interesados, puedo consultar si hay algún beneficio disponible para esa fecha."
+        msg += "\n\nTambién puedo revisar si hay algún beneficio disponible para esa fecha."
 
     return msg
 
