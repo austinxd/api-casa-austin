@@ -276,18 +276,58 @@ def _compute_priority(lead, date_s, ticket):
 # Suggested action / can_offer_benefit / urgency_reason
 # ============================================================================
 
-def _suggested_action(priority, has_active_reservation, fecha_disponible):
+def _suggested_action(priority, has_active_reservation, fecha_disponible,
+                     ticket_s, date_s, days_until):
+    """Devuelve la acción sugerida.
+
+    Umbrales (ajuste 2026-05-07):
+        priority >= 70 → Contactar hoy
+        priority >= 50 → Follow-up personalizado
+        priority >= 35 → Seguimiento suave
+        priority <  35 → Baja prioridad
+
+    Override por ticket alto:
+        ticket >= 60 AND check-in dentro de 0-3 días → Contactar hoy
+        ticket >= 50 AND date >= 50 → mínimo Follow-up personalizado
+    """
     if has_active_reservation:
         return "No contactar: ya reservó"
     if not fecha_disponible:
         return "No contactar: fecha no disponible"
-    if priority >= 80: return "Contactar hoy"
-    if priority >= 60: return "Follow-up personalizado"
-    if priority >= 40: return "Seguimiento suave"
+
+    # Override #1: ticket muy alto + fecha muy cercana
+    if ticket_s >= 60 and days_until is not None and 0 <= days_until <= 3:
+        return "Contactar hoy"
+
+    # Override #2: ticket+date suficientes para empujar a "Follow-up"
+    if ticket_s >= 50 and date_s >= 50:
+        if priority >= 70:
+            return "Contactar hoy"
+        return "Follow-up personalizado"
+
+    # Default por priority
+    if priority >= 70: return "Contactar hoy"
+    if priority >= 50: return "Follow-up personalizado"
+    if priority >= 35: return "Seguimiento suave"
     return "Baja prioridad"
 
 
-def _can_offer_benefit(lead_s, date_s, fecha_disponible, is_special, in_cooldown, has_active_reservation):
+def _can_offer_benefit(lead_s, date_s, ticket_s, fecha_disponible, is_special,
+                       in_cooldown, has_active_reservation):
+    """Determina si se puede sugerir beneficio especial.
+
+    Reglas (ajuste 2026-05-07):
+        Bloqueado si:
+            - tiene reserva activa
+            - fecha no disponible
+            - SpecialDatePricing (fecha alta demanda)
+            - cooldown de promo reciente
+            - lead_score >= 80 (muy caliente, no quemar margen)
+
+        Permitido si:
+            - date_score >= 50, O
+            - ticket_score >= 50 AND date_score >= 50 (override de ticket alto)
+    """
     blocked_reasons = []
     if has_active_reservation:
         blocked_reasons.append("active_reservation")
@@ -299,7 +339,10 @@ def _can_offer_benefit(lead_s, date_s, fecha_disponible, is_special, in_cooldown
         blocked_reasons.append("recent_promo")
     if lead_s >= 80:
         blocked_reasons.append("high_lead_score")
-    if date_s < 60:
+
+    # Excepción de ticket alto: bypassa el bloqueo por low_date_score
+    high_ticket_override = (ticket_s >= 50 and date_s >= 50)
+    if not high_ticket_override and date_s < 50:
         blocked_reasons.append("low_date_score")
 
     if blocked_reasons:
@@ -308,23 +351,44 @@ def _can_offer_benefit(lead_s, date_s, fecha_disponible, is_special, in_cooldown
 
 
 def _urgency_reason(check_in, today, signals, search, has_available,
-                    preferred_avail, is_weekend, is_special, last_quote):
+                    preferred_avail, is_weekend, is_special, last_quote,
+                    ticket_s):
     days_until = (check_in - today).days if check_in else 999
+    guests = search.guests if search else None
 
     candidates = []
 
+    # === Top priority: ticket alto + fecha cercana ===
+    if ticket_s >= 60 and days_until <= 3 and has_available:
+        if guests and guests >= 20:
+            candidates.append(f"Fecha cercana + grupo {guests} personas + ticket alto")
+        else:
+            candidates.append("Ticket alto + fecha cercana")
+    elif ticket_s >= 50 and days_until <= 7 and has_available:
+        if guests and guests >= 20:
+            candidates.append(f"Fecha cercana + casa disponible + grupo {guests}+")
+
+    # === Señales de cierre ===
     if (signals['asked_for_link'] or signals['asked_for_payment']) and has_available:
         candidates.append("Pidió pago/link + fecha disponible")
-    if days_until <= 3 and has_available:
-        candidates.append("Fecha cercana + casa disponible")
-    if search and search.guests >= 20 and last_quote:
-        candidates.append("Grupo 20+ + cotización reciente")
     if signals['wants_to_book'] and has_available:
         candidates.append("Quiere reservar + fecha disponible")
-    if is_weekend and not is_special and has_available and last_quote:
-        candidates.append("Fin de semana vacío + lead cotizado")
+
+    # === Urgencia por fecha ===
+    if days_until <= 3 and has_available:
+        candidates.append("Fecha cercana + casa disponible")
+
+    # === Volumen / valor ===
+    if search and guests and guests >= 20 and last_quote:
+        candidates.append("Grupo 20+ + cotización reciente")
+
+    # === Match exacto casa preferida ===
     if preferred_avail:
         candidates.append("Casa consultada sigue disponible")
+
+    # === Fin de semana vacío ===
+    if is_weekend and not is_special and has_available and last_quote:
+        candidates.append("Fin de semana vacío + lead cotizado")
 
     if candidates:
         return candidates[0]
@@ -341,6 +405,15 @@ def _urgency_reason(check_in, today, signals, search, has_available,
 
 def _build_recommended_message(name, search, last_quote, signals, priority,
                                can_offer_benefit, fecha_disponible):
+    """Mensaje sugerido corto (NUNCA enviado automáticamente).
+
+    Formato:
+        Línea 1: saludo + intro + precio por persona en SOL (si hay).
+        Línea blanco.
+        Línea 2: CTA (link / cotización / beneficio según prioridad).
+        Línea blanco (opcional).
+        Línea 3: oferta de beneficio si can_offer_benefit=True.
+    """
     if not name:
         name = 'amig@'
     name = name.split()[0] if ' ' in name else name
@@ -357,62 +430,29 @@ def _build_recommended_message(name, search, last_quote, signals, priority,
         except Exception:
             pass
 
-    # Mensaje base por nivel
-    if priority >= 80:
-        if signals['asked_for_link'] or signals['wants_to_book']:
-            base = (
-                f"Hola {name} 😊 Te paso el link para separar con el 50% "
-                "desde casaaustin.pe. Si necesitas ayuda con el pago, dime."
-            )
-        elif fechas_str and guests:
-            base = (
-                f"Hola {name} 😊 Vi que consultaste para {fechas_str} "
-                f"({guests} personas). ¿Quieres que te pase el link para "
-                "separarla con el 50%?"
-            )
-        else:
-            base = (
-                f"Hola {name} 😊 Vi tu interés. ¿Quieres que te pase el link "
-                "para separar la fecha con el 50%?"
-            )
+    # === Línea 1: saludo + intro + precio ===
+    intro_parts = [f"Hola {name} 😊"]
+    if fechas_str:
+        intro_parts.append(f"Vi que consultaste para el {fechas_str}.")
+    if per_person_sol:
+        intro_parts.append(f"La opción salía desde S/{per_person_sol} por persona.")
+    intro = " ".join(intro_parts)
 
-    elif priority >= 60:
-        ppk = f" desde S/{per_person_sol} por persona" if per_person_sol else ""
-        if fechas_str and guests:
-            base = (
-                f"Hola {name} 😊 Vi que consultaste para {fechas_str}, "
-                f"{guests} personas. Aún tenemos opciones disponibles{ppk}. "
-                "¿Quieres que te pase el link para separarla con el 50%?"
-            )
-        else:
-            base = (
-                f"Hola {name} 😊 Aún tenemos opciones disponibles{ppk}. "
-                "¿Quieres que te pase el link?"
-            )
-
-    elif priority >= 40:
-        if fechas_str:
-            base = (
-                f"Hola {name} 😊 ¿Pudiste revisar la opción para {fechas_str}? "
-                "Si te interesa, te paso el link para separarla con el 50%."
-            )
-        else:
-            base = (
-                f"Hola {name} 😊 ¿Pudiste revisar la cotización? "
-                "Si te interesa, te paso el link para separarla."
-            )
-
+    # === Línea 2: CTA ===
+    if priority >= 70 and (signals['asked_for_link'] or signals['wants_to_book']):
+        cta = "Te paso el link para separarla con el 50% desde casaaustin.pe."
+    elif priority >= 35:
+        cta = "Si aún te interesa, te paso el link para separarla con el 50%."
     else:
-        base = (
-            f"Hola {name} 😊 Te dejo a la mano la cotización por si la "
-            "estás revisando con tu grupo."
-        )
+        cta = "Te dejo a la mano la cotización por si la estás revisando con tu grupo."
 
-    # Append beneficio si aplica
+    msg = f"{intro}\n\n{cta}"
+
+    # === Línea 3 opcional: beneficio especial ===
     if can_offer_benefit:
-        base += " Si lo necesitas, puedo consultar si aplica algún beneficio especial."
+        msg += "\n\nTambién puedo consultar si aplica algún beneficio especial para esa fecha."
 
-    return base
+    return msg
 
 
 # ============================================================================
@@ -782,11 +822,16 @@ def _build_candidate(session, search_by_client, search_by_session_key,
     # === can_offer_benefit ===
     in_cooldown = session.client_id in clients_in_cooldown if session.client_id else False
     can_offer, blocked_reason = _can_offer_benefit(
-        lead_s, date_s, fecha_disponible, is_special, in_cooldown, has_active_reservation,
+        lead_s, date_s, ticket_s, fecha_disponible, is_special,
+        in_cooldown, has_active_reservation,
     )
 
     # === Suggested action ===
-    action = _suggested_action(priority, has_active_reservation, fecha_disponible)
+    days_until = (check_in - today).days if check_in else None
+    action = _suggested_action(
+        priority, has_active_reservation, fecha_disponible,
+        ticket_s, date_s, days_until,
+    )
 
     # === Lead stage ===
     if has_active_reservation:
@@ -801,7 +846,7 @@ def _build_candidate(session, search_by_client, search_by_session_key,
     # === Urgency reason ===
     urgency = _urgency_reason(
         check_in, today, signals, best_search, fecha_disponible,
-        preferred_avail, is_weekend, is_special, last_quote,
+        preferred_avail, is_weekend, is_special, last_quote, ticket_s,
     )
 
     # === Recommended message ===
