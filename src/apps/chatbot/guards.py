@@ -196,26 +196,31 @@ SPECIFIC_DATA_RE = re.compile(
 def _format_property_list():
     """Lee Property activas y arma el texto de respuesta canned.
 
+    Aclara que las casas son independientes y que cada reserva es por casa
+    completa (no se comparten espacios con otros huéspedes).
+
     Si la BD no responde por alguna razón, cae a una plantilla fija segura
     con las 4 casas conocidas (texto solicitado por el equipo).
     """
     fallback = (
-        "Tenemos 4 casas en Playa Los Pulpos:\n\n"
-        "Casa Austin 1: más íntima, hasta 15 personas.\n"
-        "Casa Austin 2: ideal para grupos medianos/grandes, hasta 50 personas.\n"
-        "Casa Austin 3: la más grande, para eventos o grupos amplios.\n"
-        "Casa Austin 4: similar a Casa Austin 2, cómoda para grupos.\n\n"
-        "Todas tienen piscina y jacuzzi.\n"
+        "Tenemos 4 casas privadas e independientes en Playa Los Pulpos.\n"
+        "Cada reserva es por casa completa: no compartes piscina, jacuzzi "
+        "ni espacios con otros huéspedes.\n\n"
+        "Casa Austin 1: más íntima, ideal para familias o grupos pequeños.\n"
+        "Casa Austin 2: amplia, cómoda para grupos medianos/grandes.\n"
+        "Casa Austin 3: la más grande, ideal para eventos o grupos amplios.\n"
+        "Casa Austin 4: similar a Casa Austin 2, perfecta para grupos.\n\n"
+        "Todas tienen piscina, jacuzzi y ambientes privados.\n\n"
         "¿Para cuántas personas y qué fecha buscas?"
     )
 
-    # Descripciones por player_id para casos conocidos. Si la propiedad no
-    # tiene player_id reconocido, usamos su capacity_max si existe.
+    # Descripciones por player_id para casos conocidos. NO incluyen capacidad
+    # explícita — el copy aprobado prefiere descripción cualitativa.
     KNOWN_DESCRIPTIONS = {
-        'ca1': 'más íntima, hasta {cap} personas.',
-        'ca2': 'ideal para grupos medianos/grandes, hasta {cap} personas.',
-        'ca3': 'la más grande, para eventos o grupos amplios.',
-        'ca4': 'similar a Casa Austin 2, cómoda para grupos.',
+        'ca1': 'más íntima, ideal para familias o grupos pequeños.',
+        'ca2': 'amplia, cómoda para grupos medianos/grandes.',
+        'ca3': 'la más grande, ideal para eventos o grupos amplios.',
+        'ca4': 'similar a Casa Austin 2, perfecta para grupos.',
     }
 
     try:
@@ -230,21 +235,23 @@ def _format_property_list():
     if not props:
         return fallback
 
-    lines = [f"Tenemos {len(props)} casas en Playa Los Pulpos:\n"]
+    lines = [
+        f"Tenemos {len(props)} casas privadas e independientes en Playa Los Pulpos.",
+        "Cada reserva es por casa completa: no compartes piscina, jacuzzi "
+        "ni espacios con otros huéspedes.",
+        "",
+    ]
     for p in props:
         pid = (p.player_id or '').lower()
-        cap = p.capacity_max or ''
-        desc_template = KNOWN_DESCRIPTIONS.get(pid)
-        if desc_template:
-            desc = desc_template.format(cap=cap or 'varias')
-        elif cap:
-            desc = f"hasta {cap} personas."
-        else:
-            desc = "consulta capacidad."
+        desc = KNOWN_DESCRIPTIONS.get(pid)
+        if not desc:
+            cap = p.capacity_max or ''
+            desc = f"hasta {cap} personas." if cap else "consulta capacidad."
         lines.append(f"{p.name}: {desc}")
 
     lines.append("")
-    lines.append("Todas tienen piscina y jacuzzi.")
+    lines.append("Todas tienen piscina, jacuzzi y ambientes privados.")
+    lines.append("")
     lines.append("¿Para cuántas personas y qué fecha buscas?")
     return "\n".join(lines)
 
