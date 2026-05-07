@@ -23,6 +23,7 @@ from .admin_views import (
     UnresolvedQuestionUpdateView,
     FrequentQuestionListView,
     ChatSessionsExportView,
+    OpportunitiesView,
 )
 
 urlpatterns = [
@@ -61,4 +62,7 @@ urlpatterns = [
 
     # Preguntas frecuentes (analizadas automáticamente)
     path('frequent-questions/', FrequentQuestionListView.as_view(), name='chatbot-frequent-questions'),
+
+    # Oportunidades por fecha (Fase A read-only)
+    path('opportunities/', OpportunitiesView.as_view(), name='chatbot-opportunities'),
 ]

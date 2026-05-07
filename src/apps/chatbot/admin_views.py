@@ -1380,3 +1380,55 @@ class ChatSessionsExportView(APIView):
         filename = f'casa_austin_conversaciones_{timezone.now().strftime("%Y%m%d_%H%M")}.txt'
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
+
+
+class OpportunitiesView(APIView):
+    """GET /opportunities/ — Vista read-only de oportunidades por fecha (Fase A).
+
+    Cruza ChatSession + SearchTracking + Reservation + SpecialDatePricing +
+    PromoDateSent para devolver leads scoreados, ordenados por priority.
+
+    Query params:
+        date_filter: weekend | next_3_days | next_7_days | next_15_days
+        min_guests: int
+        property_id: UUID
+        availability_only: bool ('true'/'1')
+        quoted_no_reservation: bool
+        min_score: int (0-100)
+        last_message_from: bot | customer | all
+        inactive_hours: int
+        page, page_size
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .opportunities import get_opportunities
+
+        def _bool(v):
+            return str(v).lower() in ('1', 'true', 'yes', 'si', 'sí')
+
+        filters = {
+            'date_filter': request.query_params.get('date_filter'),
+            'min_guests': request.query_params.get('min_guests'),
+            'property_id': request.query_params.get('property_id'),
+            'availability_only': _bool(request.query_params.get('availability_only', '')),
+            'quoted_no_reservation': _bool(request.query_params.get('quoted_no_reservation', '')),
+            'min_score': request.query_params.get('min_score'),
+            'last_message_from': request.query_params.get('last_message_from'),
+            'inactive_hours': request.query_params.get('inactive_hours'),
+            'page': request.query_params.get('page'),
+            'page_size': request.query_params.get('page_size'),
+        }
+        # Limpiar None
+        filters = {k: v for k, v in filters.items() if v is not None and v != ''}
+
+        try:
+            data = get_opportunities(filters)
+            return Response(data)
+        except Exception as e:
+            logger.error(f'Error en OpportunitiesView: {e}', exc_info=True)
+            return Response(
+                {'error': 'Error calculando oportunidades', 'detail': str(e)},
+                status=500,
+            )
+
