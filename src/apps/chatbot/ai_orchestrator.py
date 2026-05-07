@@ -307,6 +307,14 @@ class AIOrchestrator:
             )
             return result
 
+        # G3 — Lista de casas / catálogo
+        result = guards.try_property_list(session, user_text)
+        if result is not None:
+            logger.info(
+                f"Guard activo: {result['intent']} (sesión {session.id})"
+            )
+            return result
+
         return None
 
     def _send_guard_response(self, session, guard_result, send_wa):
