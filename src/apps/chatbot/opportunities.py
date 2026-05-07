@@ -117,6 +117,9 @@ def _select_best_search(searches):
 
 def _resolve_date_filter(date_filter, today):
     """Convierte el filtro de rango a (start, end) inclusive."""
+    if date_filter == 'today':
+        # Solo el día de hoy (check_in == hoy)
+        return today, today
     if date_filter == 'weekend':
         # Sábado/domingo más cercano
         weekday = today.weekday()  # 0=Lun, 5=Sab, 6=Dom
