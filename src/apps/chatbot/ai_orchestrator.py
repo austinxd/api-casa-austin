@@ -10,6 +10,7 @@ from .models import ChatSession, ChatMessage
 from .tool_executor import ToolExecutor, TOOL_DEFINITIONS
 from .channel_sender import get_sender
 from .utils import calc_bed_capacity
+from . import guards
 
 logger = logging.getLogger(__name__)
 
@@ -193,6 +194,16 @@ class AIOrchestrator:
         Returns:
             str: Texto de la respuesta generada
         """
+        # ===== GUARDS DETERMINÍSTICOS (pre-OpenAI) =====
+        # Cada guard puede interceptar un caso y responder sin llamar al modelo.
+        # Si interceptan, ChatMessage queda con tokens_used=0 y tool_calls
+        # con metadata "guard:<nombre>" para trazabilidad.
+        guard_response = self._try_guards(session, inbound_message)
+        if guard_response is not None:
+            return self._send_guard_response(
+                session, guard_response, send_wa
+            )
+
         try:
             response_text, tool_calls_data, model_used, tokens = self._call_ai(
                 session, inbound_message, self.config.primary_model
@@ -277,6 +288,56 @@ class AIOrchestrator:
         session.last_message_at = timezone.now()
         session.save(update_fields=[
             'total_messages', 'ai_messages', 'last_message_at'
+        ])
+
+        return response_text
+
+    def _try_guards(self, session, inbound_message):
+        """Ejecuta todos los guards determinísticos. Retorna el primer match
+        o None si ninguno aplica."""
+        user_text = self._extract_user_text(inbound_message)
+        if not user_text:
+            return None
+
+        # G1 — Aclaración USD/SOL
+        result = guards.try_currency_clarification(session, user_text)
+        if result is not None:
+            logger.info(
+                f"Guard activo: {result['intent']} (sesión {session.id})"
+            )
+            return result
+
+        return None
+
+    def _send_guard_response(self, session, guard_result, send_wa):
+        """Envía la respuesta de un guard determinístico y persiste el
+        ChatMessage con tokens_used=0 y metadata del guard."""
+        response_text = sanitize_response(guard_result['response'])
+
+        wa_message_id = None
+        if send_wa:
+            sender = get_sender(session.channel)
+            wa_message_id = sender.send_text_message(
+                session.wa_id, response_text
+            )
+
+        ChatMessage.objects.create(
+            session=session,
+            direction=ChatMessage.DirectionChoices.OUTBOUND_AI,
+            message_type=ChatMessage.MessageTypeChoices.TEXT,
+            content=response_text,
+            wa_message_id=wa_message_id,
+            ai_model='guard',
+            tokens_used=0,
+            tool_calls=[guard_result['tool_call_meta']],
+            intent_detected=guard_result['intent'],
+        )
+
+        session.total_messages += 1
+        session.ai_messages += 1
+        session.last_message_at = timezone.now()
+        session.save(update_fields=[
+            'total_messages', 'ai_messages', 'last_message_at',
         ])
 
         return response_text
