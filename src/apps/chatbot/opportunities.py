@@ -277,30 +277,45 @@ def _compute_priority(lead, date_s, ticket):
 # ============================================================================
 
 def _suggested_action(priority, has_active_reservation, fecha_disponible,
-                     ticket_s, date_s, days_until):
+                     ticket_s, date_s, days_until, guests):
     """Devuelve la acción sugerida.
 
-    Umbrales (ajuste 2026-05-07):
+    Umbrales por priority:
         priority >= 70 → Contactar hoy
         priority >= 50 → Follow-up personalizado
         priority >= 35 → Seguimiento suave
         priority <  35 → Baja prioridad
 
-    Override por ticket alto:
-        ticket >= 60 AND check-in dentro de 0-3 días → Contactar hoy
-        ticket >= 50 AND date >= 50 → mínimo Follow-up personalizado
+    Overrides comerciales:
+        - ticket >= 60 AND check-in 0-3 días → Contactar hoy
+        - guests >= 20 AND check-in 0-3 días AND ticket >= 50 → Contactar hoy
+        - ticket >= 50 AND date >= 50 → mínimo Follow-up personalizado
+        - guests >= 20 AND date >= 50 → mínimo Follow-up personalizado
     """
     if has_active_reservation:
         return "No contactar: ya reservó"
     if not fecha_disponible:
         return "No contactar: fecha no disponible"
 
+    days_close = days_until is not None and 0 <= days_until <= 3
+    big_group = guests is not None and guests >= 20
+
     # Override #1: ticket muy alto + fecha muy cercana
-    if ticket_s >= 60 and days_until is not None and 0 <= days_until <= 3:
+    if ticket_s >= 60 and days_close:
         return "Contactar hoy"
 
-    # Override #2: ticket+date suficientes para empujar a "Follow-up"
+    # Override #2: grupo grande + fecha muy cercana + ticket alto
+    if big_group and days_close and ticket_s >= 50:
+        return "Contactar hoy"
+
+    # Override #3: ticket + date suficientes
     if ticket_s >= 50 and date_s >= 50:
+        if priority >= 70:
+            return "Contactar hoy"
+        return "Follow-up personalizado"
+
+    # Override #4: grupo grande + fecha en rango → mínimo Follow-up
+    if big_group and date_s >= 50:
         if priority >= 70:
             return "Contactar hoy"
         return "Follow-up personalizado"
@@ -313,20 +328,24 @@ def _suggested_action(priority, has_active_reservation, fecha_disponible,
 
 
 def _can_offer_benefit(lead_s, date_s, ticket_s, fecha_disponible, is_special,
-                       in_cooldown, has_active_reservation):
+                       in_cooldown, has_active_reservation, guests, days_until):
     """Determina si se puede sugerir beneficio especial.
 
-    Reglas (ajuste 2026-05-07):
+    Reglas conservadoras (ajuste 2026-05-07 v3):
         Bloqueado si:
             - tiene reserva activa
             - fecha no disponible
             - SpecialDatePricing (fecha alta demanda)
             - cooldown de promo reciente
             - lead_score >= 80 (muy caliente, no quemar margen)
+            - lead_score < 35 (lead muy frío)
+            - date_score < 50
 
-        Permitido si:
-            - date_score >= 50, O
-            - ticket_score >= 50 AND date_score >= 50 (override de ticket alto)
+        Permitido SOLO si además cumple al menos una de:
+            a) ticket_score >= 35
+            b) guests >= 10
+            c) check-in dentro de 0-3 días
+        Si no cumple ninguna → bloqueado por "low_commercial_value".
     """
     blocked_reasons = []
     if has_active_reservation:
@@ -339,14 +358,24 @@ def _can_offer_benefit(lead_s, date_s, ticket_s, fecha_disponible, is_special,
         blocked_reasons.append("recent_promo")
     if lead_s >= 80:
         blocked_reasons.append("high_lead_score")
-
-    # Excepción de ticket alto: bypassa el bloqueo por low_date_score
-    high_ticket_override = (ticket_s >= 50 and date_s >= 50)
-    if not high_ticket_override and date_s < 50:
+    if lead_s < 35:
+        blocked_reasons.append("low_lead_score")
+    if date_s < 50:
         blocked_reasons.append("low_date_score")
 
     if blocked_reasons:
         return False, blocked_reasons[0]
+
+    # Validar valor comercial — al menos una condición
+    days_close = days_until is not None and 0 <= days_until <= 3
+    has_commercial_value = (
+        ticket_s >= 35
+        or (guests is not None and guests >= 10)
+        or days_close
+    )
+    if not has_commercial_value:
+        return False, "low_commercial_value"
+
     return True, None
 
 
@@ -450,7 +479,7 @@ def _build_recommended_message(name, search, last_quote, signals, priority,
 
     # === Línea 3 opcional: beneficio especial ===
     if can_offer_benefit:
-        msg += "\n\nTambién puedo consultar si aplica algún beneficio especial para esa fecha."
+        msg += "\n\nSi están interesados, puedo consultar si hay algún beneficio disponible para esa fecha."
 
     return msg
 
@@ -694,11 +723,23 @@ def get_opportunities(filters=None):
 
     filtered = [c for c in results if passes(c)]
 
-    # === 11. Ordenar por priority desc + last_message desc (tiebreak) ===
+    # === 11. Ordenar por (action_rank desc, priority desc, ticket desc, check_in asc) ===
+    # action_rank pone primero los leads con acción inmediata.
+    ACTION_RANK = {
+        'Contactar hoy': 3,
+        'Follow-up personalizado': 2,
+        'Seguimiento suave': 1,
+        'Baja prioridad': 0,
+        'No contactar: ya reservó': -1,
+        'No contactar: fecha no disponible': -1,
+    }
     filtered.sort(
         key=lambda c: (
+            -ACTION_RANK.get(c['suggested_action'], 0),
             -c['scores']['priority'],
-            -(c['_last_message_at'].timestamp() if c['_last_message_at'] else 0),
+            -c['scores']['ticket'],
+            (c['search']['check_in'] if c.get('search') and c['search'].get('check_in')
+             else '9999-12-31'),
         )
     )
 
@@ -820,17 +861,17 @@ def _build_candidate(session, search_by_client, search_by_session_key,
     priority = _compute_priority(lead_s, date_s, ticket_s)
 
     # === can_offer_benefit ===
+    days_until = (check_in - today).days if check_in else None
     in_cooldown = session.client_id in clients_in_cooldown if session.client_id else False
     can_offer, blocked_reason = _can_offer_benefit(
         lead_s, date_s, ticket_s, fecha_disponible, is_special,
-        in_cooldown, has_active_reservation,
+        in_cooldown, has_active_reservation, guests, days_until,
     )
 
     # === Suggested action ===
-    days_until = (check_in - today).days if check_in else None
     action = _suggested_action(
         priority, has_active_reservation, fecha_disponible,
-        ticket_s, date_s, days_until,
+        ticket_s, date_s, days_until, guests,
     )
 
     # === Lead stage ===
