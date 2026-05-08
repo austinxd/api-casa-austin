@@ -253,6 +253,12 @@ class SalaryPaymentViewSet(viewsets.ModelViewSet):
             qs = qs.filter(status=status_f)
         return qs
 
+    def perform_destroy(self, instance):
+        """Soft delete — marca deleted=True. Esto evita reaparecer en
+        listas, y el auto-generate respeta el borrado y NO lo recrea."""
+        instance.deleted = True
+        instance.save(update_fields=['deleted', 'updated'])
+
     def list(self, request, *args, **kwargs):
         """Antes de devolver la lista, auto-genera los SalaryPayments
         pendientes (quincena + fin_de_mes) para todos los Staff fixed
@@ -296,16 +302,25 @@ class SalaryPaymentViewSet(viewsets.ModelViewSet):
             # No generar para staff que aún no existían en esa quincena
             if staff.start_date and staff.start_date > period.end_date:
                 continue
-            amount = (staff.monthly_salary or Decimal('0')) / Decimal('2')
-            SalaryPayment.objects.get_or_create(
+
+            # Verificar SI EXISTE ya un registro para esta combinación,
+            # incluyendo borrados (deleted=True). Si fue borrado por el
+            # usuario, NO recrear. Si está activo, no duplicar.
+            existing = SalaryPayment.objects.filter(
                 period=period,
                 staff=staff,
                 payment_type=payment_type,
-                deleted=False,
-                defaults={
-                    'amount': amount,
-                    'status': SalaryPayment.Status.PENDING,
-                },
+            ).first()
+            if existing is not None:
+                continue  # ya existe (activo o borrado), no tocar
+
+            amount = (staff.monthly_salary or Decimal('0')) / Decimal('2')
+            SalaryPayment.objects.create(
+                period=period,
+                staff=staff,
+                payment_type=payment_type,
+                amount=amount,
+                status=SalaryPayment.Status.PENDING,
             )
 
     @action(detail=True, methods=['post'], url_path='mark-paid')
