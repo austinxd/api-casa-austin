@@ -72,6 +72,14 @@ class ExpenseSerializer(serializers.ModelSerializer):
     payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     period_label = serializers.CharField(source='period.label', read_only=True)
+    voucher_url = serializers.SerializerMethodField()
+
+    def get_voucher_url(self, obj):
+        request = self.context.get('request')
+        if obj.voucher and hasattr(obj.voucher, 'url'):
+            url = obj.voucher.url
+            return request.build_absolute_uri(url) if request else url
+        return None
 
     class Meta:
         model = Expense
@@ -84,21 +92,33 @@ class ExpenseSerializer(serializers.ModelSerializer):
             'payment_method', 'payment_method_display', 'card_label',
             'status', 'status_display', 'paid_at',
             'reimbursed_at', 'reimbursement',
+            'voucher', 'voucher_url',
             'notes', 'created', 'updated',
         ]
         read_only_fields = ['total', 'created', 'updated', 'reimbursed_at',
-                            'reimbursement']
+                            'reimbursement', 'voucher_url']
 
 
 # ============================================================================
 # Cleaning
 # ============================================================================
 
+def _build_voucher_url(obj, request):
+    if obj.voucher and hasattr(obj.voucher, 'url'):
+        url = obj.voucher.url
+        return request.build_absolute_uri(url) if request else url
+    return None
+
+
 class CleaningSerializer(serializers.ModelSerializer):
     property_name = serializers.CharField(source='property.name', read_only=True)
     cleaner_name = serializers.CharField(source='cleaner.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     period_label = serializers.CharField(source='period.label', read_only=True)
+    voucher_url = serializers.SerializerMethodField()
+
+    def get_voucher_url(self, obj):
+        return _build_voucher_url(obj, self.context.get('request'))
 
     class Meta:
         model = Cleaning
@@ -107,9 +127,10 @@ class CleaningSerializer(serializers.ModelSerializer):
             'property', 'property_name',
             'cleaner', 'cleaner_name',
             'amount', 'status', 'status_display', 'paid_at',
+            'voucher', 'voucher_url',
             'notes', 'created', 'updated',
         ]
-        read_only_fields = ['created', 'updated']
+        read_only_fields = ['created', 'updated', 'voucher_url']
 
 
 # ============================================================================
@@ -121,6 +142,10 @@ class SalaryPaymentSerializer(serializers.ModelSerializer):
     payment_type_display = serializers.CharField(source='get_payment_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     period_label = serializers.CharField(source='period.label', read_only=True)
+    voucher_url = serializers.SerializerMethodField()
+
+    def get_voucher_url(self, obj):
+        return _build_voucher_url(obj, self.context.get('request'))
 
     class Meta:
         model = SalaryPayment
@@ -128,9 +153,10 @@ class SalaryPaymentSerializer(serializers.ModelSerializer):
             'id', 'period', 'period_label', 'staff', 'staff_name',
             'payment_type', 'payment_type_display',
             'amount', 'status', 'status_display', 'paid_at',
+            'voucher', 'voucher_url',
             'notes', 'created', 'updated',
         ]
-        read_only_fields = ['created', 'updated']
+        read_only_fields = ['created', 'updated', 'voucher_url']
 
 
 # ============================================================================
@@ -141,15 +167,20 @@ class ReimbursementSerializer(serializers.ModelSerializer):
     to_staff_name = serializers.CharField(source='to_staff.name', read_only=True)
     period_label = serializers.CharField(source='period.label', read_only=True)
     expenses_count = serializers.IntegerField(source='expenses.count', read_only=True)
+    voucher_url = serializers.SerializerMethodField()
+
+    def get_voucher_url(self, obj):
+        return _build_voucher_url(obj, self.context.get('request'))
 
     class Meta:
         model = Reimbursement
         fields = [
             'id', 'period', 'period_label', 'to_staff', 'to_staff_name',
             'amount', 'paid_at', 'notes',
+            'voucher', 'voucher_url',
             'expenses_count', 'created', 'updated',
         ]
-        read_only_fields = ['created', 'updated', 'expenses_count']
+        read_only_fields = ['created', 'updated', 'expenses_count', 'voucher_url']
 
 
 # ============================================================================

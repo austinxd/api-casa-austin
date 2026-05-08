@@ -20,6 +20,23 @@ from apps.property.models import Property
 
 
 # ============================================================================
+# Helpers para upload paths
+# ============================================================================
+
+def expense_voucher_path(instance, filename):
+    return f'logistica/vouchers/expenses/{instance.id}/{filename}'
+
+def cleaning_voucher_path(instance, filename):
+    return f'logistica/vouchers/cleanings/{instance.id}/{filename}'
+
+def salary_voucher_path(instance, filename):
+    return f'logistica/vouchers/salaries/{instance.id}/{filename}'
+
+def reimbursement_voucher_path(instance, filename):
+    return f'logistica/vouchers/reimbursements/{instance.id}/{filename}'
+
+
+# ============================================================================
 # Period — Quincena
 # ============================================================================
 
@@ -258,6 +275,12 @@ class Expense(BaseModel):
         null=True, blank=True, related_name='expenses',
     )
 
+    voucher = models.FileField(
+        upload_to=expense_voucher_path,
+        null=True, blank=True,
+        help_text="Foto/archivo del voucher o boleta del gasto",
+    )
+
     notes = models.TextField(blank=True, default='')
 
     history = HistoricalRecords()
@@ -311,6 +334,11 @@ class Cleaning(BaseModel):
         default=Status.PENDING,
     )
     paid_at = models.DateTimeField(null=True, blank=True)
+    voucher = models.FileField(
+        upload_to=cleaning_voucher_path,
+        null=True, blank=True,
+        help_text="Foto/archivo del voucher de pago",
+    )
     notes = models.TextField(blank=True, default='')
 
     history = HistoricalRecords()
@@ -368,6 +396,11 @@ class SalaryPayment(BaseModel):
         default=Status.PENDING,
     )
     paid_at = models.DateTimeField(null=True, blank=True)
+    voucher = models.FileField(
+        upload_to=salary_voucher_path,
+        null=True, blank=True,
+        help_text="Foto/archivo del voucher de transferencia/pago",
+    )
     notes = models.TextField(blank=True, default='')
 
     history = HistoricalRecords()
@@ -405,6 +438,11 @@ class Reimbursement(BaseModel):
         help_text="Monto total reembolsado (suma de los expenses cubiertos)",
     )
     paid_at = models.DateTimeField()
+    voucher = models.FileField(
+        upload_to=reimbursement_voucher_path,
+        null=True, blank=True,
+        help_text="Foto/archivo del voucher de transferencia/pago",
+    )
     notes = models.TextField(blank=True, default='')
 
     history = HistoricalRecords()
