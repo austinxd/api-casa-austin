@@ -69,6 +69,12 @@ class Staff(BaseModel):
         FIXED = 'fixed', 'Fijo (sueldo mensual)'
         EXTERNAL = 'external', 'Externo (por trabajo)'
 
+    class AccountType(models.TextChoices):
+        YAPE = 'yape', 'Yape'
+        PLIN = 'plin', 'Plin'
+        BANK = 'bank', 'Cuenta bancaria'
+        OTHER = 'other', 'Otro'
+
     name = models.CharField(max_length=120)
     staff_type = models.CharField(
         max_length=10, choices=StaffType.choices,
@@ -84,6 +90,22 @@ class Staff(BaseModel):
         help_text="Si paga gastos con su dinero y la empresa le reembolsa",
     )
     phone = models.CharField(max_length=30, blank=True, default='')
+
+    # === Datos para pago ===
+    account_type = models.CharField(
+        max_length=10, choices=AccountType.choices,
+        blank=True, default='',
+        help_text="Forma de pago preferida",
+    )
+    account_number = models.CharField(
+        max_length=50, blank=True, default='',
+        help_text="Número de Yape/Plin (teléfono) o número de cuenta bancaria",
+    )
+    bank_name = models.CharField(
+        max_length=80, blank=True, default='',
+        help_text="Solo si account_type=bank. Ej: BCP, BBVA, Interbank",
+    )
+
     notes = models.TextField(blank=True, default='')
     is_active = models.BooleanField(default=True)
     start_date = models.DateField(null=True, blank=True)

@@ -24,12 +24,16 @@ class PeriodSerializer(serializers.ModelSerializer):
 
 class StaffSerializer(serializers.ModelSerializer):
     staff_type_display = serializers.CharField(source='get_staff_type_display', read_only=True)
+    account_type_display = serializers.CharField(source='get_account_type_display', read_only=True)
 
     class Meta:
         model = Staff
         fields = ['id', 'name', 'staff_type', 'staff_type_display',
                   'monthly_salary', 'can_pay_for_expenses',
-                  'phone', 'notes', 'is_active', 'start_date',
+                  'phone',
+                  'account_type', 'account_type_display',
+                  'account_number', 'bank_name',
+                  'notes', 'is_active', 'start_date',
                   'created', 'updated']
         read_only_fields = ['created', 'updated']
 

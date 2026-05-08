@@ -18,9 +18,9 @@ class PeriodAdmin(SimpleHistoryAdmin):
 @admin.register(Staff)
 class StaffAdmin(SimpleHistoryAdmin):
     list_display = ('name', 'staff_type', 'monthly_salary',
-                    'can_pay_for_expenses', 'is_active')
-    list_filter = ('staff_type', 'is_active', 'can_pay_for_expenses')
-    search_fields = ('name', 'phone')
+                    'can_pay_for_expenses', 'account_type', 'is_active')
+    list_filter = ('staff_type', 'is_active', 'can_pay_for_expenses', 'account_type')
+    search_fields = ('name', 'phone', 'account_number')
     ordering = ('staff_type', 'name')
 
 
