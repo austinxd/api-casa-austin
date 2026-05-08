@@ -254,74 +254,9 @@ class SalaryPaymentViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_destroy(self, instance):
-        """Soft delete — marca deleted=True. Esto evita reaparecer en
-        listas, y el auto-generate respeta el borrado y NO lo recrea."""
+        """Soft delete — marca deleted=True para mantener historial."""
         instance.deleted = True
         instance.save(update_fields=['deleted', 'updated'])
-
-    def list(self, request, *args, **kwargs):
-        """Antes de devolver la lista, auto-genera los SalaryPayments
-        pendientes (quincena + fin_de_mes) para todos los Staff fixed
-        activos del period solicitado. Idempotente — usa get_or_create.
-
-        Esto evita que el usuario tenga que clickar "Generar quincena"
-        cada vez. Los pagos se crean al entrar a la pestaña.
-        """
-        period_id = request.query_params.get('period')
-        if period_id:
-            try:
-                period = Period.objects.get(id=period_id, deleted=False)
-                self._auto_generate_salaries_for_period(period)
-            except Period.DoesNotExist:
-                pass
-        return super().list(request, *args, **kwargs)
-
-    @staticmethod
-    def _auto_generate_salaries_for_period(period):
-        """Crea SalaryPayments pending para todos los Staff fixed activos
-        que ya existían (start_date <= period.end_date).
-
-        Cada Period genera UN solo pago por staff:
-          - Period 1-15        → tipo 'quincena' (se paga el día 15)
-          - Period 16-fin_mes  → tipo 'fin_de_mes' (se paga el último día)
-        """
-        # Determinar el tipo de pago de este period según start_date
-        if period.start_date.day == 1:
-            payment_type = SalaryPayment.PaymentType.QUINCENA
-        elif period.start_date.day == 16:
-            payment_type = SalaryPayment.PaymentType.FIN_DE_MES
-        else:
-            # Period con fechas no estándar (ej: cargado manual). No auto-generar.
-            return
-
-        for staff in Staff.objects.filter(
-            staff_type=Staff.StaffType.FIXED,
-            is_active=True,
-            deleted=False,
-        ):
-            # No generar para staff que aún no existían en esa quincena
-            if staff.start_date and staff.start_date > period.end_date:
-                continue
-
-            # Verificar SI EXISTE ya un registro para esta combinación,
-            # incluyendo borrados (deleted=True). Si fue borrado por el
-            # usuario, NO recrear. Si está activo, no duplicar.
-            existing = SalaryPayment.objects.filter(
-                period=period,
-                staff=staff,
-                payment_type=payment_type,
-            ).first()
-            if existing is not None:
-                continue  # ya existe (activo o borrado), no tocar
-
-            amount = (staff.monthly_salary or Decimal('0')) / Decimal('2')
-            SalaryPayment.objects.create(
-                period=period,
-                staff=staff,
-                payment_type=payment_type,
-                amount=amount,
-                status=SalaryPayment.Status.PENDING,
-            )
 
     @action(detail=True, methods=['post'], url_path='mark-paid')
     def mark_paid(self, request, pk=None):
@@ -333,11 +268,15 @@ class SalaryPaymentViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='generate-for-period')
     def generate_for_period(self, request):
-        """Genera SalaryPayments pendientes para un period y todos los Staff fixed activos.
+        """Genera SalaryPayments pendientes para un period y los Staff fixed
+        activos que ya existían en esa quincena.
 
         Body: {period_id: <uuid>, payment_type: 'quincena'|'fin_de_mes'}
-        Crea registros con amount = monthly_salary / 2, status='pending'.
-        Usa get_or_create para idempotencia (no duplica si ya existen).
+        Crea con amount = monthly_salary / 2, status='pending'.
+
+        Idempotente: si ya existe un registro (activo o borrado) para
+        esa combinación period+staff+payment_type, NO se vuelve a crear.
+        Esto respeta los borrados manuales (ej: empleado de vacaciones).
         """
         period_id = request.data.get('period_id')
         payment_type = request.data.get('payment_type')
@@ -362,19 +301,28 @@ class SalaryPaymentViewSet(viewsets.ModelViewSet):
             is_active=True,
             deleted=False,
         ):
-            amount = (staff.monthly_salary or Decimal('0')) / Decimal('2')
-            obj, was_created = SalaryPayment.objects.get_or_create(
+            # No generar para staff que aún no existían en esa quincena
+            if staff.start_date and staff.start_date > period.end_date:
+                continue
+
+            # Verificar si existe (activo o borrado) — no recrear
+            existing = SalaryPayment.objects.filter(
                 period=period,
                 staff=staff,
                 payment_type=payment_type,
-                deleted=False,
-                defaults={
-                    'amount': amount,
-                    'status': SalaryPayment.Status.PENDING,
-                },
+            ).first()
+            if existing is not None:
+                continue
+
+            amount = (staff.monthly_salary or Decimal('0')) / Decimal('2')
+            obj = SalaryPayment.objects.create(
+                period=period,
+                staff=staff,
+                payment_type=payment_type,
+                amount=amount,
+                status=SalaryPayment.Status.PENDING,
             )
-            if was_created:
-                created.append(SalaryPaymentSerializer(obj).data)
+            created.append(SalaryPaymentSerializer(obj).data)
         return Response({
             'created': len(created),
             'payments': created,
