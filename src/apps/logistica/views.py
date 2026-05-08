@@ -253,6 +253,51 @@ class SalaryPaymentViewSet(viewsets.ModelViewSet):
             qs = qs.filter(status=status_f)
         return qs
 
+    def list(self, request, *args, **kwargs):
+        """Antes de devolver la lista, auto-genera los SalaryPayments
+        pendientes (quincena + fin_de_mes) para todos los Staff fixed
+        activos del period solicitado. Idempotente — usa get_or_create.
+
+        Esto evita que el usuario tenga que clickar "Generar quincena"
+        cada vez. Los pagos se crean al entrar a la pestaña.
+        """
+        period_id = request.query_params.get('period')
+        if period_id:
+            try:
+                period = Period.objects.get(id=period_id, deleted=False)
+                self._auto_generate_salaries_for_period(period)
+            except Period.DoesNotExist:
+                pass
+        return super().list(request, *args, **kwargs)
+
+    @staticmethod
+    def _auto_generate_salaries_for_period(period):
+        """Crea SalaryPayments pending para todos los Staff fixed activos
+        que ya existían (start_date <= period.end_date)."""
+        for staff in Staff.objects.filter(
+            staff_type=Staff.StaffType.FIXED,
+            is_active=True,
+            deleted=False,
+        ):
+            # No generar para staff que aún no existían en esa quincena
+            if staff.start_date and staff.start_date > period.end_date:
+                continue
+            amount = (staff.monthly_salary or Decimal('0')) / Decimal('2')
+            for payment_type in (
+                SalaryPayment.PaymentType.QUINCENA,
+                SalaryPayment.PaymentType.FIN_DE_MES,
+            ):
+                SalaryPayment.objects.get_or_create(
+                    period=period,
+                    staff=staff,
+                    payment_type=payment_type,
+                    deleted=False,
+                    defaults={
+                        'amount': amount,
+                        'status': SalaryPayment.Status.PENDING,
+                    },
+                )
+
     @action(detail=True, methods=['post'], url_path='mark-paid')
     def mark_paid(self, request, pk=None):
         payment = self.get_object()
