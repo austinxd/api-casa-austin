@@ -36,6 +36,7 @@ urlpatterns = [
     path("api/v1/chatbot/", include("apps.chatbot.urls")),
     path("api/v1/admin-ai/", include("apps.admin_ai.urls")),
     path("api/v1/", include("apps.blog.urls")),
+    path("api/v1/logistica/", include("apps.logistica.urls")),
 
     # === ANALYTICS ENDPOINTS ===
     path('api/v1/stats/', ComprehensiveStatsView.as_view(), name='comprehensive-stats'),
