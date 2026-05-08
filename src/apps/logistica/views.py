@@ -401,18 +401,29 @@ class ReimbursementViewSet(viewsets.ModelViewSet):
     def pay_reimbursement(self, request):
         """Crea un Reimbursement y marca los Expenses asociados como reembolsados.
 
-        Body:
+        Body (JSON o multipart/form-data si hay voucher):
             to_staff_id: <uuid>
             period_id: <uuid>
-            expense_ids: [<uuid>, ...]   ← gastos a marcar
+            expense_ids: [<uuid>, ...]   ← gastos a marcar (JSON array o CSV en multipart)
             paid_at: ISO datetime (optional, default now)
             notes: string (opcional)
+            voucher: file (opcional, solo en multipart)
         """
+        import json
+
         to_staff_id = request.data.get('to_staff_id')
         period_id = request.data.get('period_id')
         expense_ids = request.data.get('expense_ids', [])
         paid_at_str = request.data.get('paid_at')
         notes = request.data.get('notes', '')
+        voucher = request.FILES.get('voucher')
+
+        # En multipart, expense_ids viene como string. Parsear.
+        if isinstance(expense_ids, str):
+            try:
+                expense_ids = json.loads(expense_ids)
+            except json.JSONDecodeError:
+                expense_ids = [e.strip() for e in expense_ids.split(',') if e.strip()]
 
         if not to_staff_id or not period_id or not expense_ids:
             return Response(
@@ -453,13 +464,17 @@ class ReimbursementViewSet(viewsets.ModelViewSet):
             amount=amount,
             paid_at=paid_at,
             notes=notes,
+            voucher=voucher,  # null si no se subió
         )
         # Marcar expenses
         expenses.update(
             reimbursed_at=paid_at,
             reimbursement=reimb,
         )
-        return Response(ReimbursementSerializer(reimb).data, status=201)
+        return Response(
+            ReimbursementSerializer(reimb, context={'request': request}).data,
+            status=201,
+        )
 
 
 # ============================================================================
