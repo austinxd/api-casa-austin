@@ -273,7 +273,21 @@ class SalaryPaymentViewSet(viewsets.ModelViewSet):
     @staticmethod
     def _auto_generate_salaries_for_period(period):
         """Crea SalaryPayments pending para todos los Staff fixed activos
-        que ya existían (start_date <= period.end_date)."""
+        que ya existían (start_date <= period.end_date).
+
+        Cada Period genera UN solo pago por staff:
+          - Period 1-15        → tipo 'quincena' (se paga el día 15)
+          - Period 16-fin_mes  → tipo 'fin_de_mes' (se paga el último día)
+        """
+        # Determinar el tipo de pago de este period según start_date
+        if period.start_date.day == 1:
+            payment_type = SalaryPayment.PaymentType.QUINCENA
+        elif period.start_date.day == 16:
+            payment_type = SalaryPayment.PaymentType.FIN_DE_MES
+        else:
+            # Period con fechas no estándar (ej: cargado manual). No auto-generar.
+            return
+
         for staff in Staff.objects.filter(
             staff_type=Staff.StaffType.FIXED,
             is_active=True,
@@ -283,20 +297,16 @@ class SalaryPaymentViewSet(viewsets.ModelViewSet):
             if staff.start_date and staff.start_date > period.end_date:
                 continue
             amount = (staff.monthly_salary or Decimal('0')) / Decimal('2')
-            for payment_type in (
-                SalaryPayment.PaymentType.QUINCENA,
-                SalaryPayment.PaymentType.FIN_DE_MES,
-            ):
-                SalaryPayment.objects.get_or_create(
-                    period=period,
-                    staff=staff,
-                    payment_type=payment_type,
-                    deleted=False,
-                    defaults={
-                        'amount': amount,
-                        'status': SalaryPayment.Status.PENDING,
-                    },
-                )
+            SalaryPayment.objects.get_or_create(
+                period=period,
+                staff=staff,
+                payment_type=payment_type,
+                deleted=False,
+                defaults={
+                    'amount': amount,
+                    'status': SalaryPayment.Status.PENDING,
+                },
+            )
 
     @action(detail=True, methods=['post'], url_path='mark-paid')
     def mark_paid(self, request, pk=None):
