@@ -34,6 +34,30 @@ from .serializers import (
 # CRUD básicos (ModelViewSet)
 # ============================================================================
 
+def _quincena_range_for_date(d):
+    """Dada una fecha, devuelve (start, end, label) de la quincena que la contiene.
+
+    Quincena 1: día 1 al 15 del mes
+    Quincena 2: día 16 al último día del mes
+    """
+    import calendar as cal
+    months_es = {
+        1: 'enero', 2: 'febrero', 3: 'marzo', 4: 'abril', 5: 'mayo', 6: 'junio',
+        7: 'julio', 8: 'agosto', 9: 'septiembre', 10: 'octubre',
+        11: 'noviembre', 12: 'diciembre',
+    }
+    if d.day <= 15:
+        start = d.replace(day=1)
+        end = d.replace(day=15)
+        label = f"1–15 {months_es[d.month]} {d.year}"
+    else:
+        start = d.replace(day=16)
+        last_day = cal.monthrange(d.year, d.month)[1]
+        end = d.replace(day=last_day)
+        label = f"16–{last_day} {months_es[d.month]} {d.year}"
+    return start, end, label
+
+
 class PeriodViewSet(viewsets.ModelViewSet):
     queryset = Period.objects.filter(deleted=False).order_by('-start_date')
     serializer_class = PeriodSerializer
@@ -41,16 +65,42 @@ class PeriodViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='current')
     def current(self, request):
-        """Devuelve la quincena actual (la que contiene la fecha de hoy)."""
+        """Devuelve la quincena actual auto-creándola si no existe."""
         today = date.today()
-        period = Period.objects.filter(
+        start, end, label = _quincena_range_for_date(today)
+        period, _ = Period.objects.get_or_create(
+            start_date=start, end_date=end,
             deleted=False,
-            start_date__lte=today,
-            end_date__gte=today,
-        ).first()
-        if not period:
-            return Response({'detail': 'No hay quincena activa para hoy'}, status=404)
+            defaults={'label': label},
+        )
         return Response(PeriodSerializer(period).data)
+
+    @action(detail=False, methods=['post'], url_path='ensure')
+    def ensure(self, request):
+        """Auto-crea (o devuelve) el Period que contiene la fecha dada.
+
+        Body: {date: "YYYY-MM-DD"}  ← cualquier fecha del mes
+        Devuelve el Period (creado o existente) según la quincena calculada.
+        """
+        from datetime import datetime as dt
+        date_str = request.data.get('date')
+        if not date_str:
+            return Response({'detail': 'date es obligatorio'}, status=400)
+        try:
+            d = dt.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({'detail': 'Formato de fecha inválido (usa YYYY-MM-DD)'}, status=400)
+
+        start, end, label = _quincena_range_for_date(d)
+        period, created = Period.objects.get_or_create(
+            start_date=start, end_date=end,
+            deleted=False,
+            defaults={'label': label},
+        )
+        return Response(
+            PeriodSerializer(period).data,
+            status=201 if created else 200,
+        )
 
 
 class StaffViewSet(viewsets.ModelViewSet):
