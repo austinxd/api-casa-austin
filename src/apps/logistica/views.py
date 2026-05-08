@@ -495,8 +495,14 @@ class PeriodSummaryView(APIView):
         expenses_pending = expenses_qs.filter(status='pending').aggregate(s=Sum('total'))['s'] or Decimal('0')
         expenses_paid = expenses_qs.filter(status='paid').aggregate(s=Sum('total'))['s'] or Decimal('0')
 
+        cleanings_pending = cleanings_qs.filter(status='pending').aggregate(s=Sum('amount'))['s'] or Decimal('0')
+        cleanings_paid = cleanings_qs.filter(status='paid').aggregate(s=Sum('amount'))['s'] or Decimal('0')
+
         salaries_pending = salaries_qs.filter(status='pending').aggregate(s=Sum('amount'))['s'] or Decimal('0')
         salaries_paid = salaries_qs.filter(status='paid').aggregate(s=Sum('amount'))['s'] or Decimal('0')
+
+        total_pending = expenses_pending + cleanings_pending + salaries_pending
+        total_paid = expenses_paid + cleanings_paid + salaries_paid
 
         # Reembolsos pendientes por staff
         owed_by_staff = defaultdict(lambda: Decimal('0'))
@@ -533,8 +539,12 @@ class PeriodSummaryView(APIView):
             'grand_total': grand_total,
             'expenses_pending': expenses_pending,
             'expenses_paid': expenses_paid,
+            'cleanings_pending': cleanings_pending,
+            'cleanings_paid': cleanings_paid,
             'salaries_pending': salaries_pending,
             'salaries_paid': salaries_paid,
+            'total_pending': total_pending,
+            'total_paid': total_paid,
             'reimbursements_owed': owed_dict,
         }
         return Response(PeriodSummarySerializer(data).data)

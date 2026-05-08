@@ -203,8 +203,14 @@ class PeriodSummarySerializer(serializers.Serializer):
     expenses_pending = serializers.DecimalField(max_digits=12, decimal_places=2)
     expenses_paid = serializers.DecimalField(max_digits=12, decimal_places=2)
 
+    cleanings_pending = serializers.DecimalField(max_digits=12, decimal_places=2)
+    cleanings_paid = serializers.DecimalField(max_digits=12, decimal_places=2)
+
     salaries_pending = serializers.DecimalField(max_digits=12, decimal_places=2)
     salaries_paid = serializers.DecimalField(max_digits=12, decimal_places=2)
+
+    total_pending = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total_paid = serializers.DecimalField(max_digits=12, decimal_places=2)
 
     reimbursements_owed = serializers.DictField(
         help_text="Por staff: {staff_id: amount} pendiente de reembolsar",
