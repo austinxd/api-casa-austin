@@ -323,6 +323,14 @@ class AIOrchestrator:
             )
             return result
 
+        # G_REQUOTE — Repetir/resumir cotización anterior (sin recotizar)
+        result = guards.try_requote(session, user_text)
+        if result is not None:
+            logger.info(
+                f"Guard activo: {result['intent']} (sesión {session.id})"
+            )
+            return result
+
         # G3 — Lista de casas / catálogo
         result = guards.try_property_list(session, user_text)
         if result is not None:

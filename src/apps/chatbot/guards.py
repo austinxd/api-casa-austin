@@ -528,3 +528,275 @@ def try_post_claim_identifier(session, last_user_text):
             'notify_reason': notify_reason,
         },
     }
+
+
+# ============================================================================
+# G_REQUOTE — Repetir/resumir cotización anterior sin recotizar
+# ============================================================================
+# Si existe una cotización previa en la sesión y el cliente pregunta el
+# precio sin dar nueva fecha o nuevo número de personas, re-emitimos la
+# cotización guardada en formato compacto. 0 tokens. Sub-tipos:
+#   A) IS_TOTAL  → "Sí 😊 es el precio total por toda la estadía..."
+#   B) PER_PERSON → cálculo per-cápita desde la cotización
+#   C) GENERIC    → re-render compacto con prefijo "Te resumo la cotización..."
+
+IS_TOTAL_PATTERNS = [
+    r'\b(?:eso|ese\s+precio|el\s+precio)\s+es\s+(?:el\s+)?total\??',
+    r'\bes\s+(?:eso\s+|ese\s+)?(?:el\s+)?total\??',
+    r'\bes\s+por\s+(?:toda\s+)?la\s+estad[ií]a\??',
+    r'\btotal\s+por\s+(?:toda\s+)?la\s+estad[ií]a\??',
+    r'^\s*es\s+total\??\s*$',
+    r'^\s*total\??\s*$',
+]
+IS_TOTAL_RE = re.compile('|'.join(IS_TOTAL_PATTERNS), re.IGNORECASE)
+
+PER_PERSON_PATTERNS = [
+    r'\bpor\s+persona\b',
+    r'\bcu[aá]nto\s+(?:sale|me\s+sale|toca|me\s+toca|paga)\s+(?:a\s+)?cada\s+(?:uno|persona)\b',
+    r'\bpor\s+cada\s+(?:uno|persona|hu[eé]sped)\b',
+    r'\bper\s*c[aá]pita\b',
+]
+PER_PERSON_RE = re.compile('|'.join(PER_PERSON_PATTERNS), re.IGNORECASE)
+
+REQUOTE_GENERIC_PATTERNS = [
+    r'\bcu[aá]nto\s+(?:cuesta|sale|ser[íi]a|me\s+sale|me\s+saldr[íi]a|pago|me\s+cobr[aá]n|est[aá])\b',
+    r'\bcu[aá]l\s+(?:es|ser[íi]a)\s+(?:el\s+)?(?:precio|costo|total)\b',
+    r'\bdame\s+(?:el\s+)?(?:precio|costo|total)\b',
+    r'^\s*(?:el\s+)?precio\s*\??\s*$',
+    r'^\s*(?:el\s+)?costo\s*\??\s*$',
+    r'\ben\s+dinero\b',
+    r'\bcu[aá]nto\s+(?:ser[íi]a|sale|cuesta)\s+(?:el\s+)?total\b',
+    r'\bcu[aá]nto\s+(?:ser[íi]a|sale|cuesta)\s+por\s+(?:la\s+)?casa\b',
+    r'\bcu[aá]nto\s+pago\b',
+    r'\bme\s+(?:das|pas[aá]s|dec[ií]s)\s+(?:el\s+)?precio\b',
+]
+REQUOTE_GENERIC_RE = re.compile('|'.join(REQUOTE_GENERIC_PATTERNS), re.IGNORECASE)
+
+# Parser de cotización emitida por _format_pricing_result.
+# Casa N: $X ó S/Y  (también acepta 'Casa Austin N' por compatibilidad).
+_REQUOTE_HOUSE_RE = re.compile(
+    r'^(Casa\s+(?:Austin\s+)?\d+):\s*\$(\d+)\s+ó\s+S/(\d+)',
+    re.MULTILINE,
+)
+_REQUOTE_HEADER_RE = re.compile(r'📅\s+(.+?)\s+·\s+(\d+)\s+persona')
+_REQUOTE_URL_LABEL_RE = re.compile(
+    r'🔗\s+(Ver opciones y reservar|Reserva directa):'
+)
+_REQUOTE_URL_RE = re.compile(
+    r'https://casaaustin\.pe/(reservar|disponibilidad)\?([^\s\n]+)'
+)
+_REQUOTE_DISCOUNT_RE = re.compile(r'🎁[^\n]+')
+
+
+def _get_full_last_quote(session):
+    """Recupera la última cotización COMPLETA del historial (vs `_get_last_quote`
+    que solo trae precios de una casa).
+
+    Busca en los últimos 10 mensajes outbound_ai con tool_calls que incluyan
+    check_availability, parsea el content y devuelve estructura rica.
+
+    Returns:
+        dict | None con keys: check_in, check_out, guests, date_display,
+        houses[{name, usd, sol}], booking_url, url_label, discount_line,
+        msg_age_seconds.
+    """
+    from django.utils import timezone as _tz
+
+    recent = ChatMessage.objects.filter(
+        session=session,
+        deleted=False,
+        direction=ChatMessage.DirectionChoices.OUTBOUND_AI,
+    ).exclude(tool_calls=[]).order_by('-created')[:10]
+
+    for msg in recent:
+        has_avail = any(
+            (tc.get('name') == 'check_availability')
+            for tc in (msg.tool_calls or [])
+        )
+        if not has_avail:
+            continue
+
+        content = msg.content or ''
+
+        url_m = _REQUOTE_URL_RE.search(content)
+        if not url_m:
+            continue
+        url_full = url_m.group(0)
+        url_type = url_m.group(1)
+        params_str = url_m.group(2)
+        params = {}
+        for pair in params_str.split('&'):
+            if '=' in pair:
+                k, v = pair.split('=', 1)
+                params[k] = v
+
+        check_in = params.get('checkIn')
+        check_out = params.get('checkOut')
+        try:
+            guests = int(params.get('guests', 0)) or None
+        except ValueError:
+            guests = None
+
+        label_m = _REQUOTE_URL_LABEL_RE.search(content)
+        url_label = label_m.group(1) if label_m else (
+            'Ver opciones y reservar' if url_type == 'disponibilidad'
+            else 'Reserva directa'
+        )
+
+        header_m = _REQUOTE_HEADER_RE.search(content)
+        date_display = (
+            header_m.group(1).strip() if header_m
+            else (f"{check_in} → {check_out}" if check_in and check_out else '')
+        )
+        if not guests and header_m:
+            try:
+                guests = int(header_m.group(2))
+            except ValueError:
+                guests = None
+
+        houses = []
+        for cm in _REQUOTE_HOUSE_RE.finditer(content):
+            houses.append({
+                'name': cm.group(1).strip(),
+                'usd': int(cm.group(2)),
+                'sol': int(cm.group(3)),
+            })
+
+        if not houses:
+            continue
+
+        disc_m = _REQUOTE_DISCOUNT_RE.search(content)
+        discount_line = disc_m.group(0).strip() if disc_m else None
+
+        msg_age = (_tz.now() - msg.created).total_seconds()
+
+        return {
+            'check_in': check_in,
+            'check_out': check_out,
+            'guests': guests or 1,
+            'date_display': date_display,
+            'houses': houses,
+            'booking_url': url_full,
+            'url_label': url_label,
+            'discount_line': discount_line,
+            'msg_age_seconds': msg_age,
+        }
+    return None
+
+
+def _short_name(name):
+    """'Casa Austin 1' → 'Casa 1'."""
+    m = re.match(r'^\s*Casa\s+Austin\s+(\d+)\s*$', name or '', re.IGNORECASE)
+    if m:
+        return f"Casa {m.group(1)}"
+    return name or ''
+
+
+_REQUOTE_IS_TOTAL_RESPONSE = (
+    "Sí 😊 es el precio total por toda la estadía para la casa completa."
+)
+
+
+def _render_requote(quote):
+    """C: re-emite la cotización compacta con prefijo conversacional."""
+    guests = quote['guests']
+    lines = [
+        "Claro 😊 Te resumo la cotización anterior:",
+        "",
+        f"📅 {quote['date_display']} · {guests} persona{'s' if guests != 1 else ''}",
+        "Precio total por toda la estadía:",
+        "",
+    ]
+    for h in quote['houses']:
+        lines.append(f"{_short_name(h['name'])}: ${h['usd']} ó S/{h['sol']}")
+    lines.append("")
+    lines.append(f"🔗 {quote['url_label']}:")
+    lines.append(quote['booking_url'])
+    lines.append("")
+    lines.append("¿Quieres que te ayude a separarla con el 50%?")
+    return "\n".join(lines)
+
+
+def _render_per_person(quote):
+    """B: per-cápita = sol_total / guests (entero)."""
+    guests = max(int(quote['guests'] or 1), 1)
+    if len(quote['houses']) == 1:
+        h = quote['houses'][0]
+        per = round(h['sol'] / guests)
+        return (
+            f"Para {guests} persona{'s' if guests != 1 else ''}, "
+            f"{_short_name(h['name'])} saldría aprox S/{per} por persona 😊"
+        )
+    lines = [
+        f"Para {guests} persona{'s' if guests != 1 else ''}, "
+        f"queda aproximadamente:",
+        "",
+    ]
+    for h in quote['houses']:
+        per = round(h['sol'] / guests)
+        lines.append(f"{_short_name(h['name'])}: S/{per} por persona")
+    return "\n".join(lines)
+
+
+def try_requote(session, last_user_text):
+    """G_REQUOTE — Si hay cotización previa Y el cliente pregunta el precio
+    SIN dar nueva fecha/personas, responder determinísticamente.
+
+    Sub-tipos:
+      - is_total   → confirmación corta.
+      - per_person → cálculo per-cápita.
+      - generic    → re-render compacto.
+    """
+    if not last_user_text:
+        return None
+    text = last_user_text
+
+    # Gating: nueva fecha/personas → NO interceptar (pasa al modelo)
+    if SPECIFIC_DATA_RE.search(text):
+        return None
+
+    is_total = bool(IS_TOTAL_RE.search(text))
+    is_per_person = bool(PER_PERSON_RE.search(text))
+    is_generic = bool(REQUOTE_GENERIC_RE.search(text))
+
+    if not (is_total or is_per_person or is_generic):
+        return None
+
+    quote = _get_full_last_quote(session)
+    if not quote:
+        return None
+
+    # Heurística de freshness: si la cotización tiene >30min y NO es solo
+    # confirmar "es total?", dejar pasar al modelo (precios/disponibilidad
+    # pueden haber cambiado).
+    if quote['msg_age_seconds'] > 30 * 60 and not is_total:
+        return None
+
+    # Sub-tipo prioridad: is_total > per_person > generic
+    if is_total:
+        response = _REQUOTE_IS_TOTAL_RESPONSE
+        subtype = 'is_total'
+    elif is_per_person:
+        response = _render_per_person(quote)
+        subtype = 'per_person'
+    else:
+        response = _render_requote(quote)
+        subtype = 'generic'
+
+    logger.info(
+        f"Guard G_REQUOTE: subtype={subtype}, "
+        f"casas={len(quote['houses'])}, age={int(quote['msg_age_seconds'])}s, "
+        f"session={session.id}"
+    )
+
+    return {
+        'response': response,
+        'intent': f'guard:requote:{subtype}',
+        'tool_call_meta': {
+            'name': 'guard',
+            'guard': 'requote',
+            'subtype': subtype,
+            'houses_count': len(quote['houses']),
+            'msg_age_seconds': int(quote['msg_age_seconds']),
+        },
+    }
