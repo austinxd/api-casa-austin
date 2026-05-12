@@ -225,6 +225,12 @@ class AIOrchestrator:
         # entrante y forzar notify_team(ready_to_book) si el modelo no lo hizo.
         self._force_ready_to_book_if_intent(session, inbound_message, tool_calls_data)
 
+        # Guardia: detectar reclamo de reserva ya hecha ("ya pagué", "ya
+        # reservé", etc.) y disparar notify_team con la razón correcta
+        # (reservation_claimed_not_found / reservation_claimed_pending) +
+        # contexto rico para el equipo.
+        self._force_reservation_claim_if_intent(session, inbound_message, tool_calls_data)
+
         # Guardia determinística: detectar keywords configuradas en admin
         # (escalation_keywords → pausa IA, callback_keywords → solo notifica).
         # Puede pausar la sesión, lo cual hace que la próxima línea NO envíe.
@@ -1736,7 +1742,7 @@ class AIOrchestrator:
     # haya hecho. Visto en producción: David Tafur ("aceptan tarjeta"),
     # Ignacio Vidal ("Quiero pagar") — 0 notificaciones automáticas en 21 conv.
     READY_TO_BOOK_PATTERNS = [
-        # Intención directa de reservar/pagar
+        # Intención directa de reservar/pagar (FUTURO — aún no pagó)
         r'\bquiero\s+(?:pagar|reservar|confirmar|separar)\b',
         r'\bdeseo\s+(?:pagar|reservar|confirmar|alquilar)\b',
         r'\bme\s+anim[oa]\b',
@@ -1756,10 +1762,22 @@ class AIOrchestrator:
         r'\bcuenta\s+(?:bancaria|de|del)\b',
         r'\bn[uú]mero\s+de\s+cuenta\b',
         r'\bd[oó]nde\s+(?:dep[oó]sito|deposito|transfiero|pago|transferir)\b',
-        # Confirmación de pago realizado
-        r'\bya\s+(?:pagu[eé]|transfer[ií]|dep[oó]sit[eé])\b',
-        r'\bya\s+sub[ií]\s+el\s+voucher\b',
-        r'\bvoucher\b',
+    ]
+
+    # Patrones de RECLAMO de reserva ya hecha (PASADO — el cliente afirma
+    # que YA pagó/reservó/transfirió). Se manejan distinto: dispara
+    # notify_team con reason 'reservation_claimed_*' + check_reservations,
+    # NO 'ready_to_book' (que es para forward intent).
+    RESERVATION_CLAIMED_PATTERNS = [
+        r'\bya\s+reserv[eé]\b',
+        r'\bya\s+pagu[eé]\b',
+        r'\bya\s+transfer[ií]\b',
+        r'\bya\s+dep[oó]sit[eé]\b',
+        r'\bya\s+sub[ií]\s+(?:el\s+)?voucher\b',
+        r'\bya\s+(?:lo\s+)?(?:hice|complet[eé])\s+(?:el\s+)?(?:pago|voucher|reserva)\b',
+        r'\bvoucher\s+(?:enviado|subido|listo|cargado)\b',
+        r'\bacabo\s+de\s+(?:pagar|reservar|transferir|depositar)\b',
+        r'\btermin[eé]\s+(?:el\s+)?(?:pago|la\s+reserva)\b',
     ]
 
     def _force_ready_to_book_if_intent(self, session, inbound_message, tool_calls_data):
@@ -1806,6 +1824,135 @@ class AIOrchestrator:
             })
         except Exception as e:
             logger.error(f"Error forcing notify_team: {e}", exc_info=True)
+
+    @staticmethod
+    def _get_last_booking_url(session):
+        """Devuelve el último link de reserva (/reservar?... o
+        /disponibilidad?...) enviado en mensajes OUTBOUND_AI recientes.
+        None si no hay."""
+        recent = ChatMessage.objects.filter(
+            session=session,
+            deleted=False,
+            direction=ChatMessage.DirectionChoices.OUTBOUND_AI,
+        ).order_by('-created')[:15]
+        for msg in recent:
+            m = re.search(
+                r'https://casaaustin\.pe/(?:reservar|disponibilidad)\?[^\s\n]+',
+                msg.content or '',
+            )
+            if m:
+                return m.group(0)
+        return None
+
+    def _force_reservation_claim_if_intent(self, session, inbound_message, tool_calls_data):
+        """Si el cliente afirma haber reservado/pagado, asegura que
+        notify_team se dispare con la razón correcta (reservation_claimed_*)
+        e incluye contexto rico para el equipo: wa_id, nombre, último link y
+        última cotización."""
+        user_text = self._extract_user_text(inbound_message).lower()
+        if not user_text:
+            return
+
+        if not any(re.search(p, user_text) for p in self.RESERVATION_CLAIMED_PATTERNS):
+            return
+
+        # ¿El modelo ya alertó con una razón de claim?
+        for tc in tool_calls_data or []:
+            if tc.get('name') != 'notify_team':
+                continue
+            r = (tc.get('arguments') or {}).get('reason')
+            if r in ('reservation_claimed_not_found', 'reservation_claimed_pending'):
+                return
+
+        # Determinar si check_reservations corrió este turno y qué encontró.
+        # El tool result ahora tiene 'SCENARIO:' como prefijo.
+        has_reservation = False
+        scenario = 'unknown'
+        for tc in tool_calls_data or []:
+            if tc.get('name') != 'check_reservations':
+                continue
+            full = tc.get('_result_full') or ''
+            if 'CONFIRMADA' in full:
+                has_reservation = True
+                scenario = 'approved'
+                break
+            if "estado 'pending'" in full or "estado 'under_review'" in full:
+                has_reservation = True
+                scenario = 'pending_or_review'
+                break
+            if 'SIN reservas' in full or 'NO vinculado' in full:
+                scenario = 'not_found'
+                break
+
+        reason = 'reservation_claimed_pending' if has_reservation else 'reservation_claimed_not_found'
+
+        # Si el modelo NO llamó check_reservations, llamarla nosotros para
+        # tener escenario válido (silenciosamente — no interrumpe la respuesta).
+        if scenario == 'unknown':
+            try:
+                exec_check = ToolExecutor(session)
+                check_result = exec_check.execute('check_reservations', {})
+                if 'CONFIRMADA' in check_result:
+                    has_reservation = True
+                    scenario = 'approved'
+                elif "estado 'pending'" in check_result or "estado 'under_review'" in check_result:
+                    has_reservation = True
+                    scenario = 'pending_or_review'
+                else:
+                    scenario = 'not_found'
+                reason = 'reservation_claimed_pending' if has_reservation else 'reservation_claimed_not_found'
+            except Exception as e:
+                logger.error(f"Error auto-running check_reservations: {e}", exc_info=True)
+
+        # Construir detalles ricos
+        wa_name = session.wa_profile_name or 'N/A'
+        details_lines = [
+            f'Mensaje del cliente: "{user_text[:200]}"',
+            f"WhatsApp ID: {session.wa_id}",
+            f"Nombre WhatsApp: {wa_name}",
+            f"Escenario detectado: {scenario}",
+        ]
+        if session.client:
+            client = session.client
+            details_lines.append(
+                f"Cliente vinculado: {client.first_name} "
+                f"{client.last_name or ''} "
+                f"(DNI: {client.number_doc or 'N/A'})"
+            )
+        else:
+            details_lines.append("Cliente NO vinculado a este wa_id.")
+
+        last_url = self._get_last_booking_url(session)
+        if last_url:
+            details_lines.append(f"Último link enviado: {last_url}")
+
+        try:
+            last_quote = guards._get_last_quote(session)
+            if last_quote:
+                details_lines.append(
+                    f"Última cotización: ${last_quote.get('usd')} USD / "
+                    f"S/{last_quote.get('sol')}"
+                )
+        except Exception:
+            pass
+
+        logger.warning(
+            f"reservation_claimed detected (reason={reason}) for session "
+            f"{session.id}. Text: {user_text[:100]}"
+        )
+        try:
+            executor = ToolExecutor(session)
+            result = executor.execute('notify_team', {
+                'reason': reason,
+                'details': "\n".join(details_lines),
+            })
+            tool_calls_data.append({
+                'name': 'notify_team',
+                'arguments': {'reason': reason, 'auto_triggered': True},
+                'result_preview': str(result)[:200],
+            })
+        except Exception as e:
+            logger.error(f"Error forcing notify_team(claim): {e}", exc_info=True)
 
     def _force_escalation_if_keyword(self, session, inbound_message, tool_calls_data):
         """Detecta keywords configuradas en ChatbotConfiguration y dispara la

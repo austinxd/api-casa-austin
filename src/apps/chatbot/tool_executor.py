@@ -8,8 +8,11 @@ logger = logging.getLogger(__name__)
 
 
 def _format_discount_line(raw_desc, pct):
-    """Devuelve UNA línea limpia con el descuento aplicado, sin duplicado
+    """Devuelve UNA línea CORTA con el descuento aplicado, sin duplicado
     ni decimales. Clasifica el tipo a partir de la descripción cruda.
+
+    Compacto a propósito para que el link de reserva no quede oculto bajo
+    el 'Leer más' de WhatsApp.
     """
     pct_int = _safe_round_int(pct)
     if not pct_int:
@@ -21,28 +24,28 @@ def _format_discount_line(raw_desc, pct):
         'último minuto', 'ultimo minuto', 'last_minute',
         'reserva para hoy', 'reserva para mañana', 'reserva para manana',
     )):
-        return f"🎁 Ya incluye {pct_int}% de descuento por reserva de último minuto."
+        return f"🎁 Incluye {pct_int}% de descuento último minuto."
     if 'cumpleaños' in desc or 'cumpleanos' in desc or 'feliz cumple' in desc:
-        return f"🎁 Ya incluye {pct_int}% de descuento por tu cumpleaños."
+        return f"🎁 Incluye {pct_int}% por tu cumpleaños."
     if 'cliente frecuente' in desc:
-        return f"🎁 Ya incluye {pct_int}% de descuento de cliente frecuente."
+        return f"🎁 Incluye {pct_int}% de descuento cliente frecuente."
     if 'bienvenid' in desc or 'primera reserva' in desc:
-        return f"🎁 Ya incluye {pct_int}% de descuento de bienvenida."
+        return f"🎁 Incluye {pct_int}% de descuento de bienvenida."
     if 'lealtad' in desc:
-        return f"🎁 Ya incluye {pct_int}% de descuento del programa de lealtad."
+        return f"🎁 Incluye {pct_int}% por programa de lealtad."
     if 'tiempo limitado' in desc:
-        return f"🎁 Ya incluye {pct_int}% de descuento por tiempo limitado."
+        return f"🎁 Incluye {pct_int}% por tiempo limitado."
     if desc.startswith('código') or 'código' in desc:
-        return f"🎁 Ya incluye {pct_int}% de descuento por código promocional."
+        return f"🎁 Incluye {pct_int}% por código promocional."
 
     # Fallback: si la descripción usa formato "Tipo: X% de descuento",
     # tomamos la parte antes del ':' como etiqueta.
     if ':' in (raw_desc or ''):
         label = raw_desc.split(':')[0].strip()
         if label:
-            return f"🎁 Ya incluye {pct_int}% de descuento ({label.lower()})."
+            return f"🎁 Incluye {pct_int}% de descuento ({label.lower()})."
 
-    return f"🎁 Ya incluye {pct_int}% de descuento."
+    return f"🎁 Incluye {pct_int}% de descuento."
 
 
 def _safe_round_int(value):
@@ -969,9 +972,12 @@ class ToolExecutor:
                 lines.append("")
                 lines.append(_format_discount_line(discount_raw_desc, discount_pct))
 
-            # Nota legal de visitantes (compacta)
-            lines.append("")
-            lines.append("⚠️ Visitantes cuentan como personas adicionales.")
+            # Nota legal de visitantes — solo para grupos/eventos (>=8).
+            # Para grupos chicos genera ruido y empuja el link bajo el
+            # 'Leer más' de WhatsApp.
+            if guests_int_for_header >= 8:
+                lines.append("")
+                lines.append("⚠️ Visitantes cuentan como personas adicionales.")
 
             # === Link R1.0 — UN solo link al final, según número de casas ===
             # Una sola casa disponible (o el cliente la especificó) → /reservar
@@ -1102,14 +1108,24 @@ class ToolExecutor:
             return "Cliente no encontrado."
 
     def _check_reservations(self):
-        """Consulta reservas activas del cliente vinculado a la sesión"""
+        """Consulta reservas activas del cliente vinculado a la sesión.
+
+        Devuelve el escenario detectado + instrucciones de copy literal para
+        que la IA responda con el tono correcto cuando el cliente afirma
+        haber reservado/pagado.
+        """
         from apps.reservation.models import Reservation
         from django.utils import timezone
 
         if not self.session.client:
             return (
-                "No hay un cliente identificado en esta conversación. "
-                "Pide el DNI o teléfono del cliente para identificarlo primero."
+                "SCENARIO: cliente NO vinculado a este WhatsApp.\n"
+                "[INSTRUCCIÓN IA — OBLIGATORIO: responde EXACTO con este texto, "
+                "sin agregar ni quitar nada:]\n"
+                "«Gracias 😊 Aún no me aparece una reserva activa vinculada a este "
+                "WhatsApp. Puede tardar unos minutos si acabas de completarla.\n\n"
+                "¿Me confirmas con qué nombre o documento hiciste la reserva? "
+                "Así el equipo puede revisarlo mejor.»"
             )
 
         client = self.session.client
@@ -1123,31 +1139,38 @@ class ToolExecutor:
         ).select_related('property').order_by('check_in_date')
 
         if not reservations.exists():
-            return f"{client.first_name} no tiene reservas activas en este momento."
-
-        STATUS_LABELS = {
-            'approved': 'Confirmada',
-            'pending': 'Pendiente de pago',
-            'under_review': 'En revisión',
-        }
-
-        lines = [f"Reservas activas de {client.first_name}:\n"]
-        for r in reservations:
-            status_label = STATUS_LABELS.get(r.status, r.status)
-            in_progress = r.check_in_date <= today <= r.check_out_date
-
-            line = (
-                f"{'🟢' if in_progress else '📅'} {r.property.name}\n"
-                f"   📆 {r.check_in_date.strftime('%d/%m/%Y')} al {r.check_out_date.strftime('%d/%m/%Y')}\n"
-                f"   👥 {r.guests} persona{'s' if r.guests != 1 else ''}\n"
-                f"   💰 S/{r.price_sol:.2f} / ${r.price_usd:.2f}\n"
-                f"   📌 Estado: {status_label}"
-                f"{' (EN CURSO)' if in_progress else ''}\n"
-                f"   💳 {'Pagado 100%' if r.full_payment else f'Adelanto: {r.advance_payment or 0}'}"
+            return (
+                f"SCENARIO: cliente {client.first_name} vinculado pero SIN "
+                f"reservas activas (approved/pending/under_review).\n"
+                "[INSTRUCCIÓN IA — OBLIGATORIO: responde EXACTO con este texto, "
+                "sin agregar ni quitar nada:]\n"
+                "«Gracias 😊 Aún no me aparece una reserva activa vinculada a este "
+                "WhatsApp. Puede tardar unos minutos si acabas de completarla.\n\n"
+                "¿Me confirmas con qué nombre o documento hiciste la reserva? "
+                "Así el equipo puede revisarlo mejor.»"
             )
-            lines.append(line)
 
-        return '\n\n'.join(lines)
+        # La más cercana define el copy
+        r = reservations.first()
+        if r.status == 'approved':
+            return (
+                f"SCENARIO: reserva CONFIRMADA en {r.property.name} "
+                f"({r.check_in_date.strftime('%d/%m')} al "
+                f"{r.check_out_date.strftime('%d/%m')}).\n"
+                "[INSTRUCCIÓN IA — OBLIGATORIO: responde EXACTO con este texto:]\n"
+                "«Perfecto 😊 Tu reserva ya figura confirmada. Te enviaremos/"
+                "recordaremos los detalles de ingreso antes de tu llegada.»"
+            )
+
+        # pending o under_review
+        return (
+            f"SCENARIO: reserva en estado '{r.status}' en {r.property.name} "
+            f"({r.check_in_date.strftime('%d/%m')} al "
+            f"{r.check_out_date.strftime('%d/%m')}).\n"
+            "[INSTRUCCIÓN IA — OBLIGATORIO: responde EXACTO con este texto:]\n"
+            "«Perfecto 😊 Veo tu reserva registrada. El equipo validará el "
+            "pago/voucher y te confirmará por este medio.»"
+        )
 
     def _validate_discount_code(self, code, property_name=None, check_in_date=None):
         """Valida un código de descuento"""
@@ -1580,16 +1603,25 @@ class ToolExecutor:
             f"Un miembro del equipo atenderá al cliente pronto."
         )
 
+    # Razones que BYPASEAN el throttle de 5h: eventos críticos (cliente
+    # afirma haber pagado, etc.) que el equipo necesita ver SIEMPRE.
+    NOTIFY_BYPASS_THROTTLE = {
+        'reservation_claimed_not_found',
+        'reservation_claimed_pending',
+    }
+
     def _notify_team(self, reason, details=''):
         """Envía alerta al equipo sin pausar la IA ni escalar.
-        Throttle: máximo 1 notificación por sesión cada 5 horas."""
+        Throttle: máximo 1 notificación por sesión cada 5 horas.
+        Excepción: razones en NOTIFY_BYPASS_THROTTLE siempre notifican."""
         from django.utils import timezone
         from datetime import timedelta
         from apps.clients.expo_push_service import ExpoPushService
 
-        # Throttle: verificar si ya se notificó en las últimas 5 horas
+        # Throttle: 5h excepto razones críticas (claim de reserva)
         now = timezone.now()
-        if self.session.last_notify_at:
+        if (reason not in self.NOTIFY_BYPASS_THROTTLE
+                and self.session.last_notify_at):
             elapsed = now - self.session.last_notify_at
             if elapsed < timedelta(hours=5):
                 logger.info(
@@ -1614,6 +1646,14 @@ class ToolExecutor:
             'query_not_understood': {
                 'title': f"❓ Consulta no entendida: {name}",
                 'type': 'chatbot_query_unclear',
+            },
+            'reservation_claimed_not_found': {
+                'title': f"🔍 Reserva NO encontrada: {name}",
+                'type': 'chatbot_reservation_claimed_not_found',
+            },
+            'reservation_claimed_pending': {
+                'title': f"📥 Reserva en revisión: {name}",
+                'type': 'chatbot_reservation_claimed_pending',
             },
         }
 
