@@ -800,3 +800,340 @@ def try_requote(session, last_user_text):
             'msg_age_seconds': int(quote['msg_age_seconds']),
         },
     }
+
+
+# ============================================================================
+# G_FAQ — Preguntas frecuentes (mascotas, check-in/out, ubicación, etc.)
+# ============================================================================
+# Cubre 12 temas comunes con respuestas deterministas (0 tokens). Conservador:
+# si el mensaje contiene fecha/personas, dejar pasar al modelo para que
+# combine FAQ + cotización en un turno.
+
+# Maps URL canónico para Playa Los Pulpos. Usar fallback hasta que el
+# equipo provea el link oficial de Google Maps.
+_MAPS_URL = 'https://maps.app.goo.gl/Y8nDjWPB7QmKjxR99'
+
+FAQ_TOPICS = [
+    {
+        'topic': 'pet_friendly',
+        'patterns': [
+            r'\bacepta(?:n|s)?\s+mascotas?\b',
+            r'\b(?:puedo|podemos|podr[ií]a(?:n|mos)?)\s+llevar\s+'
+            r'(?:a\s+)?(?:mi|el|la|los|las|un|una|nuestro|nuestra)?\s*'
+            r'(?:perro|perra|perrito|perrita|gato|gata|mascota)',
+            r'\bpet[\s\-]?friendly\b',
+            r'\bllevar\s+(?:a\s+)?(?:mi\s+)?mascota',
+            r'\bvan\s+(?:a\s+)?ir\s+(?:con\s+)?(?:mi\s+|nuestra\s+)?mascota',
+            r'\bperrit[oa]s?\b',
+            r'\bmis\s+mascotas?\b',
+        ],
+        'response': (
+            "Sí 😊 Somos pet-friendly. Puedes llevar mascotas, solo "
+            "ten en cuenta que cada mascota cuenta como persona "
+            "adicional para la cotización.\n\n¿Cuántas mascotas llevarías?"
+        ),
+    },
+    {
+        'topic': 'check_in_out',
+        'patterns': [
+            r'\bhora\s+(?:de|del)\s+(?:ingreso|entrada|llegada|check[\s\-]?in)\b',
+            r'\bhora\s+(?:de|del)\s+(?:salida|check[\s\-]?out)\b',
+            r'\bcheck[\s\-]?in\b',
+            r'\bcheck[\s\-]?out\b',
+            r'\ba\s+qu[eé]\s+hora\s+(?:entramos|entran|llegamos|llegan|salimos|salen|nos\s+vamos)\b',
+            r'\bdesde\s+qu[eé]\s+hora\s+(?:podemos\s+|se\s+puede\s+)?entrar\b',
+            r'\bhasta\s+qu[eé]\s+hora\s+(?:podemos\s+|se\s+puede\s+)?(?:quedarnos|estar|salir)\b',
+        ],
+        'response': (
+            "El check-in es desde las 3:00 p. m. y el check-out es "
+            "hasta las 11:00 a. m. 😊\n\nSi necesitas late check-out, "
+            "se puede revisar según disponibilidad."
+        ),
+    },
+    {
+        'topic': 'location',
+        'patterns': [
+            r'\bd[oó]nde\s+(?:queda|est[aá]n?|ubica|se\s+encuentra)',
+            r'\bubicaci[oó]n\b',
+            r'\bc[oó]mo\s+(?:llego|llegamos|llegar|se\s+llega)\b',
+            r'\bdirecci[oó]n\b',
+            r'\bgoogle\s+maps?\b',
+            r'\bmaps?\b',
+            r'\bqueda\s+(?:lejos|cerca)\b',
+            r'\bplaya\s+los\s+pulpos?\b',
+        ],
+        'response': (
+            "Estamos en Playa Los Pulpos, al sur de Lima, aproximadamente "
+            f"a 25 minutos del Jockey Plaza 😊\n\nAquí puedes ver la "
+            f"ubicación:\n{_MAPS_URL}\n\n¿Para qué fecha te gustaría cotizar?"
+        ),
+    },
+    {
+        'topic': 'pool_jacuzzi',
+        'patterns': [
+            r'\btiene[ns]?\s+piscina\b',
+            r'\bhay\s+piscina\b',
+            r'\bpiscina\s+temperada?\b',
+            r'\bjacu[zss]+i\b',
+            r'\b(?:se\s+puede\s+)?tempera(?:r|do|da)\s+(?:el\s+|la\s+)?'
+            r'(?:jacu[zss]+i|piscina|agua)\b',
+            r'\bagua\s+(?:caliente|tibia|temperada)\b',
+            r'\bcalentar\s+(?:el\s+|la\s+)?(?:jacu[zss]+i|piscina|agua)\b',
+        ],
+        'response': (
+            "Sí 😊 Todas las casas tienen piscina y jacuzzi.\n\n"
+            "El jacuzzi se puede temperar por un costo adicional de "
+            "S/100 por noche."
+        ),
+    },
+    {
+        'topic': 'party_music',
+        'patterns': [
+            r'\b(?:se\s+puede|permiten|aceptan?)\s+(?:hacer\s+)?fiesta',
+            r'\bfiestas?\??\s*$',
+            r'\bm[uú]sica\s+(?:alta|fuerte|hasta|en\s+vivo)\b',
+            r'\bdj\b',
+            r'\borquesta\b',
+            r'\bcantante\b',
+            r'\brecepci[oó]n\b',
+            r'\bcumplea[ñn]os\s+con\s+(?:m[uú]sica|fiesta)\b',
+            r'\bbulla\b',
+            r'\bcelebraci[oó]n\s+(?:con|y)\s+m[uú]sica\b',
+        ],
+        'response': (
+            "Sí se pueden hacer celebraciones, pero depende de la casa 😊\n\n"
+            "Casa Austin 1 es más tranquila y no permite fiestas ni "
+            "música alta.\n"
+            "Para celebraciones con música, recomendamos Casa Austin 2, 3 "
+            "o 4, que tienen ventanas termoacústicas. La música debe "
+            "manejarse con responsabilidad, especialmente en exteriores.\n\n"
+            "¿Cuántas personas serían y para qué fecha?"
+        ),
+    },
+    {
+        'topic': 'extra_services',
+        'patterns': [
+            r'\bincluye?\s+decoraci[oó]n\b',
+            r'\bdecoraci[oó]n\b',
+            r'\bdecoran\b',
+            r'\bservicios\s+adicionales\b',
+            r'\bofrecen\s+catering\b',
+            r'\bcatering\b',
+            r'\b(?:hay|incluye[ns]?)\s+(?:comida|desayuno|almuerzo|cena)\b',
+            r'\bcocinero\b',
+            r'\bmeseros?\b',
+            r'\bmozos?\b',
+            r'\bglobos\b',
+        ],
+        'response': (
+            "La reserva incluye la casa completa y sus ambientes "
+            "privados 😊\n\nLa decoración, catering, comida, mozos u "
+            "otros servicios adicionales no están incluidos por defecto. "
+            "Si necesitas algo especial para un evento, puedo avisar al "
+            "equipo para que te orienten según lo que buscas."
+        ),
+    },
+    {
+        'topic': 'parking',
+        'patterns': [
+            r'\bcochera\b',
+            r'\bestacionamiento\b',
+            r'\bparking\b',
+            r'\bcu[aá]nt[oa]s\s+(?:carros|autos|veh[ií]culos|camionetas)\b',
+            r'\bcamionetas?\b',
+            r'\bdejar\s+(?:los\s+|nuestros\s+|mis\s+)?autos?\b',
+            r'\bparquear\b',
+        ],
+        'response': (
+            "Todas las casas tienen estacionamiento gratuito en la "
+            "propiedad o zona de parqueo cercana 😊\n\nLa capacidad "
+            "exacta puede variar según la casa y el tamaño de los "
+            "vehículos. Si me dices qué casa estás viendo y cuántos "
+            "autos llevarían, te ayudo a revisarlo."
+        ),
+    },
+    {
+        'topic': 'grill',
+        'patterns': [
+            r'\bparrilla\b',
+            r'\bbbq\b',
+            r'\bcarb[oó]n\b',
+            r'\ble[ñn]a\b',
+            r'\basad(?:o|ito)\b',
+        ],
+        'response': (
+            "Sí 😊 Las casas cuentan con zona para parrilla. El carbón, "
+            "leña o insumos normalmente los lleva el huésped."
+        ),
+    },
+    {
+        'topic': 'wifi',
+        'patterns': [
+            r'\bwi[\s\-]?fi\b',
+            r'\binternet\b',
+            r'\bse[ñn]al\b',
+            r'\bteletrabajo\b',
+        ],
+        'response': (
+            "Sí 😊 Las casas cuentan con WiFi. La velocidad puede variar "
+            "por zona y demanda, pero es suficiente para uso normal "
+            "durante la estadía."
+        ),
+    },
+    {
+        'topic': 'photos_videos',
+        'patterns': [
+            r'\bvideos?\b',
+            r'\bfotos?\b',
+            r'\b[aá]reas?\s+de\s+la\s+casa\b',
+            r'\bver\s+la\s+casa\b',
+            r'\bver\s+(?:las\s+)?casas?\b',
+            r'\bquiero\s+ver\b',
+            r'\bme\s+(?:muestras|envías|mandas)\s+fotos\b',
+        ],
+        'response_dynamic': 'photos_videos',
+    },
+    {
+        'topic': 'children',
+        'patterns': [
+            r'\bni[ñn]os?\s+(?:pagan|cuentan|cuesta)\b',
+            r'\bni[ñn]o\s+cuenta\b',
+            r'\bcuentan\s+los\s+ni[ñn]os\b',
+            r'\bmenores?\s+de\s+edad\b',
+            r'\bbeb[eé]s?\b',
+        ],
+        'response': (
+            "Los niños pequeños no se cuentan igual que un adulto para "
+            "algunas consultas, pero para cotizar bien necesito saber "
+            "cuántos adultos y cuántos niños irían 😊"
+        ),
+    },
+    {
+        'topic': 'visitors',
+        'patterns': [
+            r'\bpueden?\s+entrar\s+(?:visitas|amigos|gente)\b',
+            r'\bvisitantes?\b',
+            r'\binvitados?\s+de\s+d[ií]a\b',
+            r'\bpersonas\s+adicionales\b',
+            r'\bentran\s+y\s+salen\b',
+        ],
+        'response': (
+            "Sí, pueden ir visitantes, pero cualquier visitante de día "
+            "o de noche cuenta como persona adicional para la "
+            "reserva 😊\n\nPor eso es importante cotizar con el número "
+            "total de personas que ingresarán."
+        ),
+    },
+]
+
+# Compilar regex una sola vez al cargar el módulo.
+for _topic in FAQ_TOPICS:
+    _topic['_re'] = re.compile('|'.join(_topic['patterns']), re.IGNORECASE)
+
+
+def _render_photos_videos():
+    """Construye respuesta dinámica para FAQ 'photos_videos' usando los
+    slugs reales de Property. Fallback hardcoded si la query falla."""
+    fallback = (
+        "Claro 😊 Puedes ver fotos y detalles de cada casa aquí:\n\n"
+        "Casa 1: https://casaaustin.pe/casas-en-alquiler/casa-austin-1\n"
+        "Casa 2: https://casaaustin.pe/casas-en-alquiler/casa-austin-2\n"
+        "Casa 3: https://casaaustin.pe/casas-en-alquiler/casa-austin-3\n"
+        "Casa 4: https://casaaustin.pe/casas-en-alquiler/casa-austin-4\n\n"
+        "Si ya tienes una casa en mente, dime cuál y te paso el link directo."
+    )
+    try:
+        from apps.property.models import Property
+        props = list(
+            Property.objects.filter(deleted=False)
+            .exclude(slug__isnull=True).exclude(slug='')
+            .order_by('player_id', 'name')
+        )
+    except Exception:
+        return fallback
+    if not props:
+        return fallback
+    lines = ["Claro 😊 Puedes ver fotos y detalles de cada casa aquí:", ""]
+    for p in props:
+        # Acortar nombre 'Casa Austin N' → 'Casa N'
+        short = re.sub(
+            r'^\s*Casa\s+Austin\s+(\d+)\s*$', r'Casa \1',
+            p.name, flags=re.IGNORECASE,
+        )
+        lines.append(f"{short}: https://casaaustin.pe/casas-en-alquiler/{p.slug}")
+    lines.append("")
+    lines.append(
+        "Si ya tienes una casa en mente, dime cuál y te paso el link directo."
+    )
+    return "\n".join(lines)
+
+
+# Topics que tratan números legítimos (autos, parrillas, fotos de N casas)
+# y NO deben gatearse por SPECIFIC_DATA cuando solo contiene "para N".
+_FAQ_NUMBERS_OK_TOPICS = {'parking', 'grill', 'photos_videos'}
+
+
+def try_faq(session, last_user_text):
+    """G_FAQ — Detecta una FAQ entre los 12 topics y responde determinístico.
+
+    Conservador:
+    - Si el mensaje contiene SPECIFIC_DATA (fecha/personas explícitas),
+      deja pasar al modelo (para que combine FAQ + cotización en un turno).
+    - Excepción: topics donde un número es legítimo (parking/grill/photos)
+      no se gatean por "para N" si no hay marcador claro de personas/fechas.
+    - Si varios topics matchean, gana el primero por POSICIÓN en el texto.
+    """
+    if not last_user_text:
+        return None
+    text = last_user_text
+
+    # Buscar el topic con match de menor posición (el primero mencionado).
+    best_topic = None
+    best_pos = None
+    for topic in FAQ_TOPICS:
+        m = topic['_re'].search(text)
+        if not m:
+            continue
+        if best_pos is None or m.start() < best_pos:
+            best_pos = m.start()
+            best_topic = topic
+    if not best_topic:
+        return None
+
+    # Gating SPECIFIC_DATA — con excepción para topics con números legítimos.
+    if best_topic['topic'] not in _FAQ_NUMBERS_OK_TOPICS:
+        if SPECIFIC_DATA_RE.search(text):
+            return None
+    else:
+        # Para parking/grill/photos: gatear solo si hay señal clara de
+        # personas/fecha (no solo "para N"). Patrones explícitos:
+        STRONG_DATE_PEOPLE_RE = re.compile(
+            r'\b\d+\s*(?:personas?|pax|amigos?|adultos?|gente|hu[eé]spedes?)\b'
+            r'|\bsomos\s+\d+\b'
+            r'|\b(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|'
+            r'septiembre|setiembre|octubre|noviembre|diciembre)\b'
+            r'|\b\d{1,2}\s*[/\-]\s*\d{1,2}\b'
+            r'|\bel\s+(?:s[aá]bado|domingo|viernes|\d{1,2})\b'
+            r'|\bferiado\b',
+            re.IGNORECASE,
+        )
+        if STRONG_DATE_PEOPLE_RE.search(text):
+            return None
+
+    topic_name = best_topic['topic']
+    if best_topic.get('response_dynamic') == 'photos_videos':
+        response = _render_photos_videos()
+    else:
+        response = best_topic['response']
+    logger.info(
+        f"Guard G_FAQ activado: topic={topic_name}, session={session.id}"
+    )
+    return {
+        'response': response,
+        'intent': f'guard:faq:{topic_name}',
+        'tool_call_meta': {
+            'name': 'guard',
+            'guard': 'faq',
+            'topic': topic_name,
+        },
+    }
