@@ -7,6 +7,44 @@ from .booking_urls import build_availability_url, build_booking_url
 logger = logging.getLogger(__name__)
 
 
+def _format_discount_line(raw_desc, pct):
+    """Devuelve UNA línea limpia con el descuento aplicado, sin duplicado
+    ni decimales. Clasifica el tipo a partir de la descripción cruda.
+    """
+    pct_int = _safe_round_int(pct)
+    if not pct_int:
+        return "🎁 Descuento aplicado."
+
+    desc = (raw_desc or '').lower()
+
+    if any(k in desc for k in (
+        'último minuto', 'ultimo minuto', 'last_minute',
+        'reserva para hoy', 'reserva para mañana', 'reserva para manana',
+    )):
+        return f"🎁 Ya incluye {pct_int}% de descuento por reserva de último minuto."
+    if 'cumpleaños' in desc or 'cumpleanos' in desc or 'feliz cumple' in desc:
+        return f"🎁 Ya incluye {pct_int}% de descuento por tu cumpleaños."
+    if 'cliente frecuente' in desc:
+        return f"🎁 Ya incluye {pct_int}% de descuento de cliente frecuente."
+    if 'bienvenid' in desc or 'primera reserva' in desc:
+        return f"🎁 Ya incluye {pct_int}% de descuento de bienvenida."
+    if 'lealtad' in desc:
+        return f"🎁 Ya incluye {pct_int}% de descuento del programa de lealtad."
+    if 'tiempo limitado' in desc:
+        return f"🎁 Ya incluye {pct_int}% de descuento por tiempo limitado."
+    if desc.startswith('código') or 'código' in desc:
+        return f"🎁 Ya incluye {pct_int}% de descuento por código promocional."
+
+    # Fallback: si la descripción usa formato "Tipo: X% de descuento",
+    # tomamos la parte antes del ':' como etiqueta.
+    if ':' in (raw_desc or ''):
+        label = raw_desc.split(':')[0].strip()
+        if label:
+            return f"🎁 Ya incluye {pct_int}% de descuento ({label.lower()})."
+
+    return f"🎁 Ya incluye {pct_int}% de descuento."
+
+
 def _safe_round_int(value):
     """Redondea un valor (Decimal, float, int, str) a entero con ROUND_HALF_UP.
     Evita errores de redondeo de float y maneja inputs None/inválidos.
@@ -827,8 +865,9 @@ class ToolExecutor:
         # sub-línea con precio/persona). Se unen con doble salto al renderizar.
         available_blocks = []
         unavailable_lines = []
-        discount_label = None  # Descuento compartido (se muestra una sola vez)
-        discount_pct = None    # Porcentaje del descuento (entero, ej: 15)
+        discount_raw_desc = None  # Descripción cruda del descuento (compartido)
+        discount_pct = None       # Porcentaje del descuento (entero, ej: 40)
+        discount_seen = False     # Flag: ¿hay descuento aplicado?
 
         capacity_warnings = []
 
@@ -859,20 +898,15 @@ class ToolExecutor:
             extra_total_usd = prop.get('extra_person_total_usd', 0)
 
             # Capturar descuento (se muestra una sola vez al final).
-            # Guardamos:
-            #   - discount_label: el "tipo" del descuento en minúscula
-            #     ("cliente frecuente"). '' si hay descuento sin descripción.
-            #     None si no hay descuento.
-            #   - discount_pct: el porcentaje aplicado (int redondeado).
+            # Guardamos la descripción cruda + porcentaje del primer descuento
+            # encontrado; _format_discount_line() lo clasifica y limpia al renderizar.
             discount = prop.get('discount_applied')
             if discount and discount.get('type') not in ('none', None):
                 disc_desc = (discount.get('description') or '').strip()
                 disc_pct_raw = discount.get('discount_percentage', 0)
-                if discount_label is None:
-                    if disc_desc:
-                        discount_label = disc_desc.split(':')[0].strip().lower()
-                    else:
-                        discount_label = ''
+                discount_seen = True
+                if discount_raw_desc is None and disc_desc:
+                    discount_raw_desc = disc_desc
                 if discount_pct is None and disc_pct_raw:
                     discount_pct = _safe_round_int(disc_pct_raw)
 
@@ -928,25 +962,12 @@ class ToolExecutor:
                 lines.append("")
                 lines.extend(capacity_warnings)
 
-            # Descuento aplicado (si hay) — formato compacto con porcentaje.
-            # Combinaciones:
-            #   label="cliente frecuente", pct=15 → "🎁 Cliente frecuente · 15% de descuento aplicado"
-            #   label="",                pct=10 → "🎁 10% de descuento aplicado"
-            #   label="cliente frecuente", pct=None → "🎁 Incluye descuento de cliente frecuente"
-            #   label="",                pct=None → "🎁 Descuento aplicado"
-            if discount_label or discount_label == '':
+            # Descuento aplicado (si hay) — UNA sola línea limpia, sin
+            # duplicado ni decimales. _format_discount_line clasifica el tipo
+            # ("último minuto", "cliente frecuente", "cumpleaños", etc.).
+            if discount_seen:
                 lines.append("")
-                if discount_label and discount_pct:
-                    lines.append(
-                        f"🎁 {discount_label.capitalize()} · "
-                        f"{discount_pct}% de descuento aplicado"
-                    )
-                elif discount_pct:
-                    lines.append(f"🎁 {discount_pct}% de descuento aplicado")
-                elif discount_label:
-                    lines.append(f"🎁 Incluye descuento de {discount_label}")
-                else:
-                    lines.append("🎁 Descuento aplicado")
+                lines.append(_format_discount_line(discount_raw_desc, discount_pct))
 
             # Nota legal de visitantes (compacta)
             lines.append("")
@@ -971,7 +992,7 @@ class ToolExecutor:
                     currency='SOL',
                 ))
             else:
-                lines.append("Fotos y reserva:")
+                lines.append("Ver opciones y reservar:")
                 lines.append(build_availability_url(
                     check_in=check_in,
                     check_out=check_out,

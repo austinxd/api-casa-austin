@@ -955,7 +955,7 @@ class AIOrchestrator:
             "ser SOLO con datos de la consulta B. Nunca combines datos de consultas diferentes."
             "\n- 🔗 LINK DE RESERVA: cuando check_availability devuelva la cotización, AL FINAL incluye "
             "UN solo link (ya viene en la cotización con casa/fechas/personas pre-llenadas: 'Reserva "
-            "directa:' o 'Fotos y reserva:'). NO inventes URLs ni escribas 'casaaustin.pe' genérico. "
+            "directa:' o 'Ver opciones y reservar:'). NO inventes URLs ni escribas 'casaaustin.pe' genérico. "
             "Si necesitas referenciar el sitio fuera de una cotización, usa 'casaaustin.pe' suelto y "
             "el sistema lo expandirá al link parametrizado correcto."
             "\n- Soporte: 📲 https://wa.me/51999902992 | 📞 +51 935 900 900"
@@ -1633,7 +1633,7 @@ class AIOrchestrator:
             parts.append(
                 "\n\nETAPA: POST-COTIZACIÓN (ya recibió precios)"
                 "\n- Prioridad #1: Guiar al cliente a separar la fecha con el link "
-                "que YA está al final de la cotización ('Reserva directa:' o 'Fotos y reserva:')."
+                "que YA está al final de la cotización ('Reserva directa:' o 'Ver opciones y reservar:')."
                 "\n- Usa scarcity REALISTA, no agresiva. Variantes (no copies literal):"
                 "\n  • 'Si te acomoda, lo mejor es separarla con el 50% para asegurar la fecha.'"
                 "\n  • 'Esa fecha puede cambiar de disponibilidad — si te gusta, te recomiendo separarla.'"
@@ -1643,8 +1643,9 @@ class AIOrchestrator:
                 "\n- ✅ Si dice 'sí', 'ok', 'pásame el link', 'quiero reservar', 'quiero separar', "
                 "responde CORTO y reenvía el link ya generado en la cotización anterior:"
                 "\n  «Perfecto 😊 Te dejo el link directo para separar:"
-                "\n  <pega aquí el link de la cotización (Reserva directa / Fotos y reserva)>"
-                "\n  Ahí eliges la casa, completas tus datos y separas con el 50%.»"
+                "\n  <pega aquí el link de la cotización (Reserva directa / Ver opciones y reservar)>"
+                "\n  Ahí eliges la casa, completas tus datos y separas con el 50%."
+                "\n  Cuando termines, escríbeme 'ya reservé' o 'ya pagué' y te ayudo a validarlo.»"
                 "\n- ⛔ NUNCA escribas 'casaaustin.pe' genérico en esta etapa — usa SIEMPRE el "
                 "link parametrizado que ya está en la cotización."
                 "\n- Si dice que quiere reservar y aún no se notificó al equipo, usa notify_team(ready_to_book)."
@@ -1927,7 +1928,7 @@ class AIOrchestrator:
             ('📅' in text and ' · ' in text and 'Casa Austin' in text)
             or '↳' in text
             or 'Más económica:' in text
-            or 'Fotos y reserva:' in text
+            or 'Ver opciones y reservar:' in text
             or 'Reserva directa:' in text
         )
         if has_quote_old_format or has_quote_new_format:
