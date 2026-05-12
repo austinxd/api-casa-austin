@@ -250,6 +250,10 @@ class AIOrchestrator:
         # la cotización formateada, inyectarla automáticamente.
         response_text = self._inject_missing_quote(response_text, tool_calls_data)
 
+        # R1.0: reemplazar 'https://casaaustin.pe' genérico por el link
+        # parametrizado (con casa/fechas/personas) que el tool ya construyó.
+        response_text = self._inject_booking_url(response_text, tool_calls_data)
+
         # Red de seguridad: pasar de nuevo por sanitize_response después del
         # inject. El _result_full del tool incluye INSTRUCCIÓN IA al final;
         # si por alguna ruta llegara hasta aquí, este pase final lo elimina.
@@ -949,7 +953,12 @@ class AIOrchestrator:
             "\n- Si el cliente cambia personas o fechas, llama check_availability de nuevo."
             "\n- PROHIBIDO mezclar resultados: si consultaste fecha A y luego fecha B, la respuesta de B debe "
             "ser SOLO con datos de la consulta B. Nunca combines datos de consultas diferentes."
-            "\n- Para reservar: https://casaaustin.pe | Soporte: 📲 https://wa.me/51999902992 | 📞 +51 935 900 900"
+            "\n- 🔗 LINK DE RESERVA: cuando check_availability devuelva la cotización, AL FINAL incluye "
+            "UN solo link (ya viene en la cotización con casa/fechas/personas pre-llenadas: 'Reserva "
+            "directa:' o 'Fotos y reserva:'). NO inventes URLs ni escribas 'casaaustin.pe' genérico. "
+            "Si necesitas referenciar el sitio fuera de una cotización, usa 'casaaustin.pe' suelto y "
+            "el sistema lo expandirá al link parametrizado correcto."
+            "\n- Soporte: 📲 https://wa.me/51999902992 | 📞 +51 935 900 900"
             f"\n\n💱 TIPO DE CAMBIO: 1 USD = S/{exchange_rate} SOL"
             "\n- Si el cliente pregunta cuánto es en soles, multiplica el precio en USD por el tipo de cambio."
             "\n- Si el cliente pregunta cuánto es en dólares desde soles, divide entre el tipo de cambio."
@@ -1623,14 +1632,22 @@ class AIOrchestrator:
             # Ya tiene cotización — modo cierre con scarcity natural
             parts.append(
                 "\n\nETAPA: POST-COTIZACIÓN (ya recibió precios)"
-                "\n- Prioridad #1: Guiar al cliente a separar la fecha en casaaustin.pe."
+                "\n- Prioridad #1: Guiar al cliente a separar la fecha con el link "
+                "que YA está al final de la cotización ('Reserva directa:' o 'Fotos y reserva:')."
                 "\n- Usa scarcity REALISTA, no agresiva. Variantes (no copies literal):"
                 "\n  • 'Si te acomoda, lo mejor es separarla con el 50% para asegurar la fecha.'"
                 "\n  • 'Esa fecha puede cambiar de disponibilidad — si te gusta, te recomiendo separarla.'"
                 "\n  • 'Para dejarla asegurada, solo necesitas separarla con el 50% desde la web.'"
                 "\n- ⛔ NUNCA prometas guardar/bloquear/reservar la fecha sin pago."
                 "\n- Si tiene dudas, resuélvelas rápido y vuelve al cierre."
-                "\n- Si dice que quiere reservar, usa notify_team(ready_to_book) Y guíalo a casaaustin.pe."
+                "\n- ✅ Si dice 'sí', 'ok', 'pásame el link', 'quiero reservar', 'quiero separar', "
+                "responde CORTO y reenvía el link ya generado en la cotización anterior:"
+                "\n  «Perfecto 😊 Te dejo el link directo para separar:"
+                "\n  <pega aquí el link de la cotización (Reserva directa / Fotos y reserva)>"
+                "\n  Ahí eliges la casa, completas tus datos y separas con el 50%.»"
+                "\n- ⛔ NUNCA escribas 'casaaustin.pe' genérico en esta etapa — usa SIEMPRE el "
+                "link parametrizado que ya está en la cotización."
+                "\n- Si dice que quiere reservar y aún no se notificó al equipo, usa notify_team(ready_to_book)."
                 "\n- ⚠️ Si el cliente pregunta por NUEVAS FECHAS o DIFERENTES fechas (incluyendo 'hoy', 'mañana', "
                 "otra fecha distinta a la cotizada), DEBES llamar check_availability o check_calendar DE NUEVO. "
                 "NUNCA asumas disponibilidad ni reutilices la cotización anterior."
@@ -1910,7 +1927,8 @@ class AIOrchestrator:
             ('📅' in text and ' · ' in text and 'Casa Austin' in text)
             or '↳' in text
             or 'Más económica:' in text
-            or 'Fotos: https://casaaustin.pe/disponibilidad' in text
+            or 'Fotos y reserva:' in text
+            or 'Reserva directa:' in text
         )
         if has_quote_old_format or has_quote_new_format:
             return text
@@ -1994,6 +2012,58 @@ class AIOrchestrator:
                 if abs((a + b) - val) < 1.0:
                     return True
         return False
+
+    @staticmethod
+    def _inject_booking_url(text, tool_calls_data):
+        """R1.0 — Reemplaza el link genérico 'https://casaaustin.pe' (sin
+        query params) por el link parametrizado (/reservar?... o
+        /disponibilidad?...) que el tool ya construyó en este turno.
+
+        El modelo a veces escribe la home genérica aunque check_availability
+        ya devolvió un link con casa/fechas/personas pre-llenadas. Esta
+        guardia lo arregla sin que el modelo tenga que copiar la URL.
+        """
+        if not text or not tool_calls_data:
+            return text
+
+        # Extraer la URL parametrizada del _result_full de check_availability
+        parametrized_url = None
+        for tc in tool_calls_data:
+            if tc.get('name') != 'check_availability':
+                continue
+            full = tc.get('_result_full') or ''
+            m = re.search(
+                r'https://casaaustin\.pe/(?:reservar|disponibilidad)\?[^\s\n]+',
+                full,
+            )
+            if m:
+                parametrized_url = m.group(0)
+                break  # la primera ejecución manda (en orden cronológico)
+
+        if not parametrized_url:
+            return text
+
+        # Si la respuesta ya incluye el link parametrizado, no hacemos nada.
+        if parametrized_url in text:
+            return text
+
+        # Reemplazar formas comunes del link genérico:
+        # - 'https://casaaustin.pe' suelto (con o sin trailing slash)
+        # - 'casaaustin.pe' sin protocolo
+        # NO tocar si va seguido de un path (/dashboard, /reservar?...,
+        # /casas-en-alquiler/...) — esos son links legítimos a otras rutas.
+        pattern = re.compile(
+            r'(?:https?://)?(?:www\.)?casaaustin\.pe/?(?![/\w?])',
+            re.IGNORECASE,
+        )
+        new_text, n = pattern.subn(parametrized_url, text)
+        if n > 0:
+            logger.info(
+                f"_inject_booking_url: replaced {n} generic link(s) "
+                f"with parametrized URL."
+            )
+            return new_text
+        return text
 
     @staticmethod
     def _guard_fabricated_prices(text, tool_calls_data):

@@ -2,6 +2,8 @@ import logging
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
+from .booking_urls import build_availability_url, build_booking_url
+
 logger = logging.getLogger(__name__)
 
 
@@ -817,13 +819,8 @@ class ToolExecutor:
                     f"{ci.day} de {months_es[ci.month]}{year_in} al "
                     f"{co.day} de {months_es[co.month]}{year_out}"
                 )
-            # URL con formato D/MM/YYYY
-            url_ci = f"{ci.day}/{ci.month:02d}/{ci.year}"
-            url_co = f"{co.day}/{co.month:02d}/{co.year}"
         except (ValueError, KeyError):
             fecha_display = f"{check_in} al {check_out}"
-            url_ci = str(check_in)
-            url_co = str(check_out)
 
         # Separar disponibles y no disponibles
         # Cada bloque de casa es un texto de 1-2 líneas (nombre+total y opcional
@@ -905,11 +902,13 @@ class ToolExecutor:
             available_blocks.append('\n'.join(block_lines))
 
             # Guardar datos para identificar la opción más económica al final
+            # y para construir el link R1.0 (slug requerido cuando hay solo 1 casa).
             if total_sol > 0:
                 houses_data.append({
                     'name': name,
                     'final_sol': total_sol,
                     'pp': pp_value,
+                    'slug': prop.get('property_slug'),
                 })
 
         # Construir cotización (formato compacto)
@@ -953,19 +952,48 @@ class ToolExecutor:
             lines.append("")
             lines.append("⚠️ Visitantes cuentan como personas adicionales.")
 
-            # Link de fotos (sin emoji, formato simple)
-            lines.append(
-                f"Fotos: https://casaaustin.pe/disponibilidad"
-                f"?checkIn={url_ci}&checkOut={url_co}&guests={guests}"
+            # === Link R1.0 — UN solo link al final, según número de casas ===
+            # Una sola casa disponible (o el cliente la especificó) → /reservar
+            # con casa pre-elegida. Varias casas → /disponibilidad (cliente elige).
+            guests_for_url = int(guests) if guests else 1
+            single_slug = (
+                houses_data[0].get('slug')
+                if len(houses_data) == 1 else None
             )
+            lines.append("")
+            if single_slug:
+                lines.append("Reserva directa:")
+                lines.append(build_booking_url(
+                    property_slug=single_slug,
+                    check_in=check_in,
+                    check_out=check_out,
+                    guests=guests_for_url,
+                    currency='SOL',
+                ))
+            else:
+                lines.append("Fotos y reserva:")
+                lines.append(build_availability_url(
+                    check_in=check_in,
+                    check_out=check_out,
+                    guests=guests_for_url,
+                ))
 
-            # Cierres comerciales válidos (variar para no sonar repetitivo)
-            closing_options = [
-                "¿Te paso el link para separarla con el 50%?",
-                "¿Te paso el link directo para separar?",
-                "Para asegurar esa fecha solo necesitas separarla con el 50%. "
-                "¿Te paso el link?",
-            ]
+            # Cierres comerciales válidos (variar para no sonar repetitivo).
+            # El link ya está arriba en la cotización ('Reserva directa:' /
+            # 'Fotos y reserva:'), así que el cierre NO ofrece el link otra
+            # vez — invita a elegir/separar.
+            if single_slug:
+                closing_options = [
+                    "¿La separamos con el 50% para asegurar la fecha?",
+                    "¿Quieres separarla con el 50%? Te toma 2 minutos desde el link de arriba.",
+                    "Para asegurarla, solo necesitas separarla con el 50%. ¿Procedemos?",
+                ]
+            else:
+                closing_options = [
+                    "¿Quieres que te ayude a elegir una casa o separarla con el 50%?",
+                    "¿Te ayudo a elegir cuál te conviene más? El link de arriba ya tiene la fecha lista.",
+                    "¿Cuál te llama más la atención? Puedes separarla con el 50% desde el link de arriba.",
+                ]
 
             # Instrucción IA (NO visible al cliente)
             lines.append("")
