@@ -882,8 +882,7 @@ FAQ_TOPICS = [
         ],
         'response': (
             "Sí 😊 Todas las casas tienen piscina y jacuzzi.\n\n"
-            "El jacuzzi se puede temperar por un costo adicional de "
-            "S/100 por noche."
+            "El servicio de jacuzzi temperado cuesta S/100 por noche."
         ),
     },
     {
@@ -1031,17 +1030,37 @@ for _topic in FAQ_TOPICS:
     _topic['_re'] = re.compile('|'.join(_topic['patterns']), re.IGNORECASE)
 
 
-def _render_photos_videos():
-    """Construye respuesta dinámica para FAQ 'photos_videos' usando los
-    slugs reales de Property. Fallback hardcoded si la query falla."""
-    fallback = (
-        "Claro 😊 Puedes ver fotos y detalles de cada casa aquí:\n\n"
-        "Casa 1: https://casaaustin.pe/casas-en-alquiler/casa-austin-1\n"
-        "Casa 2: https://casaaustin.pe/casas-en-alquiler/casa-austin-2\n"
-        "Casa 3: https://casaaustin.pe/casas-en-alquiler/casa-austin-3\n"
-        "Casa 4: https://casaaustin.pe/casas-en-alquiler/casa-austin-4\n\n"
-        "Si ya tienes una casa en mente, dime cuál y te paso el link directo."
-    )
+# Patrón para detectar 'Casa N', 'Casa Austin N', 'casa 3' en el mensaje.
+_CASA_REF_RE = re.compile(
+    r'\bcasa(?:\s+austin)?\s+(\d)\b',
+    re.IGNORECASE,
+)
+
+
+def _render_photos_videos(text=None):
+    """Construye respuesta dinámica para FAQ 'photos_videos'.
+
+    - Si el mensaje menciona una casa específica (Casa 1/2/3/4 o Casa
+      Austin N), responde solo con esa casa.
+    - Si no, lista las 4 casas.
+
+    Usa Property.slug si existe; cae a hardcoded si la query falla.
+    """
+    target_num = None
+    if text:
+        m = _CASA_REF_RE.search(text)
+        if m:
+            target_num = m.group(1)
+
+    fallback_lines = [
+        ('Casa 1', 'casa-austin-1'),
+        ('Casa 2', 'casa-austin-2'),
+        ('Casa 3', 'casa-austin-3'),
+        ('Casa 4', 'casa-austin-4'),
+    ]
+
+    # Resolver lista (name, slug) desde la BD o fallback.
+    pairs = []
     try:
         from apps.property.models import Property
         props = list(
@@ -1049,18 +1068,38 @@ def _render_photos_videos():
             .exclude(slug__isnull=True).exclude(slug='')
             .order_by('player_id', 'name')
         )
+        for p in props:
+            short = re.sub(
+                r'^\s*Casa\s+Austin\s+(\d+)\s*$', r'Casa \1',
+                p.name, flags=re.IGNORECASE,
+            )
+            pairs.append((short, p.slug, p.name))
     except Exception:
-        return fallback
-    if not props:
-        return fallback
+        pairs = [(n, s, f'Casa Austin {s[-1]}') for n, s in fallback_lines]
+    if not pairs:
+        pairs = [(n, s, f'Casa Austin {s[-1]}') for n, s in fallback_lines]
+
+    # Single-casa: filtrar por número
+    if target_num:
+        match = None
+        for short, slug, full in pairs:
+            if short.endswith(target_num) or slug.endswith(target_num):
+                match = (short, slug, full)
+                break
+        if match:
+            short, slug, full = match
+            return (
+                f"Claro 😊 Puedes ver fotos y detalles de {full} aquí:\n"
+                f"https://casaaustin.pe/casas-en-alquiler/{slug}\n\n"
+                "Si necesitas un video específico, puedo avisar al equipo "
+                "para que te ayuden."
+            )
+        # Si pidió Casa N pero no existe N, caer al listado completo.
+
+    # Listado completo
     lines = ["Claro 😊 Puedes ver fotos y detalles de cada casa aquí:", ""]
-    for p in props:
-        # Acortar nombre 'Casa Austin N' → 'Casa N'
-        short = re.sub(
-            r'^\s*Casa\s+Austin\s+(\d+)\s*$', r'Casa \1',
-            p.name, flags=re.IGNORECASE,
-        )
-        lines.append(f"{short}: https://casaaustin.pe/casas-en-alquiler/{p.slug}")
+    for short, slug, _full in pairs:
+        lines.append(f"{short}: https://casaaustin.pe/casas-en-alquiler/{slug}")
     lines.append("")
     lines.append(
         "Si ya tienes una casa en mente, dime cuál y te paso el link directo."
@@ -1088,17 +1127,44 @@ def try_faq(session, last_user_text):
     text = last_user_text
 
     # Buscar el topic con match de menor posición (el primero mencionado).
+    # También recolectamos TODOS los matches para detectar combos comunes.
     best_topic = None
     best_pos = None
+    matched_topics = set()
     for topic in FAQ_TOPICS:
         m = topic['_re'].search(text)
         if not m:
             continue
+        matched_topics.add(topic['topic'])
         if best_pos is None or m.start() < best_pos:
             best_pos = m.start()
             best_topic = topic
     if not best_topic:
         return None
+
+    # Combo WiFi + Parrilla — devolver respuesta combinada en lugar del
+    # primero por posición (caso visto en producción: "tienen wifi y parrilla?").
+    if 'wifi' in matched_topics and 'grill' in matched_topics:
+        # Mismo gating de SPECIFIC_DATA que abajo (parrilla/wifi son simples,
+        # no llevan números — chequeo normal SPECIFIC_DATA).
+        if SPECIFIC_DATA_RE.search(text):
+            return None
+        response = (
+            "Sí 😊 Las casas cuentan con WiFi y zona para parrilla.\n\n"
+            "El carbón, leña o insumos normalmente los lleva el huésped."
+        )
+        logger.info(
+            f"Guard G_FAQ activado: topic=wifi+grill_combo, session={session.id}"
+        )
+        return {
+            'response': response,
+            'intent': 'guard:faq:wifi_grill_combo',
+            'tool_call_meta': {
+                'name': 'guard',
+                'guard': 'faq',
+                'topic': 'wifi_grill_combo',
+            },
+        }
 
     # Gating SPECIFIC_DATA — con excepción para topics con números legítimos.
     if best_topic['topic'] not in _FAQ_NUMBERS_OK_TOPICS:
@@ -1122,7 +1188,7 @@ def try_faq(session, last_user_text):
 
     topic_name = best_topic['topic']
     if best_topic.get('response_dynamic') == 'photos_videos':
-        response = _render_photos_videos()
+        response = _render_photos_videos(text=text)
     else:
         response = best_topic['response']
     logger.info(
