@@ -284,3 +284,247 @@ def try_property_list(session, last_user_text):
             'guard': 'property_list',
         },
     }
+
+
+# ============================================================================
+# G4 — Identificador (DNI/nombre) tras reclamo de reserva
+# ============================================================================
+# Cuando el bot pidió 'nombre o documento' en su respuesta anterior (escenario
+# de claim sin reserva encontrada) y el cliente responde con un DNI o nombre,
+# este guard cierra el loop determinísticamente:
+#   1. identify_client(document_number=...)
+#   2. check_reservations()
+#   3. notify_team con reason específica + contexto rico
+#   4. Respuesta canned según escenario (approved/pending/not_found/name_only).
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Frase canónica de _check_reservations cuando se pide identificador.
+_ASK_IDENTIFIER_MARKERS = (
+    'con qué nombre o documento',
+    'nombre o documento hiciste',
+    'documento hiciste la reserva',
+)
+
+# Prefijos comunes de introducción del nombre que descartamos para extraer
+# solo el nombre real (e.g. 'soy Augusto Martinez' → 'Augusto Martinez').
+_NAME_INTRO_PREFIX_RE = re.compile(
+    r'^(?:soy|mi\s+nombre\s+es|me\s+llamo|es|son)\s+',
+    re.IGNORECASE,
+)
+
+# Palabras filler que NO son identificadores aunque cumplan otros patrones.
+_FILLER_WORDS = {
+    'si', 'sí', 'ok', 'no', 'gracias', 'dale', 'claro', 'listo',
+    'ya', 'hola', 'buenas', 'bueno',
+}
+
+# DNI/CE peruano: 7-12 dígitos.
+_DOC_NUM_RE = re.compile(r'\b(\d{7,12})\b')
+# Nombre: 1-4 palabras alfabéticas (3+ chars la primera, 2+ las siguientes).
+_NAME_RE = re.compile(
+    r'^([A-Za-zÁÉÍÓÚÑáéíóúñ]{3,}(?:\s+[A-Za-zÁÉÍÓÚÑáéíóúñ]{2,}){0,3})$',
+)
+
+_BOOKING_URL_RE = re.compile(
+    r'https://casaaustin\.pe/(?:reservar|disponibilidad)\?[^\s\n]+'
+)
+
+
+def _extract_identifier(user_text):
+    """Devuelve {'type': 'document'|'name', 'value': str} o None."""
+    if not user_text:
+        return None
+    text = user_text.strip()
+
+    # Documento: cualquier secuencia de 7-12 dígitos
+    m = _DOC_NUM_RE.search(text)
+    if m:
+        return {'type': 'document', 'value': m.group(1)}
+
+    # Filler
+    lower = text.lower().strip().rstrip('.!?')
+    if lower in _FILLER_WORDS:
+        return None
+
+    # Strip prefijos del tipo 'soy', 'me llamo'
+    name_text = _NAME_INTRO_PREFIX_RE.sub('', text).strip().rstrip('.!?')
+    m = _NAME_RE.match(name_text)
+    if m:
+        return {'type': 'name', 'value': m.group(1).strip()}
+
+    return None
+
+
+def _last_ai_asked_for_identifier(session):
+    """¿La última respuesta del bot pidió DNI/nombre para verificar reserva?"""
+    last_ai = ChatMessage.objects.filter(
+        session=session,
+        deleted=False,
+        direction=ChatMessage.DirectionChoices.OUTBOUND_AI,
+    ).order_by('-created').first()
+    if not last_ai:
+        return False
+    content = (last_ai.content or '').lower()
+    return any(marker in content for marker in _ASK_IDENTIFIER_MARKERS)
+
+
+def _find_last_booking_url(session):
+    """Devuelve el último link parametrizado enviado en mensajes outbound."""
+    recent = ChatMessage.objects.filter(
+        session=session,
+        deleted=False,
+        direction=ChatMessage.DirectionChoices.OUTBOUND_AI,
+    ).order_by('-created')[:15]
+    for msg in recent:
+        m = _BOOKING_URL_RE.search(msg.content or '')
+        if m:
+            return m.group(0)
+    return None
+
+
+def try_post_claim_identifier(session, last_user_text):
+    """G4 — Cliente entregó DNI/nombre tras el prompt 'nombre o documento'.
+
+    Activación:
+    - Última respuesta del bot pidió 'con qué nombre o documento' (canonical).
+    - Mensaje actual contiene un DNI (7-12 dígitos) O un nombre 1-4 palabras.
+
+    Procesamiento determinístico:
+    - DNI → identify_client → check_reservations → respuesta por escenario.
+    - Nombre → respuesta soft + notify al equipo.
+    Siempre dispara notify_team(reason='reservation_claimed_with_id_*') con
+    contexto rico (identifier, wa_id, name, link, cotización).
+    """
+    if not last_user_text:
+        return None
+
+    if not _last_ai_asked_for_identifier(session):
+        return None
+
+    ident = _extract_identifier(last_user_text)
+    if not ident:
+        return None
+
+    from .tool_executor import ToolExecutor
+    executor = ToolExecutor(session)
+
+    scenario = 'unknown'
+    if ident['type'] == 'document':
+        try:
+            executor.execute('identify_client', {'document_number': ident['value']})
+            session.refresh_from_db()
+        except Exception as e:
+            logger.error(f"G4 identify_client failed: {e}", exc_info=True)
+
+        if session.client:
+            try:
+                check_text = executor.execute('check_reservations', {})
+            except Exception as e:
+                logger.error(f"G4 check_reservations failed: {e}", exc_info=True)
+                check_text = ''
+            if 'CONFIRMADA' in check_text:
+                scenario = 'approved'
+            elif "estado 'pending'" in check_text or "estado 'under_review'" in check_text:
+                scenario = 'pending_or_review'
+            else:
+                scenario = 'no_reservations'
+        else:
+            scenario = 'document_not_found'
+    else:  # name
+        scenario = 'name_only'
+
+    # Greeting name (primer nombre del cliente si lo identificamos, si no el
+    # nombre dado por el cliente o el de WhatsApp).
+    if session.client:
+        greeting = session.client.first_name
+    elif ident['type'] == 'name':
+        greeting = ident['value'].split()[0]
+    else:
+        greeting = session.wa_profile_name or 'amigo'
+
+    if scenario == 'approved':
+        response = (
+            "Perfecto 😊 Tu reserva ya figura confirmada. Te enviaremos/"
+            "recordaremos los detalles de ingreso antes de tu llegada."
+        )
+        notify_reason = 'reservation_claimed_with_id_approved'
+    elif scenario == 'pending_or_review':
+        response = (
+            "Perfecto 😊 Ya veo tu reserva registrada. El equipo validará "
+            "el pago/voucher y te confirmará por este medio."
+        )
+        notify_reason = 'reservation_claimed_with_id_pending'
+    elif scenario == 'no_reservations':
+        response = (
+            f"Gracias {greeting} 😊 Aún no encuentro una reserva registrada "
+            f"con ese documento. Ya avisé al equipo para que lo revise "
+            f"manualmente."
+        )
+        notify_reason = 'reservation_claimed_with_id_not_found'
+    elif scenario == 'document_not_found':
+        response = (
+            "Gracias 😊 Aún no encuentro una reserva registrada con ese "
+            "documento. Ya avisé al equipo para que lo revise manualmente."
+        )
+        notify_reason = 'reservation_claimed_with_id_not_found'
+    else:  # name_only
+        response = (
+            f"Gracias {greeting} 😊 Ya envié tus datos al equipo para que "
+            f"puedan revisar la reserva.\n\n"
+            f"Si subiste voucher o hiciste el pago, ellos lo validarán y "
+            f"te confirmarán por este medio."
+        )
+        notify_reason = 'reservation_claimed_with_name'
+
+    # Detalles ricos para notify_team
+    details = [
+        f"Identificador recibido post-claim: '{ident['value']}' ({ident['type']})",
+        f"WhatsApp ID: {session.wa_id}",
+        f"Nombre WhatsApp: {session.wa_profile_name or 'N/A'}",
+        f"Escenario: {scenario}",
+    ]
+    if session.client:
+        c = session.client
+        details.append(
+            f"Cliente vinculado: {c.first_name} {c.last_name or ''} "
+            f"(DNI: {c.number_doc or 'N/A'})"
+        )
+
+    last_url = _find_last_booking_url(session)
+    if last_url:
+        details.append(f"Último link enviado: {last_url}")
+
+    last_quote = _get_last_quote(session)
+    if last_quote:
+        details.append(
+            f"Última cotización: ${last_quote.get('usd')} USD / "
+            f"S/{last_quote.get('sol')}"
+        )
+
+    try:
+        executor.execute('notify_team', {
+            'reason': notify_reason,
+            'details': '\n'.join(details),
+        })
+    except Exception as e:
+        logger.error(f"G4 notify_team failed: {e}", exc_info=True)
+
+    logger.info(
+        f"Guard G4 post_claim_identifier: scenario={scenario}, "
+        f"id_type={ident['type']}, session={session.id}"
+    )
+
+    return {
+        'response': response,
+        'intent': 'guard:post_claim_identifier',
+        'tool_call_meta': {
+            'name': 'guard',
+            'guard': 'post_claim_identifier',
+            'scenario': scenario,
+            'identifier_type': ident['type'],
+            'notify_reason': notify_reason,
+        },
+    }

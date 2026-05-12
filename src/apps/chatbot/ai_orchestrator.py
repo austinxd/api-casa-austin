@@ -331,6 +331,14 @@ class AIOrchestrator:
             )
             return result
 
+        # G4 — Identificador (DNI/nombre) tras reclamo de reserva
+        result = guards.try_post_claim_identifier(session, user_text)
+        if result is not None:
+            logger.info(
+                f"Guard activo: {result['intent']} (sesión {session.id})"
+            )
+            return result
+
         return None
 
     def _send_guard_response(self, session, guard_result, send_wa):

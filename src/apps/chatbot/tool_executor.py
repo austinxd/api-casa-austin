@@ -1609,6 +1609,10 @@ class ToolExecutor:
     NOTIFY_BYPASS_THROTTLE = {
         'reservation_claimed_not_found',
         'reservation_claimed_pending',
+        'reservation_claimed_with_id_approved',
+        'reservation_claimed_with_id_pending',
+        'reservation_claimed_with_id_not_found',
+        'reservation_claimed_with_name',
     }
 
     def _notify_team(self, reason, details=''):
@@ -1655,6 +1659,22 @@ class ToolExecutor:
             'reservation_claimed_pending': {
                 'title': f"📥 Reserva en revisión: {name}",
                 'type': 'chatbot_reservation_claimed_pending',
+            },
+            'reservation_claimed_with_id_approved': {
+                'title': f"✅ Reserva confirmada (cliente confirmó): {name}",
+                'type': 'chatbot_reservation_claimed_with_id_approved',
+            },
+            'reservation_claimed_with_id_pending': {
+                'title': f"📥 Doc dado · Reserva pendiente: {name}",
+                'type': 'chatbot_reservation_claimed_with_id_pending',
+            },
+            'reservation_claimed_with_id_not_found': {
+                'title': f"🔍 Doc dado · Sin reserva: {name}",
+                'type': 'chatbot_reservation_claimed_with_id_not_found',
+            },
+            'reservation_claimed_with_name': {
+                'title': f"📝 Nombre dado (sin doc): {name}",
+                'type': 'chatbot_reservation_claimed_with_name',
             },
         }
 
