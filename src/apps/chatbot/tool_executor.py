@@ -8,15 +8,15 @@ logger = logging.getLogger(__name__)
 
 
 def _format_discount_line(raw_desc, pct):
-    """Devuelve UNA línea CORTA con el descuento aplicado, sin duplicado
-    ni decimales. Clasifica el tipo a partir de la descripción cruda.
+    """Devuelve UNA línea ULTRA-CORTA con el descuento aplicado, sin
+    duplicado ni decimales. Clasifica el tipo a partir de la descripción.
 
-    Compacto a propósito para que el link de reserva no quede oculto bajo
-    el 'Leer más' de WhatsApp.
+    Formato: '🎁 X% dscto. <tipo> incluido.' (la línea queda inmediatamente
+    antes del link, sin línea en blanco entre ambas).
     """
     pct_int = _safe_round_int(pct)
     if not pct_int:
-        return "🎁 Descuento aplicado."
+        return "🎁 Descuento incluido."
 
     desc = (raw_desc or '').lower()
 
@@ -24,28 +24,38 @@ def _format_discount_line(raw_desc, pct):
         'último minuto', 'ultimo minuto', 'last_minute',
         'reserva para hoy', 'reserva para mañana', 'reserva para manana',
     )):
-        return f"🎁 Incluye {pct_int}% de descuento último minuto."
+        return f"🎁 {pct_int}% dscto. último minuto incluido."
     if 'cumpleaños' in desc or 'cumpleanos' in desc or 'feliz cumple' in desc:
-        return f"🎁 Incluye {pct_int}% por tu cumpleaños."
+        return f"🎁 {pct_int}% dscto. cumpleaños incluido."
     if 'cliente frecuente' in desc:
-        return f"🎁 Incluye {pct_int}% de descuento cliente frecuente."
+        return f"🎁 {pct_int}% dscto. cliente frecuente incluido."
     if 'bienvenid' in desc or 'primera reserva' in desc:
-        return f"🎁 Incluye {pct_int}% de descuento de bienvenida."
+        return f"🎁 {pct_int}% dscto. bienvenida incluido."
     if 'lealtad' in desc:
-        return f"🎁 Incluye {pct_int}% por programa de lealtad."
+        return f"🎁 {pct_int}% dscto. programa de lealtad incluido."
     if 'tiempo limitado' in desc:
-        return f"🎁 Incluye {pct_int}% por tiempo limitado."
+        return f"🎁 {pct_int}% dscto. tiempo limitado incluido."
     if desc.startswith('código') or 'código' in desc:
-        return f"🎁 Incluye {pct_int}% por código promocional."
+        return f"🎁 {pct_int}% dscto. código promocional incluido."
 
     # Fallback: si la descripción usa formato "Tipo: X% de descuento",
     # tomamos la parte antes del ':' como etiqueta.
     if ':' in (raw_desc or ''):
         label = raw_desc.split(':')[0].strip()
         if label:
-            return f"🎁 Incluye {pct_int}% de descuento ({label.lower()})."
+            return f"🎁 {pct_int}% dscto. {label.lower()} incluido."
 
-    return f"🎁 Incluye {pct_int}% de descuento."
+    return f"🎁 {pct_int}% dscto. incluido."
+
+
+def _short_house_name(name):
+    """Acorta nombres tipo 'Casa Austin 1' → 'Casa 1' para compactar la
+    cotización en WhatsApp. Preserva nombres que no sigan el patrón."""
+    import re as _re
+    m = _re.match(r'^\s*Casa\s+Austin\s+(\d+)\s*$', name or '', _re.IGNORECASE)
+    if m:
+        return f"Casa {m.group(1)}"
+    return name or ''
 
 
 def _safe_round_int(value):
@@ -940,20 +950,14 @@ class ToolExecutor:
                     'slug': prop.get('property_slug'),
                 })
 
-        # Construir bloques visibles ahora que sabemos cuántas casas hay.
-        # - Multi-casa (>=2): SOLO soles en la línea principal para compactar
-        #   y evitar que el link quede tapado por 'Leer más' en WhatsApp.
-        # - Single-casa: mantener USD · SOL (cliente ya está en modo decisión).
-        multi_casa = len(houses_data) > 1
+        # Construir bloques visibles — formato compacto WhatsApp:
+        # 'Casa 1: $57 ó S/205' (una sola línea por casa, sin precio/persona).
+        # Aplica para multi y single — el cliente decide vía link.
         for h in houses_data:
-            if multi_casa:
-                line = f"{h['name']} — S/{h['final_sol']}"
-            else:
-                line = f"{h['name']} — ${h['total_usd']} · S/{h['final_sol']}"
-            block = [line]
-            if h['pp']:
-                block.append(f"↳ S/{h['pp']} por persona")
-            available_blocks.append('\n'.join(block))
+            short = _short_house_name(h['name'])
+            available_blocks.append(
+                f"{short}: ${h['total_usd']} ó S/{h['final_sol']}"
+            )
 
         # Construir cotización (formato compacto)
         guests_int_for_header = int(guests) if guests else 1
@@ -961,42 +965,41 @@ class ToolExecutor:
             f"📅 {fecha_display} · {guests_int_for_header} "
             f"persona{'s' if guests_int_for_header != 1 else ''}"
         )
-        lines = [header, ""]
 
         if available_blocks:
-            # Casas disponibles separadas por línea en blanco
-            lines.append("\n\n".join(available_blocks))
+            # Header de 2 líneas pegadas (sin blank entre fecha y subtítulo).
+            lines = [
+                header,
+                "Precio total por toda la estadía:",
+                "",  # blank entre subtítulo y lista de casas
+            ]
+
+            # Casas — una línea por casa, sin separación extra.
+            lines.extend(available_blocks)
 
             # Capacity warnings (críticos — capacidad excedida)
             if capacity_warnings:
                 lines.append("")
                 lines.extend(capacity_warnings)
 
-            # Descuento aplicado (si hay) — UNA sola línea limpia, sin
-            # duplicado ni decimales. _format_discount_line clasifica el tipo
-            # ("último minuto", "cliente frecuente", "cumpleaños", etc.).
+            # === Bloque compacto: visitantes (≥8) + descuento + link ===
+            # Regla: NO hay línea en blanco entre descuento y link.
+            lines.append("")  # blank entre casa list y este bloque
+
+            if guests_int_for_header >= 8:
+                lines.append("⚠️ Visitantes cuentan como adicionales.")
+
             if discount_seen:
-                lines.append("")
                 lines.append(_format_discount_line(discount_raw_desc, discount_pct))
 
-            # Nota legal de visitantes — solo para grupos/eventos (>=8).
-            # Para grupos chicos genera ruido y empuja el link bajo el
-            # 'Leer más' de WhatsApp.
-            if guests_int_for_header >= 8:
-                lines.append("")
-                lines.append("⚠️ Visitantes cuentan como personas adicionales.")
-
-            # === Link R1.0 — UN solo link al final, según número de casas ===
-            # Una sola casa disponible (o el cliente la especificó) → /reservar
-            # con casa pre-elegida. Varias casas → /disponibilidad (cliente elige).
+            # Link R1.0: pegado al descuento (sin blank), con emoji 🔗.
             guests_for_url = int(guests) if guests else 1
             single_slug = (
                 houses_data[0].get('slug')
                 if len(houses_data) == 1 else None
             )
-            lines.append("")
             if single_slug:
-                lines.append("Reserva directa:")
+                lines.append("🔗 Reserva directa:")
                 lines.append(build_booking_url(
                     property_slug=single_slug,
                     check_in=check_in,
@@ -1005,31 +1008,20 @@ class ToolExecutor:
                     currency='SOL',
                 ))
             else:
-                lines.append("Ver opciones y reservar:")
+                lines.append("🔗 Ver opciones y reservar:")
                 lines.append(build_availability_url(
                     check_in=check_in,
                     check_out=check_out,
                     guests=guests_for_url,
                 ))
 
-            # Cierres comerciales válidos (variar para no sonar repetitivo).
-            # El link ya está arriba en la cotización ('Reserva directa:' /
-            # 'Fotos y reserva:'), así que el cierre NO ofrece el link otra
-            # vez — invita a elegir/separar.
-            if single_slug:
-                closing_options = [
-                    "¿La separamos con el 50% para asegurar la fecha?",
-                    "¿Quieres separarla con el 50%? Te toma 2 minutos desde el link de arriba.",
-                    "Para asegurarla, solo necesitas separarla con el 50%. ¿Procedemos?",
-                ]
-            else:
-                closing_options = [
-                    "¿Quieres que te ayude a elegir una casa o separarla con el 50%?",
-                    "¿Te ayudo a elegir cuál te conviene más? El link de arriba ya tiene la fecha lista.",
-                    "¿Cuál te llama más la atención? Puedes separarla con el 50% desde el link de arriba.",
-                ]
+            closing_options = [
+                "¿Quieres que te ayude a separarla con el 50%?",
+                "¿Te ayudo a separarla con el 50%?",
+                "¿La separamos con el 50%?",
+            ]
 
-            # Instrucción IA (NO visible al cliente)
+            # Blank entre URL y CTA (el AI adjunta el CTA al copiar verbatim).
             lines.append("")
             ia_instruction = (
                 "[INSTRUCCIÓN IA — OBLIGATORIO — NO MOSTRAR AL CLIENTE]"
@@ -1037,9 +1029,9 @@ class ToolExecutor:
                 "\nPROHIBIDO: resumir, parafrasear, cambiar formato, juntar líneas, agregar decimales."
                 "\nPROHIBIDO: escribir algo como 'el precio sería S/X' en prosa. La cotización YA está formateada."
                 "\nPROHIBIDO: incluir CUALQUIER texto que empiece con [INSTRUCCIÓN en tu respuesta."
-                "\nPROHIBIDO: agregar 'PRECIO PARA X PERSONAS', emoji 🏠 antes del nombre, ni emoji 💰 en el precio por persona."
-                "\nPROHIBIDO: usar 'ó' entre USD y soles. Formato single-casa: '$578 · S/2081' (· centrado); multi-casa solo soles 'S/205'."
-                "\nPROHIBIDO: agregar USD en cotizaciones multi-casa — el formato YA es solo soles a propósito (compacto para WhatsApp)."
+                "\nPROHIBIDO: agregar 'PRECIO PARA X PERSONAS', emoji 🏠 antes del nombre, ni emoji 💰 en el precio."
+                "\nPROHIBIDO: agregar precio por persona (↳ S/X por persona). Solo aparece si el cliente lo pide."
+                "\nPROHIBIDO: convertir 'ó' en 'o' ni cambiar el separador entre USD y soles."
                 "\n\n⛔ NO uses cierres antiguos como '¿Te animas a reservar? 😊' ni "
                 "'¿Quieres que te pase el link para separar la fecha con el 50%?'."
                 "\n\n✅ DESPUÉS del bloque de cotización, agrega UNA pregunta corta de cierre. "
@@ -1054,6 +1046,7 @@ class ToolExecutor:
                 )
             lines.append(ia_instruction)
         else:
+            lines = [header, ""]
             lines.append(
                 "Lo siento, esas fechas ya están reservadas. "
                 "Aquí te dejo las opciones libres más cercanas:"
