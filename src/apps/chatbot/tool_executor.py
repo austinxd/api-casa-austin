@@ -923,30 +923,37 @@ class ToolExecutor:
             except (TypeError, ValueError):
                 guests_int = 0
 
-            # Bloque de la casa: línea principal con USD + SOL + sub-línea
-            # opcional con precio por persona en soles.
-            block_lines = [f"{name} — ${total_usd} · S/{total_sol}"]
-
             # Precio por persona (solo grupos >= 4), en soles, redondeado
-            # con el mismo helper para consistencia.
             pp_value = None
             if guests_int >= 4 and total_sol > 0:
                 pp_dec = Decimal(total_sol) / Decimal(guests_int)
                 pp_value = _safe_round_int(pp_dec)
-                if pp_value > 0:
-                    block_lines.append(f"↳ S/{pp_value} por persona")
 
-            available_blocks.append('\n'.join(block_lines))
-
-            # Guardar datos para identificar la opción más económica al final
-            # y para construir el link R1.0 (slug requerido cuando hay solo 1 casa).
+            # Guardar datos crudos; los bloques se formatean tras el loop
+            # según el número total de casas (multi vs single).
             if total_sol > 0:
                 houses_data.append({
                     'name': name,
+                    'total_usd': total_usd,
                     'final_sol': total_sol,
                     'pp': pp_value,
                     'slug': prop.get('property_slug'),
                 })
+
+        # Construir bloques visibles ahora que sabemos cuántas casas hay.
+        # - Multi-casa (>=2): SOLO soles en la línea principal para compactar
+        #   y evitar que el link quede tapado por 'Leer más' en WhatsApp.
+        # - Single-casa: mantener USD · SOL (cliente ya está en modo decisión).
+        multi_casa = len(houses_data) > 1
+        for h in houses_data:
+            if multi_casa:
+                line = f"{h['name']} — S/{h['final_sol']}"
+            else:
+                line = f"{h['name']} — ${h['total_usd']} · S/{h['final_sol']}"
+            block = [line]
+            if h['pp']:
+                block.append(f"↳ S/{h['pp']} por persona")
+            available_blocks.append('\n'.join(block))
 
         # Construir cotización (formato compacto)
         guests_int_for_header = int(guests) if guests else 1
@@ -1031,7 +1038,8 @@ class ToolExecutor:
                 "\nPROHIBIDO: escribir algo como 'el precio sería S/X' en prosa. La cotización YA está formateada."
                 "\nPROHIBIDO: incluir CUALQUIER texto que empiece con [INSTRUCCIÓN en tu respuesta."
                 "\nPROHIBIDO: agregar 'PRECIO PARA X PERSONAS', emoji 🏠 antes del nombre, ni emoji 💰 en el precio por persona."
-                "\nPROHIBIDO: usar 'ó' entre el USD y los soles. El formato correcto es '$578 · S/2081' con · centrado."
+                "\nPROHIBIDO: usar 'ó' entre USD y soles. Formato single-casa: '$578 · S/2081' (· centrado); multi-casa solo soles 'S/205'."
+                "\nPROHIBIDO: agregar USD en cotizaciones multi-casa — el formato YA es solo soles a propósito (compacto para WhatsApp)."
                 "\n\n⛔ NO uses cierres antiguos como '¿Te animas a reservar? 😊' ni "
                 "'¿Quieres que te pase el link para separar la fecha con el 50%?'."
                 "\n\n✅ DESPUÉS del bloque de cotización, agrega UNA pregunta corta de cierre. "

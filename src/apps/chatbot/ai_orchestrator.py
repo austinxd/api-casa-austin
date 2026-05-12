@@ -260,6 +260,12 @@ class AIOrchestrator:
         # parametrizado (con casa/fechas/personas) que el tool ya construyó.
         response_text = self._inject_booking_url(response_text, tool_calls_data)
 
+        # R1.0: cuando el bot envía el link como follow-up (cliente dijo 'sí',
+        # 'ok', etc.), garantizar la línea final "Cuando termines, escríbeme
+        # 'ya reservé' o 'ya pagué' y te ayudo a validarlo." aunque el modelo
+        # la omita.
+        response_text = self._inject_post_link_helper(response_text)
+
         # Red de seguridad: pasar de nuevo por sanitize_response después del
         # inject. El _result_full del tool incluye INSTRUCCIÓN IA al final;
         # si por alguna ruta llegara hasta aquí, este pase final lo elimina.
@@ -2212,6 +2218,44 @@ class AIOrchestrator:
             )
             return new_text
         return text
+
+    @staticmethod
+    def _inject_post_link_helper(text):
+        """R1.0 — Cuando el bot envía el link como follow-up post-cotización
+        (cliente dijo 'sí', 'ok', etc.), añade la línea:
+        'Cuando termines, escríbeme 'ya reservé' o 'ya pagué' y te ayudo a validarlo.'
+
+        Activación:
+        - response contiene un link de reserva (/reservar?... o /disponibilidad?...)
+        - response NO es la cotización (no tiene 'Reserva directa:' ni 'Ver
+          opciones y reservar:' como sub-encabezado)
+        - response no tiene ya 'ya reservé' / 'validarlo' (idempotente)
+        """
+        if not text:
+            return text
+
+        has_url = bool(re.search(
+            r'https://casaaustin\.pe/(?:reservar|disponibilidad)\?',
+            text,
+        ))
+        if not has_url:
+            return text
+
+        is_quote_block = (
+            'Reserva directa:' in text
+            or 'Ver opciones y reservar:' in text
+        )
+        if is_quote_block:
+            return text
+
+        lower = text.lower()
+        if 'ya reservé' in lower or 'ya reserve' in lower or 'validarlo' in lower:
+            return text
+
+        return text.rstrip() + (
+            "\n\nCuando termines, escríbeme 'ya reservé' o 'ya pagué' "
+            "y te ayudo a validarlo."
+        )
 
     @staticmethod
     def _guard_fabricated_prices(text, tool_calls_data):
