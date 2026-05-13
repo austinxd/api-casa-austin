@@ -103,21 +103,37 @@ class ReservationMagicLink(BaseModel):
 
     @builtins.property
     def status_label(self):
-        """Etiqueta humana del estado actual."""
+        """Etiqueta humana del estado actual.
+
+        Semántica:
+        - 'consumido' = el cliente ya creó la reserva con este link (used_at).
+        - 'expirado'  = pasó la ventana de 1h sin haberse reservado.
+        - 'vigente'   = aún se puede redimir y crear reserva.
+
+        IMPORTANTE: NO matamos el link en cada redeem (open de /r/<token>).
+        El cliente puede abrir, cerrar, volver, compartir en sus devices
+        cuantas veces quiera dentro de la ventana de 1h. Solo la CREACIÓN
+        de la reserva consume el link.
+        """
         from django.utils import timezone
-        if self.used_at and self.use_count >= self.max_uses:
-            return 'usado'
+        if self.used_at:
+            return 'consumido'
         if self.expires_at and timezone.now() >= self.expires_at:
             return 'expirado'
         return 'vigente'
 
     @builtins.property
     def is_valid(self):
-        """True si el link puede redimirse ahora."""
+        """True si el link puede redimirse / usarse ahora.
+
+        Validez = no consumido + no expirado + no soft-deleted.
+        Los redeems múltiples (abrir varias veces) NO invalidan; solo
+        consumirlo (crear reserva) o que pase la ventana de 1h lo hace.
+        """
         from django.utils import timezone
         if self.deleted:
             return False
-        if self.use_count >= self.max_uses:
+        if self.used_at:
             return False
         if self.expires_at and timezone.now() >= self.expires_at:
             return False

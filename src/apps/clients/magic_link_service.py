@@ -229,21 +229,58 @@ def get_valid_magic_link_by_token(raw_token):
 
 
 def mark_redeemed(magic_link, *, ip=None, user_agent=''):
-    """Marca el magic link como redimido. Atomic update sobre use_count.
+    """Registra un GET/redeem de /r/<token>.
 
-    Returns True si fue marcado exitosamente; False si ya había alcanzado
-    max_uses (race condition).
+    IMPORTANTE: NO consume el link. El cliente puede abrir el link varias
+    veces dentro de la ventana de vigencia (1h). Solo `mark_consumed`
+    (llamado al crear la reserva) consume definitivamente.
+
+    Lo que SÍ hace este método:
+    - Incrementa use_count (auditoría — cuántas veces se abrió).
+    - Guarda redeemed_ip / redeemed_user_agent del PRIMER redeem
+      (solo si no había info previa).
+
+    Returns True si el link aún es válido al momento de la llamada
+    (no consumido, no expirado), False si ya estaba consumido/expirado.
+    """
+    now = timezone.now()
+    # Solo procesa si todavía es válido (no consumido, no expirado).
+    qs = ReservationMagicLink.objects.filter(
+        id=magic_link.id,
+        deleted=False,
+        used_at__isnull=True,
+        expires_at__gt=now,
+    )
+    # Si es el primer redeem, también guardamos ip/UA. En subsecuentes,
+    # solo incrementamos el contador. Hacemos dos updates separados para
+    # mantener atomicidad simple sin transaction.
+    updated = qs.update(use_count=F('use_count') + 1)
+    if updated and ip:
+        ReservationMagicLink.objects.filter(
+            id=magic_link.id,
+            redeemed_ip__isnull=True,
+        ).update(
+            redeemed_ip=ip,
+            redeemed_user_agent=(user_agent or '')[:255],
+        )
+    return updated > 0
+
+
+def mark_consumed(magic_link):
+    """Consume el magic link DEFINITIVAMENTE. Se llama después de crear
+    exitosamente la reserva vía /magic-link/create-reservation/.
+
+    Setea used_at = now. A partir de ese momento, is_valid=False y el
+    link no acepta más redeems.
+
+    Returns True si fue consumido por esta llamada, False si ya estaba
+    consumido (race condition entre dos creates).
     """
     now = timezone.now()
     rows = ReservationMagicLink.objects.filter(
         id=magic_link.id,
         deleted=False,
-        use_count__lt=F('max_uses'),
+        used_at__isnull=True,
         expires_at__gt=now,
-    ).update(
-        use_count=F('use_count') + 1,
-        used_at=now,
-        redeemed_ip=ip,
-        redeemed_user_agent=(user_agent or '')[:255],
-    )
+    ).update(used_at=now)
     return rows > 0

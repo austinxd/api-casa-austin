@@ -26,8 +26,10 @@ from .magic_link_auth import (
 )
 from .magic_link_service import (
     get_valid_magic_link_by_token,
+    mark_consumed,
     mark_redeemed,
 )
+from .magic_link_models import ReservationMagicLink
 
 logger = logging.getLogger(__name__)
 
@@ -258,9 +260,23 @@ class CreateReservationViaMagicLinkView(APIView):
                 payment_voucher_uploaded=False,
                 payment_confirmed=False,
             )
+            # Consumir el magic link: bloquea creaciones futuras con el
+            # mismo token. El cliente solo puede crear UNA reserva por link.
+            magic_link_id = token.get('magic_link_id')
+            if magic_link_id:
+                try:
+                    ml = ReservationMagicLink.objects.filter(
+                        id=magic_link_id, deleted=False,
+                    ).first()
+                    if ml:
+                        mark_consumed(ml)
+                except Exception as e:
+                    logger.warning(
+                        f"MagicLink mark_consumed failed (no bloqueante): {e}"
+                    )
             logger.info(
                 f"MagicLink reservation created: id={reservation.id} "
-                f"client={client.id} magic_link_id={token.get('magic_link_id')}"
+                f"client={client.id} magic_link_id={magic_link_id}"
             )
             return Response(
                 {
