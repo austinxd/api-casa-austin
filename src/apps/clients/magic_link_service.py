@@ -142,20 +142,10 @@ def find_or_create_magic_link(
 
     now = timezone.now()
 
-    # Rate limit por cliente
-    last_hour = now - timedelta(hours=1)
-    recent_count = ReservationMagicLink.objects.filter(
-        client=client,
-        created__gte=last_hour,
-        deleted=False,
-    ).count()
-    if recent_count >= RATE_LIMIT_PER_CLIENT_PER_HOUR:
-        raise ValueError(
-            f"Rate limit: cliente {client.id} ya generó "
-            f"{recent_count} magic links en la última hora."
-        )
-
-    # Buscar link vigente con MISMOS parámetros (reuso)
+    # === 1. Reuso PRIMERO. Si hay un link vigente con los MISMOS parámetros,
+    # devolverlo sin contar contra rate limit. Esto evita que un cliente
+    # con varios intentos seguidos quede bloqueado cuando en realidad solo
+    # necesita el link que ya generamos. ===
     reuse = ReservationMagicLink.objects.filter(
         client=client,
         chat_session=chat_session,
@@ -173,6 +163,19 @@ def find_or_create_magic_link(
             f"expires_at={reuse.expires_at}"
         )
         return reuse, None, True
+
+    # === 2. Rate limit (solo aplica cuando vamos a CREAR uno nuevo). ===
+    last_hour = now - timedelta(hours=1)
+    recent_count = ReservationMagicLink.objects.filter(
+        client=client,
+        created__gte=last_hour,
+        deleted=False,
+    ).count()
+    if recent_count >= RATE_LIMIT_PER_CLIENT_PER_HOUR:
+        raise ValueError(
+            f"Rate limit: cliente {client.id} ya generó "
+            f"{recent_count} magic links en la última hora."
+        )
 
     # Crear nuevo. Retry hasta 3 veces si hay colisión de hash (improbable).
     last_error = None
