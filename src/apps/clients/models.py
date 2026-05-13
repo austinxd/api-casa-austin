@@ -996,3 +996,7 @@ class NotificationLog(BaseModel):
             self.read_at = timezone.now()
             self.save(update_fields=['read', 'read_at'])
 
+
+# Registrar modelo de magic link para que Django lo descubra en este app.
+from .magic_link_models import ReservationMagicLink  # noqa: F401, E402
+
