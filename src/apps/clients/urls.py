@@ -179,6 +179,11 @@ urlpatterns = [
     path('clients/magic-link/create-reservation/',
          magic_link_views.CreateReservationViaMagicLinkView.as_view(),
          name='magic-link-create-reservation'),
+    # R4.2 — Reserva Express para clientes nuevos (link_type='guest_express').
+    # NO requiere JWT — el raw token va en el body como auth.
+    path('clients/express-reservation/create/',
+         magic_link_views.CreateExpressReservationView.as_view(),
+         name='express-reservation-create'),
 
     # Debug endpoints for Sheets and Webhook issues  
     path('clients/track-search-admin/', SearchTrackingView.as_view(), name='search-tracking'),

@@ -1601,6 +1601,10 @@ class ToolExecutor:
         'reservation_claimed_voucher_uploaded',
         'reservation_claimed_rejected',
         'reservation_lookup_mismatch',
+        # R4.2 — conflictos express críticos
+        'express_booking_document_phone_mismatch',
+        'express_booking_phone_document_mismatch',
+        'express_booking_created',
     }
 
     def _notify_team(self, reason, details=''):
@@ -1680,6 +1684,19 @@ class ToolExecutor:
             'reservation_lookup_mismatch': {
                 'title': f"⚠️ DNI no coincide con WhatsApp: {name}",
                 'type': 'chatbot_reservation_lookup_mismatch',
+            },
+            # R4.2 — Reserva Express: conflictos al crear cliente
+            'express_booking_document_phone_mismatch': {
+                'title': f"⚠️ Express: DNI existente con otro tel: {name}",
+                'type': 'chatbot_express_booking_doc_phone_mismatch',
+            },
+            'express_booking_phone_document_mismatch': {
+                'title': f"⚠️ Express: tel existente con otro DNI: {name}",
+                'type': 'chatbot_express_booking_phone_doc_mismatch',
+            },
+            'express_booking_created': {
+                'title': f"✨ Express: reserva creada: {name}",
+                'type': 'chatbot_express_booking_created',
             },
         }
 

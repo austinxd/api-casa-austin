@@ -82,16 +82,54 @@ class RedeemMagicLinkView(APIView):
             )
 
         magic.refresh_from_db()
-
-        jwt_token = emit_magic_jwt(magic)
-        client = magic.client
         prop = magic.property
 
+        # === R4.2: ramificar respuesta por link_type ===
+        if magic.link_type == 'guest_express':
+            # Sin JWT. El raw_token (que el front ya tiene en la URL) sirve
+            # de auth para el siguiente paso (/express-reservation/create/).
+            # Devolvemos draft con datos enmascarados para que la pantalla
+            # de bienvenida muestre el nombre/DNI parcial sin filtrar al
+            # bot/observador externo. El raw del DNI vive solo en BD.
+            full_name = (magic.validated_full_name or '').strip()
+            dni = magic.document_number or ''
+            dni_masked = (dni[:4] + '****') if len(dni) >= 4 else dni
+            wa_masked = _mask_wa_id(magic.wa_id)
+            logger.info(
+                f"MagicLink redeemed (guest_express): id={magic.id} "
+                f"dni={dni_masked} ip={ip}"
+            )
+            return Response({
+                'link_type': 'guest_express',
+                'requires_confirmation': True,
+                'client': {
+                    'first_name': (full_name.split() or [''])[0],
+                    'full_name': full_name,
+                },
+                'reservation_draft': {
+                    'property_slug': prop.slug if prop else None,
+                    'property_name': prop.name if prop else None,
+                    'check_in': magic.check_in.isoformat(),
+                    'check_out': magic.check_out.isoformat(),
+                    'guests': magic.guests,
+                    'expires_at': magic.expires_at.isoformat(),
+                    'document_type': magic.document_type,
+                    'document_number_masked': dni_masked,
+                    'wa_id_masked': wa_masked,
+                },
+            })
+
+        # === Rama existing_client (R4.1, sin cambios) ===
+        jwt_token = emit_magic_jwt(magic)
+        client = magic.client
+
         logger.info(
-            f"MagicLink redeemed: id={magic.id} client={client.id} ip={ip}"
+            f"MagicLink redeemed (existing_client): id={magic.id} "
+            f"client={client.id} ip={ip}"
         )
 
         return Response({
+            'link_type': 'existing_client',
             'client_token': jwt_token,
             'token_scope': 'magic',
             'client': {
@@ -110,6 +148,16 @@ class RedeemMagicLinkView(APIView):
                 'expires_at': magic.expires_at.isoformat(),
             },
         })
+
+
+def _mask_wa_id(wa_id):
+    """'51986607686' → '*** *** 686'. Devuelve los últimos 3 dígitos visibles."""
+    if not wa_id:
+        return ''
+    digits = ''.join(c for c in str(wa_id) if c.isdigit())
+    if len(digits) <= 3:
+        return digits
+    return '*** *** ' + digits[-3:]
 
 
 class CreateReservationViaMagicLinkView(APIView):
@@ -324,4 +372,352 @@ class CreateReservationViaMagicLinkView(APIView):
                 {'success': False,
                  'message': 'Error al crear la reserva.'},
                 status=500,
+            )
+
+
+# =====================================================================
+# R4.2 — Reserva Express para clientes nuevos (link_type='guest_express')
+# =====================================================================
+
+def _notify_express_conflict(magic_link, reason, details):
+    """Dispara notify_team usando el chat_session del magic link.
+
+    No requiere request — el ToolExecutor del chatbot maneja throttle/push
+    a admins. Si chat_session no existe (legacy), hacemos log only.
+    """
+    if not magic_link.chat_session_id:
+        logger.warning(
+            f"_notify_express_conflict: magic_link {magic_link.id} sin "
+            f"chat_session; skip notify. reason={reason} details={details}"
+        )
+        return
+    try:
+        from apps.chatbot.tool_executor import ToolExecutor
+        executor = ToolExecutor(magic_link.chat_session)
+        executor.execute('notify_team', {
+            'reason': reason,
+            'details': details,
+        })
+    except Exception as e:
+        logger.error(
+            f"_notify_express_conflict failed: {e}", exc_info=True,
+        )
+
+
+class CreateExpressReservationView(APIView):
+    """Crea Client (si hace falta) + Reservation a partir de un magic link
+    guest_express. NO requiere JWT — la auth es el raw token en el body
+    (mismo modelo que /redeem/).
+
+    Body:
+        {
+          "token": "K3M7XQYR9F2BA",
+          "confirm_data": true,
+          "email": "opcional@ejemplo.com"
+        }
+
+    Casos manejados (alineados al diagnóstico R4.2):
+      A. DNI no existe en Clients → crear nuevo Client + Reservation.
+      B. DNI existe y tel_number coincide con wa_id → usar ese Client.
+      C. DNI existe pero tel_number distinto al wa_id → BLOQUEAR + notify.
+      D. tel_number/wa_id existe en otro Client con otro DNI → BLOQUEAR + notify.
+
+    Si link_type != 'guest_express' → 400 (usar /magic-link/create-reservation/).
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        from datetime import timedelta
+        from django.conf import settings
+        from django.utils import timezone as _tz
+
+        from apps.clients.models import Clients
+        from apps.reservation.models import Reservation
+        from apps.reservation.serializers import (
+            ClientReservationSerializer,
+            ReservationListSerializer,
+        )
+        from .magic_link_service import (
+            _normalize_phone,
+            get_valid_magic_link_by_token,
+            mark_consumed,
+        )
+
+        raw_token = (request.data.get('token') or '').strip()
+        confirm = bool(request.data.get('confirm_data'))
+        email = (request.data.get('email') or '').strip() or None
+
+        if not raw_token:
+            return Response(
+                {'error': 'missing_token', 'message': 'Falta el token.'},
+                status=400,
+            )
+        if not confirm:
+            return Response(
+                {'error': 'confirmation_required',
+                 'message': 'Debes confirmar los datos para continuar.'},
+                status=400,
+            )
+
+        magic = get_valid_magic_link_by_token(raw_token)
+        if not magic:
+            return Response(
+                {'error': 'invalid_or_expired',
+                 'message': 'Este link expiró o ya fue usado.'},
+                status=410,
+            )
+
+        if magic.link_type != 'guest_express':
+            return Response(
+                {'error': 'wrong_link_type',
+                 'message': 'Este endpoint es solo para reservas express.'},
+                status=400,
+            )
+
+        if not magic.dni_validated_at or not magic.document_number:
+            # No debería pasar (el guard del bot solo crea con DNI validado),
+            # pero defendemos por las dudas.
+            return Response(
+                {'error': 'dni_not_validated',
+                 'message': 'DNI no validado. Contáctanos por WhatsApp.'},
+                status=400,
+            )
+
+        # === Resolver conflictos DNI/tel (casos A/B/C/D del spec) ===
+        wa_norm = _normalize_phone(magic.wa_id)
+        if not wa_norm:
+            return Response(
+                {'error': 'wa_id_invalid', 'message': 'WhatsApp no válido.'},
+                status=400,
+            )
+
+        support_wa = getattr(
+            settings, 'RESERVATION_SUPPORT_WHATSAPP', '51999902992',
+        )
+        manual_url = f"https://wa.me/{support_wa}"
+
+        # ¿Hay Client con este DNI?
+        client_by_doc = Clients.objects.filter(
+            document_type='dni',
+            number_doc=magic.document_number,
+            deleted=False,
+        ).first()
+
+        # ¿Hay Client con este wa_id?
+        client_by_phone = Clients.objects.filter(
+            tel_number=magic.wa_id,
+            deleted=False,
+        ).first()
+        # Búsqueda más laxa por si el formato difiere
+        if not client_by_phone:
+            for variant in (wa_norm, f'+51{wa_norm}', f'51{wa_norm}'):
+                client_by_phone = Clients.objects.filter(
+                    tel_number=variant, deleted=False,
+                ).first()
+                if client_by_phone:
+                    break
+
+        # --- Caso C: DNI existe + tel del Client NO coincide con wa_id ---
+        if client_by_doc:
+            client_tel_norm = _normalize_phone(client_by_doc.tel_number)
+            if client_tel_norm and client_tel_norm != wa_norm:
+                logger.warning(
+                    f"Express case C: DNI {magic.document_number} pertenece "
+                    f"a client {client_by_doc.id} con tel "
+                    f"{client_by_doc.tel_number}, distinto al wa_id "
+                    f"{magic.wa_id}. Bloqueado."
+                )
+                _notify_express_conflict(
+                    magic,
+                    'express_booking_document_phone_mismatch',
+                    f"DNI {magic.document_number} ya está registrado con "
+                    f"otro teléfono. Cliente intentó reservar express desde "
+                    f"wa_id={magic.wa_id}. "
+                    f"client_id={client_by_doc.id}. "
+                    f"Reserva: {magic.check_in}→{magic.check_out}, "
+                    f"{magic.guests} pers.",
+                )
+                return Response({
+                    'error': 'document_phone_mismatch',
+                    'message': (
+                        "Este documento ya está registrado. Para proteger "
+                        "tu cuenta, comunícate con nuestro equipo por "
+                        "WhatsApp para continuar."
+                    ),
+                    'whatsapp_url': manual_url,
+                }, status=409)
+
+            # Caso B: DNI existe + tel coincide → usar ese Client.
+            client = client_by_doc
+
+        else:
+            # No existe Client con este DNI.
+            # --- Caso D: wa_id existe en otro Client con DNI distinto ---
+            if client_by_phone and client_by_phone.number_doc != magic.document_number:
+                logger.warning(
+                    f"Express case D: wa_id {magic.wa_id} pertenece a "
+                    f"client {client_by_phone.id} con DNI "
+                    f"{client_by_phone.number_doc!r}, no al DNI "
+                    f"ingresado {magic.document_number}. Bloqueado."
+                )
+                _notify_express_conflict(
+                    magic,
+                    'express_booking_phone_document_mismatch',
+                    f"WhatsApp {magic.wa_id} ya está registrado con DNI "
+                    f"{client_by_phone.number_doc} (client_id="
+                    f"{client_by_phone.id}). Cliente quiso reservar express "
+                    f"con DNI {magic.document_number}. "
+                    f"Reserva: {magic.check_in}→{magic.check_out}, "
+                    f"{magic.guests} pers.",
+                )
+                return Response({
+                    'error': 'phone_document_mismatch',
+                    'message': (
+                        "Detectamos información que no coincide. Para "
+                        "continuar de forma segura, comunícate con nuestro "
+                        "equipo por WhatsApp."
+                    ),
+                    'whatsapp_url': manual_url,
+                }, status=409)
+
+            # --- Caso A: crear Client nuevo ---
+            full_name = (magic.validated_full_name or '').strip()
+            parts = full_name.split()
+            first_name = parts[0] if parts else 'Cliente'
+            last_name = ' '.join(parts[1:]) if len(parts) > 1 else ''
+            try:
+                client = Clients.objects.create(
+                    document_type='dni',
+                    number_doc=magic.document_number,
+                    first_name=first_name[:30],
+                    last_name=last_name[:40] or None,
+                    email=email,
+                    tel_number=magic.wa_id,  # wa_id sin '+', formato '51XXX...'
+                    is_password_set=False,
+                )
+                logger.info(
+                    f"Express Client created: id={client.id} "
+                    f"dni={magic.document_number} wa_id={magic.wa_id}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"Express Client create error: {e}", exc_info=True,
+                )
+                return Response({
+                    'error': 'client_create_failed',
+                    'message': 'No pudimos crear tu cuenta. Contáctanos.',
+                    'whatsapp_url': manual_url,
+                }, status=500,
+                )
+
+        # === Crear Reservation ===
+        # Bloquear si ya tiene una pendiente (mismo check que normal/magic R4.1).
+        pending_statuses = ['incomplete', 'pending', 'under_review']
+        existing_pending = Reservation.objects.filter(
+            client=client,
+            status__in=pending_statuses,
+            deleted=False,
+        ).first()
+        if existing_pending:
+            return Response({
+                'success': False,
+                'message': (
+                    'Ya tienes una reserva en proceso. Termina esa primero o '
+                    'contáctanos por WhatsApp para ayudarte.'
+                ),
+                'existing_reservation_id': str(existing_pending.id),
+                'whatsapp_url': manual_url,
+            }, status=400)
+
+        data = {
+            'property': str(magic.property.id) if magic.property_id else None,
+            'check_in_date': magic.check_in.isoformat(),
+            'check_out_date': magic.check_out.isoformat(),
+            'guests': magic.guests,
+            'tel_contact_number': magic.wa_id,
+            'origin': 'client',
+            'advance_payment_currency': 'sol',
+        }
+        if not data['property']:
+            # Sin casa pre-elegida: no podemos crear reserva (la Reserva exige
+            # property FK). El front debería bloquear este caso pero defendemos.
+            return Response({
+                'error': 'property_required',
+                'message': 'Debes elegir una casa para reservar.',
+            }, status=400)
+
+        # Inyectar request.user para el serializer (espera contexto)
+        fake_request = type(
+            'FakeReq', (), {'user': client, 'data': data},
+        )()
+        serializer = ClientReservationSerializer(
+            data=data, context={'request': fake_request},
+        )
+        if not serializer.is_valid():
+            errs = serializer.errors or {}
+            details = []
+            if isinstance(errs, dict):
+                for field, msgs in errs.items():
+                    first = (
+                        msgs[0] if isinstance(msgs, list) and msgs
+                        else str(msgs)
+                    )
+                    details.append(f"{field}: {first}")
+            friendly = '; '.join(details) if details else 'Error en los datos.'
+            logger.warning(
+                f"Express reservation validation failed: {errs} "
+                f"client={client.id}"
+            )
+            return Response(
+                {'success': False, 'message': friendly, 'errors': errs},
+                status=400,
+            )
+
+        try:
+            payment_deadline = _tz.now() + timedelta(hours=1)
+            reservation = serializer.save(
+                client=client,
+                origin='client',
+                status='incomplete',
+                payment_voucher_deadline=payment_deadline,
+                payment_voucher_uploaded=False,
+                payment_confirmed=False,
+                chatbot_session=magic.chat_session,
+            )
+            # Consumir el magic link (one-shot reserva).
+            mark_consumed(magic)
+            logger.info(
+                f"Express reservation created: id={reservation.id} "
+                f"client={client.id} magic_link_id={magic.id}"
+            )
+            # Notificación al equipo: se creó una reserva express.
+            _notify_express_conflict(
+                magic,
+                'express_booking_created',
+                f"Cliente {client.first_name} {client.last_name or ''} "
+                f"(DNI {magic.document_number}, wa_id {magic.wa_id}) creó "
+                f"reserva express en {reservation.property.name} "
+                f"{magic.check_in}→{magic.check_out}, {magic.guests} pers. "
+                f"Pendiente de subir voucher.",
+            )
+            return Response({
+                'success': True,
+                'message': (
+                    'Reserva creada exitosamente. Está pendiente de '
+                    'aprobación.'
+                ),
+                'reservation': ReservationListSerializer(reservation).data,
+                'reservation_id': str(reservation.id),
+            }, status=201)
+        except Exception as e:
+            logger.error(
+                f"Express reservation save error: {e}", exc_info=True,
+            )
+            return Response({
+                'success': False,
+                'message': 'No pudimos crear tu reserva. Contáctanos.',
+                'whatsapp_url': manual_url,
+            }, status=500,
             )
