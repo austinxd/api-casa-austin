@@ -16,13 +16,51 @@ from apps.core.models import BaseModel
 
 
 class ReservationMagicLink(BaseModel):
-    """Magic link de un solo uso para continuar reserva."""
+    """Magic link para continuar reserva.
 
+    Dos tipos (R4.2):
+    - existing_client: cliente vinculado con tel_number == wa_id. R4.1 actual.
+    - guest_express: cliente nuevo con DNI validado por RENIEC desde el chat.
+      No tiene Client aún; se creará al confirmar reserva en el front.
+    """
+
+    class LinkType(models.TextChoices):
+        EXISTING_CLIENT = 'existing_client', 'Cliente existente'
+        GUEST_EXPRESS = 'guest_express', 'Cliente nuevo — DNI validado'
+
+    link_type = models.CharField(
+        max_length=20,
+        choices=LinkType.choices,
+        default=LinkType.EXISTING_CLIENT,
+        db_index=True,
+        help_text='Tipo de magic link: cliente existente o express con DNI.',
+    )
     client = models.ForeignKey(
         'clients.Clients',
         on_delete=models.CASCADE,
         related_name='magic_links',
-        help_text='Cliente al que se emitió el link.',
+        null=True, blank=True,
+        help_text='Cliente vinculado. Null para guest_express (se crea al confirmar).',
+    )
+    # === Campos guest_express (null para existing_client) ===
+    document_type = models.CharField(
+        max_length=3,
+        null=True, blank=True,
+        help_text='Solo "dni" en R4.2 MVP. Null para existing_client.',
+    )
+    document_number = models.CharField(
+        max_length=15,
+        null=True, blank=True,
+        help_text='DNI de 8 dígitos validado por RENIEC. Null para existing_client.',
+    )
+    validated_full_name = models.CharField(
+        max_length=120,
+        null=True, blank=True,
+        help_text='Nombre completo devuelto por RENIEC y confirmado en chat.',
+    )
+    dni_validated_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text='Cuándo se validó el DNI con RENIEC.',
     )
     token_hash = models.CharField(
         max_length=64,
@@ -94,8 +132,12 @@ class ReservationMagicLink(BaseModel):
         ]
 
     def __str__(self):
+        if self.link_type == self.LinkType.GUEST_EXPRESS:
+            name = self.validated_full_name or '?'
+        else:
+            name = self.client.first_name if self.client_id else '?'
         return (
-            f"MagicLink {self.client.first_name if self.client_id else '?'} "
+            f"MagicLink[{self.link_type}] {name} "
             f"→ {self.property.name if self.property_id else 'sin casa'} "
             f"({self.check_in}→{self.check_out}, {self.guests}p) "
             f"[{self.status_label}]"

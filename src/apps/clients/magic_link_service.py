@@ -84,74 +84,106 @@ def hash_token(raw_token):
 
 def find_or_create_magic_link(
     *,
-    client,
     chat_session,
     wa_id,
     check_in,
     check_out,
     guests,
     property=None,
+    client=None,
+    link_type='existing_client',
+    document_type=None,
+    document_number=None,
+    validated_full_name=None,
     expiry_minutes=DEFAULT_EXPIRY_MINUTES,
     created_ip=None,
 ):
     """Busca un magic link vigente para los mismos parámetros; si existe lo
-    reutiliza. Si no, crea uno nuevo. Aplica rate limit por cliente.
+    reutiliza. Si no, crea uno nuevo. Aplica rate limit.
+
+    Soporta DOS tipos (R4.2):
+      - link_type='existing_client' (default, R4.1): requiere `client` con
+        tel_number == wa_id (security check).
+      - link_type='guest_express' (R4.2): requiere DNI 8 dígitos validado
+        + validated_full_name. `client` es None — se creará al confirmar.
 
     Returns:
         (magic_link, raw_token, was_reused)
 
-    Notas:
-        - raw_token solo viene poblado cuando el link es NUEVO. Si fue
-          reutilizado, el raw NO está en BD (solo hash), así que se devuelve
-          None. El caller debe haber guardado el raw en conversation_context
-          cuando lo creó originalmente.
-
     Raises:
-        ValueError: si excede rate limit.
+        MagicLinkSecurityError: validaciones de seguridad fallaron.
+        ValueError: rate limit u otro problema.
     """
-    if not client or not chat_session:
-        raise ValueError("client and chat_session are required.")
+    if not chat_session:
+        raise ValueError("chat_session is required.")
 
-    # === SECURITY: verificar que el teléfono del cliente coincida con
-    # el wa_id que generará el link. Esto evita que un caller (shell,
-    # script, futuro código) genere un magic link para un cliente cuyo
-    # WhatsApp NO le pertenece. ===
-    client_tel_norm = _normalize_phone(getattr(client, 'tel_number', None))
     wa_norm = _normalize_phone(wa_id)
     if not wa_norm:
         raise MagicLinkSecurityError(
             'wa_id_invalid',
             f"wa_id no normalizable a 9 dígitos: {wa_id!r}",
         )
-    if not client_tel_norm:
-        logger.warning(
-            f"MagicLink BLOQUEADO (sin tel_number): client_id={client.id} "
-            f"wa_id={wa_id}"
-        )
-        raise MagicLinkSecurityError(
-            'client_phone_missing',
-            f"cliente {client.id} sin tel_number registrado; "
-            "no se genera magic link por seguridad.",
-        )
-    if client_tel_norm != wa_norm:
-        logger.warning(
-            f"MagicLink BLOQUEADO (mismatch): client_id={client.id} "
-            f"client_tel={client_tel_norm} wa_id={wa_norm}"
-        )
-        raise MagicLinkSecurityError(
-            'client_phone_mismatch',
-            f"client.tel_number ({client_tel_norm}) != wa_id ({wa_norm}); "
-            "no se genera magic link por seguridad.",
+
+    # === Validaciones por tipo de link ===
+    if link_type == 'existing_client':
+        if not client:
+            raise ValueError("client is required for link_type='existing_client'.")
+        # Phone match (R4.1)
+        client_tel_norm = _normalize_phone(getattr(client, 'tel_number', None))
+        if not client_tel_norm:
+            logger.warning(
+                f"MagicLink BLOQUEADO (sin tel_number): client_id={client.id} "
+                f"wa_id={wa_id}"
+            )
+            raise MagicLinkSecurityError(
+                'client_phone_missing',
+                f"cliente {client.id} sin tel_number registrado; "
+                "no se genera magic link por seguridad.",
+            )
+        if client_tel_norm != wa_norm:
+            logger.warning(
+                f"MagicLink BLOQUEADO (mismatch): client_id={client.id} "
+                f"client_tel={client_tel_norm} wa_id={wa_norm}"
+            )
+            raise MagicLinkSecurityError(
+                'client_phone_mismatch',
+                f"client.tel_number ({client_tel_norm}) != wa_id ({wa_norm}); "
+                "no se genera magic link por seguridad.",
+            )
+    elif link_type == 'guest_express':
+        # R4.2: solo DNI peruano de 8 dígitos validado.
+        if document_type != 'dni':
+            raise MagicLinkSecurityError(
+                'invalid_document_type',
+                "R4.2 express solo soporta document_type='dni'.",
+            )
+        if not document_number or not document_number.isdigit() or len(document_number) != 8:
+            raise MagicLinkSecurityError(
+                'invalid_dni',
+                f"DNI debe ser 8 dígitos numéricos. Recibido: {document_number!r}",
+            )
+        if not validated_full_name or not validated_full_name.strip():
+            raise MagicLinkSecurityError(
+                'missing_validated_name',
+                "validated_full_name es requerido para guest_express.",
+            )
+        if client is not None:
+            raise MagicLinkSecurityError(
+                'client_must_be_null_for_express',
+                "Para guest_express, client debe ser None (se crea al confirmar).",
+            )
+    else:
+        raise ValueError(
+            f"link_type inválido: {link_type!r}. "
+            "Esperado: 'existing_client' o 'guest_express'."
         )
 
     now = timezone.now()
 
-    # === 1. Reuso PRIMERO. Si hay un link vigente con los MISMOS parámetros,
-    # devolverlo sin contar contra rate limit. Esto evita que un cliente
-    # con varios intentos seguidos quede bloqueado cuando en realidad solo
-    # necesita el link que ya generamos. ===
-    reuse = ReservationMagicLink.objects.filter(
-        client=client,
+    # === 1. Reuso PRIMERO ===
+    # Match por params del draft. Para existing_client matchea por client.
+    # Para guest_express matchea por document_number (no hay client aún).
+    reuse_filter = dict(
         chat_session=chat_session,
         property=property,
         check_in=check_in,
@@ -160,34 +192,53 @@ def find_or_create_magic_link(
         used_at__isnull=True,
         expires_at__gt=now,
         deleted=False,
+        link_type=link_type,
+    )
+    if link_type == 'existing_client':
+        reuse_filter['client'] = client
+    else:
+        reuse_filter['document_number'] = document_number
+    reuse = ReservationMagicLink.objects.filter(
+        **reuse_filter,
     ).order_by('-created').first()
     if reuse:
         logger.info(
-            f"MagicLink reuse: id={reuse.id} client={client.id} "
+            f"MagicLink reuse: id={reuse.id} link_type={link_type} "
             f"expires_at={reuse.expires_at}"
         )
         return reuse, None, True
 
-    # === 2. Rate limit (solo aplica cuando vamos a CREAR uno nuevo). ===
+    # === 2. Rate limit (solo aplica cuando vamos a CREAR uno nuevo) ===
+    # existing_client: por cliente.
+    # guest_express: por wa_id (no hay client aún).
     last_hour = now - timedelta(hours=1)
-    recent_count = ReservationMagicLink.objects.filter(
-        client=client,
-        created__gte=last_hour,
-        deleted=False,
-    ).count()
+    if link_type == 'existing_client':
+        recent_count = ReservationMagicLink.objects.filter(
+            client=client,
+            created__gte=last_hour,
+            deleted=False,
+        ).count()
+        rate_key = f"client {client.id}"
+    else:
+        recent_count = ReservationMagicLink.objects.filter(
+            link_type='guest_express',
+            wa_id=wa_id,
+            created__gte=last_hour,
+            deleted=False,
+        ).count()
+        rate_key = f"wa_id {wa_id}"
     if recent_count >= RATE_LIMIT_PER_CLIENT_PER_HOUR:
         raise ValueError(
-            f"Rate limit: cliente {client.id} ya generó "
+            f"Rate limit: {rate_key} ya generó "
             f"{recent_count} magic links en la última hora."
         )
 
-    # Crear nuevo. Retry hasta 3 veces si hay colisión de hash (improbable).
+    # === 3. Crear nuevo. Retry hasta 3 veces si hay colisión de hash. ===
     last_error = None
     for _ in range(3):
         raw, token_hash = generate_token()
         try:
-            magic = ReservationMagicLink.objects.create(
-                client=client,
+            kwargs = dict(
                 token_hash=token_hash,
                 property=property,
                 check_in=check_in,
@@ -197,18 +248,59 @@ def find_or_create_magic_link(
                 wa_id=wa_id,
                 expires_at=now + timedelta(minutes=expiry_minutes),
                 created_ip=created_ip,
+                link_type=link_type,
             )
+            if link_type == 'existing_client':
+                kwargs['client'] = client
+            else:
+                kwargs['document_type'] = document_type
+                kwargs['document_number'] = document_number
+                kwargs['validated_full_name'] = validated_full_name.strip()
+                kwargs['dni_validated_at'] = now
+            magic = ReservationMagicLink.objects.create(**kwargs)
             logger.info(
-                f"MagicLink created: id={magic.id} client={client.id} "
+                f"MagicLink created: id={magic.id} link_type={link_type} "
                 f"expires_at={magic.expires_at}"
             )
             return magic, raw, False
         except Exception as e:
             last_error = e
-            # Colisión de hash → retry
             continue
-    # Si llegamos acá, fallaron 3 retries
     raise RuntimeError(f"Failed to create MagicLink after retries: {last_error}")
+
+
+def create_express_magic_link(
+    *,
+    chat_session,
+    wa_id,
+    document_number,
+    validated_full_name,
+    check_in,
+    check_out,
+    guests,
+    property=None,
+    created_ip=None,
+):
+    """Convenience wrapper para crear/reusar magic links express (R4.2).
+
+    Pre-condición: el DNI ya fue validado contra RENIEC y el cliente
+    confirmó el nombre en el chat. El caller (chatbot guard) garantiza
+    que validated_full_name viene de RENIEC, no de input del cliente.
+    """
+    return find_or_create_magic_link(
+        chat_session=chat_session,
+        wa_id=wa_id,
+        check_in=check_in,
+        check_out=check_out,
+        guests=guests,
+        property=property,
+        client=None,
+        link_type='guest_express',
+        document_type='dni',
+        document_number=document_number,
+        validated_full_name=validated_full_name,
+        created_ip=created_ip,
+    )
 
 
 def get_valid_magic_link_by_token(raw_token):

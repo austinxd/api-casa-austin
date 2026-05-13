@@ -459,6 +459,23 @@ OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
 # MAGIC_LINK_ENABLED=True en .env del server y reiniciar Django.
 MAGIC_LINK_ENABLED = env.bool('MAGIC_LINK_ENABLED', default=False)
 
+# Reserva Express (R4.2) — feature flag SEPARADO para el flujo de cliente
+# nuevo con DNI validado (chat bot pide DNI → RENIEC → confirma nombre →
+# link guest_express). Independiente de MAGIC_LINK_ENABLED para permitir
+# activar primero R4.1 (clientes existentes) y luego R4.2 (clientes nuevos).
+# OFF por defecto. Para activar: EXPRESS_RESERVATION_ENABLED=True en .env.
+EXPRESS_RESERVATION_ENABLED = env.bool(
+    'EXPRESS_RESERVATION_ENABLED', default=False,
+)
+
+# WhatsApp humano de reservas/soporte (usado por flujos manual_required:
+# pasaporte, carnet extranjería, DNI mismatch, etc.). Configurable para
+# poder cambiarlo en un solo lugar. Mantiene el número actual del flujo
+# cex-contact existente; ajustar en .env si cambia.
+RESERVATION_SUPPORT_WHATSAPP = env(
+    'RESERVATION_SUPPORT_WHATSAPP', default='51999902992',
+)
+
 # Google Search Console Configuration (Blog SEO)
 GOOGLE_SEARCH_CONSOLE_KEY_FILE = env('GOOGLE_SEARCH_CONSOLE_KEY_FILE', default='')
 GOOGLE_SEARCH_CONSOLE_SITE_URL = env('GOOGLE_SEARCH_CONSOLE_SITE_URL', default='https://casaaustin.pe')
