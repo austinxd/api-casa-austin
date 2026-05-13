@@ -43,10 +43,27 @@ class ChatSessionListView(ListAPIView):
         if status_filter:
             qs = qs.filter(status=status_filter)
 
-        # Filtro por cliente identificado
+        # Filtro por cliente identificado / magic link
         client_filter = self.request.query_params.get('client_filter')
         if client_filter == 'clients':
             qs = qs.filter(client__isnull=False)
+        elif client_filter == 'no_client':
+            qs = qs.filter(client__isnull=True)
+        elif client_filter == 'magic_any':
+            # Sesiones con cualquier magic link (R4.1 + R4.2)
+            qs = qs.filter(magic_links__deleted=False).distinct()
+        elif client_filter == 'magic_existing':
+            # R4.1 — cliente existente
+            qs = qs.filter(
+                magic_links__deleted=False,
+                magic_links__link_type='existing_client',
+            ).distinct()
+        elif client_filter == 'magic_express':
+            # R4.2 — cliente nuevo express
+            qs = qs.filter(
+                magic_links__deleted=False,
+                magic_links__link_type='guest_express',
+            ).distinct()
 
         # Búsqueda por nombre/teléfono
         search = self.request.query_params.get('search', '').strip()
