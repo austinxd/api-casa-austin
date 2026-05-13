@@ -9,6 +9,7 @@ Reglas de seguridad:
 - Vinculado a client + chat_session + property + check_in/out + guests.
 - Al redimir se emite un JWT acotado con scope limitado.
 """
+import builtins  # @builtins.property — el field 'property' (casa) ensombrece el decorador
 from django.db import models
 
 from apps.core.models import BaseModel
@@ -100,7 +101,7 @@ class ReservationMagicLink(BaseModel):
             f"[{self.status_label}]"
         )
 
-    @property
+    @builtins.property
     def status_label(self):
         """Etiqueta humana del estado actual."""
         from django.utils import timezone
@@ -110,7 +111,7 @@ class ReservationMagicLink(BaseModel):
             return 'expirado'
         return 'vigente'
 
-    @property
+    @builtins.property
     def is_valid(self):
         """True si el link puede redimirse ahora."""
         from django.utils import timezone
