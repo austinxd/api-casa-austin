@@ -24,7 +24,11 @@ logger = logging.getLogger(__name__)
 
 # Defaults
 DEFAULT_EXPIRY_MINUTES = 60
-RATE_LIMIT_PER_CLIENT_PER_HOUR = 3
+# Rate limit: protege contra abuso/scripts, NO contra clientes reales.
+# Un cliente iterando con el bot puede generar 5-10 cotizaciones distintas
+# (fechas, personas, casa), así que el límite debe ser laxo. 20/hora = 1
+# cada 3 minutos, bloquea spam pero deja espacio para uso natural.
+RATE_LIMIT_PER_CLIENT_PER_HOUR = 20
 
 
 # === Custom exception para que el caller distinga errores de seguridad ===
