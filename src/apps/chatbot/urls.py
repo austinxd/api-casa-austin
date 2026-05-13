@@ -24,6 +24,7 @@ from .admin_views import (
     FrequentQuestionListView,
     ChatSessionsExportView,
     OpportunitiesView,
+    MagicLinkListView,
 )
 
 urlpatterns = [
@@ -65,4 +66,6 @@ urlpatterns = [
 
     # Oportunidades por fecha (Fase A read-only)
     path('opportunities/', OpportunitiesView.as_view(), name='chatbot-opportunities'),
+    # R4.2 — Listado admin de Magic Links (R4.1 + R4.2)
+    path('magic-links/', MagicLinkListView.as_view(), name='chatbot-magic-links'),
 ]

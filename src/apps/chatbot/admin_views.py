@@ -1432,3 +1432,72 @@ class OpportunitiesView(APIView):
                 status=500,
             )
 
+
+
+# =====================================================================
+# R4.2 — Listado admin de Magic Links (R4.1 + R4.2)
+# =====================================================================
+class MagicLinkListView(ListAPIView):
+    """GET /api/v1/chatbot/magic-links/ — Lista paginada de ReservationMagicLink.
+
+    Filtros (query params):
+      - link_type: 'existing_client' | 'guest_express' | '' (todos)
+      - status:    'vigente' | 'consumido' | 'expirado' | '' (todos)
+      - search:    busca en client.first_name, last_name, validated_full_name,
+                   wa_id, document_number, client.number_doc
+      - days:      ventana hacia atrás (default 30)
+    """
+    permission_classes = [IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_serializer_class(self):
+        from .serializers import ReservationMagicLinkAdminSerializer
+        return ReservationMagicLinkAdminSerializer
+
+    def get_queryset(self):
+        from datetime import timedelta
+        from django.utils import timezone as _tz
+        from apps.clients.magic_link_models import ReservationMagicLink
+
+        qs = ReservationMagicLink.objects.filter(deleted=False).select_related(
+            'client', 'property', 'chat_session',
+        )
+
+        # Ventana de tiempo
+        try:
+            days = int(self.request.query_params.get('days', '30'))
+        except (TypeError, ValueError):
+            days = 30
+        if days > 0:
+            since = _tz.now() - timedelta(days=days)
+            qs = qs.filter(created__gte=since)
+
+        # Filtro link_type
+        link_type = self.request.query_params.get('link_type', '').strip()
+        if link_type in ('existing_client', 'guest_express'):
+            qs = qs.filter(link_type=link_type)
+
+        # Filtro status (computado: vigente/consumido/expirado)
+        status_filter = self.request.query_params.get('status', '').strip()
+        now = _tz.now()
+        if status_filter == 'consumido':
+            qs = qs.filter(used_at__isnull=False)
+        elif status_filter == 'expirado':
+            qs = qs.filter(used_at__isnull=True, expires_at__lt=now)
+        elif status_filter == 'vigente':
+            qs = qs.filter(used_at__isnull=True, expires_at__gt=now)
+
+        # Búsqueda
+        search = (self.request.query_params.get('search') or '').strip()
+        if search:
+            qs = qs.filter(
+                Q(client__first_name__icontains=search) |
+                Q(client__last_name__icontains=search) |
+                Q(client__number_doc__icontains=search) |
+                Q(client__tel_number__icontains=search) |
+                Q(validated_full_name__icontains=search) |
+                Q(document_number__icontains=search) |
+                Q(wa_id__icontains=search)
+            )
+
+        return qs.order_by('-created')

@@ -243,3 +243,66 @@ class FrequentQuestionSerializer(serializers.ModelSerializer):
             'sample_messages', 'first_seen_at', 'last_seen_at',
         ]
         read_only_fields = fields
+
+
+# R4.2 — Listado admin de Magic Links (R4.1 existing + R4.2 express)
+class ReservationMagicLinkAdminSerializer(serializers.ModelSerializer):
+    """Serializer del listado admin: identidad enmascarada, suficiente para
+    ver quién recibió un link sin filtrar datos sensibles innecesariamente."""
+
+    client_name = serializers.SerializerMethodField()
+    document_number_masked = serializers.SerializerMethodField()
+    wa_id_masked = serializers.SerializerMethodField()
+    property_name = serializers.SerializerMethodField()
+    chat_session_id = serializers.UUIDField(
+        source='chat_session.id', read_only=True, allow_null=True,
+    )
+    status = serializers.CharField(source='status_label', read_only=True)
+
+    class Meta:
+        from apps.clients.magic_link_models import ReservationMagicLink
+        model = ReservationMagicLink
+        fields = [
+            'id', 'created', 'link_type', 'status',
+            'client_name', 'document_type', 'document_number_masked',
+            'wa_id', 'wa_id_masked',
+            'property_name',
+            'check_in', 'check_out', 'guests',
+            'expires_at', 'used_at', 'use_count', 'max_uses',
+            'chat_session_id',
+            'validated_full_name', 'dni_validated_at',
+        ]
+        read_only_fields = fields
+
+    def get_client_name(self, obj):
+        if obj.client_id:
+            full = f"{obj.client.first_name} {obj.client.last_name or ''}".strip()
+            return full or None
+        if obj.link_type == 'guest_express':
+            return obj.validated_full_name
+        return None
+
+    def get_document_number_masked(self, obj):
+        # guest_express: enmascarar (4 visibles + ****)
+        # existing_client: traer de Client si está
+        doc = None
+        if obj.link_type == 'guest_express':
+            doc = obj.document_number
+        elif obj.client_id:
+            doc = obj.client.number_doc
+        if not doc:
+            return None
+        s = str(doc)
+        if len(s) <= 4:
+            return s
+        return s[:4] + '****'
+
+    def get_wa_id_masked(self, obj):
+        wa = obj.wa_id or ''
+        digits = ''.join(c for c in wa if c.isdigit())
+        if len(digits) <= 3:
+            return digits
+        return '*** *** ' + digits[-3:]
+
+    def get_property_name(self, obj):
+        return obj.property.name if obj.property_id else None
