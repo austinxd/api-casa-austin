@@ -1287,3 +1287,165 @@ def try_faq(session, last_user_text):
             'topic': topic_name,
         },
     }
+
+
+# ============================================================================
+# G_MAGIC_LINK — Generar magic link al confirmar reserva (R4)
+# ============================================================================
+# Si el cliente está vinculado (session.client existe) Y el mensaje es una
+# afirmación corta post-cotización Y el feature flag MAGIC_LINK_ENABLED=True,
+# generamos un magic link y respondemos con copy específico. En caso
+# contrario, dejamos pasar al modelo (que enviará el link normal R1.0).
+
+_AFFIRMATIVE_SHORT_PATTERNS = [
+    r'^\s*s[ií]\s*[.!?]?\s*$',
+    r'^\s*ok(?:ay)?\s*[.!?]?\s*$',
+    r'^\s*dale\s*[.!?]?\s*$',
+    r'^\s*claro\s*[.!?]?\s*$',
+    r'^\s*listo\s*[.!?]?\s*$',
+    r'^\s*por\s*fa(?:vor)?\s*$',
+    r'^\s*porfa\s*$',
+    r'^\s*va(?:le|mos)?\s*[.!?]?\s*$',
+    r'^\s*perfecto\s*[.!?]?\s*$',
+]
+
+_AFFIRMATIVE_INTENT_PATTERNS = [
+    r'\bquiero\s+(?:reservar|separar|continuar|el\s+link|ese\s+link)',
+    r'\bp[aá]same\s+(?:el\s+)?(?:link|enlace)\b',
+    r'\b(?:dame|env[ií]ame|m[aá]nda(?:me)?)\s+(?:el\s+)?(?:link|enlace)\b',
+    r'\bs[ií][,\s]+(?:quiero|me\s+animo|por\s+favor)\b',
+    r'\bme\s+anim[oa]\b',
+]
+
+_AFFIRMATIVE_RE = re.compile(
+    '|'.join(_AFFIRMATIVE_SHORT_PATTERNS + _AFFIRMATIVE_INTENT_PATTERNS),
+    re.IGNORECASE,
+)
+
+
+def try_continue_link_with_magic(session, last_user_text):
+    """G_MAGIC_LINK — Genera y envía un magic link al cliente vinculado
+    cuando confirma una cotización previa.
+
+    Activación (todas obligatorias):
+      - settings.MAGIC_LINK_ENABLED == True (feature flag).
+      - session.client está vinculado.
+      - El mensaje del cliente matchea afirmación corta o intención de
+        reservar.
+      - Existe una cotización previa parseable en mensajes recientes.
+
+    Si falla cualquier check → return None (fallback al modelo, que envía
+    link normal R1.0).
+    """
+    from django.conf import settings
+
+    if not getattr(settings, 'MAGIC_LINK_ENABLED', False):
+        return None
+    if not last_user_text:
+        return None
+    if not session or not session.client_id:
+        return None
+    if not _AFFIRMATIVE_RE.search(last_user_text):
+        return None
+
+    quote = _get_full_last_quote(session)
+    if not quote:
+        return None
+
+    # Parsear fechas y guests desde la cotización
+    from datetime import datetime as _dt
+    try:
+        check_in = _dt.strptime(quote['check_in'], '%Y-%m-%d').date()
+        check_out = _dt.strptime(quote['check_out'], '%Y-%m-%d').date()
+        guests = int(quote['guests'])
+    except (KeyError, TypeError, ValueError) as e:
+        logger.warning(f"G_MAGIC_LINK: failed parsing quote: {e}")
+        return None
+
+    # Resolver property si la cotización tiene una sola casa (URL /reservar)
+    prop = None
+    if 'property=' in (quote.get('booking_url') or ''):
+        m = re.search(r'property=([^&]+)', quote['booking_url'])
+        if m:
+            from apps.property.models import Property
+            prop = Property.objects.filter(
+                slug=m.group(1), deleted=False,
+            ).first()
+
+    # Generar (o reusar) magic link
+    from apps.clients.magic_link_service import find_or_create_magic_link
+
+    try:
+        magic, raw_token, was_reused = find_or_create_magic_link(
+            client=session.client,
+            chat_session=session,
+            wa_id=session.wa_id,
+            check_in=check_in,
+            check_out=check_out,
+            guests=guests,
+            property=prop,
+        )
+    except ValueError as e:
+        # Rate limit o validación → fallback al modelo
+        logger.warning(f"G_MAGIC_LINK rate limit / validation: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"G_MAGIC_LINK generation error: {e}", exc_info=True)
+        return None
+
+    # Si fue reuso, el raw NO viene (solo está en BD el hash). Recuperarlo
+    # de conversation_context si está cacheado de una llamada previa de
+    # esta misma sesión.
+    if was_reused and not raw_token:
+        ctx = session.conversation_context or {}
+        cached = ctx.get('active_magic_link') or {}
+        if cached.get('magic_link_id') == str(magic.id):
+            raw_token = cached.get('token')
+        if not raw_token:
+            # No tenemos el raw del link reusado (caso raro: sesión vieja
+            # cuyo context se perdió). Fallback al modelo.
+            logger.info(
+                "G_MAGIC_LINK reuse hit pero raw no está cacheado — fallback"
+            )
+            return None
+
+    # Cachear raw + metadata en conversation_context para reuso futuro
+    ctx = session.conversation_context or {}
+    ctx['active_magic_link'] = {
+        'magic_link_id': str(magic.id),
+        'token': raw_token,
+        'expires_at': magic.expires_at.isoformat(),
+        'property_slug': prop.slug if prop else None,
+        'check_in': check_in.isoformat(),
+        'check_out': check_out.isoformat(),
+        'guests': guests,
+    }
+    session.conversation_context = ctx
+    session.save(update_fields=['conversation_context'])
+
+    magic_url = f"https://casaaustin.pe/r/{raw_token}"
+    name = session.client.first_name or 'amigo'
+
+    response = (
+        f"Perfecto {name} 😊 Como ya tenemos tus datos registrados, "
+        f"te dejo un link directo para continuar tu reserva:\n\n"
+        f"{magic_url}\n\n"
+        f"Ahí confirmas la casa, revisas el monto y separas con el 50%."
+    )
+
+    logger.info(
+        f"Guard G_MAGIC_LINK activado: client={session.client_id} "
+        f"magic_link_id={magic.id} reused={was_reused} session={session.id}"
+    )
+
+    return {
+        'response': response,
+        'intent': 'guard:magic_link',
+        'tool_call_meta': {
+            'name': 'guard',
+            'guard': 'magic_link',
+            'magic_link_id': str(magic.id),
+            'was_reused': was_reused,
+            'property_slug': prop.slug if prop else None,
+        },
+    }

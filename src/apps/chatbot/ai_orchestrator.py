@@ -347,6 +347,16 @@ class AIOrchestrator:
             )
             return result
 
+        # G_MAGIC_LINK — Cliente existente confirma cotización (R4).
+        # Solo activa si feature flag MAGIC_LINK_ENABLED=True + session.client.
+        # En cualquier otro caso devuelve None y cae al flujo normal R1.0.
+        result = guards.try_continue_link_with_magic(session, user_text)
+        if result is not None:
+            logger.info(
+                f"Guard activo: {result['intent']} (sesión {session.id})"
+            )
+            return result
+
         # G4 — Identificador (DNI/nombre) tras reclamo de reserva
         result = guards.try_post_claim_identifier(session, user_text)
         if result is not None:

@@ -452,6 +452,13 @@ RENIEC_LEGACY_DB_NAME = env('RENIEC_LEGACY_DB_NAME', default='rutificador_bd')
 # OpenAI Configuration (Chatbot IA)
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
 
+# Magic Link (R4) — feature flag para generación de magic links desde el
+# chatbot. OFF por defecto. Los endpoints /magic-link/redeem/ y
+# /magic-link/create-reservation/ están siempre operativos; este flag solo
+# controla si el bot GENERA links nuevos. Para activar: set
+# MAGIC_LINK_ENABLED=True en .env del server y reiniciar Django.
+MAGIC_LINK_ENABLED = env.bool('MAGIC_LINK_ENABLED', default=False)
+
 # Google Search Console Configuration (Blog SEO)
 GOOGLE_SEARCH_CONSOLE_KEY_FILE = env('GOOGLE_SEARCH_CONSOLE_KEY_FILE', default='')
 GOOGLE_SEARCH_CONSOLE_SITE_URL = env('GOOGLE_SEARCH_CONSOLE_SITE_URL', default='https://casaaustin.pe')
