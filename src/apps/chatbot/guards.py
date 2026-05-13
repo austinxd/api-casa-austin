@@ -1322,20 +1322,40 @@ _AFFIRMATIVE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Detección de "Casa N" / "Casa Austin N" (estricto: contiene la palabra "casa")
+_CASA_REF_RE = re.compile(r'\bcasa\s+(?:austin\s+)?([1-4])\b', re.IGNORECASE)
+# Detección laxa (solo cuando ya preguntamos cuál casa): "la 3", "3" solo
+_CASA_REF_LAX_RE = re.compile(
+    r'\bla\s+([1-4])\b|^\s*([1-4])\s*[.!?]?\s*$',
+    re.IGNORECASE,
+)
+
+
+def _resolve_property_by_num(num):
+    """Lookup Property por slug 'casa-austin-N'."""
+    if not num:
+        return None
+    from apps.property.models import Property
+    return Property.objects.filter(
+        slug=f'casa-austin-{num}', deleted=False,
+    ).first()
+
 
 def try_continue_link_with_magic(session, last_user_text):
-    """G_MAGIC_LINK — Genera y envía un magic link al cliente vinculado
-    cuando confirma una cotización previa.
+    """G_MAGIC_LINK — Dos fases para entregar magic link al cliente vinculado:
 
-    Activación (todas obligatorias):
-      - settings.MAGIC_LINK_ENABLED == True (feature flag).
-      - session.client está vinculado.
-      - El mensaje del cliente matchea afirmación corta o intención de
-        reservar.
-      - Existe una cotización previa parseable en mensajes recientes.
+    Fase 1 (ask_house):
+      - Cotización multi-casa + afirmación ("sí") → bot pregunta qué casa.
+      - Setea conversation_context['magic_awaiting_house'] = check_in date.
 
-    Si falla cualquier check → return None (fallback al modelo, que envía
-    link normal R1.0).
+    Fase 2 (send_link):
+      - Cotización single-casa + afirmación → link directo con esa casa.
+      - O bien: estamos awaiting_house Y el cliente envía "Casa N" / "la 3" /
+        "3" → genera magic link con la casa elegida.
+      - O bien: afirmación + casa explícita en un solo mensaje ("sí, casa 4")
+        → salta la pregunta y genera link directo.
+
+    Si falla cualquier check → return None (fallback a R1.0 normal).
     """
     from django.conf import settings
 
@@ -1344,8 +1364,6 @@ def try_continue_link_with_magic(session, last_user_text):
     if not last_user_text:
         return None
     if not session or not session.client_id:
-        return None
-    if not _AFFIRMATIVE_RE.search(last_user_text):
         return None
 
     quote = _get_full_last_quote(session)
@@ -1362,17 +1380,95 @@ def try_continue_link_with_magic(session, last_user_text):
         logger.warning(f"G_MAGIC_LINK: failed parsing quote: {e}")
         return None
 
-    # Resolver property si la cotización tiene una sola casa (URL /reservar)
-    prop = None
-    if 'property=' in (quote.get('booking_url') or ''):
-        m = re.search(r'property=([^&]+)', quote['booking_url'])
-        if m:
-            from apps.property.models import Property
-            prop = Property.objects.filter(
-                slug=m.group(1), deleted=False,
-            ).first()
+    # Estado: ¿el bot está esperando que el cliente elija casa?
+    ctx = session.conversation_context or {}
+    awaiting = ctx.get('magic_awaiting_house')
+    # Stale state: si la cotización actual difiere de la que motivó la
+    # pregunta, descartamos el awaiting (el cliente recotizó).
+    if awaiting and awaiting != quote['check_in']:
+        ctx.pop('magic_awaiting_house', None)
+        session.conversation_context = ctx
+        session.save(update_fields=['conversation_context'])
+        awaiting = None
 
-    # Generar (o reusar) magic link
+    # Detectar afirmación + casa (estricto)
+    is_affirmative = bool(_AFFIRMATIVE_RE.search(last_user_text))
+    casa_match = _CASA_REF_RE.search(last_user_text)
+    casa_num = int(casa_match.group(1)) if casa_match else None
+    # Si NO hay "casa N" estricto pero estamos awaiting, aceptar laxos
+    if not casa_num and awaiting:
+        lax = _CASA_REF_LAX_RE.search(last_user_text.strip())
+        if lax:
+            casa_num = int(lax.group(1) or lax.group(2))
+
+    # Si no hay ninguna señal procesable → fallback
+    if not is_affirmative and not casa_num:
+        return None
+
+    # === Resolver property ===
+    prop = None
+
+    # (a) Cliente envió "Casa N" → validar que esa casa está en la cotización
+    if casa_num:
+        casa_in_quote = any(
+            re.search(rf'\b{casa_num}\b', h.get('name', ''))
+            for h in quote.get('houses', [])
+        )
+        if casa_in_quote:
+            prop = _resolve_property_by_num(casa_num)
+
+    # (b) Cotización single-casa: extraer property del booking_url o del nombre
+    if not prop and len(quote.get('houses', [])) == 1:
+        if 'property=' in (quote.get('booking_url') or ''):
+            m = re.search(r'property=([^&]+)', quote['booking_url'])
+            if m:
+                from apps.property.models import Property
+                prop = Property.objects.filter(
+                    slug=m.group(1), deleted=False,
+                ).first()
+        if not prop:
+            name = quote['houses'][0].get('name', '')
+            num_match = re.search(r'(\d)', name)
+            if num_match:
+                prop = _resolve_property_by_num(num_match.group(1))
+
+    # (c) Multi-casa + afirmación sin selección → preguntar qué casa
+    houses_count = len(quote.get('houses', []))
+    if not prop and is_affirmative and houses_count > 1:
+        # Setear estado: estamos esperando la selección
+        ctx['magic_awaiting_house'] = quote['check_in']
+        session.conversation_context = ctx
+        session.save(update_fields=['conversation_context'])
+
+        house_names = [h.get('name', '') for h in quote['houses']]
+        if len(house_names) > 1:
+            names_str = ', '.join(house_names[:-1]) + ' o ' + house_names[-1]
+        else:
+            names_str = house_names[0]
+
+        response = (
+            f"¡Genial! 😊 ¿Qué casa quieres separar: {names_str}?"
+        )
+        logger.info(
+            f"Guard G_MAGIC_LINK (ask_house): houses={houses_count} "
+            f"session={session.id}"
+        )
+        return {
+            'response': response,
+            'intent': 'guard:magic_link:ask_house',
+            'tool_call_meta': {
+                'name': 'guard',
+                'guard': 'magic_link',
+                'phase': 'ask_house',
+                'houses_count': houses_count,
+            },
+        }
+
+    # (d) Sin property resolvable y no aplicó la pregunta → fallback
+    if not prop:
+        return None
+
+    # === Generar (o reusar) magic link con prop resuelto ===
     from apps.clients.magic_link_service import find_or_create_magic_link
 
     try:
@@ -1386,30 +1482,24 @@ def try_continue_link_with_magic(session, last_user_text):
             property=prop,
         )
     except ValueError as e:
-        # Rate limit o validación → fallback al modelo
         logger.warning(f"G_MAGIC_LINK rate limit / validation: {e}")
         return None
     except Exception as e:
         logger.error(f"G_MAGIC_LINK generation error: {e}", exc_info=True)
         return None
 
-    # Si fue reuso, el raw NO viene (solo está en BD el hash). Recuperarlo
-    # de conversation_context si está cacheado de una llamada previa de
-    # esta misma sesión.
+    # Reuso: si solo tenemos hash en BD, intentar recuperar el raw de context
     if was_reused and not raw_token:
-        ctx = session.conversation_context or {}
-        cached = ctx.get('active_magic_link') or {}
+        cached = (session.conversation_context or {}).get('active_magic_link') or {}
         if cached.get('magic_link_id') == str(magic.id):
             raw_token = cached.get('token')
         if not raw_token:
-            # No tenemos el raw del link reusado (caso raro: sesión vieja
-            # cuyo context se perdió). Fallback al modelo.
             logger.info(
                 "G_MAGIC_LINK reuse hit pero raw no está cacheado — fallback"
             )
             return None
 
-    # Cachear raw + metadata en conversation_context para reuso futuro
+    # Cachear raw + metadata, limpiar awaiting (idempotente)
     ctx = session.conversation_context or {}
     ctx['active_magic_link'] = {
         'magic_link_id': str(magic.id),
@@ -1420,22 +1510,25 @@ def try_continue_link_with_magic(session, last_user_text):
         'check_out': check_out.isoformat(),
         'guests': guests,
     }
+    ctx.pop('magic_awaiting_house', None)
     session.conversation_context = ctx
     session.save(update_fields=['conversation_context'])
 
     magic_url = f"https://casaaustin.pe/r/{raw_token}"
     name = session.client.first_name or 'amigo'
+    casa_label = prop.name if prop else 'la casa'
 
     response = (
         f"Perfecto {name} 😊 Como ya tenemos tus datos registrados, "
-        f"te dejo un link directo para continuar tu reserva:\n\n"
+        f"te dejo un link directo para continuar tu reserva en {casa_label}:\n\n"
         f"{magic_url}\n\n"
-        f"Ahí confirmas la casa, revisas el monto y separas con el 50%."
+        f"Ahí confirmas los datos, revisas el monto y separas con el 50%."
     )
 
     logger.info(
-        f"Guard G_MAGIC_LINK activado: client={session.client_id} "
-        f"magic_link_id={magic.id} reused={was_reused} session={session.id}"
+        f"Guard G_MAGIC_LINK (send_link): client={session.client_id} "
+        f"magic_link_id={magic.id} reused={was_reused} "
+        f"prop={prop.slug if prop else None} session={session.id}"
     )
 
     return {
@@ -1444,6 +1537,7 @@ def try_continue_link_with_magic(session, last_user_text):
         'tool_call_meta': {
             'name': 'guard',
             'guard': 'magic_link',
+            'phase': 'send_link',
             'magic_link_id': str(magic.id),
             'was_reused': was_reused,
             'property_slug': prop.slug if prop else None,
