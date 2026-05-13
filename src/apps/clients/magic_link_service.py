@@ -2,12 +2,15 @@
 
 - generate_token(): token raw + hash sha256.
 - find_or_create_magic_link(): reutiliza link vigente o crea nuevo. Aplica
-  rate limit por cliente/hora.
+  rate limit por cliente/hora. **Bloquea generación si client.tel_number
+  no coincide con wa_id** (defensa en profundidad: el guard del chatbot
+  ya filtra, pero shell/scripts pueden saltarlo).
 - get_valid_magic_link_by_token(): busca por hash, valida vigencia.
 """
 import base64
 import hashlib
 import logging
+import re
 import secrets
 from datetime import timedelta
 
@@ -22,6 +25,35 @@ logger = logging.getLogger(__name__)
 # Defaults
 DEFAULT_EXPIRY_MINUTES = 60
 RATE_LIMIT_PER_CLIENT_PER_HOUR = 3
+
+
+# === Custom exception para que el caller distinga errores de seguridad ===
+class MagicLinkSecurityError(ValueError):
+    """Se lanza cuando find_or_create_magic_link bloquea por seguridad
+    (teléfono del client no coincide con wa_id, etc.). Subclase de
+    ValueError para que callers existentes (que ya hacen except ValueError)
+    sigan funcionando, pero permite distinguir el caso si se necesita.
+    """
+    def __init__(self, reason, message):
+        super().__init__(f"{reason}: {message}")
+        self.reason = reason
+
+
+def _normalize_phone(value):
+    """Devuelve los 9 dígitos finales del teléfono peruano normalizado.
+    Strip country code '51' si está. Retorna None si <9 dígitos.
+
+    Idéntico al helper en apps/chatbot/reservation_lookup.py pero
+    duplicado aquí para no crear dependencia inversa (clients → chatbot).
+    """
+    if not value:
+        return None
+    digits = re.sub(r'\D', '', str(value))
+    if not digits:
+        return None
+    if digits.startswith('51') and len(digits) >= 11:
+        digits = digits[2:]
+    return digits[-9:] if len(digits) >= 9 else None
 
 
 def generate_token():
@@ -75,6 +107,38 @@ def find_or_create_magic_link(
     """
     if not client or not chat_session:
         raise ValueError("client and chat_session are required.")
+
+    # === SECURITY: verificar que el teléfono del cliente coincida con
+    # el wa_id que generará el link. Esto evita que un caller (shell,
+    # script, futuro código) genere un magic link para un cliente cuyo
+    # WhatsApp NO le pertenece. ===
+    client_tel_norm = _normalize_phone(getattr(client, 'tel_number', None))
+    wa_norm = _normalize_phone(wa_id)
+    if not wa_norm:
+        raise MagicLinkSecurityError(
+            'wa_id_invalid',
+            f"wa_id no normalizable a 9 dígitos: {wa_id!r}",
+        )
+    if not client_tel_norm:
+        logger.warning(
+            f"MagicLink BLOQUEADO (sin tel_number): client_id={client.id} "
+            f"wa_id={wa_id}"
+        )
+        raise MagicLinkSecurityError(
+            'client_phone_missing',
+            f"cliente {client.id} sin tel_number registrado; "
+            "no se genera magic link por seguridad.",
+        )
+    if client_tel_norm != wa_norm:
+        logger.warning(
+            f"MagicLink BLOQUEADO (mismatch): client_id={client.id} "
+            f"client_tel={client_tel_norm} wa_id={wa_norm}"
+        )
+        raise MagicLinkSecurityError(
+            'client_phone_mismatch',
+            f"client.tel_number ({client_tel_norm}) != wa_id ({wa_norm}); "
+            "no se genera magic link por seguridad.",
+        )
 
     now = timezone.now()
 
