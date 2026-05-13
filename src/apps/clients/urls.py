@@ -7,6 +7,7 @@ from . import points_views
 from . import push_views
 from . import admin_push_views
 from . import notification_history_views
+from . import magic_link_views
 from .voucher_views import ClientVoucherUploadView, ClientReservationStatusView
 from .views import (
     MensajeFidelidadApiView, TokenApiClientApiView, ClientsApiView,
@@ -168,6 +169,16 @@ urlpatterns = [
          ClientReservationStatusView.as_view(),
          name='client-reservation-status'),
     path('clients/csrf-token/', auth_views.get_csrf_token, name='csrf-token'),
+
+    # === Magic Link de Reserva (R4) — feature flag se respeta en chatbot ===
+    # Estos endpoints siempre están operativos. La generación de magic links
+    # se controla con el feature flag del lado del chatbot.
+    path('clients/magic-link/redeem/',
+         magic_link_views.RedeemMagicLinkView.as_view(),
+         name='magic-link-redeem'),
+    path('clients/magic-link/create-reservation/',
+         magic_link_views.CreateReservationViaMagicLinkView.as_view(),
+         name='magic-link-create-reservation'),
 
     # Debug endpoints for Sheets and Webhook issues  
     path('clients/track-search-admin/', SearchTrackingView.as_view(), name='search-tracking'),

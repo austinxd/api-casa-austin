@@ -314,3 +314,38 @@ class NotificationLogAdmin(admin.ModelAdmin):
         updated = queryset.update(read=False, read_at=None)
         self.message_user(request, f'{updated} notificación(es) marcada(s) como no leída(s)')
     mark_as_unread.short_description = "Marcar como no leídas"
+
+# === Magic Link de Reserva (R4) ===
+from .magic_link_models import ReservationMagicLink
+
+
+@admin.register(ReservationMagicLink)
+class ReservationMagicLinkAdmin(admin.ModelAdmin):
+    """Read-only admin para auditar magic links emitidos."""
+    list_display = [
+        'short_id', 'client', 'property', 'check_in', 'check_out',
+        'guests', 'status_label', 'expires_at', 'used_at', 'created',
+    ]
+    list_filter = ['used_at', 'expires_at', 'deleted']
+    search_fields = [
+        'client__first_name', 'client__last_name',
+        'client__number_doc', 'wa_id',
+    ]
+    readonly_fields = [
+        'id', 'client', 'token_hash', 'property', 'check_in', 'check_out',
+        'guests', 'chat_session', 'wa_id', 'expires_at', 'used_at',
+        'max_uses', 'use_count', 'created_ip', 'redeemed_ip',
+        'redeemed_user_agent', 'status_label', 'created', 'updated',
+    ]
+    ordering = ['-created']
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def short_id(self, obj):
+        return str(obj.id)[:8]
+    short_id.short_description = 'ID'
+
