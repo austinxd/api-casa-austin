@@ -1109,68 +1109,51 @@ class ToolExecutor:
             return "Cliente no encontrado."
 
     def _check_reservations(self):
-        """Consulta reservas activas del cliente vinculado a la sesión.
+        """Consulta reservas vinculadas a esta sesión usando 3 fuentes:
+        chatbot_session FK → session.client → wa_id ↔ tel_contact_number.
 
-        Devuelve el escenario detectado + instrucciones de copy literal para
-        que la IA responda con el tono correcto cuando el cliente afirma
-        haber reservado/pagado.
+        Devuelve un escenario detectado + copy literal para que la IA
+        responda con el tono correcto cuando el cliente afirma haber
+        reservado/pagado. R3.1: ya no exige que session.client esté
+        vinculado — puede encontrar reservas por teléfono directo.
         """
-        from apps.reservation.models import Reservation
-        from django.utils import timezone
+        from .reservation_lookup import (
+            find_active_reservation_for_session,
+            scenario_from_reservation,
+        )
 
-        if not self.session.client:
-            return (
-                "SCENARIO: cliente NO vinculado a este WhatsApp.\n"
-                "[INSTRUCCIÓN IA — OBLIGATORIO: responde EXACTO con este texto, "
-                "sin agregar ni quitar nada:]\n"
-                "«Gracias 😊 Aún no me aparece una reserva activa vinculada a este "
-                "WhatsApp. Puede tardar unos minutos si acabas de completarla.\n\n"
-                "¿Me confirmas con qué nombre o documento hiciste la reserva? "
-                "Así el equipo puede revisarlo mejor.»"
-            )
+        found = find_active_reservation_for_session(self.session)
+        if found:
+            r = found['reservation']
+            sc = scenario_from_reservation(r)
+            if sc:
+                return (
+                    f"SCENARIO: {sc['scenario']}\n"
+                    f"MATCH_TYPE: {found['match_type']}\n"
+                    f"RESERVATION_ID: {r.id}\n"
+                    f"PROPERTY: {r.property.name}\n"
+                    f"CHECK_IN: {r.check_in_date.isoformat()}\n"
+                    f"CHECK_OUT: {r.check_out_date.isoformat()}\n"
+                    f"STATUS: {r.status}\n"
+                    f"FULL_PAYMENT: {r.full_payment}\n"
+                    f"VOUCHER_UPLOADED: {r.payment_voucher_uploaded}\n"
+                    "\n[INSTRUCCIÓN IA — OBLIGATORIO: responde EXACTO con "
+                    "este texto, sin agregar ni quitar nada:]\n"
+                    f"«{sc['copy']}»"
+                )
 
-        client = self.session.client
-        today = timezone.now().date()
-
-        reservations = Reservation.objects.filter(
-            client=client,
-            deleted=False,
-            status__in=['approved', 'pending', 'under_review'],
-            check_out_date__gte=today,
-        ).select_related('property').order_by('check_in_date')
-
-        if not reservations.exists():
-            return (
-                f"SCENARIO: cliente {client.first_name} vinculado pero SIN "
-                f"reservas activas (approved/pending/under_review).\n"
-                "[INSTRUCCIÓN IA — OBLIGATORIO: responde EXACTO con este texto, "
-                "sin agregar ni quitar nada:]\n"
-                "«Gracias 😊 Aún no me aparece una reserva activa vinculada a este "
-                "WhatsApp. Puede tardar unos minutos si acabas de completarla.\n\n"
-                "¿Me confirmas con qué nombre o documento hiciste la reserva? "
-                "Así el equipo puede revisarlo mejor.»"
-            )
-
-        # La más cercana define el copy
-        r = reservations.first()
-        if r.status == 'approved':
-            return (
-                f"SCENARIO: reserva CONFIRMADA en {r.property.name} "
-                f"({r.check_in_date.strftime('%d/%m')} al "
-                f"{r.check_out_date.strftime('%d/%m')}).\n"
-                "[INSTRUCCIÓN IA — OBLIGATORIO: responde EXACTO con este texto:]\n"
-                "«Perfecto 😊 Tu reserva ya figura confirmada. Te enviaremos/"
-                "recordaremos los detalles de ingreso antes de tu llegada.»"
-            )
-
-        # pending o under_review
+        # No encontrado por ninguna fuente → pedir DNI/nombre (canonical R2).
+        scenario_label = (
+            'no_reservations' if self.session.client else 'not_found'
+        )
         return (
-            f"SCENARIO: reserva en estado '{r.status}' en {r.property.name} "
-            f"({r.check_in_date.strftime('%d/%m')} al "
-            f"{r.check_out_date.strftime('%d/%m')}).\n"
-            "[INSTRUCCIÓN IA — OBLIGATORIO: responde EXACTO con este texto:]\n"
-            "«Perfecto 😊 Veo tu reserva registrada. El equipo validará el "
-            "pago/voucher y te confirmará por este medio.»"
+            f"SCENARIO: {scenario_label}\n"
+            "[INSTRUCCIÓN IA — OBLIGATORIO: responde EXACTO con este texto, "
+            "sin agregar ni quitar nada:]\n"
+            "«Gracias 😊 Aún no me aparece una reserva activa vinculada a este "
+            "WhatsApp. Puede tardar unos minutos si acabas de completarla.\n\n"
+            "¿Me confirmas con qué nombre o documento hiciste la reserva? "
+            "Así el equipo puede revisarlo mejor.»"
         )
 
     def _validate_discount_code(self, code, property_name=None, check_in_date=None):
@@ -1613,6 +1596,11 @@ class ToolExecutor:
         'reservation_claimed_with_id_pending',
         'reservation_claimed_with_id_not_found',
         'reservation_claimed_with_name',
+        # R3.1
+        'reservation_claimed_incomplete',
+        'reservation_claimed_voucher_uploaded',
+        'reservation_claimed_rejected',
+        'reservation_lookup_mismatch',
     }
 
     def _notify_team(self, reason, details=''):
@@ -1675,6 +1663,23 @@ class ToolExecutor:
             'reservation_claimed_with_name': {
                 'title': f"📝 Nombre dado (sin doc): {name}",
                 'type': 'chatbot_reservation_claimed_with_name',
+            },
+            # R3.1 — nuevos escenarios
+            'reservation_claimed_incomplete': {
+                'title': f"📝 Reserva incompleta + claim de pago: {name}",
+                'type': 'chatbot_reservation_claimed_incomplete',
+            },
+            'reservation_claimed_voucher_uploaded': {
+                'title': f"📤 Voucher recibido pendiente de validar: {name}",
+                'type': 'chatbot_reservation_claimed_voucher_uploaded',
+            },
+            'reservation_claimed_rejected': {
+                'title': f"⛔ Reserva rechazada + cliente reclama: {name}",
+                'type': 'chatbot_reservation_claimed_rejected',
+            },
+            'reservation_lookup_mismatch': {
+                'title': f"⚠️ DNI no coincide con WhatsApp: {name}",
+                'type': 'chatbot_reservation_lookup_mismatch',
             },
         }
 

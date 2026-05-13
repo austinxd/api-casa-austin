@@ -409,30 +409,79 @@ def try_post_claim_identifier(session, last_user_text):
         return None
 
     from .tool_executor import ToolExecutor
+    from .reservation_lookup import client_phone_matches_wa_id
     executor = ToolExecutor(session)
 
     scenario = 'unknown'
-    if ident['type'] == 'document':
-        try:
-            executor.execute('identify_client', {'document_number': ident['value']})
-            session.refresh_from_db()
-        except Exception as e:
-            logger.error(f"G4 identify_client failed: {e}", exc_info=True)
+    mismatch_detected = False
+    mismatch_candidate = None
 
-        if session.client:
-            try:
-                check_text = executor.execute('check_reservations', {})
-            except Exception as e:
-                logger.error(f"G4 check_reservations failed: {e}", exc_info=True)
-                check_text = ''
-            if 'CONFIRMADA' in check_text:
-                scenario = 'approved'
-            elif "estado 'pending'" in check_text or "estado 'under_review'" in check_text:
-                scenario = 'pending_or_review'
-            else:
-                scenario = 'no_reservations'
+    if ident['type'] == 'document':
+        # === Cross-check de seguridad (R3.1) ===
+        # Antes de vincular session.client por DNI, verificar que el
+        # teléfono registrado del Client coincida con el wa_id actual.
+        # Si NO coincide → bloquear lookup, notificar al equipo y responder
+        # genérico. Esto evita filtración de datos por DNI ajeno.
+        from apps.clients.models import Clients
+        try:
+            mismatch_candidate = Clients.objects.filter(
+                number_doc=ident['value'], deleted=False,
+            ).first()
+        except Exception as e:
+            logger.error(f"G4 mismatch lookup failed: {e}", exc_info=True)
+            mismatch_candidate = None
+
+        if mismatch_candidate and not client_phone_matches_wa_id(
+            mismatch_candidate, session.wa_id
+        ):
+            mismatch_detected = True
+            scenario = 'mismatch'
         else:
-            scenario = 'document_not_found'
+            # No mismatch → proceder normal
+            try:
+                executor.execute('identify_client', {
+                    'document_number': ident['value'],
+                })
+                session.refresh_from_db()
+            except Exception as e:
+                logger.error(f"G4 identify_client failed: {e}", exc_info=True)
+
+            if session.client:
+                try:
+                    check_text = executor.execute('check_reservations', {})
+                except Exception as e:
+                    logger.error(
+                        f"G4 check_reservations failed: {e}", exc_info=True,
+                    )
+                    check_text = ''
+                # Parser de SCENARIO: nuevo formato (R3.1) + retro-compat con
+                # texto previo ('CONFIRMADA', "estado 'pending'").
+                sm = re.search(r'SCENARIO:\s*(\w+)', check_text)
+                sc_label = sm.group(1) if sm else None
+                if sc_label in ('approved_full', 'approved_with_advance'):
+                    scenario = 'approved'
+                elif sc_label in (
+                    'pending_or_review', 'incomplete_no_voucher',
+                    'incomplete_with_voucher',
+                ):
+                    scenario = 'pending_or_review'
+                elif sc_label == 'cancelled':
+                    scenario = 'cancelled'
+                elif sc_label == 'rejected':
+                    scenario = 'rejected'
+                elif sc_label in ('not_found', 'no_reservations'):
+                    scenario = 'no_reservations'
+                else:
+                    # Retro-compat
+                    if 'CONFIRMADA' in check_text:
+                        scenario = 'approved'
+                    elif ("estado 'pending'" in check_text
+                          or "estado 'under_review'" in check_text):
+                        scenario = 'pending_or_review'
+                    else:
+                        scenario = 'no_reservations'
+            else:
+                scenario = 'document_not_found'
     else:  # name
         scenario = 'name_only'
 
@@ -445,7 +494,15 @@ def try_post_claim_identifier(session, last_user_text):
     else:
         greeting = session.wa_profile_name or 'amigo'
 
-    if scenario == 'approved':
+    if scenario == 'mismatch':
+        # Bloquear toda info de reserva — respuesta genérica.
+        response = (
+            "Gracias 😊 Aún no encuentro una reserva activa vinculada a "
+            "este WhatsApp. Ya avisé al equipo para que lo revisen "
+            "manualmente."
+        )
+        notify_reason = 'reservation_lookup_mismatch'
+    elif scenario == 'approved':
         response = (
             "Perfecto 😊 Tu reserva ya figura confirmada. Te enviaremos/"
             "recordaremos los detalles de ingreso antes de tu llegada."
@@ -457,6 +514,17 @@ def try_post_claim_identifier(session, last_user_text):
             "el pago/voucher y te confirmará por este medio."
         )
         notify_reason = 'reservation_claimed_with_id_pending'
+    elif scenario == 'cancelled':
+        response = (
+            "Veo que esa reserva está cancelada. Si quieres armar una "
+            "nueva, te ayudo a cotizar 😊"
+        )
+        notify_reason = None  # no notify por cancelled (cliente informado)
+    elif scenario == 'rejected':
+        response = (
+            "Gracias 😊 Ya avisé al equipo para que pueda revisar tu caso."
+        )
+        notify_reason = 'reservation_claimed_rejected'
     elif scenario == 'no_reservations':
         response = (
             f"Gracias {greeting} 😊 Aún no encuentro una reserva registrada "
@@ -486,7 +554,22 @@ def try_post_claim_identifier(session, last_user_text):
         f"Nombre WhatsApp: {session.wa_profile_name or 'N/A'}",
         f"Escenario: {scenario}",
     ]
-    if session.client:
+    if mismatch_detected and mismatch_candidate:
+        # Mismatch — incluir contexto del Client encontrado (para que el
+        # equipo investigue), pero NUNCA mostramos esto al cliente final.
+        details.append(
+            f"⚠️ MISMATCH: DNI '{ident['value']}' corresponde a "
+            f"{mismatch_candidate.first_name} "
+            f"{mismatch_candidate.last_name or ''}"
+        )
+        details.append(
+            f"Teléfono registrado del Client: "
+            f"{mismatch_candidate.tel_number or 'N/A'}"
+        )
+        details.append(
+            f"NO se reveló info de reserva al cliente."
+        )
+    elif session.client:
         c = session.client
         details.append(
             f"Cliente vinculado: {c.first_name} {c.last_name or ''} "
@@ -504,13 +587,14 @@ def try_post_claim_identifier(session, last_user_text):
             f"S/{last_quote.get('sol')}"
         )
 
-    try:
-        executor.execute('notify_team', {
-            'reason': notify_reason,
-            'details': '\n'.join(details),
-        })
-    except Exception as e:
-        logger.error(f"G4 notify_team failed: {e}", exc_info=True)
+    if notify_reason:
+        try:
+            executor.execute('notify_team', {
+                'reason': notify_reason,
+                'details': '\n'.join(details),
+            })
+        except Exception as e:
+            logger.error(f"G4 notify_team failed: {e}", exc_info=True)
 
     logger.info(
         f"Guard G4 post_claim_identifier: scenario={scenario}, "

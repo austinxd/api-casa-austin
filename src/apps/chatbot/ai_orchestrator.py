@@ -1874,11 +1874,25 @@ class AIOrchestrator:
                 return m.group(0)
         return None
 
+    # R3.1 — mapeo SCENARIO → (needs_notify, notify_reason).
+    # Si needs_notify=False, NO disparamos al equipo (cliente recibió info
+    # suficiente: approved, cancelled).
+    _CLAIM_SCENARIO_TO_NOTIFY = {
+        'approved_full':            (False, None),
+        'approved_with_advance':    (False, None),
+        'cancelled':                (False, None),
+        'pending_or_review':        (True, 'reservation_claimed_pending'),
+        'incomplete_no_voucher':    (True, 'reservation_claimed_incomplete'),
+        'incomplete_with_voucher':  (True, 'reservation_claimed_voucher_uploaded'),
+        'rejected':                 (True, 'reservation_claimed_rejected'),
+        'not_found':                (True, 'reservation_claimed_not_found'),
+        'no_reservations':          (True, 'reservation_claimed_not_found'),
+    }
+
     def _force_reservation_claim_if_intent(self, session, inbound_message, tool_calls_data):
         """Si el cliente afirma haber reservado/pagado, asegura que
-        notify_team se dispare con la razón correcta (reservation_claimed_*)
-        e incluye contexto rico para el equipo: wa_id, nombre, último link y
-        última cotización."""
+        notify_team se dispare con la razón correcta SOLO cuando hace falta.
+        Si la reserva está approved/cancelled, NO molesta al equipo."""
         user_text = self._extract_user_text(inbound_message).lower()
         if not user_text:
             return
@@ -1886,53 +1900,51 @@ class AIOrchestrator:
         if not any(re.search(p, user_text) for p in self.RESERVATION_CLAIMED_PATTERNS):
             return
 
-        # ¿El modelo ya alertó con una razón de claim?
+        # ¿Ya alertamos este turno con una razón de claim?
         for tc in tool_calls_data or []:
             if tc.get('name') != 'notify_team':
                 continue
-            r = (tc.get('arguments') or {}).get('reason')
-            if r in ('reservation_claimed_not_found', 'reservation_claimed_pending'):
+            r = (tc.get('arguments') or {}).get('reason') or ''
+            if r.startswith('reservation_claimed'):
                 return
 
-        # Determinar si check_reservations corrió este turno y qué encontró.
-        # El tool result ahora tiene 'SCENARIO:' como prefijo.
-        has_reservation = False
-        scenario = 'unknown'
+        # Parsear SCENARIO: del tool result de check_reservations.
+        scenario_str = None
         for tc in tool_calls_data or []:
             if tc.get('name') != 'check_reservations':
                 continue
             full = tc.get('_result_full') or ''
-            if 'CONFIRMADA' in full:
-                has_reservation = True
-                scenario = 'approved'
-                break
-            if "estado 'pending'" in full or "estado 'under_review'" in full:
-                has_reservation = True
-                scenario = 'pending_or_review'
-                break
-            if 'SIN reservas' in full or 'NO vinculado' in full:
-                scenario = 'not_found'
+            sm = re.search(r'SCENARIO:\s*(\w+)', full)
+            if sm:
+                scenario_str = sm.group(1)
                 break
 
-        reason = 'reservation_claimed_pending' if has_reservation else 'reservation_claimed_not_found'
-
-        # Si el modelo NO llamó check_reservations, llamarla nosotros para
-        # tener escenario válido (silenciosamente — no interrumpe la respuesta).
-        if scenario == 'unknown':
+        # Si el modelo no llamó check_reservations, llamarla nosotros.
+        if scenario_str is None:
             try:
                 exec_check = ToolExecutor(session)
                 check_result = exec_check.execute('check_reservations', {})
-                if 'CONFIRMADA' in check_result:
-                    has_reservation = True
-                    scenario = 'approved'
-                elif "estado 'pending'" in check_result or "estado 'under_review'" in check_result:
-                    has_reservation = True
-                    scenario = 'pending_or_review'
-                else:
-                    scenario = 'not_found'
-                reason = 'reservation_claimed_pending' if has_reservation else 'reservation_claimed_not_found'
+                sm = re.search(r'SCENARIO:\s*(\w+)', check_result)
+                if sm:
+                    scenario_str = sm.group(1)
             except Exception as e:
-                logger.error(f"Error auto-running check_reservations: {e}", exc_info=True)
+                logger.error(
+                    f"Error auto-running check_reservations: {e}",
+                    exc_info=True,
+                )
+
+        # Decidir si notificar
+        needs_notify, reason = self._CLAIM_SCENARIO_TO_NOTIFY.get(
+            scenario_str or '',
+            (True, 'reservation_claimed_not_found'),
+        )
+        if not needs_notify:
+            logger.info(
+                f"reservation_claimed (scenario={scenario_str}) — sin "
+                f"notify; cliente ya recibe info en respuesta. "
+                f"session={session.id}"
+            )
+            return
 
         # Construir detalles ricos
         wa_name = session.wa_profile_name or 'N/A'
@@ -1940,7 +1952,7 @@ class AIOrchestrator:
             f'Mensaje del cliente: "{user_text[:200]}"',
             f"WhatsApp ID: {session.wa_id}",
             f"Nombre WhatsApp: {wa_name}",
-            f"Escenario detectado: {scenario}",
+            f"Escenario detectado: {scenario_str or 'unknown'}",
         ]
         if session.client:
             client = session.client
@@ -1967,8 +1979,9 @@ class AIOrchestrator:
             pass
 
         logger.warning(
-            f"reservation_claimed detected (reason={reason}) for session "
-            f"{session.id}. Text: {user_text[:100]}"
+            f"reservation_claimed detected (reason={reason}, "
+            f"scenario={scenario_str}) for session {session.id}. "
+            f"Text: {user_text[:100]}"
         )
         try:
             executor = ToolExecutor(session)
