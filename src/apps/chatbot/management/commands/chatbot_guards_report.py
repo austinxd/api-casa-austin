@@ -77,8 +77,10 @@ class Command(BaseCommand):
 
         # Conteo por guard
         guard_counter = Counter()
-        subtype_counter = Counter()  # G_REQUOTE
-        topic_counter = Counter()    # G_FAQ
+        subtype_counter = Counter()       # G_REQUOTE
+        topic_counter = Counter()         # G_FAQ
+        magic_phase_counter = Counter()   # R4.1 G_MAGIC_LINK
+        express_phase_counter = Counter() # R4.2 G_EXPRESS
         sessions_affected = set()
 
         for msg in guard_msgs.only('id', 'session_id', 'tool_calls'):
@@ -92,6 +94,10 @@ class Command(BaseCommand):
                     subtype_counter[tc.get('subtype', '?')] += 1
                 if guard == 'faq':
                     topic_counter[tc.get('topic', '?')] += 1
+                if guard == 'magic_link':
+                    magic_phase_counter[tc.get('phase', '?')] += 1
+                if guard == 'express':
+                    express_phase_counter[tc.get('phase', '?')] += 1
 
         self.stdout.write(self.style.SUCCESS(
             f"\n--- Activaciones por guard ---"
@@ -121,6 +127,27 @@ class Command(BaseCommand):
                 topic_counter.items(), key=lambda x: -x[1]
             ):
                 self.stdout.write(f"  {topic:25s} {count:>5}")
+
+        if magic_phase_counter:
+            self.stdout.write(self.style.SUCCESS(
+                f"\n--- G_MAGIC_LINK (R4.1) por fase ---"
+            ))
+            for phase, count in sorted(
+                magic_phase_counter.items(), key=lambda x: -x[1]
+            ):
+                self.stdout.write(f"  {phase:30s} {count:>5}")
+
+        if express_phase_counter:
+            self.stdout.write(self.style.SUCCESS(
+                f"\n--- G_EXPRESS (R4.2) por fase ---"
+            ))
+            for phase, count in sorted(
+                express_phase_counter.items(), key=lambda x: -x[1]
+            ):
+                self.stdout.write(f"  {phase:30s} {count:>5}")
+            self.stdout.write(self.style.NOTICE(
+                "  Tip: corre `chatbot_express_report` para el funnel completo."
+            ))
 
         # Ahorro estimado
         saved_tokens = total_guard * AVG_TOKENS_PER_AI_RESPONSE
