@@ -15,6 +15,23 @@ from . import guards
 logger = logging.getLogger(__name__)
 
 
+def _msg_role(m):
+    """Lee 'role' de un mensaje de OpenAI, que puede venir como dict (los
+    que armamos nosotros) o como ChatCompletionMessage (el que devuelve el
+    SDK y reingresamos vía messages.append(choice.message))."""
+    if isinstance(m, dict):
+        return m.get('role')
+    return getattr(m, 'role', None)
+
+
+def _msg_content(m):
+    """Lee 'content' soportando dict y ChatCompletionMessage. Si content es
+    None (puede pasar con tool_calls), devuelve string vacío."""
+    if isinstance(m, dict):
+        return m.get('content', '') or ''
+    return getattr(m, 'content', None) or ''
+
+
 TOOL_NAMES = (
     'notify_team', 'check_availability', 'check_calendar',
     'check_late_checkout', 'escalate_to_human', 'log_unanswered_question',
@@ -463,8 +480,8 @@ class AIOrchestrator:
                     not arguments.get('guests') or arguments.get('guests') == 1
                 ):
                     user_text = ' '.join(
-                        m.get('content', '') for m in messages
-                        if m.get('role') == 'user'
+                        _msg_content(m) for m in messages
+                        if _msg_role(m) == 'user'
                     ).lower()
                     solo_indicators = [
                         r'\b1\s*persona', r'\buna\s*persona',
@@ -617,8 +634,8 @@ class AIOrchestrator:
                             not arguments.get('guests') or arguments.get('guests') == 1
                         ):
                             user_text = ' '.join(
-                                m.get('content', '') for m in messages
-                                if m.get('role') == 'user'
+                                _msg_content(m) for m in messages
+                                if _msg_role(m) == 'user'
                             ).lower()
                             solo_indicators = [
                                 r'\b1\s*persona', r'\buna\s*persona',
