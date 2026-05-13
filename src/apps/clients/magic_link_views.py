@@ -243,10 +243,25 @@ class CreateReservationViaMagicLinkView(APIView):
             data=data, context={'request': request},
         )
         if not serializer.is_valid():
+            # Construir mensaje legible con el primer error de cada campo
+            errs = serializer.errors or {}
+            details = []
+            if isinstance(errs, dict):
+                for field, msgs in errs.items():
+                    first = (
+                        msgs[0] if isinstance(msgs, list) and msgs
+                        else str(msgs)
+                    )
+                    details.append(f"{field}: {first}")
+            friendly = '; '.join(details) if details else 'Error en los datos enviados'
+            logger.warning(
+                f"MagicLink create-reservation validation failed: {errs} "
+                f"(client={client.id})"
+            )
             return Response(
                 {'success': False,
-                 'message': 'Error en los datos enviados',
-                 'errors': serializer.errors},
+                 'message': friendly,
+                 'errors': errs},
                 status=400,
             )
 
