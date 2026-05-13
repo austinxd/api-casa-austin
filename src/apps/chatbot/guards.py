@@ -1543,3 +1543,511 @@ def try_continue_link_with_magic(session, last_user_text):
             'property_slug': prop.slug if prop else None,
         },
     }
+
+
+# ============================================================================
+# G_EXPRESS — Reserva Express con DNI para clientes nuevos (R4.2D)
+# ============================================================================
+# Estados (conversation_context):
+#   express_phase = 'awaiting_dni' | 'awaiting_name_confirmation'
+#                 | 'awaiting_house_express' | 'manual_required'
+#   express_draft = {check_in, check_out, guests, property_slug?, source}
+#   express_dni = '12345678'
+#   express_full_name = 'Augusto Tantalean Marcatoma'
+#   express_attempt_count = int
+#
+# Activación inicial (sin estado previo):
+#   - EXPRESS_RESERVATION_ENABLED=True
+#   - session.client_id is None (cliente nuevo)
+#   - mensaje matchea _AFFIRMATIVE_RE
+#   - hay cotización previa parseable
+
+_DNI_DIGITS_RE = re.compile(r'\b(\d{8})\b')
+
+_NO_DNI_INDICATORS_PATTERNS = [
+    r'\bpasaporte\b',
+    r'\bcarnet\s+de\s+extranjer[ií]a\b',
+    r'\bcarnet\s+extranjer[ií]a\b',
+    r'\bextranjer[oa]\b',
+    r'\bno\s+tengo\s+dni\b',
+    r'\bsin\s+dni\b',
+    r'\bdocumento\s+extranjero\b',
+]
+_NO_DNI_INDICATORS_RE = re.compile(
+    '|'.join(_NO_DNI_INDICATORS_PATTERNS), re.IGNORECASE,
+)
+
+_DECLINE_DNI_PATTERNS = [
+    r'\bno\s+(?:quiero|deseo)\s+(?:dar|enviar|compartir)\b',
+    r'\bdespu[eé]s\b',
+    r'\bm[aá]s\s+tarde\b',
+    r'\b(?:no\s+)?(?:lo\s+)?tengo\s+a\s+(?:la\s+)?mano\b',
+    r'\bno\s+ahora\b',
+]
+_DECLINE_DNI_RE = re.compile(
+    '|'.join(_DECLINE_DNI_PATTERNS), re.IGNORECASE,
+)
+
+_CONFIRM_NAME_PATTERNS = [
+    r'^\s*s[ií]\s*[.!?]?\s*$',
+    r'^\s*correcto\s*[.!?]?\s*$',
+    r'^\s*ok(?:ay)?\s*[.!?]?\s*$',
+    r'^\s*est[aá]\s+bien\s*[.!?]?\s*$',
+    r'^\s*confirmado\s*[.!?]?\s*$',
+    r'^\s*dale\s*[.!?]?\s*$',
+    r'^\s*exacto\s*[.!?]?\s*$',
+    r'\bes\s+correcto\b',
+    r'\bs[ií]\s+est[aá]\s+bien\b',
+    r'\bs[ií],?\s+(?:soy|correcto|exacto)\b',
+]
+_CONFIRM_NAME_RE = re.compile(
+    '|'.join(_CONFIRM_NAME_PATTERNS), re.IGNORECASE,
+)
+
+_DENY_NAME_PATTERNS = [
+    r'^\s*no\s*[.!?]?\s*$',
+    r'\bno\s+soy\s+yo\b',
+    r'\best[aá]\s+mal\b',
+    r'\bincorrecto\b',
+    r'\bhay\s+(?:un\s+)?error\b',
+    r'\bno\s+es\s+correcto\b',
+    r'\bese\s+no\s+soy\b',
+]
+_DENY_NAME_RE = re.compile(
+    '|'.join(_DENY_NAME_PATTERNS), re.IGNORECASE,
+)
+
+
+def _express_manual_required_response(session, intro=None):
+    """Construye la respuesta + tool_call_meta para derivar a WhatsApp humano."""
+    from django.conf import settings
+    support_wa = getattr(
+        settings, 'RESERVATION_SUPPORT_WHATSAPP', '51999902992',
+    )
+    intro = intro or (
+        "Por ahora, el registro automático solo está disponible con DNI peruano."
+    )
+    response = (
+        f"{intro}\n\n"
+        "Si tienes pasaporte o carnet de extranjería, escríbenos por "
+        f"WhatsApp para ayudarte a crear tu cuenta y continuar con tu "
+        f"reserva:\n\nhttps://wa.me/{support_wa}"
+    )
+    # Marcar manual_required en el contexto para que el modelo no
+    # re-active el flujo en el siguiente turno.
+    ctx = session.conversation_context or {}
+    ctx['express_phase'] = 'manual_required'
+    ctx['express_manual_required'] = True
+    session.conversation_context = ctx
+    session.save(update_fields=['conversation_context'])
+    return {
+        'response': response,
+        'intent': 'guard:express:manual_required',
+        'tool_call_meta': {
+            'name': 'guard',
+            'guard': 'express',
+            'phase': 'manual_required',
+        },
+    }
+
+
+def _clear_express_state(session):
+    """Limpia el flujo express del conversation_context."""
+    ctx = session.conversation_context or {}
+    for k in (
+        'express_phase', 'express_draft', 'express_dni',
+        'express_full_name', 'express_attempt_count',
+        'express_manual_required',
+    ):
+        ctx.pop(k, None)
+    session.conversation_context = ctx
+    session.save(update_fields=['conversation_context'])
+
+
+def _build_full_name_from_reniec(data):
+    """Concatena preNombres + apePaterno + apeMaterno → string limpio."""
+    nombres = (data.get('preNombres') or '').strip()
+    ap_p = (data.get('apePaterno') or '').strip()
+    ap_m = (data.get('apeMaterno') or '').strip()
+    parts = [p for p in (nombres, ap_p, ap_m) if p]
+    return ' '.join(parts) if parts else ''
+
+
+def try_express_dni_flow(session, last_user_text):
+    """G_EXPRESS — flujo de Reserva Express con DNI para clientes nuevos.
+
+    Máquina de estados controlada por session.conversation_context.
+    Si el feature flag está OFF, NO entra (return None) y todo cae a R1.0.
+    """
+    from django.conf import settings
+
+    if not getattr(settings, 'EXPRESS_RESERVATION_ENABLED', False):
+        return None
+    if not last_user_text:
+        return None
+    if not session:
+        return None
+
+    ctx = session.conversation_context or {}
+    phase = ctx.get('express_phase')
+
+    # === Stale state cleanup: si recotizó otras fechas, limpiar ===
+    if phase and phase != 'manual_required':
+        quote = _get_full_last_quote(session)
+        draft_check_in = (ctx.get('express_draft') or {}).get('check_in')
+        if quote and draft_check_in and quote['check_in'] != draft_check_in:
+            logger.info(
+                f"G_EXPRESS stale state: cotización cambió, reset. "
+                f"session={session.id}"
+            )
+            _clear_express_state(session)
+            return None  # cae al modelo / otros guards
+
+    # === Phase: manual_required ===
+    # Cliente ya fue derivado a WhatsApp. Limpiar y dejar al modelo manejar
+    # el siguiente mensaje (excepto que el cliente vuelva a afirmar reservar
+    # y eso reabra el flujo, lo cual queremos permitir).
+    if phase == 'manual_required':
+        # Si vuelve a afirmar, dar otra oportunidad (reset).
+        if _AFFIRMATIVE_RE.search(last_user_text):
+            _clear_express_state(session)
+            # cae a phase=None abajo → re-entry
+        else:
+            return None
+
+    # === Re-evaluar phase tras posible clear ===
+    ctx = session.conversation_context or {}
+    phase = ctx.get('express_phase')
+
+    # === Entry inicial: sin estado, cliente afirma + cotización + sin session.client ===
+    if not phase:
+        if session.client_id:
+            return None  # cliente existente → R4.1 maneja, no R4.2
+        if not _AFFIRMATIVE_RE.search(last_user_text):
+            return None
+        quote = _get_full_last_quote(session)
+        if not quote:
+            return None
+        # Setear estado y pedir DNI
+        ctx['express_phase'] = 'awaiting_dni'
+        ctx['express_draft'] = {
+            'check_in': quote['check_in'],
+            'check_out': quote['check_out'],
+            'guests': quote['guests'],
+            'booking_url': quote.get('booking_url'),
+            'source': 'chatbot',
+        }
+        ctx['express_attempt_count'] = 0
+        session.conversation_context = ctx
+        session.save(update_fields=['conversation_context'])
+        logger.info(
+            f"G_EXPRESS phase=awaiting_dni session={session.id} "
+            f"check_in={quote['check_in']}"
+        )
+        return {
+            'response': (
+                "Perfecto 😊 Para preparar tu reserva más rápido, "
+                "¿me compartes tu DNI?"
+            ),
+            'intent': 'guard:express:ask_dni',
+            'tool_call_meta': {
+                'name': 'guard', 'guard': 'express',
+                'phase': 'awaiting_dni',
+            },
+        }
+
+    # === Phase: awaiting_dni ===
+    if phase == 'awaiting_dni':
+        # 1. Cliente indica no-DNI explícito
+        if _NO_DNI_INDICATORS_RE.search(last_user_text):
+            return _express_manual_required_response(session)
+
+        # 2. Cliente declina dar DNI
+        if _DECLINE_DNI_RE.search(last_user_text):
+            _clear_express_state(session)
+            return {
+                'response': (
+                    "No hay problema 😊 Puedes continuar desde el link "
+                    "normal y completar tus datos en el proceso de reserva."
+                ),
+                'intent': 'guard:express:declined',
+                'tool_call_meta': {
+                    'name': 'guard', 'guard': 'express',
+                    'phase': 'declined',
+                },
+            }
+
+        # 3. Extraer DNI (8 dígitos) del texto
+        dni_match = _DNI_DIGITS_RE.search(last_user_text)
+        if not dni_match:
+            return {
+                'response': (
+                    "Para preparar tu reserva express necesito tu DNI "
+                    "de 8 dígitos 😊"
+                ),
+                'intent': 'guard:express:invalid_dni_input',
+                'tool_call_meta': {
+                    'name': 'guard', 'guard': 'express',
+                    'phase': 'awaiting_dni',
+                },
+            }
+
+        dni = dni_match.group(1)
+
+        # 4. Consultar RENIEC
+        try:
+            from apps.reniec.service import ReniecService
+            success, data = ReniecService.lookup(
+                dni=dni,
+                source_app='chatbot_express',
+                source_ip=None,
+                user_agent=f'chatbot/{session.channel}',
+            )
+        except Exception as e:
+            logger.error(f"G_EXPRESS RENIEC error: {e}", exc_info=True)
+            success, data = False, {'error': 'internal'}
+
+        if not success:
+            count = int(ctx.get('express_attempt_count', 0)) + 1
+            ctx['express_attempt_count'] = count
+            session.conversation_context = ctx
+            session.save(update_fields=['conversation_context'])
+            if count >= 2:
+                return _express_manual_required_response(
+                    session,
+                    intro=(
+                        "Para evitar errores con tus datos, escríbenos por "
+                        "WhatsApp y te ayudamos a crear tu cuenta para "
+                        "continuar con la reserva."
+                    ),
+                )
+            logger.info(
+                f"G_EXPRESS RENIEC lookup failed (attempt {count}): {data} "
+                f"session={session.id}"
+            )
+            return {
+                'response': (
+                    "No pude validar ese DNI en este momento. "
+                    "¿Podrías revisarlo y enviarlo nuevamente?"
+                ),
+                'intent': 'guard:express:dni_lookup_failed',
+                'tool_call_meta': {
+                    'name': 'guard', 'guard': 'express',
+                    'phase': 'awaiting_dni',
+                    'attempt': count,
+                },
+            }
+
+        # 5. RENIEC OK — construir nombre y pedir confirmación
+        full_name = _build_full_name_from_reniec(data)
+        if not full_name:
+            count = int(ctx.get('express_attempt_count', 0)) + 1
+            ctx['express_attempt_count'] = count
+            session.conversation_context = ctx
+            session.save(update_fields=['conversation_context'])
+            if count >= 2:
+                return _express_manual_required_response(session)
+            return {
+                'response': (
+                    "No pude validar ese DNI en este momento. "
+                    "¿Podrías revisarlo y enviarlo nuevamente?"
+                ),
+                'intent': 'guard:express:dni_no_name',
+                'tool_call_meta': {
+                    'name': 'guard', 'guard': 'express',
+                    'phase': 'awaiting_dni',
+                },
+            }
+
+        ctx['express_phase'] = 'awaiting_name_confirmation'
+        ctx['express_dni'] = dni
+        ctx['express_full_name'] = full_name
+        ctx['express_attempt_count'] = 0  # reset
+        session.conversation_context = ctx
+        session.save(update_fields=['conversation_context'])
+
+        logger.info(
+            f"G_EXPRESS phase=awaiting_name_confirmation session={session.id} "
+            f"dni={dni[:4]}**** name={full_name}"
+        )
+        return {
+            'response': (
+                f"Gracias 😊 Encontré estos datos:\n\n{full_name}\n\n"
+                f"¿Está correcto?"
+            ),
+            'intent': 'guard:express:ask_name_confirmation',
+            'tool_call_meta': {
+                'name': 'guard', 'guard': 'express',
+                'phase': 'awaiting_name_confirmation',
+            },
+        }
+
+    # === Phase: awaiting_name_confirmation ===
+    if phase == 'awaiting_name_confirmation':
+        # Niega?
+        if _DENY_NAME_RE.search(last_user_text):
+            return _express_manual_required_response(
+                session,
+                intro=(
+                    "Gracias por avisarme 😊 Para evitar errores con tus datos, "
+                    "comunícate con nuestro WhatsApp de reservas para ayudarte "
+                    "a crear la cuenta correctamente."
+                ),
+            )
+
+        # Confirma?
+        if not _CONFIRM_NAME_RE.search(last_user_text):
+            # Reformular pregunta
+            full_name = ctx.get('express_full_name', '')
+            return {
+                'response': (
+                    f"¿El nombre es correcto?\n\n{full_name}\n\n"
+                    "Responde 'sí' o 'no'."
+                ),
+                'intent': 'guard:express:reprompt_confirmation',
+                'tool_call_meta': {
+                    'name': 'guard', 'guard': 'express',
+                    'phase': 'awaiting_name_confirmation',
+                },
+            }
+
+        # === Confirmado → generar magic link express ===
+        dni = ctx.get('express_dni')
+        full_name = ctx.get('express_full_name')
+        draft = ctx.get('express_draft') or {}
+
+        from datetime import datetime as _dt
+        try:
+            check_in = _dt.strptime(draft['check_in'], '%Y-%m-%d').date()
+            check_out = _dt.strptime(draft['check_out'], '%Y-%m-%d').date()
+            guests = int(draft['guests'])
+        except Exception as e:
+            logger.error(f"G_EXPRESS draft parse error: {e}", exc_info=True)
+            _clear_express_state(session)
+            return None
+
+        # Resolver property — del booking_url del quote actual
+        prop = None
+        quote = _get_full_last_quote(session)
+        if quote and 'property=' in (quote.get('booking_url') or ''):
+            m = re.search(r'property=([^&]+)', quote['booking_url'])
+            if m:
+                from apps.property.models import Property
+                prop = Property.objects.filter(
+                    slug=m.group(1), deleted=False,
+                ).first()
+        # Si el quote es multi-casa, prop queda None. El express view
+        # requiere property: si no hay, derivamos al WhatsApp con copy
+        # específico (caso límite — multi-casa fuera del MVP express).
+        if not prop:
+            logger.info(
+                f"G_EXPRESS multi-casa fallback: session={session.id} — "
+                "no property en el quote actual"
+            )
+            _clear_express_state(session)
+            return {
+                'response': (
+                    "Gracias 😊 Para reservar con varias casas disponibles "
+                    "necesito que primero me digas cuál te interesa. "
+                    "Te dejo el link para que elijas:\n\n"
+                    f"{(quote or {}).get('booking_url') or ''}"
+                ),
+                'intent': 'guard:express:multi_casa_fallback',
+                'tool_call_meta': {
+                    'name': 'guard', 'guard': 'express',
+                    'phase': 'multi_casa_fallback',
+                },
+            }
+
+        from apps.clients.magic_link_service import (
+            create_express_magic_link,
+        )
+        try:
+            magic, raw_token, was_reused = create_express_magic_link(
+                chat_session=session,
+                wa_id=session.wa_id,
+                document_number=dni,
+                validated_full_name=full_name,
+                check_in=check_in,
+                check_out=check_out,
+                guests=guests,
+                property=prop,
+            )
+        except ValueError as e:
+            logger.warning(
+                f"G_EXPRESS magic link blocked: {e} session={session.id}"
+            )
+            return _express_manual_required_response(session)
+        except Exception as e:
+            logger.error(
+                f"G_EXPRESS magic link error: {e}", exc_info=True,
+            )
+            _clear_express_state(session)
+            return None
+
+        # Si fue reuso, raw no viene en este request. Buscar en context.
+        if was_reused and not raw_token:
+            cached = ctx.get('active_magic_link') or {}
+            if cached.get('magic_link_id') == str(magic.id):
+                raw_token = cached.get('token')
+            if not raw_token:
+                logger.info(
+                    "G_EXPRESS reuse sin raw cacheado — abortar magic"
+                )
+                _clear_express_state(session)
+                return None
+
+        # Persistir raw + limpiar express state
+        ctx = session.conversation_context or {}
+        ctx['active_magic_link'] = {
+            'magic_link_id': str(magic.id),
+            'token': raw_token,
+            'expires_at': magic.expires_at.isoformat(),
+            'property_slug': prop.slug,
+            'check_in': check_in.isoformat(),
+            'check_out': check_out.isoformat(),
+            'guests': guests,
+            'link_type': 'guest_express',
+        }
+        for k in (
+            'express_phase', 'express_draft', 'express_dni',
+            'express_full_name', 'express_attempt_count',
+            'express_manual_required',
+        ):
+            ctx.pop(k, None)
+        session.conversation_context = ctx
+        session.save(update_fields=['conversation_context'])
+
+        first_name = full_name.split()[0] if full_name else 'amigo'
+        url = f"https://casaaustin.pe/r/{raw_token}"
+        response = (
+            f"Perfecto 😊 Te dejo tu link para completar la reserva:\n\n"
+            f"{url}\n\n"
+            f"Ya dejé tu DNI y nombre precargados; solo confirma los datos "
+            f"y separas con el 50%."
+        )
+
+        logger.info(
+            f"G_EXPRESS (link_sent): session={session.id} "
+            f"magic_link_id={magic.id} reused={was_reused} "
+            f"prop={prop.slug}"
+        )
+
+        return {
+            'response': response,
+            'intent': 'guard:express:link_sent',
+            'tool_call_meta': {
+                'name': 'guard', 'guard': 'express',
+                'phase': 'link_sent',
+                'magic_link_id': str(magic.id),
+                'was_reused': was_reused,
+                'property_slug': prop.slug,
+            },
+        }
+
+    # Phase desconocida → log + reset
+    logger.warning(
+        f"G_EXPRESS phase desconocida: {phase!r} session={session.id}"
+    )
+    _clear_express_state(session)
+    return None
