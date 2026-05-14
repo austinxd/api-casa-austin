@@ -1710,12 +1710,11 @@ def try_express_dni_flow(session, last_user_text):
             return None  # cae al modelo / otros guards
 
     # === Phase: manual_required ===
-    # Cliente ya fue derivado a WhatsApp. Limpiar y dejar al modelo manejar
-    # el siguiente mensaje (excepto que el cliente vuelva a afirmar reservar
-    # y eso reabra el flujo, lo cual queremos permitir).
+    # Cliente ya fue derivado a WhatsApp. Permitir reentry si:
+    #   - vuelve a afirmar ("sí", "quiero reservar")
+    #   - envía un DNI de 8 dígitos (cliente insiste con datos correctos)
     if phase == 'manual_required':
-        # Si vuelve a afirmar, dar otra oportunidad (reset).
-        if _AFFIRMATIVE_RE.search(last_user_text):
+        if _AFFIRMATIVE_RE.search(last_user_text) or _DNI_DIGITS_RE.search(last_user_text):
             _clear_express_state(session)
             # cae a phase=None abajo → re-entry
         else:
@@ -1904,16 +1903,52 @@ def try_express_dni_flow(session, last_user_text):
 
     # === Phase: awaiting_name_confirmation ===
     if phase == 'awaiting_name_confirmation':
-        # Niega?
-        if _DENY_NAME_RE.search(last_user_text):
-            return _express_manual_required_response(
-                session,
-                intro=(
-                    "Gracias por avisarme 😊 Para evitar errores con tus datos, "
-                    "comunícate con nuestro WhatsApp de reservas para ayudarte "
-                    "a crear la cuenta correctamente."
-                ),
+        # Si el cliente envía un DNI nuevo en el mensaje (típico: "no, mi DNI
+        # correcto es 12345678") → reintentar con ese DNI sin derivar a soporte.
+        new_dni_match = _DNI_DIGITS_RE.search(last_user_text)
+        prev_dni = ctx.get('express_dni')
+        if new_dni_match and new_dni_match.group(1) != prev_dni:
+            ctx['express_phase'] = 'awaiting_dni'
+            ctx.pop('express_dni', None)
+            ctx.pop('express_full_name', None)
+            session.conversation_context = ctx
+            session.save(update_fields=['conversation_context'])
+            logger.info(
+                f"G_EXPRESS retry with new DNI session={session.id} "
+                f"prev={prev_dni} new={new_dni_match.group(1)[:4]}****"
             )
+            phase = 'awaiting_dni'  # fallthrough — procesa el nuevo DNI
+
+        # Niega sin enviar DNI nuevo? → da otra oportunidad pidiendo el correcto
+        elif _DENY_NAME_RE.search(last_user_text):
+            count = int(ctx.get('express_attempt_count', 0)) + 1
+            ctx['express_attempt_count'] = count
+            if count >= 2:
+                return _express_manual_required_response(
+                    session,
+                    intro=(
+                        "Gracias por avisarme 😊 Para evitar errores con tus datos, "
+                        "comunícate con nuestro WhatsApp de reservas para ayudarte "
+                        "a crear la cuenta correctamente."
+                    ),
+                )
+            # 1er rechazo: pedir DNI correcto, volver a awaiting_dni
+            ctx['express_phase'] = 'awaiting_dni'
+            ctx.pop('express_dni', None)
+            ctx.pop('express_full_name', None)
+            session.conversation_context = ctx
+            session.save(update_fields=['conversation_context'])
+            return {
+                'response': (
+                    "Disculpa 🙏 ¿Podrías enviarme nuevamente tu DNI "
+                    "de 8 dígitos? Quiero asegurarme de tener los datos correctos."
+                ),
+                'intent': 'guard:express:retry_dni',
+                'tool_call_meta': {
+                    'name': 'guard', 'guard': 'express',
+                    'phase': 'awaiting_dni', 'reason': 'name_denied',
+                },
+            }
 
         # Confirma?
         if not _CONFIRM_NAME_RE.search(last_user_text):
