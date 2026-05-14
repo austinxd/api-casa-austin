@@ -1665,7 +1665,13 @@ def _clear_express_state(session):
 
 
 def _build_full_name_from_reniec(data):
-    """Concatena preNombres + apePaterno + apeMaterno → string limpio."""
+    """Concatena preNombres + apePaterno + apeMaterno → string limpio.
+
+    ReniecService.lookup() retorna el dict envuelto en {'data': {...}}, así
+    que primero desempaquetamos si vemos esa estructura.
+    """
+    if isinstance(data, dict) and isinstance(data.get('data'), dict):
+        data = data['data']
     nombres = (data.get('preNombres') or '').strip()
     ap_p = (data.get('apePaterno') or '').strip()
     ap_m = (data.get('apeMaterno') or '').strip()
