@@ -1725,16 +1725,24 @@ def try_express_dni_flow(session, last_user_text):
     ctx = session.conversation_context or {}
     phase = ctx.get('express_phase')
 
-    # === Entry inicial: sin estado, cliente afirma + cotización + sin session.client ===
+    # === Entry inicial: sin estado, sin session.client, hay cotización ===
     if not phase:
         if session.client_id:
             return None  # cliente existente → R4.1 maneja, no R4.2
-        if not _AFFIRMATIVE_RE.search(last_user_text):
-            return None
         quote = _get_full_last_quote(session)
         if not quote:
             return None
-        # Setear estado y pedir DNI
+
+        # Aceptar dos formas de entrada (sin afirmación previa explícita):
+        #   (a) afirmación explícita ("sí quiero reservar")
+        #   (b) DNI directo de 8 dígitos → afirmación implícita
+        # Esto evita que el LLM intercepte el DNI con identify_client primero.
+        has_affirmative = bool(_AFFIRMATIVE_RE.search(last_user_text))
+        has_dni = bool(_DNI_DIGITS_RE.search(last_user_text))
+        if not (has_affirmative or has_dni):
+            return None
+
+        # Setear estado
         ctx['express_phase'] = 'awaiting_dni'
         ctx['express_draft'] = {
             'check_in': quote['check_in'],
@@ -1748,19 +1756,25 @@ def try_express_dni_flow(session, last_user_text):
         session.save(update_fields=['conversation_context'])
         logger.info(
             f"G_EXPRESS phase=awaiting_dni session={session.id} "
-            f"check_in={quote['check_in']}"
+            f"check_in={quote['check_in']} via={'dni_direct' if has_dni else 'affirm'}"
         )
-        return {
-            'response': (
-                "Perfecto 😊 Para preparar tu reserva más rápido, "
-                "¿me compartes tu DNI?"
-            ),
-            'intent': 'guard:express:ask_dni',
-            'tool_call_meta': {
-                'name': 'guard', 'guard': 'express',
-                'phase': 'awaiting_dni',
-            },
-        }
+
+        # Si el cliente ya mandó el DNI, caer al procesamiento (no pedirlo otra vez)
+        if has_dni:
+            phase = 'awaiting_dni'
+            # continúa al bloque `if phase == 'awaiting_dni'` abajo
+        else:
+            return {
+                'response': (
+                    "Perfecto 😊 Para preparar tu reserva más rápido, "
+                    "¿me compartes tu DNI?"
+                ),
+                'intent': 'guard:express:ask_dni',
+                'tool_call_meta': {
+                    'name': 'guard', 'guard': 'express',
+                    'phase': 'awaiting_dni',
+                },
+            }
 
     # === Phase: awaiting_dni ===
     if phase == 'awaiting_dni':
