@@ -1307,14 +1307,31 @@ _AFFIRMATIVE_SHORT_PATTERNS = [
     r'^\s*porfa\s*$',
     r'^\s*va(?:le|mos)?\s*[.!?]?\s*$',
     r'^\s*perfecto\s*[.!?]?\s*$',
+    # Variantes cortas comunes de "sí" + cortesía/abreviación
+    # NOTA: omitimos 'gracias' y 'amigo' aquí porque 'si gracias' o 'si amigo'
+    # suele ser cortesía indeterminada, no decisión de reservar.
+    r'^\s*s[ií]\s+(?:porfa|por\s*fa(?:vor)?|xfv|x?\s*fa(?:vor)?|pls|please|claro)\s*[.!?]?\s*$',
+    # Interés explícito
+    r'^\s*me\s+(?:gusta|interesa|anim[ao])\b',
+    r'^\s*me\s+gustar[ií]a\b',
+    # Otras formas afirmativas breves
+    r'^\s*ya\s+pues\s*[.!?]?\s*$',
+    r'^\s*genial\s*[.!?]?\s*$',
+    r'^\s*excelente\s*[.!?]?\s*$',
+    r'^\s*adelante\s*[.!?]?\s*$',
+    r'^\s*obvio\s*[.!?]?\s*$',
+    r'^\s*por\s+supuesto\s*[.!?]?\s*$',
+    r'^\s*claro\s+que\s+s[ií]\s*[.!?]?\s*$',
 ]
 
 _AFFIRMATIVE_INTENT_PATTERNS = [
     r'\bquiero\s+(?:reservar|separar|continuar|el\s+link|ese\s+link)',
     r'\bp[aá]same\s+(?:el\s+)?(?:link|enlace)\b',
     r'\b(?:dame|env[ií]ame|m[aá]nda(?:me)?)\s+(?:el\s+)?(?:link|enlace)\b',
-    r'\bs[ií][,\s]+(?:quiero|me\s+animo|por\s+favor)\b',
+    # Usar s[ií] para captar 'si' sin tilde + más palabras
+    r'\bs[ií][,\s]+(?:quiero|me\s+animo|por\s+favor|porfa|por\s+fa|xfv|claro)\b',
     r'\bme\s+anim[oa]\b',
+    r'\b(?:lo\s+)?(?:voy\s+a|quiero|deseo)\s+(?:reservar|separar)\b',
 ]
 
 _AFFIRMATIVE_RE = re.compile(
