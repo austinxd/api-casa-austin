@@ -1890,35 +1890,46 @@ def try_express_dni_flow(session, last_user_text):
 
     # === Phase: awaiting_house ===
     if phase == 'awaiting_house':
-        # Cliente debe elegir casa. Aceptar "Casa N" estricto o laxo ("la 3", "3").
+        # Si el cliente está preguntando algo (fotos, comparaciones, info)
+        # → return None para que G_FAQ / LLM respondan. El awaiting_house se
+        # mantiene en context; cuando el cliente elija casa, volvemos aquí.
+        text_lower = last_user_text.lower().strip()
+        is_question = bool(
+            '?' in last_user_text or '¿' in last_user_text
+            or re.search(
+                r'\b(qu[eé]|cu[aá]l|cu[aá]ntas?|c[oó]mo|d[oó]nde|tiene|tienen|hay|'
+                r'diferencia|incluye|cabe|capacidad|fotos?|videos?|im[aá]genes?|'
+                r'piscina|jacuzzi|parrilla|cochera|wifi|mascot|ni[ñn]os?|'
+                r'precio|cuesta|cu[aá]nto|costo|tama[ñn]o|metros?)\b',
+                text_lower,
+            )
+        )
+
+        # Aceptar "Casa N" estricto o laxo ("la 3", "3")
         casa_num = None
         m = _CASA_REF_RE.search(last_user_text)
         if m:
             casa_num = int(m.group(1))
-        else:
-            lax = _CASA_REF_LAX_RE.search(last_user_text.strip())
+        elif not is_question:
+            lax = _CASA_REF_LAX_RE.search(text_lower)
             if lax:
                 casa_num = int(lax.group(1) or lax.group(2))
 
         if not casa_num:
-            # No reconoció la casa: reformular
-            draft = ctx.get('express_draft') or {}
-            house_names = draft.get('houses_in_quote', []) or []
-            names_str = (
-                ', '.join(house_names[:-1]) + ' o ' + house_names[-1]
-                if len(house_names) > 1 else (house_names[0] if house_names else '')
-            )
-            return {
-                'response': (
-                    f"¿Cuál te interesa: {names_str}? Puedes responder "
-                    f"'Casa 3' por ejemplo."
-                ),
-                'intent': 'guard:express:reprompt_house',
-                'tool_call_meta': {
-                    'name': 'guard', 'guard': 'express',
-                    'phase': 'awaiting_house',
-                },
-            }
+            # No es una elección clara → dejar pasar al LLM/G_FAQ.
+            # Track de turnos para evitar quedar pegado si el cliente nunca elige.
+            ctx['express_house_turns'] = int(ctx.get('express_house_turns', 0)) + 1
+            if ctx['express_house_turns'] >= 6:
+                # Demasiados turnos sin elección → limpiar y devolver al LLM
+                logger.info(
+                    f"G_EXPRESS awaiting_house timeout session={session.id} "
+                    f"turns={ctx['express_house_turns']}"
+                )
+                _clear_express_state(session)
+            else:
+                session.conversation_context = ctx
+                session.save(update_fields=['conversation_context'])
+            return None
 
         # Validar que la casa elegida está en el quote
         draft = ctx.get('express_draft') or {}
