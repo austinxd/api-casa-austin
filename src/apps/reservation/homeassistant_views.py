@@ -1,5 +1,6 @@
 
 from datetime import datetime, time
+from django.core.cache import cache
 from django.db.models import Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -12,6 +13,32 @@ from drf_spectacular.types import OpenApiTypes
 from .models import Reservation
 from apps.property.models import Property, HomeAssistantDevice
 from .homeassistant_service import HomeAssistantService
+
+
+# TTL del cache de estados HA. 8s es suficiente para amortizar polling de
+# los admins (cada uno polea cada 20s) y a la vez se recupera rápido tras
+# un comando: el TTL expira antes que el siguiente fast-poll (cliente
+# polea cada 2s × 30s post-tap).
+_HA_DEVICES_CACHE_TTL = 8
+
+
+def _ha_devices_cache_key(property_id, device_type):
+    """Clave de cache para la lista de devices vista por el admin."""
+    return f"ha_devices:admin:{property_id or 'all'}:{device_type or 'all'}"
+
+
+def invalidate_ha_devices_cache(property_id=None):
+    """Invalida el cache de devices tras un comando o cambio de config.
+
+    Si se pasa property_id invalida todas las combinaciones de device_type
+    para esa property; si no, intenta invalidar 'all' (poca utilidad).
+
+    NOTA: con LocMemCache (default Django) la invalidación solo afecta al
+    worker actual. Como el TTL es corto (8s), el resto se sincroniza solo.
+    """
+    # Variantes comunes de device_type que usa el frontend
+    for dt in (None, 'light', 'switch', 'climate', 'cover', 'lock'):
+        cache.delete(_ha_devices_cache_key(property_id, dt))
 from .permissions import HasActiveReservationMixin
 from .homeassistant_serializers import (
     ClientDeviceSerializer,
@@ -348,6 +375,13 @@ class AdminHADeviceListView(APIView):
         property_id = request.query_params.get('property_id')
         device_type = request.query_params.get('device_type')
 
+        # Cache de respuestas (~8s) para evitar martillar HomeAssistant cada
+        # vez que la app polea. Se invalida al recibir un POST de control.
+        cache_key = _ha_devices_cache_key(property_id, device_type)
+        cached_payload = cache.get(cache_key)
+        if cached_payload is not None:
+            return Response(cached_payload)
+
         queryset = HomeAssistantDevice.objects.filter(deleted=False).select_related('property')
 
         if property_id:
@@ -416,12 +450,14 @@ class AdminHADeviceListView(APIView):
                 "sensor_attributes": sensor_state_info.get('attributes', {}) if sensor_state_info else None,
             })
 
-        return Response({
+        payload = {
             "count": len(devices_data),
             "has_active_reservation": has_active_reservation,
             "temperature_pool_active": temperature_pool_active,
-            "devices": devices_data
-        })
+            "devices": devices_data,
+        }
+        cache.set(cache_key, payload, _HA_DEVICES_CACHE_TTL)
+        return Response(payload)
 
 
 class AdminHADeviceControlView(APIView):
@@ -529,6 +565,14 @@ class AdminHADeviceControlView(APIView):
                 result = ha_service.toggle(device.entity_id)
             
             new_state = ha_service.get_entity_state(device.entity_id)
+
+            # Invalida la cache de devices para esta property. El próximo
+            # GET vuelve a HA y trae el estado fresco. (Solo afecta al
+            # worker actual con LocMemCache, pero el TTL corto sincroniza
+            # al resto en <8s.)
+            invalidate_ha_devices_cache(
+                property_id=str(device.property_id) if device.property_id else None
+            )
 
             # Obtener estado del sensor asociado si existe
             sensor_state = None
