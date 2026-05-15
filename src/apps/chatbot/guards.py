@@ -1664,6 +1664,77 @@ def _clear_express_state(session):
     session.save(update_fields=['conversation_context'])
 
 
+def _resolve_express_property(session, quote, last_user_text):
+    """Resuelve la Property para Reserva Express buscando en este orden:
+
+    1) URL del quote tiene `property=slug` → single-casa.
+    2) Quote single-casa (1 house) → resolver por número del nombre.
+    3) Mensaje actual del cliente menciona "Casa N" y esa casa está en el quote.
+    4) Historial reciente (últimos 8 mensajes inbound) menciona "Casa N" y
+       esa casa está en el quote.
+
+    Returns:
+        Property | None
+    """
+    from apps.property.models import Property
+
+    if not quote:
+        return None
+
+    houses = quote.get('houses', []) or []
+
+    # (1) URL trae property=
+    if 'property=' in (quote.get('booking_url') or ''):
+        m = re.search(r'property=([^&]+)', quote['booking_url'])
+        if m:
+            p = Property.objects.filter(slug=m.group(1), deleted=False).first()
+            if p:
+                return p
+
+    # (2) Quote single-casa → resolver por número del nombre
+    if len(houses) == 1:
+        name = houses[0].get('name', '') or ''
+        num_m = re.search(r'(\d)', name)
+        if num_m:
+            p = _resolve_property_by_num(num_m.group(1))
+            if p:
+                return p
+
+    # Helper: ¿esa casa N está en el quote actual?
+    def _casa_in_quote(num):
+        return any(re.search(rf'\b{num}\b', h.get('name', '') or '') for h in houses)
+
+    # (3) Mensaje actual menciona "Casa N"
+    if last_user_text:
+        m = _CASA_REF_RE.search(last_user_text)
+        if m:
+            num = int(m.group(1))
+            if _casa_in_quote(num):
+                return _resolve_property_by_num(num)
+        # Forma laxa: "la 3", "3" — solo aplica si quote es multi-casa
+        if len(houses) > 1:
+            lax = _CASA_REF_LAX_RE.search(last_user_text.strip())
+            if lax:
+                num = int(lax.group(1) or lax.group(2))
+                if _casa_in_quote(num):
+                    return _resolve_property_by_num(num)
+
+    # (4) Historial inbound reciente
+    inbound = ChatMessage.objects.filter(
+        session=session, deleted=False,
+        direction=ChatMessage.DirectionChoices.INBOUND,
+    ).order_by('-created')[:8]
+    for msg in inbound:
+        text = (msg.content or '')
+        m = _CASA_REF_RE.search(text)
+        if m:
+            num = int(m.group(1))
+            if _casa_in_quote(num):
+                return _resolve_property_by_num(num)
+
+    return None
+
+
 def _build_full_name_from_reniec(data):
     """Concatena preNombres + apePaterno + apeMaterno → string limpio.
 
@@ -1741,13 +1812,54 @@ def try_express_dni_flow(session, last_user_text):
         if not (has_affirmative or has_dni):
             return None
 
-        # Setear estado
+        # Resolver property antes de continuar (clave para multi-casa)
+        prop = _resolve_express_property(session, quote, last_user_text)
+        houses_count = len(quote.get('houses', []) or [])
+
+        # Si es multi-casa y no podemos identificar la elegida → preguntar
+        # qué casa ANTES de pedir DNI (evita derivar a manual al final).
+        if not prop and houses_count > 1 and not has_dni:
+            ctx['express_phase'] = 'awaiting_house'
+            ctx['express_draft'] = {
+                'check_in': quote['check_in'],
+                'check_out': quote['check_out'],
+                'guests': quote['guests'],
+                'houses_in_quote': [h.get('name', '') for h in quote.get('houses', [])],
+                'booking_url': quote.get('booking_url'),
+                'source': 'chatbot',
+            }
+            ctx['express_attempt_count'] = 0
+            session.conversation_context = ctx
+            session.save(update_fields=['conversation_context'])
+            house_names = [h.get('name', '') for h in quote['houses']]
+            names_str = (
+                ', '.join(house_names[:-1]) + ' o ' + house_names[-1]
+                if len(house_names) > 1 else (house_names[0] if house_names else '')
+            )
+            logger.info(
+                f"G_EXPRESS phase=awaiting_house session={session.id} "
+                f"houses={houses_count}"
+            )
+            return {
+                'response': (
+                    f"¡Genial! 😊 ¿Qué casa te interesa: {names_str}?"
+                ),
+                'intent': 'guard:express:ask_house',
+                'tool_call_meta': {
+                    'name': 'guard', 'guard': 'express',
+                    'phase': 'awaiting_house',
+                    'houses_count': houses_count,
+                },
+            }
+
+        # Setear estado normal (single-casa o casa ya elegida)
         ctx['express_phase'] = 'awaiting_dni'
         ctx['express_draft'] = {
             'check_in': quote['check_in'],
             'check_out': quote['check_out'],
             'guests': quote['guests'],
             'booking_url': quote.get('booking_url'),
+            'property_slug': prop.slug if prop else None,
             'source': 'chatbot',
         }
         ctx['express_attempt_count'] = 0
@@ -1755,7 +1867,8 @@ def try_express_dni_flow(session, last_user_text):
         session.save(update_fields=['conversation_context'])
         logger.info(
             f"G_EXPRESS phase=awaiting_dni session={session.id} "
-            f"check_in={quote['check_in']} via={'dni_direct' if has_dni else 'affirm'}"
+            f"check_in={quote['check_in']} prop={prop.slug if prop else 'none'} "
+            f"via={'dni_direct' if has_dni else 'affirm'}"
         )
 
         # Si el cliente ya mandó el DNI, caer al procesamiento (no pedirlo otra vez)
@@ -1774,6 +1887,86 @@ def try_express_dni_flow(session, last_user_text):
                     'phase': 'awaiting_dni',
                 },
             }
+
+    # === Phase: awaiting_house ===
+    if phase == 'awaiting_house':
+        # Cliente debe elegir casa. Aceptar "Casa N" estricto o laxo ("la 3", "3").
+        casa_num = None
+        m = _CASA_REF_RE.search(last_user_text)
+        if m:
+            casa_num = int(m.group(1))
+        else:
+            lax = _CASA_REF_LAX_RE.search(last_user_text.strip())
+            if lax:
+                casa_num = int(lax.group(1) or lax.group(2))
+
+        if not casa_num:
+            # No reconoció la casa: reformular
+            draft = ctx.get('express_draft') or {}
+            house_names = draft.get('houses_in_quote', []) or []
+            names_str = (
+                ', '.join(house_names[:-1]) + ' o ' + house_names[-1]
+                if len(house_names) > 1 else (house_names[0] if house_names else '')
+            )
+            return {
+                'response': (
+                    f"¿Cuál te interesa: {names_str}? Puedes responder "
+                    f"'Casa 3' por ejemplo."
+                ),
+                'intent': 'guard:express:reprompt_house',
+                'tool_call_meta': {
+                    'name': 'guard', 'guard': 'express',
+                    'phase': 'awaiting_house',
+                },
+            }
+
+        # Validar que la casa elegida está en el quote
+        draft = ctx.get('express_draft') or {}
+        house_names = draft.get('houses_in_quote', []) or []
+        in_quote = any(re.search(rf'\b{casa_num}\b', n) for n in house_names)
+        if not in_quote:
+            names_str = (
+                ', '.join(house_names[:-1]) + ' o ' + house_names[-1]
+                if len(house_names) > 1 else (house_names[0] if house_names else '')
+            )
+            return {
+                'response': (
+                    f"Esa casa no está disponible para esas fechas. "
+                    f"De las disponibles: {names_str}. ¿Cuál prefieres?"
+                ),
+                'intent': 'guard:express:house_not_in_quote',
+                'tool_call_meta': {
+                    'name': 'guard', 'guard': 'express',
+                    'phase': 'awaiting_house',
+                },
+            }
+
+        prop = _resolve_property_by_num(casa_num)
+        if not prop:
+            return None  # fallback al LLM, raro pero seguro
+
+        # Casa elegida → avanzar a awaiting_dni
+        draft['property_slug'] = prop.slug
+        ctx['express_draft'] = draft
+        ctx['express_phase'] = 'awaiting_dni'
+        session.conversation_context = ctx
+        session.save(update_fields=['conversation_context'])
+        logger.info(
+            f"G_EXPRESS awaiting_house→awaiting_dni session={session.id} "
+            f"casa={casa_num} prop={prop.slug}"
+        )
+        return {
+            'response': (
+                f"¡Perfecto, Casa {casa_num}! 😊 Para preparar tu reserva "
+                f"express, ¿me compartes tu DNI?"
+            ),
+            'intent': 'guard:express:ask_dni',
+            'tool_call_meta': {
+                'name': 'guard', 'guard': 'express',
+                'phase': 'awaiting_dni',
+                'property_slug': prop.slug,
+            },
+        }
 
     # === Phase: awaiting_dni ===
     if phase == 'awaiting_dni':
@@ -1981,19 +2174,17 @@ def try_express_dni_flow(session, last_user_text):
             _clear_express_state(session)
             return None
 
-        # Resolver property — del booking_url del quote actual
+        # Resolver property: 1) del draft (si ya se eligió antes),
+        # 2) buscando en URL/historial via helper.
         prop = None
         quote = _get_full_last_quote(session)
-        if quote and 'property=' in (quote.get('booking_url') or ''):
-            m = re.search(r'property=([^&]+)', quote['booking_url'])
-            if m:
-                from apps.property.models import Property
-                prop = Property.objects.filter(
-                    slug=m.group(1), deleted=False,
-                ).first()
-        # Si el quote es multi-casa, prop queda None. El express view
-        # requiere property: si no hay, derivamos al WhatsApp con copy
-        # específico (caso límite — multi-casa fuera del MVP express).
+        draft_slug = draft.get('property_slug')
+        if draft_slug:
+            from apps.property.models import Property
+            prop = Property.objects.filter(slug=draft_slug, deleted=False).first()
+        if not prop:
+            prop = _resolve_express_property(session, quote, last_user_text)
+        # Si tampoco se pudo resolver, derivamos al fallback multi-casa.
         if not prop:
             logger.info(
                 f"G_EXPRESS multi-casa fallback: session={session.id} — "
