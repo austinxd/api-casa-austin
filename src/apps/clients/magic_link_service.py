@@ -151,27 +151,33 @@ def find_or_create_magic_link(
                 "no se genera magic link por seguridad.",
             )
     elif link_type == 'guest_express':
-        # R4.2: solo DNI peruano de 8 dígitos validado.
-        if document_type != 'dni':
-            raise MagicLinkSecurityError(
-                'invalid_document_type',
-                "R4.2 express solo soporta document_type='dni'.",
-            )
-        if not document_number or not document_number.isdigit() or len(document_number) != 8:
-            raise MagicLinkSecurityError(
-                'invalid_dni',
-                f"DNI debe ser 8 dígitos numéricos. Recibido: {document_number!r}",
-            )
-        if not validated_full_name or not validated_full_name.strip():
-            raise MagicLinkSecurityError(
-                'missing_validated_name',
-                "validated_full_name es requerido para guest_express.",
-            )
+        # R4.2 — guest_express soporta 2 modos:
+        #   (a) DNI prevalidado: document_number + validated_full_name → form
+        #       prellenado. Permite que el cliente solo confirme y pague.
+        #   (b) ANÓNIMO: sin DNI ni nombre. Form completo en el frontend.
+        #       Útil cuando el cliente no quiere/no puede dar DNI por chat.
         if client is not None:
             raise MagicLinkSecurityError(
                 'client_must_be_null_for_express',
                 "Para guest_express, client debe ser None (se crea al confirmar).",
             )
+        if document_number:
+            # Modo (a): si trae DNI, validamos formato y nombre
+            if document_type != 'dni':
+                raise MagicLinkSecurityError(
+                    'invalid_document_type',
+                    "R4.2 express con DNI solo soporta document_type='dni'.",
+                )
+            if not document_number.isdigit() or len(document_number) != 8:
+                raise MagicLinkSecurityError(
+                    'invalid_dni',
+                    f"DNI debe ser 8 dígitos numéricos. Recibido: {document_number!r}",
+                )
+            if not validated_full_name or not validated_full_name.strip():
+                raise MagicLinkSecurityError(
+                    'missing_validated_name',
+                    "Si pasas document_number, validated_full_name es requerido.",
+                )
     else:
         raise ValueError(
             f"link_type inválido: {link_type!r}. "
@@ -273,19 +279,25 @@ def create_express_magic_link(
     *,
     chat_session,
     wa_id,
-    document_number,
-    validated_full_name,
     check_in,
     check_out,
     guests,
     property=None,
+    document_number=None,
+    validated_full_name=None,
     created_ip=None,
 ):
     """Convenience wrapper para crear/reusar magic links express (R4.2).
 
-    Pre-condición: el DNI ya fue validado contra RENIEC y el cliente
-    confirmó el nombre en el chat. El caller (chatbot guard) garantiza
-    que validated_full_name viene de RENIEC, no de input del cliente.
+    Soporta 2 modos:
+      (a) DNI prevalidado: pasar document_number + validated_full_name
+          (deben venir de RENIEC + confirmación del cliente en chat).
+          El form en frontend queda prellenado.
+      (b) Anónimo: omitir document_number. El cliente completará todos
+          los datos en el formulario web.
+
+    Property también es opcional. Si se omite, el frontend muestra
+    selector de casa.
     """
     return find_or_create_magic_link(
         chat_session=chat_session,
@@ -296,7 +308,7 @@ def create_express_magic_link(
         property=property,
         client=None,
         link_type='guest_express',
-        document_type='dni',
+        document_type='dni' if document_number else None,
         document_number=document_number,
         validated_full_name=validated_full_name,
         created_ip=created_ip,
