@@ -1327,7 +1327,8 @@ _AFFIRMATIVE_SHORT_PATTERNS = [
 _AFFIRMATIVE_INTENT_PATTERNS = [
     r'\bquiero\s+(?:reservar|separar|continuar|el\s+link|ese\s+link)',
     r'\bp[aá]same\s+(?:el\s+)?(?:link|enlace)\b',
-    r'\b(?:dame|env[ií]ame|m[aá]nda(?:me)?)\s+(?:el\s+)?(?:link|enlace)\b',
+    # Verbos comunes para pedir el link: dame, déjame, envíame, mándame, manda
+    r'\b(?:dame|d[eé]jame|env[ií]ame|m[aá]nda(?:me)?)\s+(?:el\s+)?(?:link|enlace)\b',
     # Usar s[ií] para captar 'si' sin tilde + más palabras
     r'\bs[ií][,\s]+(?:quiero|me\s+animo|por\s+favor|porfa|por\s+fa|xfv|claro)\b',
     r'\bme\s+anim[oa]\b',
@@ -1674,7 +1675,8 @@ def _clear_express_state(session):
     for k in (
         'express_phase', 'express_draft', 'express_dni',
         'express_full_name', 'express_attempt_count',
-        'express_manual_required',
+        'express_manual_required', 'express_house_turns',
+        'express_invalid_dni_count',
     ):
         ctx.pop(k, None)
     session.conversation_context = ctx
@@ -2020,15 +2022,33 @@ def try_express_dni_flow(session, last_user_text):
         # 3. Extraer DNI (8 dígitos) del texto
         dni_match = _DNI_DIGITS_RE.search(last_user_text)
         if not dni_match:
+            # Contador de intentos fallidos: tras 3, dejar pasar al LLM
+            # para que conteste lo que el cliente esté preguntando, en vez
+            # de quedar pegado repitiendo "necesito tu DNI".
+            invalid_count = int(ctx.get('express_invalid_dni_count', 0)) + 1
+            ctx['express_invalid_dni_count'] = invalid_count
+            session.conversation_context = ctx
+            session.save(update_fields=['conversation_context'])
+            if invalid_count >= 3:
+                # Limpiar state y dejar que el LLM tome el control. El cliente
+                # claramente no está enviando DNI; quizás está preguntando otra
+                # cosa o tiene pasaporte/CE.
+                logger.info(
+                    f"G_EXPRESS awaiting_dni → fallback al LLM tras "
+                    f"{invalid_count} intentos session={session.id}"
+                )
+                _clear_express_state(session)
+                return None
             return {
                 'response': (
                     "Para preparar tu reserva express necesito tu DNI "
-                    "de 8 dígitos 😊"
+                    "de 8 dígitos 😊 Si tienes pasaporte o carnet de "
+                    "extranjería, dime 'no tengo DNI' y te ayudo de otra forma."
                 ),
                 'intent': 'guard:express:invalid_dni_input',
                 'tool_call_meta': {
                     'name': 'guard', 'guard': 'express',
-                    'phase': 'awaiting_dni',
+                    'phase': 'awaiting_dni', 'attempt': invalid_count,
                 },
             }
 
