@@ -348,7 +348,7 @@ class ChatFunnelView(APIView):
       1. Sesiones iniciadas    (cualquier mensaje inbound)
       2. Cotización entregada  (bot envió check_availability)
       3. Magic link generado   (ReservationMagicLink creado)
-      4. Magic link abierto    (ReservationMagicLink redeemed_at)
+      4. Magic link abierto    (ReservationMagicLink used_at)
       5. Reserva creada        (Reservation status=incomplete)
       6. Voucher subido / pago aprobado (status=approved)
 
@@ -408,13 +408,13 @@ class ChatFunnelView(APIView):
                 created__lt=end,
             ).count()
 
-        # === Etapa 4: magic links abiertos (redeemed_at no null) ===
+        # === Etapa 4: magic links abiertos (use_count > 0 o used_at no null) ===
         def count_magic_links_opened(start, end):
             return ReservationMagicLink.objects.filter(
                 deleted=False,
                 created__gte=start,
                 created__lt=end,
-                redeemed_at__isnull=False,
+                used_at__isnull=False,
             ).count()
 
         # === Etapa 5: reservas creadas (cualquier status) ===
@@ -488,7 +488,7 @@ class ChatFunnelView(APIView):
             .values('link_type')
             .annotate(
                 count=Count('id'),
-                opened=Count('id', filter=Q(redeemed_at__isnull=False)),
+                opened=Count('id', filter=Q(used_at__isnull=False)),
             )
         )
 
