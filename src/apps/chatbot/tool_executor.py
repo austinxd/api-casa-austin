@@ -1062,11 +1062,23 @@ class ToolExecutor:
 
             if magic_url:
                 # Magic link tiene precedencia: prellena datos del cliente
-                # y reserva precio por 4h.
+                # y reserva precio por la duración configurada (default 4h).
+                # Calculamos horas exactas restantes desde expires_at del link
+                # (importante cuando se reusa un link previo: las horas
+                # decrecen, no se renuevan).
+                try:
+                    from django.utils import timezone as _tz_mod
+                    _remaining = _magic.expires_at - _tz_mod.now()
+                    _hours_left = max(1, int(_remaining.total_seconds() // 3600))
+                except Exception:
+                    _hours_left = 4
+                _expiry_label = (
+                    f"{_hours_left} hora{'s' if _hours_left > 1 else ''}"
+                )
                 if single_slug:
-                    lines.append("🔗 Asegura tu reserva con un toque:")
+                    lines.append(f"🔗 Asegura tu fecha (link válido por {_expiry_label}):")
                 else:
-                    lines.append("🔗 Te dejo tu link para reservar:")
+                    lines.append(f"🔗 Te dejo tu link de reserva (válido por {_expiry_label}):")
                 lines.append(magic_url)
             elif single_slug:
                 lines.append("🔗 Reserva directa:")
