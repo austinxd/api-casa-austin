@@ -158,6 +158,11 @@ class VoucherExportAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    # Cuántos vouchers nuevos se procesan con IA por request. Limitar evita
+    # exceder el timeout de gunicorn cuando hay decenas pendientes. El
+    # cliente puede llamar de nuevo y los procesados quedan cacheados.
+    MAX_AI_CALLS_PER_REQUEST = 15
+
     def get(self, request):
         try:
             year = int(request.query_params.get('year') or 0)
@@ -171,6 +176,16 @@ class VoucherExportAPIView(APIView):
             return Response(
                 {'error': 'year/month fuera de rango'}, status=400,
             )
+        # ?limit permite override (ej: 1 para debugging, 50 para batch grande)
+        try:
+            limit = int(
+                request.query_params.get('limit') or self.MAX_AI_CALLS_PER_REQUEST,
+            )
+        except (TypeError, ValueError):
+            limit = self.MAX_AI_CALLS_PER_REQUEST
+        limit = max(0, min(limit, 100))
+        # ?skip_ai=1 omite el procesamiento IA: devuelve solo lo ya cacheado.
+        skip_ai = request.query_params.get('skip_ai') in ('1', 'true', 'yes')
 
         last_day = calendar.monthrange(year, month)[1]
         start = datetime(year, month, 1)
@@ -196,22 +211,34 @@ class VoucherExportAPIView(APIView):
             ).append(receipt)
 
         # === Procesar con IA los vouchers no analizados ===
-        # (Hacemos esto antes de armar filas para que las filas ya traigan
-        # los datos. Si OpenAI falla en un voucher, queda con ai_error.)
+        # Limitamos a `limit` por request para evitar timeouts. El cliente
+        # puede llamar al endpoint de nuevo y los ya procesados quedan
+        # cacheados, así que cada llamada avanza un poco más.
         processed_count = 0
-        for receipts in receipts_by_reservation.values():
-            for receipt in receipts:
-                if receipt.ai_processed_at:
-                    continue
-                try:
-                    analyze_voucher(receipt)
-                    processed_count += 1
-                except Exception as e:
-                    # No bloqueamos el export por un voucher
-                    logger.error(
-                        f"Voucher {receipt.id} análisis falló: {e}",
-                        exc_info=True,
-                    )
+        pending_count = 0
+        if not skip_ai:
+            for receipts in receipts_by_reservation.values():
+                for receipt in receipts:
+                    if receipt.ai_processed_at:
+                        continue
+                    if processed_count >= limit:
+                        pending_count += 1
+                        continue
+                    try:
+                        analyze_voucher(receipt)
+                        processed_count += 1
+                    except Exception as e:
+                        # No bloqueamos el export por un voucher.
+                        logger.error(
+                            f"Voucher {receipt.id} análisis falló: {e}",
+                            exc_info=True,
+                        )
+        else:
+            # Solo contamos pendientes para informar al frontend.
+            for receipts in receipts_by_reservation.values():
+                for receipt in receipts:
+                    if not receipt.ai_processed_at:
+                        pending_count += 1
 
         # === Armar filas ===
         rows = []
@@ -232,5 +259,7 @@ class VoucherExportAPIView(APIView):
             'count_reservations': reservations.count(),
             'count_rows': len(rows),
             'count_vouchers_processed_now': processed_count,
+            'count_vouchers_pending': pending_count,
+            'limit_used': limit,
             'rows': rows,
         })
