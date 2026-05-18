@@ -99,6 +99,25 @@ class RedeemMagicLinkView(APIView):
                 f"MagicLink redeemed (guest_express): id={magic.id} "
                 f"dni={dni_masked} ip={ip}"
             )
+            # Meta CAPI: 'InitiateCheckout' cuando el cliente abre el link
+            try:
+                from apps.reservation.signals import send_funnel_event_to_meta
+                send_funnel_event_to_meta(
+                    event_name='InitiateCheckout',
+                    phone=magic.wa_id,
+                    first_name=(full_name.split()[0] if full_name else None),
+                    last_name=(' '.join(full_name.split()[1:])
+                               if full_name and len(full_name.split()) > 1 else None),
+                    event_id=f"checkout_magic_{magic.id}",
+                    event_source_url=request.META.get('HTTP_REFERER') or None,
+                    custom_data={
+                        'magic_link_id': str(magic.id),
+                        'link_type': 'guest_express',
+                        'property_slug': prop.slug if prop else None,
+                    },
+                )
+            except Exception as e:
+                logger.warning(f"Meta CAPI InitiateCheckout failed (no-op): {e}")
             return Response({
                 'link_type': 'guest_express',
                 'requires_confirmation': True,

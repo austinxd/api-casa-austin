@@ -1850,6 +1850,27 @@ def _emit_express_link(session, ctx, dni=None, full_name=None, prop=None):
         f"prop={prop.slug if prop else 'none'} has_dni={bool(dni)}"
     )
 
+    # Meta CAPI: evento 'Lead' cuando el bot entrega el magic link al cliente.
+    # Esto le da señales de interés temprano al algoritmo de Meta Ads.
+    try:
+        from apps.reservation.signals import send_funnel_event_to_meta
+        send_funnel_event_to_meta(
+            event_name='Lead',
+            phone=session.wa_id,
+            first_name=(full_name.split()[0] if full_name else None),
+            last_name=(' '.join(full_name.split()[1:]) if full_name and len(full_name.split()) > 1 else None),
+            event_id=f"lead_magic_{magic.id}",
+            custom_data={
+                'magic_link_id': str(magic.id),
+                'link_type': 'guest_express',
+                'reused': was_reused,
+                'has_dni_prevalidated': bool(dni),
+                'property_slug': prop.slug if prop else None,
+            },
+        )
+    except Exception as e:
+        logger.warning(f"Meta CAPI Lead failed (no-op): {e}")
+
     return {
         'response': msg,
         'intent': 'guard:express:link_sent',

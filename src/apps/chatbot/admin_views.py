@@ -338,6 +338,170 @@ class ChatAnalyticsView(APIView):
         )
 
 
+class ChatFunnelView(APIView):
+    """GET /chatbot/funnel/?days=30 — Embudo de conversión del chatbot.
+
+    Calcula tasas de conversión entre cada etapa del funnel para tomar
+    decisiones de optimización basadas en datos.
+
+    Etapas:
+      1. Sesiones iniciadas    (cualquier mensaje inbound)
+      2. Cotización entregada  (bot envió check_availability)
+      3. Magic link generado   (ReservationMagicLink creado)
+      4. Magic link abierto    (ReservationMagicLink redeemed_at)
+      5. Reserva creada        (Reservation status=incomplete)
+      6. Voucher subido / pago aprobado (status=approved)
+
+    Devuelve además:
+      - Comparación vs período anterior (mismo nro de días).
+      - Tasas de conversión entre pasos.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.clients.magic_link_models import ReservationMagicLink
+        from apps.reservation.models import Reservation
+
+        try:
+            days = int(request.query_params.get('days', 30))
+        except (TypeError, ValueError):
+            days = 30
+        days = max(1, min(365, days))
+
+        now = timezone.now()
+        period_start = now - timedelta(days=days)
+        prev_start = now - timedelta(days=days * 2)
+
+        # === Etapa 1: sesiones con al menos 1 inbound (cliente escribió) ===
+        def count_sessions_with_inbound(start, end):
+            return ChatSession.objects.filter(
+                deleted=False,
+                messages__direction=ChatMessage.DirectionChoices.INBOUND,
+                messages__deleted=False,
+                messages__created__gte=start,
+                messages__created__lt=end,
+            ).distinct().count()
+
+        # === Etapa 2: sesiones que recibieron al menos 1 cotización ===
+        def count_sessions_with_quote(start, end):
+            return ChatMessage.objects.filter(
+                deleted=False,
+                direction=ChatMessage.DirectionChoices.OUTBOUND_AI,
+                created__gte=start,
+                created__lt=end,
+                tool_calls__icontains='check_availability',
+            ).values('session_id').distinct().count()
+
+        # === Etapa 3: magic links generados ===
+        def count_magic_links(start, end):
+            return ReservationMagicLink.objects.filter(
+                deleted=False,
+                created__gte=start,
+                created__lt=end,
+            ).count()
+
+        # === Etapa 4: magic links abiertos (redeemed_at no null) ===
+        def count_magic_links_opened(start, end):
+            return ReservationMagicLink.objects.filter(
+                deleted=False,
+                created__gte=start,
+                created__lt=end,
+                redeemed_at__isnull=False,
+            ).count()
+
+        # === Etapa 5: reservas creadas (cualquier status) ===
+        def count_reservations(start, end):
+            return Reservation.objects.filter(
+                deleted=False,
+                created__gte=start,
+                created__lt=end,
+                chatbot_session__isnull=False,
+            ).count()
+
+        # === Etapa 6: reservas pagadas (voucher subido o aprobada) ===
+        def count_paid(start, end):
+            return Reservation.objects.filter(
+                deleted=False,
+                created__gte=start,
+                created__lt=end,
+                chatbot_session__isnull=False,
+                status__in=['approved', 'pago_confirmado', 'pagado', 'confirmed'],
+            ).count()
+
+        def build_period(start, end):
+            s1 = count_sessions_with_inbound(start, end)
+            s2 = count_sessions_with_quote(start, end)
+            s3 = count_magic_links(start, end)
+            s4 = count_magic_links_opened(start, end)
+            s5 = count_reservations(start, end)
+            s6 = count_paid(start, end)
+            return {
+                'sessions_total': s1,
+                'sessions_with_quote': s2,
+                'magic_links_created': s3,
+                'magic_links_opened': s4,
+                'reservations_created': s5,
+                'reservations_paid': s6,
+            }
+
+        current = build_period(period_start, now)
+        previous = build_period(prev_start, period_start)
+
+        def pct(num, den):
+            if not den:
+                return 0.0
+            return round((num / den) * 100, 1)
+
+        def delta(curr, prev):
+            if not prev:
+                return None
+            return round(((curr - prev) / prev) * 100, 1)
+
+        rates = {
+            'session_to_quote': pct(current['sessions_with_quote'], current['sessions_total']),
+            'quote_to_link': pct(current['magic_links_created'], current['sessions_with_quote']),
+            'link_to_open': pct(current['magic_links_opened'], current['magic_links_created']),
+            'open_to_reservation': pct(current['reservations_created'], current['magic_links_opened']),
+            'reservation_to_paid': pct(current['reservations_paid'], current['reservations_created']),
+            'session_to_paid': pct(current['reservations_paid'], current['sessions_total']),
+        }
+
+        deltas = {
+            k: delta(current[k], previous[k]) for k in current.keys()
+        }
+
+        # Breakdown por link_type
+        magic_by_type = list(
+            ReservationMagicLink.objects.filter(
+                deleted=False,
+                created__gte=period_start,
+                created__lt=now,
+            )
+            .values('link_type')
+            .annotate(
+                count=Count('id'),
+                opened=Count('id', filter=Q(redeemed_at__isnull=False)),
+            )
+        )
+
+        return Response({
+            'period': {
+                'days': days,
+                'start': period_start.isoformat(),
+                'end': now.isoformat(),
+            },
+            'previous_period': {
+                'start': prev_start.isoformat(),
+                'end': period_start.isoformat(),
+            },
+            'current': current,
+            'previous': previous,
+            'deltas_percent': deltas,
+            'conversion_rates': rates,
+            'magic_links_breakdown': magic_by_type,
+        })
+
+
 class ChatAnalysisView(APIView):
     """GET /analysis/ — Análisis IA de las últimas 20 conversaciones"""
     permission_classes = [IsAuthenticated]

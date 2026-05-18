@@ -1221,6 +1221,91 @@ def send_purchase_event_to_meta(
         )
 
 
+def send_funnel_event_to_meta(
+    *,
+    event_name,  # 'Lead' | 'InitiateCheckout' (cualquier evento custom)
+    phone=None,
+    email=None,
+    first_name=None,
+    last_name=None,
+    fbc=None,
+    fbp=None,
+    fbclid=None,
+    utm_source=None,
+    utm_medium=None,
+    utm_campaign=None,
+    event_id=None,
+    event_source_url=None,
+    custom_data=None,
+):
+    """Envía a Meta CAPI eventos de pasos intermedios del funnel
+    (Lead = cliente recibió cotización + magic link; InitiateCheckout =
+    cliente abrió el magic link).
+
+    Estos eventos permiten que el algoritmo de Meta Ads optimice por
+    señales de interés ANTES de la compra real, dándole más data y
+    convergiendo más rápido (especialmente útil con presupuestos
+    pequeños/medianos donde no se llegan a 50 Purchase/semana).
+    """
+    user_data = {}
+    if phone:
+        user_data["ph"] = [hash_data(phone)]
+    if email:
+        user_data["em"] = [hash_data(email)]
+    if first_name:
+        user_data["fn"] = [hash_data(first_name)]
+    if last_name:
+        user_data["ln"] = [hash_data(last_name)]
+    if fbc:
+        user_data["fbc"] = fbc
+    if fbp:
+        user_data["fbp"] = fbp
+    if fbclid:
+        user_data["click_id"] = fbclid
+
+    event_data = {
+        "event_name": event_name,
+        "event_time": int(datetime.now().timestamp()),
+        "action_source": "website",
+        "user_data": user_data,
+        "custom_data": {
+            "utm_source": utm_source,
+            "utm_medium": utm_medium,
+            "utm_campaign": utm_campaign,
+            **(custom_data or {}),
+        },
+    }
+    if event_id:
+        event_data["event_id"] = event_id
+    if event_source_url:
+        event_data["event_source_url"] = event_source_url
+
+    payload = {
+        "data": [event_data],
+        "access_token": settings.META_PIXEL_TOKEN,
+    }
+    test_code = getattr(settings, 'META_TEST_EVENT_CODE', None)
+    if test_code:
+        payload["test_event_code"] = test_code
+
+    try:
+        response = requests.post(
+            "https://graph.facebook.com/v18.0/7378335482264695/events",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=5,
+        )
+        if response.status_code == 200:
+            logger.debug(f"Meta CAPI {event_name} OK: {response.text}")
+        else:
+            logger.warning(
+                f"Meta CAPI {event_name} error {response.status_code}: "
+                f"{response.text}"
+            )
+    except Exception as e:
+        logger.warning(f"Meta CAPI {event_name} exception: {e}")
+
+
 # ============================================================================
 # NUEVOS SIGNALS PARA ACTUALIZACIÓN AUTOMÁTICA DE TAREAS DE LIMPIEZA
 # ============================================================================
