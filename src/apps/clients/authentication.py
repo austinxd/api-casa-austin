@@ -14,9 +14,15 @@ class ClientJWTAuthentication(JWTAuthentication):
     SimpleJWT tries to look them up in the CustomUser table.
     """
 
-    # R4: por defecto rechazamos magic JWTs (is_magic=True) en endpoints
-    # normales. La subclase MagicLinkJWTAuthentication invierte este flag.
-    _allow_magic_token = False
+    # R4 → decisión actual: el cliente con magic JWT tiene los MISMOS
+    # permisos que un cliente normal sobre SUS propios datos. Razonable
+    # porque:
+    #   - El link es one-shot (mark_consumed tras crear reserva).
+    #   - El JWT solo expone los datos del cliente vinculado (client_id).
+    #   - Los endpoints admin usan otra auth (IsAdminUser), no esta clase.
+    # Mantenemos el flag por si en el futuro queremos restringir, pero por
+    # ahora aceptamos magic tokens en endpoints normales del cliente.
+    _allow_magic_token = True
 
     def get_user(self, validated_token):
         """
@@ -25,10 +31,11 @@ class ClientJWTAuthentication(JWTAuthentication):
         Looks for client_id or user_id claim in the token and returns
         the corresponding Client object.
 
-        Bloquea tokens con is_magic=True salvo que la subclase declare
-        _allow_magic_token=True (caso MagicLinkJWTAuthentication).
+        Si _allow_magic_token=False, bloquea tokens con is_magic=True.
+        Por defecto _allow_magic_token=True para que el flujo del link
+        mágico (voucher upload, pago con tarjeta, ver reserva propia)
+        funcione sin re-login.
         """
-        # R4: bloquear magic JWTs en endpoints normales
         if validated_token.get('is_magic') and not self._allow_magic_token:
             return None
         try:
