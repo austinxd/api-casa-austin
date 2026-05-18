@@ -448,6 +448,11 @@ class CreateExpressReservationView(APIView):
         raw_token = (request.data.get('token') or '').strip()
         confirm = bool(request.data.get('confirm_data'))
         email = (request.data.get('email') or '').strip() or None
+        # NUEVO: el frontend puede mandar DNI / property_slug / full_name
+        # cuando el magic link es "anónimo" (no traen DNI/casa precargados).
+        body_dni = (request.data.get('document_number') or '').strip()
+        body_property_slug = (request.data.get('property_slug') or '').strip()
+        body_full_name = (request.data.get('full_name') or '').strip()
 
         if not raw_token:
             return Response(
@@ -476,13 +481,68 @@ class CreateExpressReservationView(APIView):
                 status=400,
             )
 
-        if not magic.dni_validated_at or not magic.document_number:
-            # No debería pasar (el guard del bot solo crea con DNI validado),
-            # pero defendemos por las dudas.
-            return Response(
-                {'error': 'dni_not_validated',
-                 'message': 'DNI no validado. Contáctanos por WhatsApp.'},
-                status=400,
+        # === Si el magic link NO trae DNI (modo anónimo), pedirlo al body
+        # y validar contra RENIEC ahora. ===
+        if not magic.document_number:
+            if not body_dni or not body_dni.isdigit() or len(body_dni) != 8:
+                return Response(
+                    {'error': 'dni_required',
+                     'message': 'Ingresa tu DNI de 8 dígitos para continuar.'},
+                    status=400,
+                )
+            # Validar con RENIEC
+            from apps.reniec.service import ReniecService
+            from apps.chatbot.guards import _build_full_name_from_reniec
+            ok, data = ReniecService.lookup(
+                dni=body_dni,
+                source_app='express_form',
+                source_ip=_get_client_ip(request),
+                user_agent=(request.META.get('HTTP_USER_AGENT') or '')[:255],
+            )
+            full_name = _build_full_name_from_reniec(data) if ok else ''
+            if not ok or not full_name:
+                return Response(
+                    {'error': 'dni_invalid',
+                     'message': 'No pudimos validar ese DNI. Revisa el número.'},
+                    status=400,
+                )
+            # Persistir en el magic link para auditoría/idempotencia
+            magic.document_type = 'dni'
+            magic.document_number = body_dni
+            magic.validated_full_name = full_name
+            magic.dni_validated_at = _tz.now()
+            magic.save(update_fields=[
+                'document_type', 'document_number',
+                'validated_full_name', 'dni_validated_at',
+            ])
+            logger.info(
+                f"Express DNI from form: magic={magic.id} dni={body_dni[:4]}**** "
+                f"name={full_name}"
+            )
+
+        # === Si el magic link NO trae property, pedirla al body. ===
+        if not magic.property_id:
+            if not body_property_slug:
+                return Response(
+                    {'error': 'property_required',
+                     'message': 'Selecciona la casa que deseas reservar.'},
+                    status=400,
+                )
+            from apps.property.models import Property
+            prop_from_body = Property.objects.filter(
+                slug=body_property_slug, deleted=False,
+            ).first()
+            if not prop_from_body:
+                return Response(
+                    {'error': 'property_invalid',
+                     'message': 'La casa seleccionada no existe.'},
+                    status=400,
+                )
+            magic.property = prop_from_body
+            magic.save(update_fields=['property'])
+            logger.info(
+                f"Express property from form: magic={magic.id} "
+                f"prop={prop_from_body.slug}"
             )
 
         # === Resolver conflictos DNI/tel (casos A/B/C/D del spec) ===
