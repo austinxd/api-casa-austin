@@ -2158,6 +2158,12 @@ class AIOrchestrator:
             or 'Más económica:' in text
             or 'Ver opciones y reservar:' in text
             or 'Reserva directa:' in text
+            # Markers nuevos: cuando el bot agrega magic link auto en la
+            # cotización (commit 26bd000). Sin estos, _inject_missing_quote
+            # creía que faltaba la cotización y la duplicaba.
+            or 'Asegura tu fecha' in text
+            or 'Te dejo tu link de reserva' in text
+            or 'casaaustin.pe/r/' in text  # cualquier magic link presente
         )
         if has_quote_old_format or has_quote_new_format:
             return text
