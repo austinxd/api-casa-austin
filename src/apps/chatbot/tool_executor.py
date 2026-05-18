@@ -998,7 +998,77 @@ class ToolExecutor:
                 houses_data[0].get('slug')
                 if len(houses_data) == 1 else None
             )
-            if single_slug:
+
+            # === NUEVO: intentar generar magic link con la cotización ===
+            # Si el cliente vuelve a cotizar las mismas fechas, find_or_create
+            # reusa el magic link existente (rate limit + dedup). Si no se
+            # puede (cliente sin permiso, rate limit, security check fail),
+            # caemos al URL público normal.
+            magic_url = None
+            try:
+                from django.conf import settings as _settings
+                from apps.clients.magic_link_service import (
+                    create_express_magic_link,
+                    find_or_create_magic_link,
+                    MagicLinkSecurityError,
+                )
+                from apps.property.models import Property as _Property
+                from datetime import datetime as _dt
+
+                _check_in_d = _dt.strptime(check_in, '%Y-%m-%d').date()
+                _check_out_d = _dt.strptime(check_out, '%Y-%m-%d').date()
+                _prop_obj = None
+                if single_slug:
+                    _prop_obj = _Property.objects.filter(
+                        slug=single_slug, deleted=False,
+                    ).first()
+
+                if (self.session.client_id
+                        and getattr(_settings, 'MAGIC_LINK_ENABLED', False)):
+                    # Cliente existente (R4.1)
+                    _magic, _raw, _ = find_or_create_magic_link(
+                        chat_session=self.session,
+                        wa_id=self.session.wa_id,
+                        client=self.session.client,
+                        check_in=_check_in_d,
+                        check_out=_check_out_d,
+                        guests=guests_for_url,
+                        property=_prop_obj,
+                    )
+                    if _raw:
+                        magic_url = f"https://casaaustin.pe/r/{_raw}"
+                elif (not self.session.client_id
+                        and getattr(_settings, 'EXPRESS_RESERVATION_ENABLED', False)):
+                    # Cliente nuevo (R4.2 express)
+                    _magic, _raw, _ = create_express_magic_link(
+                        chat_session=self.session,
+                        wa_id=self.session.wa_id,
+                        check_in=_check_in_d,
+                        check_out=_check_out_d,
+                        guests=guests_for_url,
+                        property=_prop_obj,
+                    )
+                    if _raw:
+                        magic_url = f"https://casaaustin.pe/r/{_raw}"
+            except MagicLinkSecurityError as e:
+                # Security check falló (ej. cliente con tel_number distinto).
+                # Caer al URL público — sin romper la cotización.
+                logger.info(f"Magic link security skip: {e.reason}")
+            except ValueError as e:
+                # Rate limit u otro problema controlado
+                logger.info(f"Magic link skip: {e}")
+            except Exception as e:
+                logger.warning(f"Magic link error: {e}", exc_info=True)
+
+            if magic_url:
+                # Magic link tiene precedencia: prellena datos del cliente
+                # y reserva precio por 4h.
+                if single_slug:
+                    lines.append("🔗 Asegura tu reserva con un toque:")
+                else:
+                    lines.append("🔗 Te dejo tu link para reservar:")
+                lines.append(magic_url)
+            elif single_slug:
                 lines.append("🔗 Reserva directa:")
                 lines.append(build_booking_url(
                     property_slug=single_slug,

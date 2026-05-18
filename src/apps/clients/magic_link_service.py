@@ -23,7 +23,10 @@ logger = logging.getLogger(__name__)
 
 
 # Defaults
-DEFAULT_EXPIRY_MINUTES = 60
+# Duración del magic link: 4 horas. El cliente típicamente abre el link
+# cuando vuelve del trabajo o tras consultar con familia/amigos, así que
+# 1h era muy corto y muchos expiraban antes de abrirse.
+DEFAULT_EXPIRY_MINUTES = 240
 # Rate limit: protege contra abuso/scripts, NO contra clientes reales.
 # Un cliente iterando con el bot puede generar 5-10 cotizaciones distintas
 # (fechas, personas, casa), así que el límite debe ser laxo. 20/hora = 1
