@@ -263,10 +263,17 @@ def find_or_create_magic_link(
             if link_type == 'existing_client':
                 kwargs['client'] = client
             else:
-                kwargs['document_type'] = document_type
-                kwargs['document_number'] = document_number
-                kwargs['validated_full_name'] = validated_full_name.strip()
-                kwargs['dni_validated_at'] = now
+                # guest_express puede ser anónimo (sin DNI) o pre-validado.
+                # Solo persistimos los campos DNI si llegaron del caller;
+                # si es anónimo, quedan null y el cliente los llenará en
+                # el formulario web.
+                if document_number:
+                    kwargs['document_type'] = document_type
+                    kwargs['document_number'] = document_number
+                    kwargs['validated_full_name'] = (
+                        (validated_full_name or '').strip() or None
+                    )
+                    kwargs['dni_validated_at'] = now
             magic = ReservationMagicLink.objects.create(**kwargs)
             logger.info(
                 f"MagicLink created: id={magic.id} link_type={link_type} "

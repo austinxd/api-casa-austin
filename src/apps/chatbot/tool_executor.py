@@ -1013,10 +1013,17 @@ class ToolExecutor:
                     MagicLinkSecurityError,
                 )
                 from apps.property.models import Property as _Property
-                from datetime import datetime as _dt
+                from datetime import datetime as _dt, date as _date_type
 
-                _check_in_d = _dt.strptime(check_in, '%Y-%m-%d').date()
-                _check_out_d = _dt.strptime(check_out, '%Y-%m-%d').date()
+                # check_in puede llegar como str ('YYYY-MM-DD') o ya como
+                # datetime.date dependiendo del caller. Soportamos ambos.
+                def _to_date(v):
+                    if isinstance(v, _date_type):
+                        return v
+                    return _dt.strptime(str(v), '%Y-%m-%d').date()
+
+                _check_in_d = _to_date(check_in)
+                _check_out_d = _to_date(check_out)
                 _prop_obj = None
                 if single_slug:
                     _prop_obj = _Property.objects.filter(
