@@ -1299,7 +1299,7 @@ def try_faq(session, last_user_text):
 
 _AFFIRMATIVE_SHORT_PATTERNS = [
     r'^\s*s[ií]\s*[.!?]?\s*$',
-    r'^\s*ok(?:ay)?\s*[.!?]?\s*$',
+    r'^\s*ok(?:ay|ey)?\s*[.!?]?\s*$',  # ok, okay, okey
     r'^\s*dale\s*[.!?]?\s*$',
     r'^\s*claro\s*[.!?]?\s*$',
     r'^\s*listo\s*[.!?]?\s*$',
@@ -1322,6 +1322,9 @@ _AFFIRMATIVE_SHORT_PATTERNS = [
     r'^\s*obvio\s*[.!?]?\s*$',
     r'^\s*por\s+supuesto\s*[.!?]?\s*$',
     r'^\s*claro\s+que\s+s[ií]\s*[.!?]?\s*$',
+    # NUEVO: "Ya + adjetivo" — "ya genial", "ya está", "ya perfecto"
+    r'^\s*ya\s+(?:genial|perfecto|listo|claro|ok(?:ay|ey)?|est[aá])\s*[.!?]?\s*$',
+    r'^\s*que\s+(?:genial|bueno|bien|chévere)\s*[.!?]?\s*$',
 ]
 
 _AFFIRMATIVE_INTENT_PATTERNS = [
@@ -1667,6 +1670,10 @@ _SKIP_DNI_PATTERNS = [
     r'\bdame\s+el\s+link\s+(?:nom[aá]s|sin\s+dni|igual)\b',
     r'\b(?:no\s+quiero|prefiero\s+no)\s+(?:dar|enviar|compartir)\s+(?:el\s+)?dni\b',
     r'\bdespu[eé]s\s+(?:lo\s+)?(?:pongo|coloco|env[ií]o)\b',
+    # NUEVO: caso wa=51938... ("Lo haré por la web gracias")
+    r'\b(?:lo\s+)?(?:har[eé]|hago|har[aá]|haz)\s+(?:en\s+la\s+web|por\s+(?:la\s+)?web|all[aá])\b',
+    r'\b(?:reservo|reservar[eé]|registro|registrar[eé])\s+(?:en\s+la\s+web|por\s+(?:la\s+)?web|directamente)\b',
+    r'\b(?:ya\s+)?lo\s+veo\s+(?:en\s+la\s+web|all[aá])\b',
 ]
 _SKIP_DNI_RE = re.compile(
     '|'.join(_SKIP_DNI_PATTERNS), re.IGNORECASE,
@@ -1799,36 +1806,41 @@ def _emit_express_link(session, ctx, dni=None, full_name=None, prop=None):
     session.conversation_context = ctx
     session.save(update_fields=['conversation_context'])
 
-    # Construir respuesta dependiendo de qué datos tengamos
+    # Construir respuesta dependiendo de qué datos tengamos.
+    # NOTA: incluimos siempre "👆 Haz click aquí" + recordatorio de
+    # urgencia (link válido 1h) para mejorar la tasa de consumo.
     url = f"https://casaaustin.pe/r/{raw_token}"
     if dni and full_name and prop:
         first_name = full_name.split()[0] if full_name else ''
         msg = (
-            f"¡Listo {first_name}! 😊 Te dejo tu link de reserva:\n\n"
-            f"{url}\n\n"
-            f"Ya dejé tu DNI y la casa precargados. Solo confirma los "
-            f"datos y separas con el 50%."
+            f"¡Listo {first_name}! 😊 Toca aquí para terminar tu reserva:\n\n"
+            f"👉 {url}\n\n"
+            f"✅ Ya dejé precargados:\n"
+            f"   • {prop.name}\n"
+            f"   • Tu DNI y nombre\n"
+            f"   • Las fechas y cantidad de personas\n\n"
+            f"Solo confirma y separas con el 50% para asegurar la fecha."
         )
     elif dni and full_name and not prop:
         first_name = full_name.split()[0] if full_name else ''
         msg = (
-            f"¡Listo {first_name}! 😊 Te dejo tu link de reserva:\n\n"
-            f"{url}\n\n"
-            f"Ahí eliges la casa que prefieras y separas con el 50%. "
-            f"Tu DNI y nombre ya están precargados."
+            f"¡Listo {first_name}! 😊 Toca aquí para terminar tu reserva:\n\n"
+            f"👉 {url}\n\n"
+            f"✅ Ya dejé tu DNI y nombre precargados. Solo eliges la "
+            f"casa en la web y separas con el 50%."
         )
     elif prop and not dni:
         msg = (
-            f"¡Listo! 😊 Te dejo tu link de reserva para {prop.name}:\n\n"
-            f"{url}\n\n"
-            f"Ahí completas tus datos y separas con el 50%."
+            f"¡Listo! 😊 Toca aquí para terminar tu reserva en {prop.name}:\n\n"
+            f"👉 {url}\n\n"
+            f"Completas tus datos y separas con el 50% para asegurar la fecha."
         )
     else:
         # Anónimo total — solo fechas/personas precargadas
         msg = (
-            f"¡Listo! 😊 Te dejo tu link de reserva:\n\n"
-            f"{url}\n\n"
-            f"Ahí eliges la casa, completas tus datos y separas con el 50%."
+            f"¡Listo! 😊 Toca aquí para terminar tu reserva:\n\n"
+            f"👉 {url}\n\n"
+            f"Elige tu casa favorita, completas tus datos y separas con el 50%."
         )
 
     logger.info(
