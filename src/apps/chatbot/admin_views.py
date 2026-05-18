@@ -383,14 +383,22 @@ class ChatFunnelView(APIView):
             ).distinct().count()
 
         # === Etapa 2: sesiones que recibieron al menos 1 cotización ===
+        # NOTA: en MySQL JSONField __icontains no funciona bien, así que
+        # iteramos en Python sobre mensajes outbound del bot con tool_calls.
         def count_sessions_with_quote(start, end):
-            return ChatMessage.objects.filter(
+            qs = ChatMessage.objects.filter(
                 deleted=False,
                 direction=ChatMessage.DirectionChoices.OUTBOUND_AI,
                 created__gte=start,
                 created__lt=end,
-                tool_calls__icontains='check_availability',
-            ).values('session_id').distinct().count()
+            ).exclude(tool_calls=[]).only('session_id', 'tool_calls')
+            session_ids = set()
+            for msg in qs.iterator():
+                for tc in (msg.tool_calls or []):
+                    if isinstance(tc, dict) and tc.get('name') == 'check_availability':
+                        session_ids.add(msg.session_id)
+                        break
+            return len(session_ids)
 
         # === Etapa 3: magic links generados ===
         def count_magic_links(start, end):
