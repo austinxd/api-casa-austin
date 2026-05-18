@@ -509,78 +509,60 @@ class CreateExpressReservationView(APIView):
             )
 
         # === Si el magic link NO trae documento (modo anónimo), pedirlo
-        # al body. DNI → RENIEC. PAS/CEX → nombres del body. ===
+        # al body. Solo DNI: para PAS/CEX derivamos a WhatsApp (mismo
+        # patrón que el registro normal de la web — no creamos cuenta
+        # de extranjeros automático sin contacto previo). ===
         if not magic.document_number:
-            if body_doc_type == 'dni':
-                if not body_doc_number or not body_doc_number.isdigit() or len(body_doc_number) != 8:
-                    return Response(
-                        {'error': 'dni_required',
-                         'message': 'Ingresa tu DNI de 8 dígitos para continuar.'},
-                        status=400,
-                    )
-                # Validar con RENIEC
-                from apps.reniec.service import ReniecService
-                from apps.chatbot.guards import _build_full_name_from_reniec
-                ok, data = ReniecService.lookup(
-                    dni=body_doc_number,
-                    source_app='express_form',
-                    source_ip=_get_client_ip(request),
-                    user_agent=(request.META.get('HTTP_USER_AGENT') or '')[:255],
+            if body_doc_type != 'dni':
+                support_wa_link = (
+                    f"https://wa.me/{getattr(settings, 'RESERVATION_SUPPORT_WHATSAPP', '51999902992')}"
+                    f"?text=Hola,%20quiero%20registrar%20una%20cuenta%20con%20"
+                    f"{'Carnet%20de%20Extranjería' if body_doc_type == 'cex' else 'Pasaporte'}"
                 )
-                full_name = _build_full_name_from_reniec(data) if ok else ''
-                if not ok or not full_name:
-                    return Response(
-                        {'error': 'dni_invalid',
-                         'message': 'No pudimos validar ese DNI. Revisa el número.'},
-                        status=400,
-                    )
-                magic.document_type = 'dni'
-                magic.document_number = body_doc_number
-                magic.validated_full_name = full_name
-                magic.dni_validated_at = _tz.now()
-                magic.save(update_fields=[
-                    'document_type', 'document_number',
-                    'validated_full_name', 'dni_validated_at',
-                ])
-                logger.info(
-                    f"Express DNI from form: magic={magic.id} "
-                    f"dni={body_doc_number[:4]}**** name={full_name}"
+                return Response({
+                    'error': 'foreign_doc_not_supported',
+                    'message': (
+                        'Para registrar una cuenta con '
+                        + ('Carnet de Extranjería' if body_doc_type == 'cex' else 'Pasaporte')
+                        + ', contáctanos por WhatsApp.'
+                    ),
+                    'whatsapp_url': support_wa_link,
+                }, status=400)
+
+            if not body_doc_number or not body_doc_number.isdigit() or len(body_doc_number) != 8:
+                return Response(
+                    {'error': 'dni_required',
+                     'message': 'Ingresa tu DNI de 8 dígitos para continuar.'},
+                    status=400,
                 )
-            else:
-                # PAS / CEX: no hay validación externa. Requiere nombre y
-                # apellido del usuario.
-                if not body_doc_number or len(body_doc_number) < 6 or len(body_doc_number) > 20:
-                    return Response(
-                        {'error': 'document_number_invalid',
-                         'message': 'Ingresa tu número de documento (entre 6 y 20 caracteres).'},
-                        status=400,
-                    )
-                if not body_first_name or not body_last_name:
-                    return Response(
-                        {'error': 'name_required',
-                         'message': 'Ingresa tu nombre y apellido para continuar.'},
-                        status=400,
-                    )
-                # Sanity-check de longitudes (model usa max_length=30/40).
-                if len(body_first_name) > 30 or len(body_last_name) > 40:
-                    return Response(
-                        {'error': 'name_too_long',
-                         'message': 'El nombre o apellido es demasiado largo.'},
-                        status=400,
-                    )
-                magic.document_type = body_doc_type
-                magic.document_number = body_doc_number
-                magic.validated_full_name = (
-                    f"{body_first_name} {body_last_name}"
-                ).strip()
-                magic.save(update_fields=[
-                    'document_type', 'document_number', 'validated_full_name',
-                ])
-                logger.info(
-                    f"Express {body_doc_type.upper()} from form: "
-                    f"magic={magic.id} num={body_doc_number[:4]}**** "
-                    f"name={magic.validated_full_name}"
+            # Validar con RENIEC
+            from apps.reniec.service import ReniecService
+            from apps.chatbot.guards import _build_full_name_from_reniec
+            ok, data = ReniecService.lookup(
+                dni=body_doc_number,
+                source_app='express_form',
+                source_ip=_get_client_ip(request),
+                user_agent=(request.META.get('HTTP_USER_AGENT') or '')[:255],
+            )
+            full_name = _build_full_name_from_reniec(data) if ok else ''
+            if not ok or not full_name:
+                return Response(
+                    {'error': 'dni_invalid',
+                     'message': 'No pudimos validar ese DNI. Revisa el número.'},
+                    status=400,
                 )
+            magic.document_type = 'dni'
+            magic.document_number = body_doc_number
+            magic.validated_full_name = full_name
+            magic.dni_validated_at = _tz.now()
+            magic.save(update_fields=[
+                'document_type', 'document_number',
+                'validated_full_name', 'dni_validated_at',
+            ])
+            logger.info(
+                f"Express DNI from form: magic={magic.id} "
+                f"dni={body_doc_number[:4]}**** name={full_name}"
+            )
 
         # === Si el magic link NO trae property, pedirla al body. ===
         if not magic.property_id:
@@ -705,20 +687,15 @@ class CreateExpressReservationView(APIView):
                 }, status=409)
 
             # --- Caso A: crear Client nuevo ---
+            # En este punto magic.document_type es 'dni' siempre: bloqueamos
+            # PAS/CEX más arriba con foreign_doc_not_supported.
             full_name = (magic.validated_full_name or '').strip()
-            # Para PAS/CEX el front mandó first_name + last_name directos.
-            # Para DNI usamos lo que devolvió RENIEC (parseado del full_name).
-            doc_type_to_use = magic.document_type or 'dni'
-            if doc_type_to_use != 'dni' and body_first_name and body_last_name:
-                first_name = body_first_name
-                last_name = body_last_name
-            else:
-                parts = full_name.split()
-                first_name = parts[0] if parts else 'Cliente'
-                last_name = ' '.join(parts[1:]) if len(parts) > 1 else ''
+            parts = full_name.split()
+            first_name = parts[0] if parts else 'Cliente'
+            last_name = ' '.join(parts[1:]) if len(parts) > 1 else ''
             try:
                 client = Clients.objects.create(
-                    document_type=doc_type_to_use,
+                    document_type=magic.document_type or 'dni',
                     number_doc=magic.document_number,
                     first_name=first_name[:30],
                     last_name=last_name[:40] or None,
