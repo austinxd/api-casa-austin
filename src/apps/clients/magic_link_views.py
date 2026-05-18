@@ -746,7 +746,11 @@ class CreateExpressReservationView(APIView):
                 payment_confirmed=False,
                 chatbot_session=magic.chat_session,
             )
-            # Consumir el magic link (one-shot reserva).
+            # Vincular el magic link al client (necesario para emitir JWT magic
+            # con client_id en los claims) y consumirlo.
+            if magic.client_id is None:
+                magic.client = client
+                magic.save(update_fields=['client'])
             mark_consumed(magic)
             logger.info(
                 f"Express reservation created: id={reservation.id} "
@@ -762,6 +766,9 @@ class CreateExpressReservationView(APIView):
                 f"{magic.check_in}→{magic.check_out}, {magic.guests} pers. "
                 f"Pendiente de subir voucher.",
             )
+            # Emitir JWT magic para que el frontend pueda subir voucher /
+            # pagar con tarjeta sin pasar por login estándar.
+            jwt_token = emit_magic_jwt(magic)
             return Response({
                 'success': True,
                 'message': (
@@ -770,6 +777,17 @@ class CreateExpressReservationView(APIView):
                 ),
                 'reservation': ReservationListSerializer(reservation).data,
                 'reservation_id': str(reservation.id),
+                # Auth scope='magic' para los siguientes pasos (voucher/pago)
+                'client_token': jwt_token,
+                'token_scope': 'magic',
+                'client': {
+                    'id': str(client.id),
+                    'first_name': client.first_name,
+                    'last_name': client.last_name or '',
+                    'full_name': (
+                        f"{client.first_name} {client.last_name or ''}"
+                    ).strip(),
+                },
             }, status=201)
         except Exception as e:
             logger.error(
