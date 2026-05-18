@@ -1584,138 +1584,14 @@ def try_continue_link_with_magic(session, last_user_text):
 #   - mensaje matchea _AFFIRMATIVE_RE o _CASA_REF_RE
 #   - hay cotización previa parseable
 
-_DNI_DIGITS_RE = re.compile(r'\b(\d{8})\b')
-
-_NO_DNI_INDICATORS_PATTERNS = [
-    r'\bpasaporte\b',
-    r'\bcarnet\s+de\s+extranjer[ií]a\b',
-    r'\bcarnet\s+extranjer[ií]a\b',
-    r'\bextranjer[oa]\b',
-    r'\bno\s+tengo\s+dni\b',
-    r'\bsin\s+dni\b',
-    r'\bdocumento\s+extranjero\b',
-]
-_NO_DNI_INDICATORS_RE = re.compile(
-    '|'.join(_NO_DNI_INDICATORS_PATTERNS), re.IGNORECASE,
-)
-
-_DECLINE_DNI_PATTERNS = [
-    r'\bno\s+(?:quiero|deseo)\s+(?:dar|enviar|compartir)\b',
-    r'\bdespu[eé]s\b',
-    r'\bm[aá]s\s+tarde\b',
-    r'\b(?:no\s+)?(?:lo\s+)?tengo\s+a\s+(?:la\s+)?mano\b',
-    r'\bno\s+ahora\b',
-]
-_DECLINE_DNI_RE = re.compile(
-    '|'.join(_DECLINE_DNI_PATTERNS), re.IGNORECASE,
-)
-
-_CONFIRM_NAME_PATTERNS = [
-    r'^\s*s[ií]\s*[.!?]?\s*$',
-    r'^\s*correcto\s*[.!?]?\s*$',
-    r'^\s*ok(?:ay)?\s*[.!?]?\s*$',
-    r'^\s*est[aá]\s+bien\s*[.!?]?\s*$',
-    r'^\s*confirmado\s*[.!?]?\s*$',
-    r'^\s*dale\s*[.!?]?\s*$',
-    r'^\s*exacto\s*[.!?]?\s*$',
-    r'\bes\s+correcto\b',
-    r'\bs[ií]\s+est[aá]\s+bien\b',
-    r'\bs[ií],?\s+(?:soy|correcto|exacto)\b',
-]
-_CONFIRM_NAME_RE = re.compile(
-    '|'.join(_CONFIRM_NAME_PATTERNS), re.IGNORECASE,
-)
-
-_DENY_NAME_PATTERNS = [
-    r'^\s*no\s*[.!?]?\s*$',
-    r'\bno\s+soy\s+yo\b',
-    r'\best[aá]\s+mal\b',
-    r'\bincorrecto\b',
-    r'\bhay\s+(?:un\s+)?error\b',
-    r'\bno\s+es\s+correcto\b',
-    r'\bese\s+no\s+soy\b',
-]
-_DENY_NAME_RE = re.compile(
-    '|'.join(_DENY_NAME_PATTERNS), re.IGNORECASE,
-)
-
-# "Sin preferencia de casa" — el cliente no tiene preferencia o quiere
-# elegir en la web. Generamos el link multi-casa y que decida ahí.
-_NO_HOUSE_PREF_PATTERNS = [
-    r'^\s*no\s*[.!?]?\s*$',
-    r'\bcualquier[a]?\b',
-    r'\bninguna\s+(?:en\s+)?especial\b',
-    r'\bno\s+(?:tengo|s[eé])\b',
-    r'\bda(?:me)?\s+igual\b',
-    r'\bme\s+da\s+igual\b',
-    r'\bsin\s+preferencia\b',
-    r'\bno\s+importa\b',
-    r'\bcualquiera\s+(?:est[aá]\s+bien|me\s+vale|me\s+sirve)\b',
-    r'\ben\s+la\s+web\s+(?:elijo|veo|decido)\b',
-    r'\b(?:el|ese|este|tu)\s+link\b',  # "dame el link", "el link"
-    r'\benv[ií]a(?:me)?\s+el\s+link\b',
-    r'\bgen[eé]ra(?:me)?\s+el\s+link\b',
-    r'\bm[aá]nda(?:me)?\s+el\s+link\b',
-]
-_NO_HOUSE_PREF_RE = re.compile(
-    '|'.join(_NO_HOUSE_PREF_PATTERNS), re.IGNORECASE,
-)
-
-# "Saltar DNI" — cliente prefiere no dar DNI por chat
-_SKIP_DNI_PATTERNS = [
-    r'\bno\s+(?:tengo|me\s+(?:s[eé]|acuerdo))\s+(?:el\s+)?dni\b',
-    r'\bsin\s+dni\b',
-    r'\b(?:lo\s+)?completo\s+(?:después|despu[eé]s|en\s+la\s+web|all[aá])\b',
-    r'\b(?:lo\s+)?pongo\s+(?:después|despu[eé]s|en\s+la\s+web|all[aá])\b',
-    r'\b(?:salt[aá](?:rme|telo)?|skip)\b',
-    r'\bdame\s+el\s+link\s+(?:nom[aá]s|sin\s+dni|igual)\b',
-    r'\b(?:no\s+quiero|prefiero\s+no)\s+(?:dar|enviar|compartir)\s+(?:el\s+)?dni\b',
-    r'\bdespu[eé]s\s+(?:lo\s+)?(?:pongo|coloco|env[ií]o)\b',
-    # NUEVO: caso wa=51938... ("Lo haré por la web gracias")
-    r'\b(?:lo\s+)?(?:har[eé]|hago|har[aá]|haz)\s+(?:en\s+la\s+web|por\s+(?:la\s+)?web|all[aá])\b',
-    r'\b(?:reservo|reservar[eé]|registro|registrar[eé])\s+(?:en\s+la\s+web|por\s+(?:la\s+)?web|directamente)\b',
-    r'\b(?:ya\s+)?lo\s+veo\s+(?:en\s+la\s+web|all[aá])\b',
-]
-_SKIP_DNI_RE = re.compile(
-    '|'.join(_SKIP_DNI_PATTERNS), re.IGNORECASE,
-)
-
-
-def _express_manual_required_response(session, intro=None):
-    """Construye la respuesta + tool_call_meta para derivar a WhatsApp humano."""
-    from django.conf import settings
-    support_wa = getattr(
-        settings, 'RESERVATION_SUPPORT_WHATSAPP', '51999902992',
-    )
-    intro = intro or (
-        "Por ahora, el registro automático solo está disponible con DNI peruano."
-    )
-    response = (
-        f"{intro}\n\n"
-        "Si tienes pasaporte o carnet de extranjería, escríbenos por "
-        f"WhatsApp para ayudarte a crear tu cuenta y continuar con tu "
-        f"reserva:\n\nhttps://wa.me/{support_wa}"
-    )
-    # Marcar manual_required en el contexto para que el modelo no
-    # re-active el flujo en el siguiente turno.
-    ctx = session.conversation_context or {}
-    ctx['express_phase'] = 'manual_required'
-    ctx['express_manual_required'] = True
-    session.conversation_context = ctx
-    session.save(update_fields=['conversation_context'])
-    return {
-        'response': response,
-        'intent': 'guard:express:manual_required',
-        'tool_call_meta': {
-            'name': 'guard',
-            'guard': 'express',
-            'phase': 'manual_required',
-        },
-    }
-
-
 def _clear_express_state(session):
-    """Limpia el flujo express del conversation_context."""
+    """Limpia claves antiguas del flujo express del conversation_context.
+
+    Pre-refactor (commit 26bd000) el guard mantenía un state-machine con
+    fases. El nuevo flujo es stateless (el magic link se envía con la
+    cotización), pero seguimos limpiando estas claves de sesiones viejas
+    cuando emitimos un link, para que no queden residuos.
+    """
     ctx = session.conversation_context or {}
     for k in (
         'express_phase', 'express_draft', 'express_dni',
@@ -1972,204 +1848,76 @@ def _build_full_name_from_reniec(data):
 
 
 def try_express_dni_flow(session, last_user_text):
-    """G_EXPRESS — flujo de Reserva Express simplificado (sin DNI por chat).
+    """G_EXPRESS — refina magic link cuando el cliente elige una casa específica.
 
-    El cliente recibe un magic link al confirmar que quiere reservar.
-    El DNI y datos personales se completan en el formulario web.
+    Contexto: la tool check_availability ya envía un magic link junto con la
+    cotización (commit 26bd000). Por lo tanto:
+      · Single-casa: el link enviado en la cotización YA es específico.
+      · Multi-casa: el link genérico permite elegir casa en la web.
 
-    Máquina de estados:
-        Entry → (si multi-casa) awaiting_house → link_sent
-              ↘ (si single-casa o casa identificable) link_sent directo
+    Este guard SOLO se activa cuando, tras una cotización MULTI-CASA, el
+    cliente menciona explícitamente "Casa N". En ese caso generamos un
+    nuevo magic link específico para esa casa (mejor UX: form prellenado
+    con la casa elegida).
 
-    Si el feature flag está OFF, NO entra (return None) y todo cae a R1.0.
+    Stateless: no usa conversation_context. Es idempotente.
     """
     from django.conf import settings
 
     if not getattr(settings, 'EXPRESS_RESERVATION_ENABLED', False):
         return None
-    if not last_user_text:
+    if not last_user_text or not session:
         return None
-    if not session:
+    if session.client_id:
+        return None  # R4.1 (G_MAGIC_LINK) maneja clientes existentes
+
+    # ¿Cliente mencionó "Casa N"?
+    m = _CASA_REF_RE.search(last_user_text)
+    if not m:
         return None
 
-    ctx = session.conversation_context or {}
-    phase = ctx.get('express_phase')
+    quote = _get_full_last_quote(session)
+    if not quote:
+        return None
 
-    # === Stale state cleanup: si recotizó otras fechas, limpiar ===
-    if phase:
-        quote = _get_full_last_quote(session)
-        draft_check_in = (ctx.get('express_draft') or {}).get('check_in')
-        if quote and draft_check_in and quote['check_in'] != draft_check_in:
-            logger.info(
-                f"G_EXPRESS stale state: cotización cambió, reset. "
-                f"session={session.id}"
-            )
-            _clear_express_state(session)
-            return None  # cae al modelo / otros guards
+    # Solo refinamos sobre cotizaciones MULTI-CASA. Si fue single-casa,
+    # el link enviado en la cotización ya tiene la casa correcta.
+    houses = quote.get('houses', []) or []
+    if len(houses) <= 1:
+        return None
 
-    # === Entry inicial: sin estado, sin session.client, hay cotización ===
-    if not phase:
-        if session.client_id:
-            return None  # cliente existente → R4.1 (G_MAGIC_LINK) maneja
-        quote = _get_full_last_quote(session)
-        if not quote:
-            return None
+    casa_num = int(m.group(1))
+    # Validar que la casa elegida esté en el quote actual
+    in_quote = any(
+        re.search(rf'\b{casa_num}\b', h.get('name', '') or '')
+        for h in houses
+    )
+    if not in_quote:
+        return None  # cliente pidió una casa que no está disponible; LLM lo maneja
 
-        # Solo activamos si el cliente:
-        #   (a) afirmó querer reservar ("sí", "dale", "me interesa", etc.) o
-        #   (b) mencionó "Casa N" específica (intención de elegir).
-        has_affirmative = bool(_AFFIRMATIVE_RE.search(last_user_text))
-        has_casa_ref = bool(_CASA_REF_RE.search(last_user_text))
-        if not (has_affirmative or has_casa_ref):
-            return None
+    prop = _resolve_property_by_num(casa_num)
+    if not prop:
+        return None
 
-        # Resolver property (URL del quote, single-casa, "Casa N" en historial)
-        prop = _resolve_express_property(session, quote, last_user_text)
-        houses_count = len(quote.get('houses', []) or [])
+    logger.info(
+        f"G_EXPRESS refine link to Casa {casa_num} session={session.id} "
+        f"prop={prop.slug}"
+    )
 
-        # CASO 1: tenemos property identificada → link DIRECTO ✅
-        if prop:
-            # Setear draft mínimo y emitir
-            ctx['express_draft'] = {
+    # Generar nuevo magic link específico para la casa elegida.
+    # find_or_create_magic_link en _emit_express_link reusa si ya existe
+    # uno con (property, fechas, guests) iguales — no genera duplicados.
+    return _emit_express_link(
+        session,
+        ctx={
+            'express_draft': {
                 'check_in': quote['check_in'],
                 'check_out': quote['check_out'],
                 'guests': quote['guests'],
                 'booking_url': quote.get('booking_url'),
                 'property_slug': prop.slug,
                 'source': 'chatbot',
-            }
-            session.conversation_context = ctx
-            session.save(update_fields=['conversation_context'])
-            logger.info(
-                f"G_EXPRESS direct link (single-casa o casa identificada) "
-                f"session={session.id} prop={prop.slug}"
-            )
-            return _emit_express_link(session, ctx, dni=None, full_name=None, prop=prop)
-
-        # CASO 2: multi-casa sin elección → pregunta SUAVE
-        if houses_count > 1:
-            ctx['express_phase'] = 'awaiting_house'
-            ctx['express_draft'] = {
-                'check_in': quote['check_in'],
-                'check_out': quote['check_out'],
-                'guests': quote['guests'],
-                'houses_in_quote': [h.get('name', '') for h in quote.get('houses', [])],
-                'booking_url': quote.get('booking_url'),
-                'source': 'chatbot',
-            }
-            ctx['express_house_turns'] = 0
-            session.conversation_context = ctx
-            session.save(update_fields=['conversation_context'])
-            house_names = [h.get('name', '') for h in quote['houses']]
-            names_str = (
-                ', '.join(house_names[:-1]) + ' o ' + house_names[-1]
-                if len(house_names) > 1 else (house_names[0] if house_names else '')
-            )
-            logger.info(
-                f"G_EXPRESS phase=awaiting_house session={session.id} "
-                f"houses={houses_count}"
-            )
-            return {
-                'response': (
-                    f"¡Genial! 😊 ¿Tienes alguna casa preferida "
-                    f"({names_str}) o te envío el link y eliges en la web?"
-                ),
-                'intent': 'guard:express:ask_house',
-                'tool_call_meta': {
-                    'name': 'guard', 'guard': 'express',
-                    'phase': 'awaiting_house',
-                    'houses_count': houses_count,
-                },
-            }
-
-        # CASO 3: sin houses → no debería pasar pero por seguridad
-        return None
-
-    # === Phase: awaiting_house ===
-    if phase == 'awaiting_house':
-        text_lower = last_user_text.lower().strip()
-
-        # 1) Cliente dijo "no/cualquiera/dame el link" → link sin casa
-        if _NO_HOUSE_PREF_RE.search(last_user_text):
-            logger.info(
-                f"G_EXPRESS awaiting_house → link sin casa (sin preferencia) "
-                f"session={session.id}"
-            )
-            return _emit_express_link(session, ctx, dni=None, full_name=None, prop=None)
-
-        # 2) ¿Es pregunta? → dejar pasar al LLM/G_FAQ, mantener state
-        is_question = bool(
-            '?' in last_user_text or '¿' in last_user_text
-            or re.search(
-                r'\b(qu[eé]|cu[aá]l|cu[aá]ntas?|c[oó]mo|d[oó]nde|tiene|tienen|hay|'
-                r'diferencia|incluye|cabe|capacidad|fotos?|videos?|im[aá]genes?|'
-                r'piscina|jacuzzi|parrilla|cochera|wifi|mascot|ni[ñn]os?|'
-                r'precio|cuesta|cu[aá]nto|costo|tama[ñn]o|metros?)\b',
-                text_lower,
-            )
-        )
-
-        # 3) ¿Eligió "Casa N"?
-        casa_num = None
-        m = _CASA_REF_RE.search(last_user_text)
-        if m:
-            casa_num = int(m.group(1))
-        elif not is_question:
-            lax = _CASA_REF_LAX_RE.search(text_lower)
-            if lax:
-                casa_num = int(lax.group(1) or lax.group(2))
-
-        if not casa_num:
-            # No es elección clara → dejar pasar al LLM/G_FAQ
-            ctx['express_house_turns'] = int(ctx.get('express_house_turns', 0)) + 1
-            if ctx['express_house_turns'] >= 5:
-                # Tras 5 turnos sin decidir → link sin casa para destrabar
-                logger.info(
-                    f"G_EXPRESS awaiting_house timeout → link sin casa "
-                    f"session={session.id}"
-                )
-                return _emit_express_link(session, ctx, dni=None, full_name=None, prop=None)
-            session.conversation_context = ctx
-            session.save(update_fields=['conversation_context'])
-            return None
-
-        # Validar que la casa esté en el quote
-        draft = ctx.get('express_draft') or {}
-        house_names = draft.get('houses_in_quote', []) or []
-        in_quote = any(re.search(rf'\b{casa_num}\b', n) for n in house_names)
-        if not in_quote:
-            names_str = (
-                ', '.join(house_names[:-1]) + ' o ' + house_names[-1]
-                if len(house_names) > 1 else (house_names[0] if house_names else '')
-            )
-            return {
-                'response': (
-                    f"Esa casa no está disponible para esas fechas 😅 "
-                    f"Las opciones son: {names_str}. ¿Cuál prefieres? "
-                    f"(o dime 'cualquiera' y te envío el link)"
-                ),
-                'intent': 'guard:express:house_not_in_quote',
-                'tool_call_meta': {
-                    'name': 'guard', 'guard': 'express',
-                    'phase': 'awaiting_house',
-                },
-            }
-
-        prop = _resolve_property_by_num(casa_num)
-        if not prop:
-            # Si no se puede resolver, link sin casa
-            return _emit_express_link(session, ctx, dni=None, full_name=None, prop=None)
-
-        # Casa elegida → link DIRECTO con esa casa ✅
-        logger.info(
-            f"G_EXPRESS awaiting_house → link con Casa {casa_num} "
-            f"session={session.id} prop={prop.slug}"
-        )
-        return _emit_express_link(session, ctx, dni=None, full_name=None, prop=prop)
-
-    # Phase desconocida → log + reset
-    logger.warning(
-        f"G_EXPRESS phase desconocida: {phase!r} session={session.id}"
+            },
+        },
+        dni=None, full_name=None, prop=prop,
     )
-    _clear_express_state(session)
-    return None
