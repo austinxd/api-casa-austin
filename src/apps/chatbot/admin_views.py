@@ -408,13 +408,15 @@ class ChatFunnelView(APIView):
                 created__lt=end,
             ).count()
 
-        # === Etapa 4: magic links abiertos (use_count > 0 o used_at no null) ===
+        # === Etapa 4: magic links abiertos (use_count > 0) ===
+        # NOTA: used_at solo se setea al CONSUMIR (crear reserva), no al abrir.
+        # use_count se incrementa cada vez que el cliente abre /r/<token>.
         def count_magic_links_opened(start, end):
             return ReservationMagicLink.objects.filter(
                 deleted=False,
                 created__gte=start,
                 created__lt=end,
-                used_at__isnull=False,
+                use_count__gt=0,
             ).count()
 
         # === Etapa 5: reservas creadas (cualquier status) ===
@@ -488,7 +490,7 @@ class ChatFunnelView(APIView):
             .values('link_type')
             .annotate(
                 count=Count('id'),
-                opened=Count('id', filter=Q(used_at__isnull=False)),
+                opened=Count('id', filter=Q(use_count__gt=0)),
             )
         )
 
