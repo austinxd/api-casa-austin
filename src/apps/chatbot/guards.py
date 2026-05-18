@@ -1567,20 +1567,21 @@ def try_continue_link_with_magic(session, last_user_text):
 
 
 # ============================================================================
-# G_EXPRESS — Reserva Express con DNI para clientes nuevos (R4.2D)
+# G_EXPRESS — Reserva Express simplificado (sin DNI por chat)
 # ============================================================================
+# El DNI y datos personales se llenan en el formulario web. El bot solo
+# entrega el magic link con fechas/casa precargadas. La casa es OPCIONAL.
+#
 # Estados (conversation_context):
-#   express_phase = 'awaiting_dni' | 'awaiting_name_confirmation'
-#                 | 'awaiting_house_express' | 'manual_required'
-#   express_draft = {check_in, check_out, guests, property_slug?, source}
-#   express_dni = '12345678'
-#   express_full_name = 'Augusto Tantalean Marcatoma'
-#   express_attempt_count = int
+#   express_phase = 'awaiting_house' (única fase intermedia)
+#   express_draft = {check_in, check_out, guests, property_slug?,
+#                    houses_in_quote?, booking_url, source}
+#   express_house_turns = int (timeout para destrabar)
 #
 # Activación inicial (sin estado previo):
 #   - EXPRESS_RESERVATION_ENABLED=True
 #   - session.client_id is None (cliente nuevo)
-#   - mensaje matchea _AFFIRMATIVE_RE
+#   - mensaje matchea _AFFIRMATIVE_RE o _CASA_REF_RE
 #   - hay cotización previa parseable
 
 _DNI_DIGITS_RE = re.compile(r'\b(\d{8})\b')
@@ -1950,9 +1951,15 @@ def _build_full_name_from_reniec(data):
 
 
 def try_express_dni_flow(session, last_user_text):
-    """G_EXPRESS — flujo de Reserva Express con DNI para clientes nuevos.
+    """G_EXPRESS — flujo de Reserva Express simplificado (sin DNI por chat).
 
-    Máquina de estados controlada por session.conversation_context.
+    El cliente recibe un magic link al confirmar que quiere reservar.
+    El DNI y datos personales se completan en el formulario web.
+
+    Máquina de estados:
+        Entry → (si multi-casa) awaiting_house → link_sent
+              ↘ (si single-casa o casa identificable) link_sent directo
+
     Si el feature flag está OFF, NO entra (return None) y todo cae a R1.0.
     """
     from django.conf import settings
@@ -1968,7 +1975,7 @@ def try_express_dni_flow(session, last_user_text):
     phase = ctx.get('express_phase')
 
     # === Stale state cleanup: si recotizó otras fechas, limpiar ===
-    if phase and phase != 'manual_required':
+    if phase:
         quote = _get_full_last_quote(session)
         draft_check_in = (ctx.get('express_draft') or {}).get('check_in')
         if quote and draft_check_in and quote['check_in'] != draft_check_in:
@@ -1979,45 +1986,47 @@ def try_express_dni_flow(session, last_user_text):
             _clear_express_state(session)
             return None  # cae al modelo / otros guards
 
-    # === Phase: manual_required ===
-    # Cliente ya fue derivado a WhatsApp. Permitir reentry si:
-    #   - vuelve a afirmar ("sí", "quiero reservar")
-    #   - envía un DNI de 8 dígitos (cliente insiste con datos correctos)
-    if phase == 'manual_required':
-        if _AFFIRMATIVE_RE.search(last_user_text) or _DNI_DIGITS_RE.search(last_user_text):
-            _clear_express_state(session)
-            # cae a phase=None abajo → re-entry
-        else:
-            return None
-
-    # === Re-evaluar phase tras posible clear ===
-    ctx = session.conversation_context or {}
-    phase = ctx.get('express_phase')
-
     # === Entry inicial: sin estado, sin session.client, hay cotización ===
     if not phase:
         if session.client_id:
-            return None  # cliente existente → R4.1 maneja, no R4.2
+            return None  # cliente existente → R4.1 (G_MAGIC_LINK) maneja
         quote = _get_full_last_quote(session)
         if not quote:
             return None
 
-        # Aceptar dos formas de entrada (sin afirmación previa explícita):
-        #   (a) afirmación explícita ("sí quiero reservar")
-        #   (b) DNI directo de 8 dígitos → afirmación implícita
-        # Esto evita que el LLM intercepte el DNI con identify_client primero.
+        # Solo activamos si el cliente:
+        #   (a) afirmó querer reservar ("sí", "dale", "me interesa", etc.) o
+        #   (b) mencionó "Casa N" específica (intención de elegir).
         has_affirmative = bool(_AFFIRMATIVE_RE.search(last_user_text))
-        has_dni = bool(_DNI_DIGITS_RE.search(last_user_text))
-        if not (has_affirmative or has_dni):
+        has_casa_ref = bool(_CASA_REF_RE.search(last_user_text))
+        if not (has_affirmative or has_casa_ref):
             return None
 
-        # Resolver property antes de continuar (clave para multi-casa)
+        # Resolver property (URL del quote, single-casa, "Casa N" en historial)
         prop = _resolve_express_property(session, quote, last_user_text)
         houses_count = len(quote.get('houses', []) or [])
 
-        # Si es multi-casa y no podemos identificar la elegida → preguntar
-        # qué casa ANTES de pedir DNI (evita derivar a manual al final).
-        if not prop and houses_count > 1 and not has_dni:
+        # CASO 1: tenemos property identificada → link DIRECTO ✅
+        if prop:
+            # Setear draft mínimo y emitir
+            ctx['express_draft'] = {
+                'check_in': quote['check_in'],
+                'check_out': quote['check_out'],
+                'guests': quote['guests'],
+                'booking_url': quote.get('booking_url'),
+                'property_slug': prop.slug,
+                'source': 'chatbot',
+            }
+            session.conversation_context = ctx
+            session.save(update_fields=['conversation_context'])
+            logger.info(
+                f"G_EXPRESS direct link (single-casa o casa identificada) "
+                f"session={session.id} prop={prop.slug}"
+            )
+            return _emit_express_link(session, ctx, dni=None, full_name=None, prop=prop)
+
+        # CASO 2: multi-casa sin elección → pregunta SUAVE
+        if houses_count > 1:
             ctx['express_phase'] = 'awaiting_house'
             ctx['express_draft'] = {
                 'check_in': quote['check_in'],
@@ -2027,7 +2036,7 @@ def try_express_dni_flow(session, last_user_text):
                 'booking_url': quote.get('booking_url'),
                 'source': 'chatbot',
             }
-            ctx['express_attempt_count'] = 0
+            ctx['express_house_turns'] = 0
             session.conversation_context = ctx
             session.save(update_fields=['conversation_context'])
             house_names = [h.get('name', '') for h in quote['houses']]
@@ -2041,9 +2050,8 @@ def try_express_dni_flow(session, last_user_text):
             )
             return {
                 'response': (
-                    f"¡Genial! 😊 ¿Tienes preferencia por alguna casa "
-                    f"({names_str}) o prefieres que te envíe el link y "
-                    f"eliges en la web?"
+                    f"¡Genial! 😊 ¿Tienes alguna casa preferida "
+                    f"({names_str}) o te envío el link y eliges en la web?"
                 ),
                 'intent': 'guard:express:ask_house',
                 'tool_call_meta': {
@@ -2053,73 +2061,22 @@ def try_express_dni_flow(session, last_user_text):
                 },
             }
 
-        # Setear estado normal (single-casa o casa ya elegida)
-        ctx['express_phase'] = 'awaiting_dni'
-        ctx['express_draft'] = {
-            'check_in': quote['check_in'],
-            'check_out': quote['check_out'],
-            'guests': quote['guests'],
-            'booking_url': quote.get('booking_url'),
-            'property_slug': prop.slug if prop else None,
-            'source': 'chatbot',
-        }
-        ctx['express_attempt_count'] = 0
-        session.conversation_context = ctx
-        session.save(update_fields=['conversation_context'])
-        logger.info(
-            f"G_EXPRESS phase=awaiting_dni session={session.id} "
-            f"check_in={quote['check_in']} prop={prop.slug if prop else 'none'} "
-            f"via={'dni_direct' if has_dni else 'affirm'}"
-        )
-
-        # Si el cliente ya mandó el DNI, caer al procesamiento (no pedirlo otra vez)
-        if has_dni:
-            phase = 'awaiting_dni'
-            # continúa al bloque `if phase == 'awaiting_dni'` abajo
-        else:
-            return {
-                'response': (
-                    "¡Perfecto! 😊 Para prellenarte el formulario, "
-                    "¿me compartes tu DNI? Si prefieres, también puedes "
-                    "completarlo directamente en la web ✨"
-                ),
-                'intent': 'guard:express:ask_dni',
-                'tool_call_meta': {
-                    'name': 'guard', 'guard': 'express',
-                    'phase': 'awaiting_dni',
-                },
-            }
+        # CASO 3: sin houses → no debería pasar pero por seguridad
+        return None
 
     # === Phase: awaiting_house ===
     if phase == 'awaiting_house':
         text_lower = last_user_text.lower().strip()
 
-        # 1) ¿Cliente dijo "no tengo preferencia / cualquiera / dame el link"?
-        #    → avanzar SIN property y pedir DNI (o ir directo al link)
+        # 1) Cliente dijo "no/cualquiera/dame el link" → link sin casa
         if _NO_HOUSE_PREF_RE.search(last_user_text):
-            ctx['express_draft'] = ctx.get('express_draft') or {}
-            ctx['express_draft']['property_slug'] = None
-            ctx['express_phase'] = 'awaiting_dni'
-            session.conversation_context = ctx
-            session.save(update_fields=['conversation_context'])
             logger.info(
-                f"G_EXPRESS awaiting_house→awaiting_dni (sin preferencia) "
+                f"G_EXPRESS awaiting_house → link sin casa (sin preferencia) "
                 f"session={session.id}"
             )
-            return {
-                'response': (
-                    "¡Perfecto! 😊 En la web podrás elegir cuál te conviene "
-                    "más. Para prellenarte el formulario, ¿me compartes tu DNI? "
-                    "Si prefieres, también puedes completarlo en la web 👇"
-                ),
-                'intent': 'guard:express:ask_dni',
-                'tool_call_meta': {
-                    'name': 'guard', 'guard': 'express',
-                    'phase': 'awaiting_dni', 'reason': 'no_house_pref',
-                },
-            }
+            return _emit_express_link(session, ctx, dni=None, full_name=None, prop=None)
 
-        # 2) ¿Es pregunta sobre fotos/diferencias/etc? Dejar pasar al LLM/G_FAQ
+        # 2) ¿Es pregunta? → dejar pasar al LLM/G_FAQ, mantener state
         is_question = bool(
             '?' in last_user_text or '¿' in last_user_text
             or re.search(
@@ -2131,7 +2088,7 @@ def try_express_dni_flow(session, last_user_text):
             )
         )
 
-        # 3) ¿Eligió "Casa N" estricto o laxo ("la 3", "3")?
+        # 3) ¿Eligió "Casa N"?
         casa_num = None
         m = _CASA_REF_RE.search(last_user_text)
         if m:
@@ -2142,21 +2099,20 @@ def try_express_dni_flow(session, last_user_text):
                 casa_num = int(lax.group(1) or lax.group(2))
 
         if not casa_num:
-            # No es elección clara → dejar pasar al LLM/G_FAQ.
+            # No es elección clara → dejar pasar al LLM/G_FAQ
             ctx['express_house_turns'] = int(ctx.get('express_house_turns', 0)) + 1
-            if ctx['express_house_turns'] >= 6:
-                # Tras 6 turnos sin decidir, generar link sin casa para destrabarlo.
+            if ctx['express_house_turns'] >= 5:
+                # Tras 5 turnos sin decidir → link sin casa para destrabar
                 logger.info(
-                    f"G_EXPRESS awaiting_house timeout → generar link sin casa "
-                    f"session={session.id} turns={ctx['express_house_turns']}"
+                    f"G_EXPRESS awaiting_house timeout → link sin casa "
+                    f"session={session.id}"
                 )
                 return _emit_express_link(session, ctx, dni=None, full_name=None, prop=None)
-            else:
-                session.conversation_context = ctx
-                session.save(update_fields=['conversation_context'])
+            session.conversation_context = ctx
+            session.save(update_fields=['conversation_context'])
             return None
 
-        # Validar que la casa elegida está en el quote
+        # Validar que la casa esté en el quote
         draft = ctx.get('express_draft') or {}
         house_names = draft.get('houses_in_quote', []) or []
         in_quote = any(re.search(rf'\b{casa_num}\b', n) for n in house_names)
@@ -2167,8 +2123,9 @@ def try_express_dni_flow(session, last_user_text):
             )
             return {
                 'response': (
-                    f"Esa casa no está disponible para esas fechas. "
-                    f"De las disponibles: {names_str}. ¿Cuál prefieres?"
+                    f"Esa casa no está disponible para esas fechas 😅 "
+                    f"Las opciones son: {names_str}. ¿Cuál prefieres? "
+                    f"(o dime 'cualquiera' y te envío el link)"
                 ),
                 'intent': 'guard:express:house_not_in_quote',
                 'tool_call_meta': {
@@ -2179,274 +2136,15 @@ def try_express_dni_flow(session, last_user_text):
 
         prop = _resolve_property_by_num(casa_num)
         if not prop:
-            return None  # fallback al LLM, raro pero seguro
+            # Si no se puede resolver, link sin casa
+            return _emit_express_link(session, ctx, dni=None, full_name=None, prop=None)
 
-        # Casa elegida → avanzar a awaiting_dni
-        draft['property_slug'] = prop.slug
-        ctx['express_draft'] = draft
-        ctx['express_phase'] = 'awaiting_dni'
-        session.conversation_context = ctx
-        session.save(update_fields=['conversation_context'])
+        # Casa elegida → link DIRECTO con esa casa ✅
         logger.info(
-            f"G_EXPRESS awaiting_house→awaiting_dni session={session.id} "
-            f"casa={casa_num} prop={prop.slug}"
+            f"G_EXPRESS awaiting_house → link con Casa {casa_num} "
+            f"session={session.id} prop={prop.slug}"
         )
-        return {
-            'response': (
-                f"¡Perfecto, Casa {casa_num}! 😊 Para preparar tu reserva "
-                f"express, ¿me compartes tu DNI?"
-            ),
-            'intent': 'guard:express:ask_dni',
-            'tool_call_meta': {
-                'name': 'guard', 'guard': 'express',
-                'phase': 'awaiting_dni',
-                'property_slug': prop.slug,
-            },
-        }
-
-    # === Phase: awaiting_dni ===
-    if phase == 'awaiting_dni':
-        # 1. Cliente indica explícitamente "sin DNI / saltar / después"
-        # → generar link directo SIN DNI (modo anónimo, completa en web)
-        if (_SKIP_DNI_RE.search(last_user_text)
-                or _NO_DNI_INDICATORS_RE.search(last_user_text)
-                or _DECLINE_DNI_RE.search(last_user_text)):
-            # Resolver property que pueda haber del draft
-            draft = ctx.get('express_draft') or {}
-            prop = None
-            slug = draft.get('property_slug')
-            if slug:
-                from apps.property.models import Property
-                prop = Property.objects.filter(slug=slug, deleted=False).first()
-            logger.info(
-                f"G_EXPRESS awaiting_dni → link sin DNI (cliente saltó) "
-                f"session={session.id} prop={slug or 'none'}"
-            )
-            return _emit_express_link(session, ctx, dni=None, full_name=None, prop=prop)
-
-        # 2. Extraer DNI (8 dígitos) del texto
-        dni_match = _DNI_DIGITS_RE.search(last_user_text)
-        if not dni_match:
-            # Tras 3 intentos sin DNI válido, generar link igual (sin DNI)
-            # para no dejar al cliente atrapado.
-            invalid_count = int(ctx.get('express_invalid_dni_count', 0)) + 1
-            ctx['express_invalid_dni_count'] = invalid_count
-            session.conversation_context = ctx
-            session.save(update_fields=['conversation_context'])
-            if invalid_count >= 3:
-                logger.info(
-                    f"G_EXPRESS awaiting_dni → link sin DNI tras "
-                    f"{invalid_count} intentos session={session.id}"
-                )
-                draft = ctx.get('express_draft') or {}
-                prop = None
-                slug = draft.get('property_slug')
-                if slug:
-                    from apps.property.models import Property
-                    prop = Property.objects.filter(slug=slug, deleted=False).first()
-                return _emit_express_link(session, ctx, dni=None, full_name=None, prop=prop)
-            return {
-                'response': (
-                    "Necesito tu DNI de 8 dígitos 😊 Si prefieres no darlo "
-                    "por aquí, dime 'sin DNI' y te genero el link para que "
-                    "completes los datos directamente en la web."
-                ),
-                'intent': 'guard:express:invalid_dni_input',
-                'tool_call_meta': {
-                    'name': 'guard', 'guard': 'express',
-                    'phase': 'awaiting_dni', 'attempt': invalid_count,
-                },
-            }
-
-        dni = dni_match.group(1)
-
-        # 4. Consultar RENIEC
-        try:
-            from apps.reniec.service import ReniecService
-            success, data = ReniecService.lookup(
-                dni=dni,
-                source_app='chatbot_express',
-                source_ip=None,
-                user_agent=f'chatbot/{session.channel}',
-            )
-        except Exception as e:
-            logger.error(f"G_EXPRESS RENIEC error: {e}", exc_info=True)
-            success, data = False, {'error': 'internal'}
-
-        if not success:
-            count = int(ctx.get('express_attempt_count', 0)) + 1
-            ctx['express_attempt_count'] = count
-            session.conversation_context = ctx
-            session.save(update_fields=['conversation_context'])
-            if count >= 2:
-                # Tras 2 fallos RENIEC, generar link sin DNI igual.
-                logger.info(
-                    f"G_EXPRESS RENIEC failed 2x → link sin DNI session={session.id}"
-                )
-                draft = ctx.get('express_draft') or {}
-                prop = None
-                slug = draft.get('property_slug')
-                if slug:
-                    from apps.property.models import Property
-                    prop = Property.objects.filter(slug=slug, deleted=False).first()
-                return _emit_express_link(session, ctx, dni=None, full_name=None, prop=prop)
-            logger.info(
-                f"G_EXPRESS RENIEC lookup failed (attempt {count}): {data} "
-                f"session={session.id}"
-            )
-            return {
-                'response': (
-                    "No pude validar ese DNI 😕 ¿Podrías revisarlo y enviarlo "
-                    "nuevamente? Si prefieres, dime 'sin DNI' y te genero "
-                    "igualmente el link."
-                ),
-                'intent': 'guard:express:dni_lookup_failed',
-                'tool_call_meta': {
-                    'name': 'guard', 'guard': 'express',
-                    'phase': 'awaiting_dni',
-                    'attempt': count,
-                },
-            }
-
-        # 5. RENIEC OK — construir nombre y pedir confirmación
-        full_name = _build_full_name_from_reniec(data)
-        if not full_name:
-            count = int(ctx.get('express_attempt_count', 0)) + 1
-            ctx['express_attempt_count'] = count
-            session.conversation_context = ctx
-            session.save(update_fields=['conversation_context'])
-            if count >= 2:
-                # Tras 2 fallos sin nombre, generar link sin DNI.
-                draft = ctx.get('express_draft') or {}
-                prop = None
-                slug = draft.get('property_slug')
-                if slug:
-                    from apps.property.models import Property
-                    prop = Property.objects.filter(slug=slug, deleted=False).first()
-                return _emit_express_link(session, ctx, dni=None, full_name=None, prop=prop)
-            return {
-                'response': (
-                    "No pude validar ese DNI 😕 ¿Podrías revisarlo? "
-                    "Si prefieres, dime 'sin DNI' y te genero igual el link."
-                ),
-                'intent': 'guard:express:dni_no_name',
-                'tool_call_meta': {
-                    'name': 'guard', 'guard': 'express',
-                    'phase': 'awaiting_dni',
-                },
-            }
-
-        ctx['express_phase'] = 'awaiting_name_confirmation'
-        ctx['express_dni'] = dni
-        ctx['express_full_name'] = full_name
-        ctx['express_attempt_count'] = 0  # reset
-        session.conversation_context = ctx
-        session.save(update_fields=['conversation_context'])
-
-        logger.info(
-            f"G_EXPRESS phase=awaiting_name_confirmation session={session.id} "
-            f"dni={dni[:4]}**** name={full_name}"
-        )
-        return {
-            'response': (
-                f"Gracias 😊 Encontré estos datos:\n\n{full_name}\n\n"
-                f"¿Está correcto?"
-            ),
-            'intent': 'guard:express:ask_name_confirmation',
-            'tool_call_meta': {
-                'name': 'guard', 'guard': 'express',
-                'phase': 'awaiting_name_confirmation',
-            },
-        }
-
-    # === Phase: awaiting_name_confirmation ===
-    if phase == 'awaiting_name_confirmation':
-        # Si el cliente envía un DNI nuevo en el mensaje (típico: "no, mi DNI
-        # correcto es 12345678") → reintentar con ese DNI sin derivar a soporte.
-        new_dni_match = _DNI_DIGITS_RE.search(last_user_text)
-        prev_dni = ctx.get('express_dni')
-        if new_dni_match and new_dni_match.group(1) != prev_dni:
-            ctx['express_phase'] = 'awaiting_dni'
-            ctx.pop('express_dni', None)
-            ctx.pop('express_full_name', None)
-            session.conversation_context = ctx
-            session.save(update_fields=['conversation_context'])
-            logger.info(
-                f"G_EXPRESS retry with new DNI session={session.id} "
-                f"prev={prev_dni} new={new_dni_match.group(1)[:4]}****"
-            )
-            phase = 'awaiting_dni'  # fallthrough — procesa el nuevo DNI
-
-        # Niega sin enviar DNI nuevo? → da otra oportunidad pidiendo el correcto
-        elif _DENY_NAME_RE.search(last_user_text):
-            count = int(ctx.get('express_attempt_count', 0)) + 1
-            ctx['express_attempt_count'] = count
-            if count >= 2:
-                # Tras 2 rechazos, generar link sin DNI (que el cliente
-                # complete sus datos en la web).
-                logger.info(
-                    f"G_EXPRESS deny_name x2 → link sin DNI session={session.id}"
-                )
-                draft = ctx.get('express_draft') or {}
-                prop = None
-                slug = draft.get('property_slug')
-                if slug:
-                    from apps.property.models import Property
-                    prop = Property.objects.filter(slug=slug, deleted=False).first()
-                return _emit_express_link(session, ctx, dni=None, full_name=None, prop=prop)
-            # 1er rechazo: pedir DNI correcto, volver a awaiting_dni
-            ctx['express_phase'] = 'awaiting_dni'
-            ctx.pop('express_dni', None)
-            ctx.pop('express_full_name', None)
-            session.conversation_context = ctx
-            session.save(update_fields=['conversation_context'])
-            return {
-                'response': (
-                    "Disculpa 🙏 ¿Podrías enviarme nuevamente tu DNI "
-                    "de 8 dígitos? Si prefieres, dime 'sin DNI' y te genero "
-                    "igual el link."
-                ),
-                'intent': 'guard:express:retry_dni',
-                'tool_call_meta': {
-                    'name': 'guard', 'guard': 'express',
-                    'phase': 'awaiting_dni', 'reason': 'name_denied',
-                },
-            }
-
-        # Confirma?
-        if not _CONFIRM_NAME_RE.search(last_user_text):
-            # Reformular pregunta
-            full_name = ctx.get('express_full_name', '')
-            return {
-                'response': (
-                    f"¿El nombre es correcto?\n\n{full_name}\n\n"
-                    "Responde 'sí' o 'no'."
-                ),
-                'intent': 'guard:express:reprompt_confirmation',
-                'tool_call_meta': {
-                    'name': 'guard', 'guard': 'express',
-                    'phase': 'awaiting_name_confirmation',
-                },
-            }
-
-        # === Confirmado → generar magic link express ===
-        dni = ctx.get('express_dni')
-        full_name = ctx.get('express_full_name')
-        draft = ctx.get('express_draft') or {}
-
-        # Resolver property: 1) del draft (si ya se eligió antes),
-        # 2) buscando en URL/historial via helper. Si no hay → link sin casa
-        # (el cliente elige en la web).
-        prop = None
-        draft_slug = draft.get('property_slug')
-        if draft_slug:
-            from apps.property.models import Property
-            prop = Property.objects.filter(slug=draft_slug, deleted=False).first()
-        if not prop:
-            quote = _get_full_last_quote(session)
-            prop = _resolve_express_property(session, quote, last_user_text)
-
-        return _emit_express_link(session, ctx, dni=dni, full_name=full_name, prop=prop)
+        return _emit_express_link(session, ctx, dni=None, full_name=None, prop=prop)
 
     # Phase desconocida → log + reset
     logger.warning(
