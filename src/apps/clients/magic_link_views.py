@@ -818,3 +818,281 @@ class CreateExpressReservationView(APIView):
                 'whatsapp_url': manual_url,
             }, status=500,
             )
+
+
+class PreRegisterExpressClientView(APIView):
+    """Pre-registra al cliente desde un magic link guest_express y emite
+    JWT magic, SIN crear la reserva.
+
+    Es el primer paso del flujo express unificado: el frontend recibe el
+    JWT y redirige al `/booking` (mismo formulario que existing_client),
+    donde el cliente completa los datos finales y crea la reserva en un
+    único submit.
+
+    Body:
+        {
+          "token": "K3M7XQYR9F2BA",
+          "document_number": "12345678",
+          "email": "opcional@ejemplo.com"
+        }
+
+    Casos manejados (igual que CreateExpressReservationView):
+      A. DNI no existe en Clients → crear nuevo Client.
+      B. DNI existe y tel_number coincide con wa_id → usar ese Client.
+      C. DNI existe pero tel_number distinto al wa_id → BLOQUEAR + notify.
+      D. tel_number/wa_id existe en otro Client con otro DNI → BLOQUEAR + notify.
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        from django.conf import settings
+        from django.utils import timezone as _tz
+
+        from apps.clients.models import Clients
+        from .magic_link_service import (
+            _normalize_phone,
+            get_valid_magic_link_by_token,
+        )
+
+        raw_token = (request.data.get('token') or '').strip()
+        email = (request.data.get('email') or '').strip() or None
+        body_dni = (request.data.get('document_number') or '').strip()
+
+        if not raw_token:
+            return Response(
+                {'error': 'missing_token', 'message': 'Falta el token.'},
+                status=400,
+            )
+
+        magic = get_valid_magic_link_by_token(raw_token)
+        if not magic:
+            return Response(
+                {'error': 'invalid_or_expired',
+                 'message': 'Este link expiró o ya fue usado.'},
+                status=410,
+            )
+
+        if magic.link_type != 'guest_express':
+            return Response(
+                {'error': 'wrong_link_type',
+                 'message': 'Este endpoint es solo para reservas express.'},
+                status=400,
+            )
+
+        # === Validar DNI: el del body manda; si magic ya tenía uno, debe
+        # coincidir (evita que el cliente cambie de DNI a último minuto). ===
+        if magic.document_number:
+            if body_dni and body_dni != magic.document_number:
+                return Response(
+                    {'error': 'dni_mismatch',
+                     'message': 'El DNI no coincide con el del link.'},
+                    status=400,
+                )
+            dni_to_use = magic.document_number
+        else:
+            if not body_dni or not body_dni.isdigit() or len(body_dni) != 8:
+                return Response(
+                    {'error': 'dni_required',
+                     'message': 'Ingresa tu DNI de 8 dígitos para continuar.'},
+                    status=400,
+                )
+            # Validar con RENIEC
+            from apps.reniec.service import ReniecService
+            from apps.chatbot.guards import _build_full_name_from_reniec
+            ok, data = ReniecService.lookup(
+                dni=body_dni,
+                source_app='express_form',
+                source_ip=_get_client_ip(request),
+                user_agent=(request.META.get('HTTP_USER_AGENT') or '')[:255],
+            )
+            full_name = _build_full_name_from_reniec(data) if ok else ''
+            if not ok or not full_name:
+                return Response(
+                    {'error': 'dni_invalid',
+                     'message': 'No pudimos validar ese DNI. Revisa el número.'},
+                    status=400,
+                )
+            # Persistir en el magic link
+            magic.document_type = 'dni'
+            magic.document_number = body_dni
+            magic.validated_full_name = full_name
+            magic.dni_validated_at = _tz.now()
+            magic.save(update_fields=[
+                'document_type', 'document_number',
+                'validated_full_name', 'dni_validated_at',
+            ])
+            dni_to_use = body_dni
+            logger.info(
+                f"Pre-register DNI from form: magic={magic.id} "
+                f"dni={body_dni[:4]}**** name={full_name}"
+            )
+
+        # === Resolver conflictos DNI/tel (casos A/B/C/D) ===
+        wa_norm = _normalize_phone(magic.wa_id)
+        if not wa_norm:
+            return Response(
+                {'error': 'wa_id_invalid', 'message': 'WhatsApp no válido.'},
+                status=400,
+            )
+
+        support_wa = getattr(
+            settings, 'RESERVATION_SUPPORT_WHATSAPP', '51999902992',
+        )
+        manual_url = f"https://wa.me/{support_wa}"
+
+        client_by_doc = Clients.objects.filter(
+            document_type='dni',
+            number_doc=dni_to_use,
+            deleted=False,
+        ).first()
+
+        client_by_phone = Clients.objects.filter(
+            tel_number=magic.wa_id,
+            deleted=False,
+        ).first()
+        if not client_by_phone:
+            for variant in (wa_norm, f'+51{wa_norm}', f'51{wa_norm}'):
+                client_by_phone = Clients.objects.filter(
+                    tel_number=variant, deleted=False,
+                ).first()
+                if client_by_phone:
+                    break
+
+        # --- Caso C: DNI existe + tel del Client NO coincide con wa_id ---
+        if client_by_doc:
+            client_tel_norm = _normalize_phone(client_by_doc.tel_number)
+            if client_tel_norm and client_tel_norm != wa_norm:
+                logger.warning(
+                    f"Pre-register case C: DNI {dni_to_use} pertenece "
+                    f"a client {client_by_doc.id} con tel "
+                    f"{client_by_doc.tel_number}, distinto al wa_id "
+                    f"{magic.wa_id}. Bloqueado."
+                )
+                _notify_express_conflict(
+                    magic,
+                    'express_pre_register_document_phone_mismatch',
+                    f"DNI {dni_to_use} ya está registrado con otro "
+                    f"teléfono. Cliente intentó pre-registro express desde "
+                    f"wa_id={magic.wa_id}. client_id={client_by_doc.id}.",
+                )
+                return Response({
+                    'error': 'document_phone_mismatch',
+                    'message': (
+                        "Este documento ya está registrado. Para proteger "
+                        "tu cuenta, comunícate con nuestro equipo por "
+                        "WhatsApp para continuar."
+                    ),
+                    'whatsapp_url': manual_url,
+                }, status=409)
+
+            # Caso B: DNI existe + tel coincide → usar ese Client.
+            client = client_by_doc
+            # Actualizar email si vino y el cliente no tenía
+            if email and not client.email:
+                client.email = email
+                client.save(update_fields=['email'])
+
+        else:
+            # --- Caso D: wa_id existe en otro Client con DNI distinto ---
+            if client_by_phone and client_by_phone.number_doc != dni_to_use:
+                logger.warning(
+                    f"Pre-register case D: wa_id {magic.wa_id} pertenece a "
+                    f"client {client_by_phone.id} con DNI "
+                    f"{client_by_phone.number_doc!r}, no al DNI "
+                    f"ingresado {dni_to_use}. Bloqueado."
+                )
+                _notify_express_conflict(
+                    magic,
+                    'express_pre_register_phone_document_mismatch',
+                    f"WhatsApp {magic.wa_id} ya está registrado con DNI "
+                    f"{client_by_phone.number_doc} (client_id="
+                    f"{client_by_phone.id}). Cliente quiso pre-registrarse "
+                    f"con DNI {dni_to_use}.",
+                )
+                return Response({
+                    'error': 'phone_document_mismatch',
+                    'message': (
+                        "Detectamos información que no coincide. Para "
+                        "continuar de forma segura, comunícate con nuestro "
+                        "equipo por WhatsApp."
+                    ),
+                    'whatsapp_url': manual_url,
+                }, status=409)
+
+            # --- Caso A: crear Client nuevo ---
+            full_name = (magic.validated_full_name or '').strip()
+            parts = full_name.split()
+            first_name = parts[0] if parts else 'Cliente'
+            last_name = ' '.join(parts[1:]) if len(parts) > 1 else ''
+            try:
+                client = Clients.objects.create(
+                    document_type='dni',
+                    number_doc=dni_to_use,
+                    first_name=first_name[:30],
+                    last_name=last_name[:40] or None,
+                    email=email,
+                    tel_number=magic.wa_id,
+                    is_password_set=False,
+                )
+                logger.info(
+                    f"Pre-register Client created: id={client.id} "
+                    f"dni={dni_to_use} wa_id={magic.wa_id}"
+                )
+            except Exception as e:
+                logger.error(
+                    f"Pre-register Client create error: {e}", exc_info=True,
+                )
+                return Response({
+                    'error': 'client_create_failed',
+                    'message': 'No pudimos crear tu cuenta. Contáctanos.',
+                    'whatsapp_url': manual_url,
+                }, status=500)
+
+        # === Vincular magic link al Client y emitir JWT magic ===
+        # NO marcamos consumido: el siguiente paso (crear reserva en /booking)
+        # también usa el magic link.
+        if magic.client_id is None:
+            magic.client = client
+            magic.save(update_fields=['client'])
+
+        jwt_token = emit_magic_jwt(magic)
+
+        # Draft de reserva para pre-poblar el formulario en /booking
+        reservation_draft = {
+            'check_in': (
+                magic.check_in.isoformat() if magic.check_in else None
+            ),
+            'check_out': (
+                magic.check_out.isoformat() if magic.check_out else None
+            ),
+            'guests': magic.guests,
+            'property_slug': (
+                magic.property.slug if magic.property_id else None
+            ),
+            'property_id': (
+                str(magic.property.id) if magic.property_id else None
+            ),
+            'property_name': (
+                magic.property.name if magic.property_id else None
+            ),
+        }
+
+        return Response({
+            'success': True,
+            'client_token': jwt_token,
+            'token_scope': 'magic',
+            'client': {
+                'id': str(client.id),
+                'first_name': client.first_name,
+                'last_name': client.last_name or '',
+                'full_name': (
+                    f"{client.first_name} {client.last_name or ''}"
+                ).strip(),
+                'email': client.email or '',
+                'document_number': client.number_doc or '',
+                'tel_number': client.tel_number or '',
+            },
+            'reservation_draft': reservation_draft,
+        }, status=200)
