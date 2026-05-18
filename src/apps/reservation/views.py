@@ -1442,6 +1442,111 @@ def confirm_reservation(request, uuid):
     return JsonResponse({"message": "✅ ¡Reserva confirmada correctamente!"})
 
 
+@csrf_exempt
+def track_conversion(request, reservation_id):
+    """Endpoint Meta CAPI: el frontend lo llama AL MISMO TIEMPO que el Pixel
+    client-side dispara 'purchase'. Ambos eventos comparten event_id → Meta
+    los deduplica. Si el Pixel se pierde (iOS ATT, ad blockers, navegador
+    cerrado), el CAPI igual cubre la conversión.
+
+    Body JSON esperado:
+        {
+            "event_id": "purchase_<reservation_id>_<timestamp>",
+            "value_usd": 150.50,         (opcional, se calcula de la reserva)
+            "fbc": "fb.1.xxx.xxx",        (opcional)
+            "fbp": "fb.1.xxx.xxx",        (opcional)
+            "event_source_url": "https://..."  (opcional)
+        }
+    """
+    if request.method != "POST":
+        return HttpResponseBadRequest("Método no permitido")
+
+    try:
+        reservation = Reservation.objects.get(
+            id=reservation_id, deleted=False,
+        )
+    except Reservation.DoesNotExist:
+        return JsonResponse(
+            {"error": "Reserva no encontrada"}, status=404,
+        )
+
+    try:
+        data = json.loads(request.body) if request.body else {}
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        data = {}
+
+    event_id = (data.get("event_id") or "").strip()
+    fbc_in = (data.get("fbc") or "").strip()
+    fbp_in = (data.get("fbp") or "").strip()
+    event_source_url = (data.get("event_source_url") or "").strip()
+
+    # Si llegan fbc/fbp del client (los lee de cookies), los persistimos en
+    # la reserva para futuros eventos (ej. si admin después aprueba).
+    update_fields = []
+    if fbc_in and not reservation.fbc:
+        reservation.fbc = fbc_in
+        update_fields.append('fbc')
+    if fbp_in and not reservation.fbp:
+        reservation.fbp = fbp_in
+        update_fields.append('fbp')
+    if update_fields:
+        reservation.save(update_fields=update_fields)
+
+    # IP del cliente (para hashear en Meta)
+    ip = request.META.get("HTTP_X_FORWARDED_FOR")
+    if ip:
+        ip = ip.split(",")[0].strip()
+    else:
+        ip = request.META.get("REMOTE_ADDR")
+
+    # Importar localmente para evitar import circular
+    from .signals import send_purchase_event_to_meta
+
+    client = reservation.client
+    if not client:
+        return JsonResponse(
+            {"error": "Reserva sin cliente vinculado"}, status=400,
+        )
+
+    try:
+        send_purchase_event_to_meta(
+            phone=client.tel_number,
+            email=client.email,
+            first_name=client.first_name,
+            last_name=client.last_name,
+            amount=data.get("value_usd") or reservation.price_usd or 0,
+            currency="USD",
+            ip=ip,
+            user_agent=(request.META.get("HTTP_USER_AGENT") or "")[:255],
+            fbc=fbc_in or reservation.fbc,
+            fbp=fbp_in or reservation.fbp,
+            fbclid=reservation.fbclid,
+            utm_source=reservation.utm_source,
+            utm_medium=reservation.utm_medium,
+            utm_campaign=reservation.utm_campaign,
+            birthday=str(client.date) if getattr(client, 'date', None) else None,
+            event_id=event_id or None,
+            event_source_url=event_source_url or None,
+        )
+        return JsonResponse({
+            "success": True,
+            "message": "Evento enviado a Meta CAPI",
+            "event_id": event_id,
+        })
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(
+            f"track_conversion error reservation={reservation_id}: {e}",
+            exc_info=True,
+        )
+        # NO devolvemos 500 al frontend: la conversión real ya está en BD;
+        # solo el side-effect de tracking falló. El cliente NO debe ver error.
+        return JsonResponse({
+            "success": False,
+            "message": "Tracking pendiente",
+        }, status=200)
+
+
 class MonthlyReservationsExportAPIView(APIView):
     """
     Endpoint para exportar datos de reservas por mes

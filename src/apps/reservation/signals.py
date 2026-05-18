@@ -1128,7 +1128,9 @@ def send_purchase_event_to_meta(
         utm_source=None,
         utm_medium=None,
         utm_campaign=None,
-        birthday=None  # <-- Se añade aquí
+        birthday=None,
+        event_id=None,  # ← deduplicación con Pixel client-side
+        event_source_url=None,  # ← URL de la página donde ocurrió
 ):
     user_data = {}
 
@@ -1170,23 +1172,35 @@ def send_purchase_event_to_meta(
             "click_id"] = fbclid  # Usualmente no obligatorio si ya tienes fbc/fbp
 
     # Armamos el payload
-    payload = {
-        "data": [{
-            "event_name": "Purchase",
-            "event_time": int(datetime.now().timestamp()),
-            "action_source": "website",
-            "user_data": user_data,
-            "custom_data": {
-                "value": float(amount),
-                "currency": currency,
-                "utm_source": utm_source,
-                "utm_medium": utm_medium,
-                "utm_campaign": utm_campaign,
-            }
-        }],
-        "access_token":
-        settings.META_PIXEL_TOKEN
+    event_data = {
+        "event_name": "Purchase",
+        "event_time": int(datetime.now().timestamp()),
+        "action_source": "website",
+        "user_data": user_data,
+        "custom_data": {
+            "value": float(amount),
+            "currency": currency,
+            "utm_source": utm_source,
+            "utm_medium": utm_medium,
+            "utm_campaign": utm_campaign,
+        },
     }
+    # event_id habilita deduplicación con el Pixel client-side. Mismo event_id
+    # llegando por Pixel y CAPI dentro de 7 días → Meta cuenta UNO solo.
+    if event_id:
+        event_data["event_id"] = event_id
+    if event_source_url:
+        event_data["event_source_url"] = event_source_url
+
+    payload = {
+        "data": [event_data],
+        "access_token": settings.META_PIXEL_TOKEN,
+    }
+    # Test events: si META_TEST_EVENT_CODE está seteado, los eventos van a
+    # la vista de prueba en Events Manager (no afectan campañas reales).
+    test_code = getattr(settings, 'META_TEST_EVENT_CODE', None)
+    if test_code:
+        payload["test_event_code"] = test_code
 
     # Logging completo para depuración
     logger.debug("Payload enviado a Meta:\n%s", json.dumps(payload, indent=2))

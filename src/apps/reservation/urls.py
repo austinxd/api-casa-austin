@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from .views import ReservationsApiView, DeleteRecipeApiView, GetICSApiView, UpdateICSApiView, ProfitApiView, VistaCalendarioApiView, confirm_reservation, MonthlyReservationsExportAPIView, PropertyCalendarOccupancyAPIView, QRReservationView, ActiveReservationsView
+from .views import ReservationsApiView, DeleteRecipeApiView, GetICSApiView, UpdateICSApiView, ProfitApiView, VistaCalendarioApiView, confirm_reservation, track_conversion, MonthlyReservationsExportAPIView, PropertyCalendarOccupancyAPIView, QRReservationView, ActiveReservationsView
 from .payment_views import ProcessPaymentView, ProcessAdditionalServicesPaymentView
 from .homeassistant_views import (
     HomeAssistantReservationView,
@@ -27,6 +27,7 @@ urlpatterns = [
     path("profit/", ProfitApiView.as_view()),
     path("profit-resume/", ProfitApiView.as_view(), name='profit-resume'),
     path('confirm/<str:uuid>/', confirm_reservation, name='confirm_reservation'),
+    path('track-conversion/<uuid:reservation_id>/', track_conversion, name='track-conversion'),
     path('property/<str:property_id>/calendar-occupancy/', PropertyCalendarOccupancyAPIView.as_view(), name='property-calendar-occupancy'),
     path('payment/process/<str:reservation_id>/', ProcessPaymentView.as_view(), name='process-payment'),
     path('payment/additional-services/<str:reservation_id>/', ProcessAdditionalServicesPaymentView.as_view(), name='process-additional-services-payment'),
