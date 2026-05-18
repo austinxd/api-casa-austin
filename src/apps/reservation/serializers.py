@@ -313,6 +313,42 @@ class ReservationListSerializer(ReservationSerializer):
     number_nights = serializers.SerializerMethodField()
     is_upcoming = serializers.SerializerMethodField()
     status_display = serializers.SerializerMethodField()
+    # Fechas en las que se subieron los vouchers (orden cronológico).
+    # Útil para conciliación contable en el export Excel.
+    voucher_1_uploaded_at = serializers.SerializerMethodField()
+    voucher_2_uploaded_at = serializers.SerializerMethodField()
+    voucher_3_uploaded_at = serializers.SerializerMethodField()
+    vouchers_count = serializers.SerializerMethodField()
+
+    def _get_vouchers_sorted(self, instance):
+        """Vouchers no eliminados ordenados por fecha de subida."""
+        vouchers = [
+            v for v in instance.rentalreceipt_set.all()
+            if not getattr(v, 'deleted', False)
+        ]
+        return sorted(vouchers, key=lambda v: v.created)
+
+    def _voucher_date_at(self, instance, idx):
+        vouchers = self._get_vouchers_sorted(instance)
+        if idx < len(vouchers) and vouchers[idx].created:
+            return vouchers[idx].created.strftime('%Y-%m-%d %H:%M')
+        return None
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_voucher_1_uploaded_at(self, instance):
+        return self._voucher_date_at(instance, 0)
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_voucher_2_uploaded_at(self, instance):
+        return self._voucher_date_at(instance, 1)
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_voucher_3_uploaded_at(self, instance):
+        return self._voucher_date_at(instance, 2)
+
+    @extend_schema_field(serializers.IntegerField())
+    def get_vouchers_count(self, instance):
+        return len(self._get_vouchers_sorted(instance))
 
     @extend_schema_field(ClientShortSerializer)
     def get_client(self, instance):

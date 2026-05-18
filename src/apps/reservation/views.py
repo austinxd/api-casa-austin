@@ -1661,12 +1661,17 @@ class MonthlyReservationsExportAPIView(APIView):
             start_date = datetime(year, month, 1).date()
             end_date = datetime(year, month, last_day_month).date()
 
-            # Obtener reservas del mes
-            reservations = Reservation.objects.filter(
-                check_in_date__gte=start_date,
-                check_in_date__lte=end_date,
-                deleted=False
-            ).select_related('client', 'property', 'seller').order_by('check_in_date')
+            # Obtener reservas del mes (con prefetch de vouchers para evitar N+1)
+            reservations = (
+                Reservation.objects.filter(
+                    check_in_date__gte=start_date,
+                    check_in_date__lte=end_date,
+                    deleted=False
+                )
+                .select_related('client', 'property', 'seller')
+                .prefetch_related('rentalreceipt_set')
+                .order_by('check_in_date')
+            )
 
             # Formatear datos de reservas
             reservations_data = []
@@ -1695,6 +1700,20 @@ class MonthlyReservationsExportAPIView(APIView):
                     seller_first = reservation.seller.first_name or ""
                     seller_last = reservation.seller.last_name or ""
                     seller_name = f"{seller_first} {seller_last}".strip()
+
+                # Fechas de subida de vouchers (orden cronológico)
+                # Hasta 3 vouchers. Si hay más, los adicionales no salen en el
+                # Excel (pero quedan en BD).
+                vouchers = sorted(
+                    [r for r in reservation.rentalreceipt_set.all() if not getattr(r, 'deleted', False)],
+                    key=lambda r: r.created,
+                )
+                voucher_dates = [None, None, None]
+                for i, v in enumerate(vouchers[:3]):
+                    voucher_dates[i] = (
+                        v.created.strftime('%Y-%m-%d %H:%M')
+                        if v.created else None
+                    )
 
                 # Mapear status para mejor legibilidad
                 status_mapping = {
@@ -1738,7 +1757,13 @@ class MonthlyReservationsExportAPIView(APIView):
                     "points_redeemed": float(reservation.points_redeemed or 0),
                     "discount_code_used": reservation.discount_code_used or "",
                     "tel_contact_number": reservation.tel_contact_number or "",
-                    "comentarios_reservas": reservation.comentarios_reservas or ""
+                    "comentarios_reservas": reservation.comentarios_reservas or "",
+                    # Fechas en las que se subieron los vouchers (1er, 2do, 3er).
+                    # Útil para conciliación contable: cuándo entró cada pago.
+                    "voucher_1_uploaded_at": voucher_dates[0] or "",
+                    "voucher_2_uploaded_at": voucher_dates[1] or "",
+                    "voucher_3_uploaded_at": voucher_dates[2] or "",
+                    "vouchers_count": len(vouchers),
                 })
 
             # Formatear nombre del período
