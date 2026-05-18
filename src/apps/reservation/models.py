@@ -277,6 +277,19 @@ class RentalReceipt(BaseModel):
     reservation = models.ForeignKey(Reservation, on_delete=models.CASCADE, null=False, blank=False)
     file = models.FileField(null=False, upload_to=recipt_directory_path)
 
+    # === Datos extraídos por IA del voucher (para reconciliación bancaria) ===
+    # Se llenan vía OpenAI Vision (gpt-4o) al exportar el Excel de Ingresos.
+    # Una vez procesado, se cachea y no se vuelve a llamar al modelo.
+    ai_description = models.TextField(null=True, blank=True)
+    ai_bank_origin = models.CharField(max_length=100, null=True, blank=True)
+    ai_bank_destination = models.CharField(max_length=100, null=True, blank=True)
+    ai_destination_account = models.CharField(max_length=120, null=True, blank=True)
+    ai_currency = models.CharField(max_length=10, null=True, blank=True)
+    ai_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    ai_deposit_date = models.DateField(null=True, blank=True)
+    ai_processed_at = models.DateTimeField(null=True, blank=True)
+    ai_error = models.TextField(null=True, blank=True)
+
 # Model to track used payment tokens
 class PaymentToken(BaseModel):
     token = models.CharField(max_length=255, unique=True, null=False, blank=False)

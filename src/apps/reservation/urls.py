@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from .views import ReservationsApiView, DeleteRecipeApiView, GetICSApiView, UpdateICSApiView, ProfitApiView, VistaCalendarioApiView, confirm_reservation, track_conversion, MonthlyReservationsExportAPIView, PropertyCalendarOccupancyAPIView, QRReservationView, ActiveReservationsView
+from .voucher_export_views import VoucherExportAPIView
 from .payment_views import ProcessPaymentView, ProcessAdditionalServicesPaymentView
 from .homeassistant_views import (
     HomeAssistantReservationView,
@@ -32,6 +33,9 @@ urlpatterns = [
     path('payment/process/<str:reservation_id>/', ProcessPaymentView.as_view(), name='process-payment'),
     path('payment/additional-services/<str:reservation_id>/', ProcessAdditionalServicesPaymentView.as_view(), name='process-additional-services-payment'),
     path('export/monthly/', MonthlyReservationsExportAPIView.as_view(), name='monthly-reservations-export'),
+    # Excel de Ingresos: 1 fila por voucher con datos extraídos por IA
+    # del comprobante (para reconciliación bancaria).
+    path('export/vouchers/', VoucherExportAPIView.as_view(), name='voucher-export'),
     path("homeassistant/", HomeAssistantReservationView.as_view(), name="homeassistant-reservation"),
     path('qr/<str:reservation_id>/', QRReservationView.as_view(), name='qr-reservation'),
     path('active/', ActiveReservationsView.as_view(), name='active-reservations'),
