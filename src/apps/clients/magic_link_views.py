@@ -450,6 +450,7 @@ class CreateExpressReservationView(APIView):
     def post(self, request):
         from datetime import timedelta
         from django.conf import settings
+        from django.db import transaction
         from django.utils import timezone as _tz
 
         from apps.clients.models import Clients
@@ -602,6 +603,9 @@ class CreateExpressReservationView(APIView):
         )
         manual_url = f"https://wa.me/{support_wa}"
 
+        # Flag: solo borramos al rollback si lo creamos en este request.
+        client_was_created_now = False
+
         # ¿Hay Client con este documento? (mismo tipo + número)
         client_by_doc = Clients.objects.filter(
             document_type=magic.document_type or 'dni',
@@ -703,6 +707,7 @@ class CreateExpressReservationView(APIView):
                     tel_number=magic.wa_id,  # wa_id sin '+', formato '51XXX...'
                     is_password_set=False,
                 )
+                client_was_created_now = True
                 logger.info(
                     f"Express Client created: id={client.id} "
                     f"dni={magic.document_number} wa_id={magic.wa_id}"
@@ -713,7 +718,7 @@ class CreateExpressReservationView(APIView):
                 )
                 return Response({
                     'error': 'client_create_failed',
-                    'message': 'No pudimos crear tu cuenta. Contáctanos.',
+                    'message': f'No pudimos crear tu cuenta: {str(e)[:200]}',
                     'whatsapp_url': manual_url,
                 }, status=500,
                 )
@@ -843,6 +848,18 @@ class CreateExpressReservationView(APIView):
                 f"Express reservation validation failed: {errs} "
                 f"client={client.id}"
             )
+            # Rollback Client si lo creamos en este request (caso A): así no
+            # quedan clientes huérfanos por validaciones fallidas.
+            if client_was_created_now:
+                try:
+                    client.delete()
+                    logger.info(
+                        f"Rolled back Client {client.id} por validación fallida"
+                    )
+                except Exception as del_err:
+                    logger.error(
+                        f"Error eliminando Client {client.id} en rollback: {del_err}"
+                    )
             return Response(
                 {'success': False, 'message': friendly, 'errors': errs},
                 status=400,
@@ -919,9 +936,21 @@ class CreateExpressReservationView(APIView):
             logger.error(
                 f"Express reservation save error: {e}", exc_info=True,
             )
+            # Rollback Client si lo creamos en este request: evita orphans.
+            if client_was_created_now:
+                try:
+                    client.delete()
+                    logger.info(
+                        f"Rolled back Client {client.id} por reserva fallida"
+                    )
+                except Exception as del_err:
+                    logger.error(
+                        f"Error eliminando Client {client.id} en rollback: {del_err}"
+                    )
             return Response({
                 'success': False,
-                'message': 'No pudimos crear tu reserva. Contáctanos.',
+                'message': f'No pudimos crear tu reserva: {str(e)[:300]}',
+                'error_detail': str(e)[:1000],
                 'whatsapp_url': manual_url,
             }, status=500,
             )
