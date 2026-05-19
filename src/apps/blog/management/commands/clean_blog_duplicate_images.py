@@ -42,12 +42,26 @@ def _filename(url_or_path):
 
 
 def _normalize(name):
-    """Quita el sufijo de resolución WordPress y la extensión."""
+    """Quita extensión y sufijos comunes que añaden los uploaders:
+       -1024x768  (WordPress resize variants)
+       _w7nzdih   (Django FileField random suffix cuando el nombre existe)
+       -1, -2     (numeración cuando hay colisión de nombres)
+    """
     if not name:
         return ''
     base, _ext = os.path.splitext(name)
+    # WordPress: sufijo de resolución
     base = re.sub(r'-\d{2,4}x\d{2,4}$', '', base)
+    # Django FileField: random alphanumeric suffix de 5-12 chars
+    base = re.sub(r'_[a-z0-9]{5,12}$', '', base, flags=re.IGNORECASE)
+    # Sufijo numérico (-1, -2, ..., -10)
+    base = re.sub(r'-\d{1,2}$', '', base)
     return base.lower()
+
+
+# Longitud mínima del prefijo común para considerar match. Evita falsos
+# positivos con nombres genéricos cortos (ej. "casa.jpg", "foto.jpg").
+MIN_MATCH_LEN = 15
 
 
 def _is_duplicate(img_src, featured_url):
@@ -57,7 +71,14 @@ def _is_duplicate(img_src, featured_url):
     b = _normalize(_filename(featured_url))
     if not a or not b:
         return False
-    return a == b or a in b or b in a
+    if a == b:
+        return True
+    # Substring match — pero exigir que el shorter tenga longitud útil
+    shorter = a if len(a) < len(b) else b
+    longer = b if len(a) < len(b) else a
+    if len(shorter) >= MIN_MATCH_LEN and shorter in longer:
+        return True
+    return False
 
 
 def _featured_url_from_post(post):
