@@ -184,12 +184,6 @@ urlpatterns = [
     path('clients/express-reservation/create/',
          magic_link_views.CreateExpressReservationView.as_view(),
          name='express-reservation-create'),
-    # R4.3 — Pre-registro express: crea Client + emite JWT magic SIN reserva.
-    # El frontend redirige al /booking para crear la reserva en el form
-    # unificado (mismo flujo que existing_client).
-    path('clients/express-reservation/pre-register/',
-         magic_link_views.PreRegisterExpressClientView.as_view(),
-         name='express-reservation-pre-register'),
 
     # Debug endpoints for Sheets and Webhook issues  
     path('clients/track-search-admin/', SearchTrackingView.as_view(), name='search-tracking'),
