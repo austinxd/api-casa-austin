@@ -42,10 +42,16 @@ async function loginFresh() {
             "Falta configurar CASA_AUSTIN_ADMIN_USERNAME y CASA_AUSTIN_ADMIN_PASSWORD en el MCP config (claude_desktop_config.json).",
         );
     }
+    // El backend de Casa Austin usa `email` como USERNAME_FIELD del modelo
+    // CustomUser. Mandamos ambos campos por compatibilidad.
     const resp = await fetch(`${API_BASE}/api/v1/login/`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ username: ADMIN_USERNAME, password: ADMIN_PASSWORD }),
+        body: JSON.stringify({
+            email: ADMIN_USERNAME,
+            username: ADMIN_USERNAME,
+            password: ADMIN_PASSWORD,
+        }),
     });
     if (!resp.ok) {
         const txt = await resp.text();
@@ -462,23 +468,34 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             if (!month || !year) throw new Error("Faltan month y year.");
             const params = new URLSearchParams({ month: String(month), year: String(year) });
             const data = await authedJson(`/api/v1/dashboard/?${params}`);
-            // Resumimos campos para que Claude no lidie con ruido (best_sellers
-            // se queda solo con totales agregados).
+            // Normalizar free_days_per_house: viene como array de objetos
+            // con keys diferentes. Lo reorganizamos por casa con campos claros.
+            const porCasa = (data.free_days_per_house || []).map((h) => ({
+                casa: h.casa,
+                noches_libres: h.dias_libres,
+                noches_ocupadas: h.dias_ocupada,
+                noches_mantenimiento: h.noches_man,
+                ingresos_facturados_sol: h.dinero_facturado,
+                ingresos_por_cobrar_sol: h.dinero_por_cobrar,
+            }));
             const summary = {
                 month,
                 year,
-                noches_libres_por_casa: data.free_days_per_house || null,
-                noches_libres_total: data.free_days_total,
-                noches_ocupadas_total: data.ocuppied_days_total,
-                noches_mantenimiento: data.noches_man,
-                facturacion_total_sol: data.dinero_total_facturado,
-                dinero_por_cobrar_sol: data.dinero_por_cobrar,
-                puntos_canjeados: data.puntos_canjeados,
+                por_casa: porCasa,
+                total: {
+                    noches_libres: data.free_days_total,
+                    noches_ocupadas: data.ocuppied_days_total,
+                    noches_mantenimiento: data.noches_man,
+                    facturacion_sol: data.dinero_total_facturado,
+                    por_cobrar_sol: data.dinero_por_cobrar,
+                    puntos_canjeados: data.puntos_canjeados,
+                },
                 top_vendedores: (data.best_sellers || [])
                     .map((v) => ({
                         nombre: `${v.nombre || ""} ${v.apellido || ""}`.trim(),
                         ventas_soles: v.ventas_soles,
                     }))
+                    .filter((v) => parseFloat(v.ventas_soles || 0) > 0)
                     .sort((a, b) => parseFloat(b.ventas_soles || 0) - parseFloat(a.ventas_soles || 0))
                     .slice(0, 5),
             };
@@ -505,11 +522,18 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             ]);
             const summarize = (d, y) => ({
                 year: y,
-                noches_libres_por_casa: d.free_days_per_house || null,
-                noches_ocupadas_total: d.ocuppied_days_total,
-                noches_libres_total: d.free_days_total,
-                facturacion_total_sol: d.dinero_total_facturado,
-                dinero_por_cobrar_sol: d.dinero_por_cobrar,
+                por_casa: (d.free_days_per_house || []).map((h) => ({
+                    casa: h.casa,
+                    noches_libres: h.dias_libres,
+                    noches_ocupadas: h.dias_ocupada,
+                    ingresos_sol: h.dinero_facturado,
+                })),
+                total: {
+                    noches_ocupadas: d.ocuppied_days_total,
+                    noches_libres: d.free_days_total,
+                    facturacion_sol: d.dinero_total_facturado,
+                    por_cobrar_sol: d.dinero_por_cobrar,
+                },
             });
             const summary = {
                 month,
