@@ -164,10 +164,15 @@ class SearchConsoleStatsView(APIView):
         })
 
 
-@api_view(['GET'])
+@api_view(['GET', 'HEAD'])
 @perm_classes([AllowAny])
 def blog_sitemap(request):
-    """Genera sitemap XML dinámico con todos los blog posts publicados."""
+    """Genera sitemap XML dinámico con todos los blog posts publicados.
+
+    Acepta GET y HEAD: Google Search Console hace HEAD primero para
+    validar el sitemap antes de descargarlo. Sin HEAD, GSC reporta
+    "El sitemap es HTML" porque interpreta el 405 como fallback.
+    """
     posts = BlogPost.objects.filter(
         deleted=False, status='published'
     ).order_by('-published_date').values_list('slug', 'updated')
@@ -190,4 +195,6 @@ def blog_sitemap(request):
         + '\n'.join(urls) + '\n'
         '</urlset>'
     )
-    return HttpResponse(xml, content_type='application/xml')
+    # En HEAD Django/DRF omite el body automáticamente pero usa el
+    # mismo Content-Type/Length que tendría el GET — perfecto para GSC.
+    return HttpResponse(xml, content_type='application/xml; charset=utf-8')
