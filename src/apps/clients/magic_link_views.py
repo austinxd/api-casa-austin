@@ -815,6 +815,10 @@ class CreateExpressReservationView(APIView):
             'tel_contact_number': magic.wa_id,
             'origin': 'client',
             'advance_payment_currency': body_currency,
+            # Express siempre es venta directa por la web — seller 14
+            # ("Casa Austin / cliente"). Lo seteamos explícito para no
+            # depender del fallback del serializer.
+            'seller': 14,
         }
         # Pasar precios y servicios adicionales si los manda el body.
         for opt_key in (
