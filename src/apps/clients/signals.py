@@ -342,16 +342,34 @@ def update_audience_on_client_creation(sender, instance, created, **kwargs):
         # Verificar y asignar logros automáticamente
         check_and_assign_achievements(instance)
 
-        update_meta_audience(instance)
-        
-        # Registrar actividad en el ActivityFeed
-        register_client_activity_feed(instance)
-        
-        # Enviar notificación interna de nuevo cliente registrado (Telegram)
-        notify_new_client_registration(instance)
-        
-        # Enviar notificación de bienvenida al cliente (WhatsApp)
-        notify_whatsapp_successful_registration(instance)
+        # === Side-effects diferidos a transaction.on_commit ===
+        # Si estamos dentro de un transaction.atomic() (ej: flujo express)
+        # y la transacción hace rollback, estas acciones NO deben dispararse.
+        # transaction.on_commit garantiza que solo corren si el commit ocurre.
+        from django.db import transaction as _txn
+
+        client_id = instance.id
+
+        def _after_commit():
+            try:
+                # Refresh para tener la última versión (otros signals pudieron
+                # mutar el instance entre el save y el on_commit).
+                instance.refresh_from_db()
+            except Clients.DoesNotExist:
+                # Caso típico: la transacción hizo rollback parcial del
+                # Client (express endpoint). Abortamos las notificaciones.
+                logger.info(
+                    f"on_commit: Client {client_id} ya no existe — "
+                    f"se omiten notificaciones."
+                )
+                return
+
+            update_meta_audience(instance)
+            register_client_activity_feed(instance)
+            notify_new_client_registration(instance)
+            notify_whatsapp_successful_registration(instance)
+
+        _txn.on_commit(_after_commit)
     else:
         # Solo actualizar audiencia si cambió información relevante (no solo last_login)
         if kwargs.get('update_fields'):

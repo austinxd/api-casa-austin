@@ -398,6 +398,16 @@ class CreateReservationViaMagicLinkView(APIView):
 # R4.2 — Reserva Express para clientes nuevos (link_type='guest_express')
 # =====================================================================
 
+class _ExpressValidationError(Exception):
+    """Excepción interna para abortar el bloque atómico de creación
+    express con un mensaje friendly + dict de errores del serializer.
+    Atrapada localmente y convertida en Response 400."""
+    def __init__(self, message, errors=None):
+        super().__init__(message)
+        self.message = message
+        self.errors = errors or {}
+
+
 def _notify_express_conflict(magic_link, reason, details):
     """Dispara notify_team usando el chat_session del magic link.
 
@@ -603,9 +613,6 @@ class CreateExpressReservationView(APIView):
         )
         manual_url = f"https://wa.me/{support_wa}"
 
-        # Flag: solo borramos al rollback si lo creamos en este request.
-        client_was_created_now = False
-
         # ¿Hay Client con este documento? (mismo tipo + número)
         client_by_doc = Clients.objects.filter(
             document_type=magic.document_type or 'dni',
@@ -690,57 +697,31 @@ class CreateExpressReservationView(APIView):
                     'whatsapp_url': manual_url,
                 }, status=409)
 
-            # --- Caso A: crear Client nuevo ---
+            # --- Caso A: marcar para crear Client dentro del bloque atómico ---
             # En este punto magic.document_type es 'dni' siempre: bloqueamos
             # PAS/CEX más arriba con foreign_doc_not_supported.
-            full_name = (magic.validated_full_name or '').strip()
-            parts = full_name.split()
-            first_name = parts[0] if parts else 'Cliente'
-            last_name = ' '.join(parts[1:]) if len(parts) > 1 else ''
-            try:
-                client = Clients.objects.create(
-                    document_type=magic.document_type or 'dni',
-                    number_doc=magic.document_number,
-                    first_name=first_name[:30],
-                    last_name=last_name[:40] or None,
-                    email=email,
-                    tel_number=magic.wa_id,  # wa_id sin '+', formato '51XXX...'
-                    is_password_set=False,
-                )
-                client_was_created_now = True
-                logger.info(
-                    f"Express Client created: id={client.id} "
-                    f"dni={magic.document_number} wa_id={magic.wa_id}"
-                )
-            except Exception as e:
-                logger.error(
-                    f"Express Client create error: {e}", exc_info=True,
-                )
-                return Response({
-                    'error': 'client_create_failed',
-                    'message': f'No pudimos crear tu cuenta: {str(e)[:200]}',
-                    'whatsapp_url': manual_url,
-                }, status=500,
-                )
+            client = None  # sentinel — se crea dentro de transaction.atomic más abajo
 
-        # === Crear Reservation ===
-        # Bloquear si ya tiene una pendiente (mismo check que normal/magic R4.1).
-        pending_statuses = ['incomplete', 'pending', 'under_review']
-        existing_pending = Reservation.objects.filter(
-            client=client,
-            status__in=pending_statuses,
-            deleted=False,
-        ).first()
-        if existing_pending:
-            return Response({
-                'success': False,
-                'message': (
-                    'Ya tienes una reserva en proceso. Termina esa primero o '
-                    'contáctanos por WhatsApp para ayudarte.'
-                ),
-                'existing_reservation_id': str(existing_pending.id),
-                'whatsapp_url': manual_url,
-            }, status=400)
+        # === Crear Reservation (atómico) ===
+        # Bloquear si el cliente EXISTENTE (caso B) ya tiene una pendiente.
+        # Caso A: el client aún no existe, no aplica.
+        if client is not None:
+            pending_statuses = ['incomplete', 'pending', 'under_review']
+            existing_pending = Reservation.objects.filter(
+                client=client,
+                status__in=pending_statuses,
+                deleted=False,
+            ).first()
+            if existing_pending:
+                return Response({
+                    'success': False,
+                    'message': (
+                        'Ya tienes una reserva en proceso. Termina esa primero o '
+                        'contáctanos por WhatsApp para ayudarte.'
+                    ),
+                    'existing_reservation_id': str(existing_pending.id),
+                    'whatsapp_url': manual_url,
+                }, status=400)
 
         # === Construir data de la reserva ===
         # El cliente puede editar property/fechas/guests en /booking. Si el
@@ -830,79 +811,112 @@ class CreateExpressReservationView(APIView):
             if opt_key in request.data and request.data.get(opt_key) is not None:
                 data[opt_key] = request.data.get(opt_key)
 
-        # Inyectar request.user para el serializer (espera contexto)
-        fake_request = type(
-            'FakeReq', (), {'user': client, 'data': data},
-        )()
-        serializer = ClientReservationSerializer(
-            data=data, context={'request': fake_request},
-        )
-        if not serializer.is_valid():
-            errs = serializer.errors or {}
-            details = []
-            if isinstance(errs, dict):
-                for field, msgs in errs.items():
-                    first = (
-                        msgs[0] if isinstance(msgs, list) and msgs
-                        else str(msgs)
+        # === Bloque atómico: Client (caso A) + Reservation ===
+        # Si cualquier paso falla, transaction.atomic() hace rollback de
+        # TODO lo creado dentro — incluyendo el Client. Las notificaciones
+        # del signal post_save están dentro de transaction.on_commit, así
+        # que solo se mandan si el commit ocurre.
+        try:
+            with transaction.atomic():
+                # Caso A: crear Client ahora, dentro del atomic.
+                if client is None:
+                    full_name = (magic.validated_full_name or '').strip()
+                    parts = full_name.split()
+                    first_name = parts[0] if parts else 'Cliente'
+                    last_name = ' '.join(parts[1:]) if len(parts) > 1 else ''
+                    client = Clients.objects.create(
+                        document_type=magic.document_type or 'dni',
+                        number_doc=magic.document_number,
+                        first_name=first_name[:30],
+                        last_name=last_name[:40] or None,
+                        email=email,
+                        tel_number=magic.wa_id,
+                        is_password_set=False,
                     )
-                    details.append(f"{field}: {first}")
-            friendly = '; '.join(details) if details else 'Error en los datos.'
-            logger.warning(
-                f"Express reservation validation failed: {errs} "
-                f"client={client.id}"
-            )
-            # Rollback Client si lo creamos en este request (caso A): así no
-            # quedan clientes huérfanos por validaciones fallidas.
-            if client_was_created_now:
-                try:
-                    client.delete()
                     logger.info(
-                        f"Rolled back Client {client.id} por validación fallida"
+                        f"Express Client created: id={client.id} "
+                        f"dni={magic.document_number} wa_id={magic.wa_id}"
                     )
-                except Exception as del_err:
-                    logger.error(
-                        f"Error eliminando Client {client.id} en rollback: {del_err}"
+
+                # Inyectar request.user para el serializer
+                fake_request = type(
+                    'FakeReq', (), {'user': client, 'data': data},
+                )()
+                serializer = ClientReservationSerializer(
+                    data=data, context={'request': fake_request},
+                )
+                if not serializer.is_valid():
+                    errs = serializer.errors or {}
+                    details = []
+                    if isinstance(errs, dict):
+                        for field, msgs in errs.items():
+                            first = (
+                                msgs[0] if isinstance(msgs, list) and msgs
+                                else str(msgs)
+                            )
+                            details.append(f"{field}: {first}")
+                    friendly = '; '.join(details) if details else 'Error en los datos.'
+                    logger.warning(
+                        f"Express reservation validation failed: {errs} "
+                        f"client={client.id}"
                     )
+                    # Levantar excepción → atomic rollback → Client (case A)
+                    # se borra automáticamente + ningún signal post_commit.
+                    raise _ExpressValidationError(friendly, errs)
+
+                payment_deadline = _tz.now() + timedelta(hours=1)
+                reservation = serializer.save(
+                    client=client,
+                    origin='client',
+                    status='incomplete',
+                    payment_voucher_deadline=payment_deadline,
+                    payment_voucher_uploaded=False,
+                    payment_confirmed=False,
+                    chatbot_session=magic.chat_session,
+                )
+                # Vincular el magic link al client (claims del JWT) y consumirlo.
+                if magic.client_id is None:
+                    magic.client = client
+                    magic.save(update_fields=['client'])
+                mark_consumed(magic)
+                logger.info(
+                    f"Express reservation created: id={reservation.id} "
+                    f"client={client.id} magic_link_id={magic.id}"
+                )
+                # JWT para los siguientes pasos (voucher/pago)
+                jwt_token = emit_magic_jwt(magic)
+        except _ExpressValidationError as ve:
             return Response(
-                {'success': False, 'message': friendly, 'errors': errs},
+                {'success': False, 'message': ve.message, 'errors': ve.errors},
                 status=400,
             )
+        except Exception as e:
+            logger.error(
+                f"Express reservation save error: {e}", exc_info=True,
+            )
+            return Response({
+                'success': False,
+                'message': f'No pudimos crear tu reserva: {str(e)[:300]}',
+                'error_detail': str(e)[:1000],
+                'whatsapp_url': manual_url,
+            }, status=500)
 
+        # === Post-commit: notificación al equipo ===
+        # Fuera del atomic para que el envío no haga rollback de la reserva
+        # si fallase la notificación.
+        edited_note = ''
+        if (
+            str(magic.check_in) != str(reservation.check_in_date)
+            or str(magic.check_out) != str(reservation.check_out_date)
+            or int(magic.guests or 0) != int(reservation.guests or 0)
+            or (magic.property_id and magic.property_id != reservation.property_id)
+        ):
+            edited_note = (
+                f" [⚠️ cliente editó datos: link era "
+                f"{magic.property.name if magic.property_id else '?'} "
+                f"{magic.check_in}→{magic.check_out}, {magic.guests} pers]"
+            )
         try:
-            payment_deadline = _tz.now() + timedelta(hours=1)
-            reservation = serializer.save(
-                client=client,
-                origin='client',
-                status='incomplete',
-                payment_voucher_deadline=payment_deadline,
-                payment_voucher_uploaded=False,
-                payment_confirmed=False,
-                chatbot_session=magic.chat_session,
-            )
-            # Vincular el magic link al client (necesario para emitir JWT magic
-            # con client_id en los claims) y consumirlo.
-            if magic.client_id is None:
-                magic.client = client
-                magic.save(update_fields=['client'])
-            mark_consumed(magic)
-            logger.info(
-                f"Express reservation created: id={reservation.id} "
-                f"client={client.id} magic_link_id={magic.id}"
-            )
-            # Notificación al equipo: se creó una reserva express.
-            edited_note = ''
-            if (
-                str(magic.check_in) != str(reservation.check_in_date)
-                or str(magic.check_out) != str(reservation.check_out_date)
-                or int(magic.guests or 0) != int(reservation.guests or 0)
-                or (magic.property_id and magic.property_id != reservation.property_id)
-            ):
-                edited_note = (
-                    f" [⚠️ cliente editó datos: link era "
-                    f"{magic.property.name if magic.property_id else '?'} "
-                    f"{magic.check_in}→{magic.check_out}, {magic.guests} pers]"
-                )
             _notify_express_conflict(
                 magic,
                 'express_booking_created',
@@ -913,48 +927,25 @@ class CreateExpressReservationView(APIView):
                 f"{reservation.guests} pers.{edited_note} "
                 f"Pendiente de subir voucher.",
             )
-            # Emitir JWT magic para que el frontend pueda subir voucher /
-            # pagar con tarjeta sin pasar por login estándar.
-            jwt_token = emit_magic_jwt(magic)
-            return Response({
-                'success': True,
-                'message': (
-                    'Reserva creada exitosamente. Está pendiente de '
-                    'aprobación.'
-                ),
-                'reservation': ReservationListSerializer(reservation).data,
-                'reservation_id': str(reservation.id),
-                # Auth scope='magic' para los siguientes pasos (voucher/pago)
-                'client_token': jwt_token,
-                'token_scope': 'magic',
-                'client': {
-                    'id': str(client.id),
-                    'first_name': client.first_name,
-                    'last_name': client.last_name or '',
-                    'full_name': (
-                        f"{client.first_name} {client.last_name or ''}"
-                    ).strip(),
-                },
-            }, status=201)
         except Exception as e:
-            logger.error(
-                f"Express reservation save error: {e}", exc_info=True,
-            )
-            # Rollback Client si lo creamos en este request: evita orphans.
-            if client_was_created_now:
-                try:
-                    client.delete()
-                    logger.info(
-                        f"Rolled back Client {client.id} por reserva fallida"
-                    )
-                except Exception as del_err:
-                    logger.error(
-                        f"Error eliminando Client {client.id} en rollback: {del_err}"
-                    )
-            return Response({
-                'success': False,
-                'message': f'No pudimos crear tu reserva: {str(e)[:300]}',
-                'error_detail': str(e)[:1000],
-                'whatsapp_url': manual_url,
-            }, status=500,
-            )
+            logger.warning(f"Notificación express_booking_created falló: {e}")
+
+        return Response({
+            'success': True,
+            'message': (
+                'Reserva creada exitosamente. Está pendiente de '
+                'aprobación.'
+            ),
+            'reservation': ReservationListSerializer(reservation).data,
+            'reservation_id': str(reservation.id),
+            'client_token': jwt_token,
+            'token_scope': 'magic',
+            'client': {
+                'id': str(client.id),
+                'first_name': client.first_name,
+                'last_name': client.last_name or '',
+                'full_name': (
+                    f"{client.first_name} {client.last_name or ''}"
+                ).strip(),
+            },
+        }, status=201)
