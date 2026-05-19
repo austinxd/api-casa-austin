@@ -550,9 +550,11 @@ class ClientReservationSerializer(serializers.ModelSerializer):
         validated_data['status'] = 'incomplete'
 
         # Asignar seller específico si se envía desde el frontend, sino usar seller por defecto (ID 14)
+        # NOTA: CustomUser ya está importado a nivel de módulo (línea 9).
+        # NO re-importar localmente: hace que Python lo trate como variable
+        # local y rompe la rama else con UnboundLocalError.
         if 'seller' in validated_data and validated_data['seller']:
             try:
-                from apps.accounts.models import CustomUser
                 seller_id = validated_data['seller']
                 # Si seller_id es ya un objeto CustomUser, obtener su ID
                 if hasattr(seller_id, 'id'):
