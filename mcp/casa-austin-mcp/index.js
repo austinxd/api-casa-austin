@@ -296,6 +296,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             },
         },
         {
+            name: "get_active_today",
+            description:
+                "USAR PARA: saber AHORA MISMO qué casas están ocupadas (con huéspedes adentro) y cuáles tienen check-in agendado para hoy. Considera horarios reales (check-in 12 PM, check-out 11 AM hora Perú). Devuelve total ocupadas, lista de reservas activas con casa+cliente+huéspedes, y check-ins programados para el día. NO usar para mes completo (eso es get_monthly_operations).",
+            inputSchema: { type: "object", properties: {} },
+        },
+        {
             name: "compare_months_yoy",
             description:
                 "USAR PARA: comparar mismo mes en dos años (year-over-year). Hace 2 llamadas internas y devuelve ambos meses lado a lado: noches ocupadas, facturación, etc. Útil para preguntas tipo '¿cómo viene mayo 2026 vs mayo 2025?'.",
@@ -508,6 +514,34 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             const params = new URLSearchParams({ year: String(year) });
             const data = await authedJson(`/api/v1/profit-resume/?${params}`);
             return { content: [{ type: "text", text: JSON.stringify({ year, facturacion_mensual_sol: data }, null, 2) }] };
+        }
+
+        if (name === "get_active_today") {
+            const data = await authedJson(`/api/v1/active/`);
+            const ocupadas = (data.active_reservations || []).map((r) => ({
+                casa: r.property_name || r.property,
+                cliente: r.client_name,
+                huespedes: r.guests,
+                check_in: r.check_in_date,
+                check_out: r.check_out_date,
+                origin: r.origin,
+            }));
+            const checkInsHoy = (data.check_in_today || []).map((r) => ({
+                casa: r.property,
+                cliente: r.client_name,
+                huespedes: r.guests,
+                check_in_time: r.checkin_time,
+                phone: r.phone,
+                origin: r.origin,
+            }));
+            const summary = {
+                ahora: new Date().toLocaleString("es-PE", { timeZone: "America/Lima" }),
+                casas_ocupadas_ahora: ocupadas.length,
+                casas_con_checkin_hoy: checkInsHoy.length,
+                reservas_activas: ocupadas,
+                checkins_hoy: checkInsHoy,
+            };
+            return { content: [{ type: "text", text: JSON.stringify(summary, null, 2) }] };
         }
 
         if (name === "compare_months_yoy") {
