@@ -1,20 +1,25 @@
 #!/usr/bin/env node
 /**
- * MCP server de Casa Austin: expone tools para consultar disponibilidad
- * y precios de las casas de playa desde Claude Desktop.
+ * MCP server de Casa Austin: tools de disponibilidad/precios (públicos) +
+ * análisis de conversaciones del chatbot Austin Assistant (autenticadas).
  *
- * Tools:
+ * Tools públicas (no requieren auth):
  *   check_availability(check_in, check_out)
- *     → SOLO disponibilidad sin precios (lista casas libres + capacidad).
  *   get_pricing(check_in, check_out, guests, property_slug?)
- *     → Disponibilidad + precios para N huéspedes (cotización completa).
  *   list_properties()
- *     → Info estática de las 4 casas (capacidad, dormitorios, etc).
  *
- * Uso desde Claude Desktop una vez registrado en claude_desktop_config.json:
- *   "¿Hay disponibilidad del 15 al 18 de junio?"  → check_availability
- *   "¿Cuánto sale Casa Austin 3 para 6 personas?" → get_pricing
- *   "¿Cuáles son las 4 casas de Casa Austin?"     → list_properties
+ * Tools privadas (requieren CASA_AUSTIN_ADMIN_USERNAME + CASA_AUSTIN_ADMIN_PASSWORD):
+ *   get_chat_sessions(date_from?, date_to?, status?, limit?)
+ *   get_chat_session(session_id)
+ *   get_chat_analytics(period?)
+ *   get_funnel(month, year)
+ *   get_unresolved_questions(limit?)
+ *   get_frequent_questions(limit?)
+ *   get_followup_opportunities()
+ *
+ * Auth: hace login con username/password al primer call autenticado, guarda
+ * access+refresh en memoria. Si access expira, intenta refresh; si refresh
+ * expira, re-login.
  */
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -24,73 +29,85 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 const API_BASE = process.env.CASA_AUSTIN_API_BASE || "https://api.casaaustin.pe";
+const ADMIN_USERNAME = process.env.CASA_AUSTIN_ADMIN_USERNAME || "";
+const ADMIN_PASSWORD = process.env.CASA_AUSTIN_ADMIN_PASSWORD || "";
 
-const server = new Server(
-    { name: "casa-austin", version: "0.2.0" },
-    { capabilities: { tools: {} } },
-);
+// ─── Auth state (en memoria; el proceso vive lo que dure Claude Desktop) ───
+let tokenAccess = null;
+let tokenRefresh = null;
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [
-        {
-            name: "check_availability",
-            description:
-                "Consulta SOLO disponibilidad (sin precios) de las casas de Casa Austin para un rango de fechas. Devuelve cuántas casas hay libres y la lista de casas disponibles con su capacidad máxima. Usar cuando el usuario pregunta '¿hay disponibilidad?' sin especificar cantidad de personas ni pedir precio. Para cotizar con precios usar la herramienta get_pricing.",
-            inputSchema: {
-                type: "object",
-                properties: {
-                    check_in: {
-                        type: "string",
-                        description: "Fecha de check-in en formato YYYY-MM-DD.",
-                    },
-                    check_out: {
-                        type: "string",
-                        description: "Fecha de check-out en formato YYYY-MM-DD. Posterior al check_in.",
-                    },
-                },
-                required: ["check_in", "check_out"],
-            },
-        },
-        {
-            name: "get_pricing",
-            description:
-                "Consulta disponibilidad y PRECIOS de las casas de Casa Austin para fechas y cantidad de huéspedes específicos. Devuelve precio total en soles y dólares por cada casa disponible, con descuentos aplicables. Usar cuando el usuario pregunta cuánto cuesta una estadía o pide cotización para N personas.",
-            inputSchema: {
-                type: "object",
-                properties: {
-                    check_in: {
-                        type: "string",
-                        description: "Fecha de check-in en formato YYYY-MM-DD.",
-                    },
-                    check_out: {
-                        type: "string",
-                        description: "Fecha de check-out en formato YYYY-MM-DD.",
-                    },
-                    guests: {
-                        type: "number",
-                        description: "Cantidad total de huéspedes (adultos + niños). Mínimo 1.",
-                    },
-                    property_slug: {
-                        type: "string",
-                        description: "Opcional. Slug de una propiedad específica (casa-austin-1, casa-austin-2, casa-austin-3, casa-austin-4) si solo se quiere cotizar esa casa. Si se omite, devuelve cotización de todas las casas disponibles.",
-                    },
-                },
-                required: ["check_in", "check_out", "guests"],
-            },
-        },
-        {
-            name: "list_properties",
-            description:
-                "Lista las 4 casas de Casa Austin con sus características: nombre, slug, capacidad máxima, dormitorios, baños y precio mínimo. Útil para saber qué propiedades existen antes de cotizar una específica.",
-            inputSchema: {
-                type: "object",
-                properties: {},
-            },
-        },
-    ],
-}));
+async function loginFresh() {
+    if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
+        throw new Error(
+            "Falta configurar CASA_AUSTIN_ADMIN_USERNAME y CASA_AUSTIN_ADMIN_PASSWORD en el MCP config (claude_desktop_config.json).",
+        );
+    }
+    const resp = await fetch(`${API_BASE}/api/v1/login/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ username: ADMIN_USERNAME, password: ADMIN_PASSWORD }),
+    });
+    if (!resp.ok) {
+        const txt = await resp.text();
+        throw new Error(`Login falló (HTTP ${resp.status}): ${txt.slice(0, 300)}`);
+    }
+    const data = await resp.json();
+    tokenAccess = data.access;
+    tokenRefresh = data.refresh;
+}
 
-/** Helper: arma URL del endpoint calculate-pricing. */
+async function refreshAccess() {
+    if (!tokenRefresh) {
+        await loginFresh();
+        return;
+    }
+    const resp = await fetch(`${API_BASE}/api/v1/token/refresh/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ refresh: tokenRefresh }),
+    });
+    if (!resp.ok) {
+        // refresh inválido → re-login limpio
+        tokenAccess = null;
+        tokenRefresh = null;
+        await loginFresh();
+        return;
+    }
+    const data = await resp.json();
+    tokenAccess = data.access;
+    if (data.refresh) tokenRefresh = data.refresh;
+}
+
+async function authedFetch(path, opts = {}) {
+    if (!tokenAccess) await loginFresh();
+    const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
+    const doFetch = () =>
+        fetch(url, {
+            ...opts,
+            headers: {
+                Accept: "application/json",
+                ...(opts.headers || {}),
+                Authorization: `Bearer ${tokenAccess}`,
+            },
+        });
+    let resp = await doFetch();
+    if (resp.status === 401) {
+        await refreshAccess();
+        resp = await doFetch();
+    }
+    return resp;
+}
+
+async function authedJson(path, opts) {
+    const resp = await authedFetch(path, opts);
+    if (!resp.ok) {
+        const txt = await resp.text();
+        throw new Error(`API ${path} → HTTP ${resp.status}: ${txt.slice(0, 300)}`);
+    }
+    return resp.json();
+}
+
+// ─── Públicos: pricing ───
 function pricingUrl({ check_in, check_out, guests }) {
     const params = new URLSearchParams({
         check_in_date: String(check_in),
@@ -100,8 +117,7 @@ function pricingUrl({ check_in, check_out, guests }) {
     return `${API_BASE}/api/v1/properties/calculate-pricing/?${params.toString()}`;
 }
 
-/** Helper: hace fetch JSON con manejo uniforme de errores. */
-async function fetchJson(url) {
+async function publicJson(url) {
     const resp = await fetch(url, {
         method: "GET",
         headers: { Accept: "application/json" },
@@ -109,70 +125,177 @@ async function fetchJson(url) {
     const data = await resp.json();
     if (data && data.error && data.error !== 0) {
         const msg = data.error_message || data.detail || "sin mensaje";
-        const err = new Error(`Error de la API (code ${data.error}): ${msg}`);
-        err.apiData = data;
-        throw err;
+        throw new Error(`Error de la API (code ${data.error}): ${msg}`);
     }
     return data;
 }
 
+// ─── MCP Server ───
+const server = new Server(
+    { name: "casa-austin", version: "0.3.0" },
+    { capabilities: { tools: {} } },
+);
+
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: [
+        // ── Disponibilidad / precios (públicos) ──
+        {
+            name: "check_availability",
+            description:
+                "Consulta SOLO disponibilidad (sin precios) de las casas de Casa Austin para un rango de fechas. Devuelve cuántas casas hay libres y la lista de casas disponibles con su capacidad máxima. Usar cuando el usuario pregunta '¿hay disponibilidad?' sin especificar cantidad de personas ni pedir precio.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    check_in: { type: "string", description: "Check-in YYYY-MM-DD." },
+                    check_out: { type: "string", description: "Check-out YYYY-MM-DD." },
+                },
+                required: ["check_in", "check_out"],
+            },
+        },
+        {
+            name: "get_pricing",
+            description:
+                "Consulta disponibilidad y PRECIOS de Casa Austin para fechas y N huéspedes. Devuelve precio total en soles y dólares por cada casa disponible, con descuentos.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    check_in: { type: "string", description: "Check-in YYYY-MM-DD." },
+                    check_out: { type: "string", description: "Check-out YYYY-MM-DD." },
+                    guests: { type: "number", description: "Cantidad de huéspedes (mín 1)." },
+                    property_slug: {
+                        type: "string",
+                        description: "Opcional: casa-austin-1, casa-austin-2, casa-austin-3 o casa-austin-4.",
+                    },
+                },
+                required: ["check_in", "check_out", "guests"],
+            },
+        },
+        {
+            name: "list_properties",
+            description:
+                "Lista las 4 casas de Casa Austin: nombre, slug, capacidad máxima, dormitorios, baños, precio mínimo.",
+            inputSchema: { type: "object", properties: {} },
+        },
+
+        // ── Análisis del chatbot Austin Assistant (autenticadas) ──
+        {
+            name: "get_chat_sessions",
+            description:
+                "Lista sesiones de conversación del chatbot Austin Assistant en WhatsApp. Permite filtrar por rango de fechas, estado y limitar resultados. Devuelve sesiones con wa_id, nombre, estado, total de mensajes y última actividad. Usar para preguntas tipo '¿cuántas conversaciones hubo esta semana?' o 'dame las últimas 20 conversaciones'.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    date_from: { type: "string", description: "Fecha desde YYYY-MM-DD (opcional)." },
+                    date_to: { type: "string", description: "Fecha hasta YYYY-MM-DD (opcional)." },
+                    status: {
+                        type: "string",
+                        description: "Filtrar por estado: active, ai_paused, closed, escalated.",
+                    },
+                    limit: { type: "number", description: "Cantidad máxima (default 50, max 200)." },
+                },
+            },
+        },
+        {
+            name: "get_chat_session",
+            description:
+                "Detalle de una sesión específica del chatbot, incluyendo TODOS los mensajes intercambiados. Usar cuando el usuario menciona un session_id concreto o quiere analizar una conversación puntual.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    session_id: { type: "string", description: "UUID de la sesión." },
+                },
+                required: ["session_id"],
+            },
+        },
+        {
+            name: "get_chat_analytics",
+            description:
+                "Estadísticas agregadas del chatbot: volumen de conversaciones, tiempo promedio de respuesta del AI, total de mensajes, tasa de escalamiento a humano, etc.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    period: {
+                        type: "string",
+                        description: "Período: today, week, month, year (opcional).",
+                    },
+                },
+            },
+        },
+        {
+            name: "get_funnel",
+            description:
+                "Funnel de conversión del chatbot para un mes: conversaciones iniciadas → cotización → magic link generado → magic link abierto → reserva creada. Útil para analizar dónde se cae la conversión.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    month: { type: "number", description: "Mes 1-12." },
+                    year: { type: "number", description: "Año (ej: 2026)." },
+                },
+                required: ["month", "year"],
+            },
+        },
+        {
+            name: "get_unresolved_questions",
+            description:
+                "Preguntas que el bot NO pudo resolver (escaladas a humano o sin respuesta clara). Útil para descubrir gaps de conocimiento del bot y mejorar su system prompt o contenido.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    limit: { type: "number", description: "Cantidad (default 50)." },
+                },
+            },
+        },
+        {
+            name: "get_frequent_questions",
+            description:
+                "Preguntas frecuentes detectadas por análisis de patrones en las conversaciones. Útil para identificar qué temas dominan y crear FAQs o mejorar el bot.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    limit: { type: "number", description: "Cantidad (default 50)." },
+                },
+            },
+        },
+        {
+            name: "get_followup_opportunities",
+            description:
+                "Oportunidades de seguimiento: clientes que cotizaron por el bot pero no reservaron, candidatos para reactivación. Devuelve wa_id, último mensaje, fecha de cotización, propiedad consultada, etc.",
+            inputSchema: { type: "object", properties: {} },
+        },
+    ],
+}));
+
 server.setRequestHandler(CallToolRequestSchema, async (req) => {
     const { name, arguments: args } = req.params;
-
-    // ───────────────────────────────────────────────────────────────
-    // check_availability — SOLO disponibilidad, sin precios.
-    // El endpoint calculate-pricing requiere guests. Usamos guests=1
-    // (el mínimo) para que considere TODAS las casas disponibles, y
-    // proyectamos la respuesta para devolver únicamente disponibilidad.
-    // ───────────────────────────────────────────────────────────────
-    if (name === "check_availability") {
-        const { check_in, check_out } = args || {};
-        if (!check_in || !check_out) {
-            return {
-                content: [{ type: "text", text: "Faltan parámetros: check_in y check_out son requeridos." }],
-                isError: true,
-            };
-        }
-        try {
-            const data = await fetchJson(pricingUrl({ check_in, check_out, guests: 1 }));
+    try {
+        // ──────── Tools públicas ────────
+        if (name === "check_availability") {
+            const { check_in, check_out } = args || {};
+            if (!check_in || !check_out) {
+                throw new Error("Faltan check_in y check_out.");
+            }
+            const data = await publicJson(pricingUrl({ check_in, check_out, guests: 1 }));
             const d = data.data || {};
-            const props = (d.properties || []).map((p) => ({
-                name: p.property_name,
-                slug: p.property_slug,
-                capacity_max: p.capacity_max ?? null,
-                available: true,
-            }));
             const summary = {
                 check_in: d.check_in_date || check_in,
                 check_out: d.check_out_date || check_out,
                 total_nights: d.total_nights,
-                casas_disponibles: d.totalCasasDisponibles ?? props.length,
-                casas: props,
+                casas_disponibles: d.totalCasasDisponibles ?? (d.properties || []).length,
+                casas: (d.properties || []).map((p) => ({
+                    name: p.property_name,
+                    slug: p.property_slug,
+                    capacity_max: p.capacity_max ?? null,
+                })),
             };
-            return {
-                content: [{ type: "text", text: JSON.stringify(summary, null, 2) }],
-            };
-        } catch (err) {
-            return {
-                content: [{ type: "text", text: err.message }],
-                isError: true,
-            };
+            return { content: [{ type: "text", text: JSON.stringify(summary, null, 2) }] };
         }
-    }
 
-    // ───────────────────────────────────────────────────────────────
-    // get_pricing — disponibilidad + precios para N huéspedes.
-    // ───────────────────────────────────────────────────────────────
-    if (name === "get_pricing") {
-        const { check_in, check_out, guests, property_slug } = args || {};
-        if (!check_in || !check_out || guests == null) {
-            return {
-                content: [{ type: "text", text: "Faltan parámetros: check_in, check_out y guests son requeridos." }],
-                isError: true,
-            };
-        }
-        try {
-            const data = await fetchJson(pricingUrl({ check_in, check_out, guests }));
+        if (name === "get_pricing") {
+            const { check_in, check_out, guests, property_slug } = args || {};
+            if (!check_in || !check_out || guests == null) {
+                throw new Error("Faltan check_in, check_out o guests.");
+            }
+            const data = await publicJson(pricingUrl({ check_in, check_out, guests }));
             const d = data.data || {};
             let props = d.properties || [];
             if (property_slug) {
@@ -181,7 +304,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
                     return {
                         content: [{
                             type: "text",
-                            text: `No hay disponibilidad para "${property_slug}" en esas fechas para ${guests} huéspedes, o el slug no existe. Slugs válidos: casa-austin-1, casa-austin-2, casa-austin-3, casa-austin-4.`,
+                            text: `Sin disponibilidad para "${property_slug}" en esas fechas para ${guests} huéspedes (o slug inválido). Slugs válidos: casa-austin-1..4.`,
                         }],
                     };
                 }
@@ -208,29 +331,15 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
                     capacidad_max: p.capacity_max,
                 })),
             };
-            return {
-                content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
-            };
-        } catch (err) {
-            return {
-                content: [{ type: "text", text: err.message }],
-                isError: true,
-            };
+            return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
         }
-    }
 
-    // ───────────────────────────────────────────────────────────────
-    // list_properties — info estática de las casas.
-    // ───────────────────────────────────────────────────────────────
-    if (name === "list_properties") {
-        try {
+        if (name === "list_properties") {
             const resp = await fetch(`${API_BASE}/api/v1/property/`, {
                 method: "GET",
                 headers: { Accept: "application/json" },
             });
-            if (!resp.ok) {
-                throw new Error(`HTTP ${resp.status}`);
-            }
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             const data = await resp.json();
             const items = data.results || data || [];
             const minimal = Array.isArray(items)
@@ -243,21 +352,73 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
                       precio_desde: p.precio_desde,
                   }))
                 : data;
-            return {
-                content: [{ type: "text", text: JSON.stringify(minimal, null, 2) }],
-            };
-        } catch (err) {
-            return {
-                content: [{ type: "text", text: `Error consultando propiedades: ${err.message}` }],
-                isError: true,
-            };
+            return { content: [{ type: "text", text: JSON.stringify(minimal, null, 2) }] };
         }
-    }
 
-    return {
-        content: [{ type: "text", text: `Tool desconocida: ${name}` }],
-        isError: true,
-    };
+        // ──────── Tools privadas (chatbot analysis) ────────
+        if (name === "get_chat_sessions") {
+            const { date_from, date_to, status, limit } = args || {};
+            const params = new URLSearchParams();
+            if (date_from) params.append("date_from", date_from);
+            if (date_to) params.append("date_to", date_to);
+            if (status) params.append("status", status);
+            params.append("page_size", String(Math.min(Math.max(limit || 50, 1), 200)));
+            const data = await authedJson(`/api/v1/chatbot/sessions/?${params}`);
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
+
+        if (name === "get_chat_session") {
+            const { session_id } = args || {};
+            if (!session_id) throw new Error("Falta session_id.");
+            const [session, messages] = await Promise.all([
+                authedJson(`/api/v1/chatbot/sessions/${session_id}/`),
+                authedJson(`/api/v1/chatbot/sessions/${session_id}/messages/`),
+            ]);
+            return { content: [{ type: "text", text: JSON.stringify({ session, messages }, null, 2) }] };
+        }
+
+        if (name === "get_chat_analytics") {
+            const { period } = args || {};
+            const params = new URLSearchParams();
+            if (period) params.append("period", period);
+            const data = await authedJson(`/api/v1/chatbot/analytics/?${params}`);
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
+
+        if (name === "get_funnel") {
+            const { month, year } = args || {};
+            if (!month || !year) throw new Error("Faltan month y year.");
+            const params = new URLSearchParams({ month: String(month), year: String(year) });
+            const data = await authedJson(`/api/v1/chatbot/funnel/?${params}`);
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
+
+        if (name === "get_unresolved_questions") {
+            const { limit } = args || {};
+            const params = new URLSearchParams({ page_size: String(Math.min(Math.max(limit || 50, 1), 200)) });
+            const data = await authedJson(`/api/v1/chatbot/unresolved-questions/?${params}`);
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
+
+        if (name === "get_frequent_questions") {
+            const { limit } = args || {};
+            const params = new URLSearchParams({ page_size: String(Math.min(Math.max(limit || 50, 1), 200)) });
+            const data = await authedJson(`/api/v1/chatbot/frequent-questions/?${params}`);
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
+
+        if (name === "get_followup_opportunities") {
+            const data = await authedJson(`/api/v1/chatbot/followups/`);
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
+
+        throw new Error(`Tool desconocida: ${name}`);
+    } catch (err) {
+        return {
+            content: [{ type: "text", text: err.message || String(err) }],
+            isError: true,
+        };
+    }
 });
 
 const transport = new StdioServerTransport();
