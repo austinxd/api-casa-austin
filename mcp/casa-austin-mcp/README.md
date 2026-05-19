@@ -1,31 +1,40 @@
 # Casa Austin MCP
 
-MCP server local que expone a Claude Desktop:
+MCP server local para Claude Desktop. Expone consultas de:
 
-1. Consultas públicas de disponibilidad y precios.
+1. Disponibilidad y precios (públicos).
 2. Análisis del chatbot Austin Assistant (autenticadas).
+3. Operaciones, ocupación e ingresos (autenticadas).
 
 ## Tools
 
-### Públicas (no requieren auth)
+### 🔵 Cotización / disponibilidad (no requieren auth)
 
-| Tool | Args | Para qué |
-|------|------|----------|
-| `check_availability` | `check_in`, `check_out` | SOLO disponibilidad (sin precios). |
-| `get_pricing` | `check_in`, `check_out`, `guests`, `property_slug?` | Disponibilidad + precios para N huéspedes. |
-| `list_properties` | — | Las 4 casas con capacidad y precio mínimo. |
+| Tool | USAR PARA |
+|------|-----------|
+| `check_availability` | Saber si hay casas LIBRES en fechas futuras (sin importar precio ni huéspedes). |
+| `get_pricing` | Cotizar precios para fechas + cantidad de huéspedes específicos. |
+| `list_properties` | Info estática de las 4 casas: capacidad, dormitorios, precio mínimo. |
 
-### Privadas (requieren admin credentials)
+### 💬 Chatbot Austin Assistant (requieren admin)
 
-| Tool | Args | Para qué |
-|------|------|----------|
-| `get_chat_sessions` | `date_from?`, `date_to?`, `status?`, `limit?` | Lista de conversaciones del chatbot. |
-| `get_chat_session` | `session_id` | Detalle + mensajes de una sesión. |
-| `get_chat_analytics` | `period?` | Stats agregadas (volumen, response time, etc). |
-| `get_funnel` | `month`, `year` | Funnel conversación → cotización → magic link → reserva. |
-| `get_unresolved_questions` | `limit?` | Preguntas que el bot no pudo resolver. |
-| `get_frequent_questions` | `limit?` | Preguntas más comunes detectadas. |
-| `get_followup_opportunities` | — | Clientes que cotizaron pero no reservaron. |
+| Tool | USAR PARA |
+|------|-----------|
+| `get_chat_sessions` | Listar conversaciones del bot (con filtros). |
+| `get_chat_session` | Mensajes completos de una sesión específica. |
+| `get_chat_analytics` | Stats del bot: volumen, response time, escalamiento. |
+| `get_funnel` | Funnel conversación → cotización → magic link → reserva. |
+| `get_unresolved_questions` | Preguntas que el bot no pudo resolver. |
+| `get_frequent_questions` | Preguntas más comunes detectadas. |
+| `get_followup_opportunities` | Clientes que cotizaron pero no reservaron. |
+
+### 📊 Operaciones / ingresos (requieren admin)
+
+| Tool | USAR PARA |
+|------|-----------|
+| `get_monthly_operations` | TODO de un mes: noches libres por casa, ocupación, facturación, vendedores. |
+| `get_yearly_revenue` | Facturación mensual de los 12 meses de un año. |
+| `compare_months_yoy` | Comparar mismo mes en 2 años (year-over-year). |
 
 ## Setup
 
@@ -44,41 +53,51 @@ Registrar en `~/Library/Application Support/Claude/claude_desktop_config.json`:
       "args": ["/ruta/absoluta/a/api-casa-austin/mcp/casa-austin-mcp/index.js"],
       "env": {
         "CASA_AUSTIN_ADMIN_USERNAME": "tu_admin_user",
-        "CASA_AUSTIN_ADMIN_PASSWORD": "tu_admin_password"
+        "CASA_AUSTIN_ADMIN_PASSWORD": "tu_password"
       }
     }
   }
 }
 ```
 
-Reiniciar Claude Desktop. Listo.
+Reiniciar Claude Desktop.
 
 ## Auth — cómo funciona
 
 - Las tools privadas requieren `CASA_AUSTIN_ADMIN_USERNAME` y `CASA_AUSTIN_ADMIN_PASSWORD`.
-- En la primera llamada, el MCP hace `POST /api/v1/login/` y guarda `access` + `refresh` en memoria.
-- Si una request devuelve 401 (access expirado), intenta `POST /api/v1/token/refresh/`.
-- Si el refresh también expira, hace re-login con credenciales.
-- Las credenciales viven solo en `claude_desktop_config.json` (archivo local del usuario).
+- El MCP hace `POST /api/v1/login/` al primer llamado, guarda `access` + `refresh` en memoria.
+- Si `access` expira (401), intenta `POST /api/v1/token/refresh/`.
+- Si `refresh` también expira, hace re-login con credenciales.
+
+## Diseño: ¿por qué tools separadas y no una sola?
+
+Cada tool tiene un nombre y una descripción específica con prefijo "USAR PARA…". Claude (el LLM) elige automáticamente la correcta según el intent del usuario. Una sola tool monolítica obligaría a meter un LLM dentro del MCP, lo cual es complejo y duplicado.
+
+Para evitar confusión entre tools similares, cada descripción incluye:
+- "USAR PARA…" (caso de uso positivo)
+- "NO usar para…" (lo que NO cubre, redirigiendo a otra tool)
+
+## Ejemplos de uso en Claude Desktop
+
+**Cotización**:
+- "¿Hay disponibilidad del 15 al 18 de junio?"
+- "Cotizar Casa Austin 3 para 6 personas el primer fin de semana de agosto"
+
+**Chatbot**:
+- "¿Cómo viene el funnel del bot este mes?"
+- "Top preguntas que el bot no respondió"
+- "Lista clientes que cotizaron y no reservaron"
+
+**Operaciones**:
+- "¿Cuánto facturamos este mes y cómo viene la ocupación?"
+- "Compará mayo 2026 con mayo 2025"
+- "Dame la facturación mensual de 2025"
+- "¿Qué casa tuvo más noches libres este mes?"
 
 ## Variables de entorno
 
 | Variable | Default | Para qué |
 |----------|---------|----------|
-| `CASA_AUSTIN_API_BASE` | `https://api.casaaustin.pe` | Base URL del API. Cambiar a `http://localhost:8000` para dev. |
-| `CASA_AUSTIN_ADMIN_USERNAME` | (vacío) | User admin para tools privadas. |
+| `CASA_AUSTIN_API_BASE` | `https://api.casaaustin.pe` | Base URL del API. |
+| `CASA_AUSTIN_ADMIN_USERNAME` | (vacío) | Username admin (login Django). |
 | `CASA_AUSTIN_ADMIN_PASSWORD` | (vacío) | Password admin. |
-
-## Ejemplos de uso en Claude Desktop
-
-**Disponibilidad / cotización**:
-- "¿Hay disponibilidad del 15 al 18 de junio?"
-- "¿Cuánto sale Casa Austin 3 para 6 personas?"
-
-**Análisis del chatbot**:
-- "Dame un resumen de las conversaciones de esta semana"
-- "¿Cómo viene el funnel del bot este mes?"
-- "¿Qué preguntas comunes no está respondiendo bien el bot?"
-- "Lista las top 20 preguntas frecuentes"
-- "¿A qué clientes deberíamos hacer follow-up que cotizaron pero no reservaron?"
-- "Analiza la sesión 1a2b3c4d-..."

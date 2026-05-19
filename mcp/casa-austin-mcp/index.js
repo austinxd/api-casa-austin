@@ -142,7 +142,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         {
             name: "check_availability",
             description:
-                "Consulta SOLO disponibilidad (sin precios) de las casas de Casa Austin para un rango de fechas. Devuelve cuántas casas hay libres y la lista de casas disponibles con su capacidad máxima. Usar cuando el usuario pregunta '¿hay disponibilidad?' sin especificar cantidad de personas ni pedir precio.",
+                "USAR PARA: saber si hay casas libres en fechas FUTURAS sin importar precio ni cantidad de huéspedes. Devuelve la lista de casas disponibles con su capacidad máxima. NO usar para estadísticas mensuales operacionales (eso es get_monthly_operations) ni para cotizar precios (eso es get_pricing).",
             inputSchema: {
                 type: "object",
                 properties: {
@@ -155,7 +155,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         {
             name: "get_pricing",
             description:
-                "Consulta disponibilidad y PRECIOS de Casa Austin para fechas y N huéspedes. Devuelve precio total en soles y dólares por cada casa disponible, con descuentos.",
+                "USAR PARA: cotizar PRECIOS de estadías futuras en Casa Austin para fechas + cantidad de huéspedes específicos. Devuelve precio total en soles y dólares por cada casa disponible, con descuentos. NO usar para estadísticas pasadas (eso es get_monthly_operations o get_yearly_revenue).",
             inputSchema: {
                 type: "object",
                 properties: {
@@ -261,6 +261,50 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             description:
                 "Oportunidades de seguimiento: clientes que cotizaron por el bot pero no reservaron, candidatos para reactivación. Devuelve wa_id, último mensaje, fecha de cotización, propiedad consultada, etc.",
             inputSchema: { type: "object", properties: {} },
+        },
+
+        // ── Operaciones (ocupación, ingresos, comparación YoY) ──
+        {
+            name: "get_monthly_operations",
+            description:
+                "USAR PARA: estadísticas operacionales de un MES específico — noches LIBRES por casa, noches ocupadas, facturación total, dinero por cobrar, mejores vendedores, puntos canjeados. Devuelve TODO en una sola consulta. NO usar esta tool para precios futuros (eso es get_pricing) ni para disponibilidad presente sin contexto operacional (eso es check_availability).",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    month: { type: "number", description: "Mes 1-12." },
+                    year: { type: "number", description: "Año, ej: 2026." },
+                },
+                required: ["month", "year"],
+            },
+        },
+        {
+            name: "get_yearly_revenue",
+            description:
+                "USAR PARA: facturación MENSUAL de todo un año (12 meses). Devuelve un objeto {enero: monto, febrero: monto, ...} en soles. Útil para ver evolución anual o sumar año completo.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    year: { type: "number", description: "Año, ej: 2026." },
+                },
+                required: ["year"],
+            },
+        },
+        {
+            name: "compare_months_yoy",
+            description:
+                "USAR PARA: comparar mismo mes en dos años (year-over-year). Hace 2 llamadas internas y devuelve ambos meses lado a lado: noches ocupadas, facturación, etc. Útil para preguntas tipo '¿cómo viene mayo 2026 vs mayo 2025?'.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    month: { type: "number", description: "Mes 1-12." },
+                    year: { type: "number", description: "Año actual a comparar." },
+                    vs_year: {
+                        type: "number",
+                        description: "Año a comparar contra (default: year - 1).",
+                    },
+                },
+                required: ["month", "year"],
+            },
         },
     ],
 }));
@@ -410,6 +454,78 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         if (name === "get_followup_opportunities") {
             const data = await authedJson(`/api/v1/chatbot/followups/`);
             return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
+
+        // ──────── Operaciones ────────
+        if (name === "get_monthly_operations") {
+            const { month, year } = args || {};
+            if (!month || !year) throw new Error("Faltan month y year.");
+            const params = new URLSearchParams({ month: String(month), year: String(year) });
+            const data = await authedJson(`/api/v1/dashboard/?${params}`);
+            // Resumimos campos para que Claude no lidie con ruido (best_sellers
+            // se queda solo con totales agregados).
+            const summary = {
+                month,
+                year,
+                noches_libres_por_casa: data.free_days_per_house || null,
+                noches_libres_total: data.free_days_total,
+                noches_ocupadas_total: data.ocuppied_days_total,
+                noches_mantenimiento: data.noches_man,
+                facturacion_total_sol: data.dinero_total_facturado,
+                dinero_por_cobrar_sol: data.dinero_por_cobrar,
+                puntos_canjeados: data.puntos_canjeados,
+                top_vendedores: (data.best_sellers || [])
+                    .map((v) => ({
+                        nombre: `${v.nombre || ""} ${v.apellido || ""}`.trim(),
+                        ventas_soles: v.ventas_soles,
+                    }))
+                    .sort((a, b) => parseFloat(b.ventas_soles || 0) - parseFloat(a.ventas_soles || 0))
+                    .slice(0, 5),
+            };
+            return { content: [{ type: "text", text: JSON.stringify(summary, null, 2) }] };
+        }
+
+        if (name === "get_yearly_revenue") {
+            const { year } = args || {};
+            if (!year) throw new Error("Falta year.");
+            const params = new URLSearchParams({ year: String(year) });
+            const data = await authedJson(`/api/v1/profit-resume/?${params}`);
+            return { content: [{ type: "text", text: JSON.stringify({ year, facturacion_mensual_sol: data }, null, 2) }] };
+        }
+
+        if (name === "compare_months_yoy") {
+            const { month, year, vs_year } = args || {};
+            if (!month || !year) throw new Error("Faltan month y year.");
+            const targetVs = vs_year || (year - 1);
+            const params1 = new URLSearchParams({ month: String(month), year: String(year) });
+            const params2 = new URLSearchParams({ month: String(month), year: String(targetVs) });
+            const [a, b] = await Promise.all([
+                authedJson(`/api/v1/dashboard/?${params1}`),
+                authedJson(`/api/v1/dashboard/?${params2}`),
+            ]);
+            const summarize = (d, y) => ({
+                year: y,
+                noches_libres_por_casa: d.free_days_per_house || null,
+                noches_ocupadas_total: d.ocuppied_days_total,
+                noches_libres_total: d.free_days_total,
+                facturacion_total_sol: d.dinero_total_facturado,
+                dinero_por_cobrar_sol: d.dinero_por_cobrar,
+            });
+            const summary = {
+                month,
+                comparison: {
+                    actual: summarize(a, year),
+                    previo: summarize(b, targetVs),
+                },
+                diff: {
+                    facturacion_delta_sol:
+                        parseFloat(a.dinero_total_facturado || 0) -
+                        parseFloat(b.dinero_total_facturado || 0),
+                    noches_ocupadas_delta:
+                        (a.ocuppied_days_total || 0) - (b.ocuppied_days_total || 0),
+                },
+            };
+            return { content: [{ type: "text", text: JSON.stringify(summary, null, 2) }] };
         }
 
         throw new Error(`Tool desconocida: ${name}`);
