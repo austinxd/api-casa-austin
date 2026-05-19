@@ -1,21 +1,21 @@
-"""Limpia las imágenes duplicadas al inicio del content de blog posts.
+"""Limpia las imágenes duplicadas en el content de blog posts.
 
-Posts migrados desde WordPress vienen con la imagen de portada embebida
-al INICIO del content HTML. El frontend (blog-detail.tsx) además
-renderiza `featured_image_url` como <img> por separado encima del
-content. Resultado: la misma imagen se ve dos veces.
+Posts migrados desde WordPress tienen la imagen de portada también
+embebida dentro del content HTML (a menudo envuelta en <a>...<img></a>
+para hacerla clickeable). El frontend además renderiza
+`featured_image_url` como <img> separado encima del content. Resultado:
+la misma imagen se ve dos veces.
 
-Este comando recorre todos los blog posts y elimina el primer <img>
-del content si:
-  (a) Es el primer elemento visible (puede venir envuelto en <p>, <figure>
-      o varios <div>).
-  (b) Su src coincide con featured_image (mismo filename o url).
+Este comando busca dentro del content TODAS las <img>, las compara
+contra featured_image, y elimina las que coincidan (junto con el
+wrapper <a>/<figure>/<p>-solo-con-imagen si lo tienen).
 
-Es seguro re-correrlo: si la imagen ya fue removida, no hace nada.
+Idempotente: re-correrlo no hace nada si la imagen ya fue removida.
 
 Uso:
     python manage.py clean_blog_duplicate_images --dry-run
     python manage.py clean_blog_duplicate_images --apply
+    python manage.py clean_blog_duplicate_images --slug <slug> --apply
 """
 import os
 import re
@@ -26,29 +26,14 @@ from django.core.management.base import BaseCommand, CommandError
 from apps.blog.models import BlogPost
 
 
-# Regex: captura la primera imagen del content, posiblemente envuelta
-# en <figure>, <p>, <div> (a veces de WordPress). Solo si está cerca
-# del inicio del HTML.
-LEADING_IMG_RE = re.compile(
-    r'^\s*'
-    r'(?P<wrapper_open>(?:<(?:figure|p|div)[^>]*>\s*)*)'
-    r'(?P<img><img\b[^>]*>)'
-    r'(?:\s*<figcaption[^>]*>.*?</figcaption>)?'
-    r'(?P<wrapper_close>(?:\s*</(?:figure|p|div)>)*)'
-    r'(?P<after>\s*)',
-    re.IGNORECASE | re.DOTALL,
-)
-
-# Regex para extraer el src del img.
+# Regex para extraer src del <img>
 SRC_RE = re.compile(r'\bsrc=["\']([^"\']+)["\']', re.IGNORECASE)
 
 
 def _filename(url_or_path):
-    """Devuelve solo el filename (sin path/dominio/query) para comparación."""
     if not url_or_path:
         return ''
     try:
-        # Limpiar query string
         parsed = urlparse(url_or_path)
         path = parsed.path or url_or_path
     except Exception:
@@ -57,8 +42,7 @@ def _filename(url_or_path):
 
 
 def _normalize(name):
-    """Quita el sufijo de tamaño de WordPress ('-1024x768') y la
-    extensión para comparar nombres en distintas resoluciones."""
+    """Quita el sufijo de resolución WordPress y la extensión."""
     if not name:
         return ''
     base, _ext = os.path.splitext(name)
@@ -66,113 +50,149 @@ def _normalize(name):
     return base.lower()
 
 
-def _is_duplicate_of_featured(img_src, featured_url):
-    """Heurística: comparar nombres normalizados ignorando rutas y sufijos
-    de WordPress de resoluciones."""
+def _is_duplicate(img_src, featured_url):
     if not img_src or not featured_url:
         return False
     a = _normalize(_filename(img_src))
     b = _normalize(_filename(featured_url))
     if not a or not b:
         return False
-    # Match exacto o uno contiene al otro (WordPress a veces guarda
-    # `casa-austin-2.jpg` y `casa-austin-2-1024x768.jpg`).
     return a == b or a in b or b in a
+
+
+def _featured_url_from_post(post):
+    """Reconstruye la URL del featured_image como la ve el frontend."""
+    try:
+        if post.featured_image and post.featured_image.name:
+            return post.featured_image.name
+    except Exception:
+        pass
+    # Fallback: buscar la URL desde otros campos comunes.
+    return ''
+
+
+def _remove_duplicate_image(content, featured_url):
+    """Encuentra la primera <img> cuyo src coincide con featured_url y
+    elimina la unidad visual completa: el <a>...<img>...</a> wrapper si
+    existe; si no, el <figure>; si no, el <p> que solo contenga la
+    imagen; si no, solo el <img>.
+
+    Devuelve (new_content, removed_block) donde removed_block es el
+    HTML eliminado (para logging) o None si no encontró nada.
+    """
+    # Iterar sobre todas las <img> hasta encontrar la que matchea
+    for img_match in re.finditer(r'<img\b[^>]*>', content, re.IGNORECASE):
+        img_tag = img_match.group(0)
+        src_match = SRC_RE.search(img_tag)
+        img_src = src_match.group(1) if src_match else ''
+        if not _is_duplicate(img_src, featured_url):
+            continue
+
+        # Encontramos la <img> duplicada. Ver si está envuelta en <a>.
+        img_start, img_end = img_match.span()
+
+        # ¿Hay un <a> que abre justo antes (con poco contenido entre el
+        # <a> y el <img>)?
+        a_open = None
+        a_close_end = None
+        # Buscar el <a ...> más cercano antes de img_start, en el mismo párrafo
+        # (sin <p> o <div> intermedios).
+        search_window = content[max(0, img_start - 300):img_start]
+        # Última ocurrencia de <a ...> en el search_window
+        for m in re.finditer(r'<a\b[^>]*>', search_window, re.IGNORECASE):
+            a_open = m  # quedamos con el último
+
+        if a_open:
+            a_open_start_in_window = a_open.start()
+            a_open_abs_start = max(0, img_start - 300) + a_open_start_in_window
+            # Buscar el </a> correspondiente DESPUÉS del <img>
+            close_search = content[img_end:img_end + 500]
+            close_match = re.search(r'</a>', close_search, re.IGNORECASE)
+            if close_match:
+                a_close_end = img_end + close_match.end()
+                # Verificar que entre el <a> y el <img> no hay texto
+                # significativo (solo whitespace) — para no comernos
+                # links que tienen texto + imagen.
+                between = content[a_open.end() + (img_start - 300 if img_start - 300 > 0 else 0):img_start]
+                # Si entre el <a> y el <img> hay solo whitespace y/o
+                # tags vacíos, consideramos que el <a> envuelve la img.
+                if re.match(r'^\s*$', re.sub(r'<[^>]+>', '', between)):
+                    block_start = a_open_abs_start
+                    block_end = a_close_end
+                else:
+                    block_start, block_end = img_start, img_end
+            else:
+                block_start, block_end = img_start, img_end
+        else:
+            block_start, block_end = img_start, img_end
+
+        # Expandir hacia atrás: ¿hay un <figure> o <p> abriendo justo
+        # antes que solo contenga este bloque?
+        for tag in ('figure', 'p'):
+            tag_open_re = re.compile(rf'<{tag}\b[^>]*>\s*$', re.IGNORECASE)
+            preceding = content[:block_start]
+            m_open = None
+            for m in tag_open_re.finditer(preceding):
+                m_open = m
+            if m_open:
+                # Buscar el </tag> después del block_end
+                following = content[block_end:block_end + 200]
+                m_close = re.match(rf'\s*</{tag}>', following, re.IGNORECASE)
+                if m_close:
+                    block_start = m_open.start()
+                    block_end = block_end + m_close.end()
+                    break  # no anidamos más
+
+        removed = content[block_start:block_end]
+        new_content = content[:block_start] + content[block_end:]
+        # Limpiar saltos de línea/whitespace huérfanos
+        new_content = re.sub(r'\n\s*\n\s*\n+', '\n\n', new_content)
+        return new_content, removed
+
+    return content, None
 
 
 class Command(BaseCommand):
     help = (
-        "Elimina la primera imagen duplicada del content de cada blog "
-        "post si coincide con featured_image."
+        "Elimina imágenes duplicadas en el content de blog posts cuando "
+        "coinciden con featured_image."
     )
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--dry-run', action='store_true',
-            help='Muestra qué cambiaría sin guardar.',
-        )
-        parser.add_argument(
-            '--apply', action='store_true',
-            help='Aplica los cambios.',
-        )
-        parser.add_argument(
-            '--slug',
-            help='Solo procesar este slug (debug).',
-        )
-        parser.add_argument(
-            '--force', action='store_true',
-            help='Quita la primera <img> del content aunque NO coincida '
-                 'con featured_image. Usar con cuidado.',
-        )
+        parser.add_argument('--dry-run', action='store_true')
+        parser.add_argument('--apply', action='store_true')
+        parser.add_argument('--slug', help='Solo procesar este slug.')
 
     def handle(self, *args, **opts):
         if not (opts.get('dry_run') or opts.get('apply')):
             raise CommandError('Pasa --dry-run o --apply.')
 
         apply_ = bool(opts.get('apply'))
-        force = bool(opts.get('force'))
-
         qs = BlogPost.objects.filter(deleted=False)
         if opts.get('slug'):
             qs = qs.filter(slug=opts['slug'])
 
         total = qs.count()
         modified = 0
-        skipped_no_match = 0
-        skipped_no_img = 0
-        skipped_no_featured = 0
+        no_change = 0
 
         for post in qs:
             content = post.content or ''
-            featured = ''
-            try:
-                if post.featured_image and post.featured_image.name:
-                    featured = post.featured_image.name
-            except Exception:
-                featured = ''
-
-            if not content.strip():
+            featured = _featured_url_from_post(post)
+            if not content.strip() or not featured:
+                no_change += 1
                 continue
 
-            m = LEADING_IMG_RE.match(content)
-            if not m:
-                skipped_no_img += 1
+            new_content, removed = _remove_duplicate_image(content, featured)
+            if not removed:
+                no_change += 1
                 continue
-
-            img_tag = m.group('img')
-            src_m = SRC_RE.search(img_tag)
-            img_src = src_m.group(1) if src_m else ''
-
-            should_remove = False
-            reason = ''
-            if force:
-                should_remove = True
-                reason = 'forced'
-            elif featured and _is_duplicate_of_featured(img_src, featured):
-                should_remove = True
-                reason = (
-                    f'match featured (img="{_filename(img_src)}" '
-                    f'vs featured="{_filename(featured)}")'
-                )
-            else:
-                if not featured:
-                    skipped_no_featured += 1
-                else:
-                    skipped_no_match += 1
-
-            if not should_remove:
-                continue
-
-            new_content = LEADING_IMG_RE.sub('', content, count=1)
-            # Eliminar saltos de línea extras al inicio
-            new_content = new_content.lstrip()
 
             delta = len(new_content) - len(content)
             self.stdout.write(
                 f"\n[CLEAN] {post.slug}"
-                f"\n  → img: {img_src}"
-                f"\n  → featured: {featured}"
-                f"\n  → reason: {reason}"
+                f"\n  → featured: {_filename(featured)}"
+                f"\n  → removed ({len(removed)} bytes): {removed[:160]}..."
                 f"\n  → bytes change: {delta:+d}"
             )
 
@@ -185,12 +205,10 @@ class Command(BaseCommand):
             modified += 1
 
         self.stdout.write("\n" + "=" * 60)
-        self.stdout.write(f"Total posts revisados:    {total}")
-        self.stdout.write(f"Posts modificados:        {modified}")
-        self.stdout.write(f"Skipped (sin img inicio): {skipped_no_img}")
-        self.stdout.write(f"Skipped (sin featured):   {skipped_no_featured}")
-        self.stdout.write(f"Skipped (no match):       {skipped_no_match}")
+        self.stdout.write(f"Total posts revisados: {total}")
+        self.stdout.write(f"Posts modificados:     {modified}")
+        self.stdout.write(f"Sin cambio:            {no_change}")
         if not apply_:
             self.stdout.write(self.style.WARNING(
-                "\n(dry-run) Vuelve a correr con --apply para guardar."
+                "\n(dry-run) Re-ejecuta con --apply para guardar."
             ))
