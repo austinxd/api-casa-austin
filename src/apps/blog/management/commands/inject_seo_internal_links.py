@@ -134,11 +134,35 @@ def _strip_existing_injections(html):
 
 
 def _insert_hero_block(html, hero_block):
-    """Inserta el hero block antes del primer <h2>. Si no hay <h2>, lo pone
-    al inicio del contenido."""
-    m = re.search(r'<h2[^>]*>', html, re.IGNORECASE)
-    if m:
-        return html[:m.start()] + hero_block + html[m.start():]
+    """Inserta el hero block en el lugar más natural posible:
+
+    1. Si hay un <img> al inicio del content (típico de posts migrados
+       desde WordPress donde la imagen de portada quedó duplicada con
+       featured_image_url), inserta DESPUÉS de la imagen.
+    2. Si no hay imagen inicial, inserta DESPUÉS del primer <p> (mejor
+       que antes de él — el lector lee la intro y luego ve el CTA).
+    3. Como último recurso, inserta antes del primer <h2>.
+    4. Si nada de lo anterior matchea, inserta al inicio.
+    """
+    # Buscar primer <img>...> en los primeros 500 chars del content
+    head_chunk = html[:500]
+    img_m = re.search(r'<img[^>]*>', head_chunk, re.IGNORECASE)
+    if img_m:
+        # Posición final del <img> tag en el HTML completo
+        end_of_img = img_m.end()
+        return html[:end_of_img] + '\n' + hero_block + html[end_of_img:]
+
+    # Sin imagen inicial: buscar el primer </p> para insertar después
+    p_close = re.search(r'</p>', html, re.IGNORECASE)
+    if p_close and p_close.end() < 600:
+        # Solo si el primer </p> aparece pronto (no a la mitad del post)
+        return html[:p_close.end()] + '\n' + hero_block + html[p_close.end():]
+
+    # Fallback: antes del primer <h2>
+    h2 = re.search(r'<h2[^>]*>', html, re.IGNORECASE)
+    if h2:
+        return html[:h2.start()] + hero_block + html[h2.start():]
+
     return hero_block + html
 
 
