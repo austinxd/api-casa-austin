@@ -36,6 +36,30 @@ const ADMIN_PASSWORD = process.env.CASA_AUSTIN_ADMIN_PASSWORD || "";
 let tokenAccess = null;
 let tokenRefresh = null;
 
+// ─── fetch con timeout (AbortController) ───
+// Sin esto, si el backend cuelga (HA remoto caído, red lenta) el MCP queda
+// esperando indefinidamente y Claude Desktop queda "colgado". El timeout
+// rompe el fetch y deja que el llamador decida el siguiente paso.
+const DEFAULT_TIMEOUT_MS = 15_000;
+const HA_DEVICES_TIMEOUT_MS = 35_000; // HA en frío puede tardar ~30s
+
+async function fetchWithTimeout(url, opts = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, { ...opts, signal: controller.signal });
+    } catch (err) {
+        if (err.name === "AbortError") {
+            throw new Error(
+                `Timeout (${timeoutMs}ms) llamando ${url.replace(API_BASE, "")} — backend no respondió a tiempo.`,
+            );
+        }
+        throw err;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 // ─── Caches locales del MCP ───
 // El endpoint /ha/admin/devices/ tarda ~12s en frío (Home Assistant remoto
 // responde lento). El backend tiene cache de 8s. Agregamos cache local de
@@ -55,7 +79,7 @@ async function getHaDevicesCached(forceRefresh = false) {
     if (haDevicesCache.inflight) return haDevicesCache.inflight;
     haDevicesCache.inflight = (async () => {
         try {
-            const data = await authedJson(`/api/v1/ha/admin/devices/`);
+            const data = await authedJson(`/api/v1/ha/admin/devices/`, { _timeoutMs: HA_DEVICES_TIMEOUT_MS });
             haDevicesCache.data = data;
             haDevicesCache.expiresAt = _now() + HA_DEVICES_TTL_MS;
             return data;
@@ -78,7 +102,7 @@ async function getPropertiesCached() {
     if (propertiesCache.inflight) return propertiesCache.inflight;
     propertiesCache.inflight = (async () => {
         try {
-            const resp = await fetch(`${API_BASE}/api/v1/property/`, {
+            const resp = await fetchWithTimeout(`${API_BASE}/api/v1/property/`, {
                 headers: { Accept: "application/json" },
             });
             if (!resp.ok) throw new Error(`Properties HTTP ${resp.status}`);
@@ -111,7 +135,7 @@ async function loginFresh() {
     }
     // El backend de Casa Austin usa `email` como USERNAME_FIELD del modelo
     // CustomUser. Mandamos ambos campos por compatibilidad.
-    const resp = await fetch(`${API_BASE}/api/v1/login/`, {
+    const resp = await fetchWithTimeout(`${API_BASE}/api/v1/login/`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
@@ -119,7 +143,7 @@ async function loginFresh() {
             username: ADMIN_USERNAME,
             password: ADMIN_PASSWORD,
         }),
-    });
+    }, 10_000);
     if (!resp.ok) {
         const txt = await resp.text();
         throw new Error(`Login falló (HTTP ${resp.status}): ${txt.slice(0, 300)}`);
@@ -134,11 +158,11 @@ async function refreshAccess() {
         await loginFresh();
         return;
     }
-    const resp = await fetch(`${API_BASE}/api/v1/token/refresh/`, {
+    const resp = await fetchWithTimeout(`${API_BASE}/api/v1/token/refresh/`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ refresh: tokenRefresh }),
-    });
+    }, 10_000);
     if (!resp.ok) {
         // refresh inválido → re-login limpio
         tokenAccess = null;
@@ -154,15 +178,19 @@ async function refreshAccess() {
 async function authedFetch(path, opts = {}) {
     if (!tokenAccess) await loginFresh();
     const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
+    // _timeoutMs es una opción interna nuestra — la extraemos antes de pasarle
+    // las opts a fetch para no contaminar la request.
+    const { _timeoutMs, ...fetchOpts } = opts;
+    const timeoutMs = _timeoutMs || DEFAULT_TIMEOUT_MS;
     const doFetch = () =>
-        fetch(url, {
-            ...opts,
+        fetchWithTimeout(url, {
+            ...fetchOpts,
             headers: {
                 Accept: "application/json",
-                ...(opts.headers || {}),
+                ...(fetchOpts.headers || {}),
                 Authorization: `Bearer ${tokenAccess}`,
             },
-        });
+        }, timeoutMs);
     let resp = await doFetch();
     if (resp.status === 401) {
         await refreshAccess();
@@ -191,7 +219,7 @@ function pricingUrl({ check_in, check_out, guests }) {
 }
 
 async function publicJson(url) {
-    const resp = await fetch(url, {
+    const resp = await fetchWithTimeout(url, {
         method: "GET",
         headers: { Accept: "application/json" },
     });
@@ -516,13 +544,8 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
         }
 
         if (name === "list_properties") {
-            const resp = await fetch(`${API_BASE}/api/v1/property/`, {
-                method: "GET",
-                headers: { Accept: "application/json" },
-            });
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-            const data = await resp.json();
-            const items = data.results || data || [];
+            // Aprovecha el cache local de properties (5min TTL) ya que la lista cambia muy raro.
+            const items = await getPropertiesCached();
             const minimal = Array.isArray(items)
                 ? items.map((p) => ({
                       name: p.name,
