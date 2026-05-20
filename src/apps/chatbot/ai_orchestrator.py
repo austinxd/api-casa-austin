@@ -2161,8 +2161,10 @@ class AIOrchestrator:
             # Markers nuevos: cuando el bot agrega magic link auto en la
             # cotización (commit 26bd000). Sin estos, _inject_missing_quote
             # creía que faltaba la cotización y la duplicaba.
-            or 'Asegura tu fecha' in text
-            or 'Te dejo tu link de reserva' in text
+            or 'Asegura tu fecha' in text  # copy legacy, mantener por compat con historial
+            or 'Te dejo tu link de reserva' in text  # copy legacy
+            or 'Reservar y pagar ahora' in text  # copy nuevo post-análisis funnel
+            or 'Tu link para reservar y pagar' in text  # copy nuevo (multi-casa)
             or 'casaaustin.pe/r/' in text  # cualquier magic link presente
         )
         if has_quote_old_format or has_quote_new_format:

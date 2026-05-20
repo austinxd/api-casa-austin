@@ -241,6 +241,54 @@ class Command(BaseCommand):
 
         client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
 
+        # ─── Magic link FRESCO para clientes que ya cotizaron ───
+        # El magic link original (válido 1h) ya expiró cuando hacemos
+        # follow-up horas después. Generamos uno nuevo basándonos en
+        # la última cotización guardada en MagicLink y se lo damos al
+        # LLM para que lo incluya en el mensaje.
+        fresh_magic_url = None
+        if followup_type == 'quoted':
+            try:
+                from apps.clients.magic_link_models import ReservationMagicLink
+                from apps.clients.magic_link_service import (
+                    find_or_create_magic_link,
+                    create_express_magic_link,
+                    MagicLinkSecurityError,
+                )
+
+                # Última cotización guardada (no expiramos esto: solo
+                # extraemos params para crear un link NUEVO)
+                last_quote = ReservationMagicLink.objects.filter(
+                    chat_session=session, deleted=False,
+                ).order_by('-created').first()
+
+                if last_quote and last_quote.property_id:
+                    if session.client_id and getattr(settings, 'MAGIC_LINK_ENABLED', False):
+                        _m, _raw, _ = find_or_create_magic_link(
+                            chat_session=session, wa_id=session.wa_id,
+                            client=session.client,
+                            check_in=last_quote.check_in,
+                            check_out=last_quote.check_out,
+                            guests=last_quote.guests,
+                            property=last_quote.property,
+                        )
+                        if _raw:
+                            fresh_magic_url = f"https://casaaustin.pe/r/{_raw}"
+                    elif not session.client_id and getattr(settings, 'EXPRESS_RESERVATION_ENABLED', False):
+                        _m, _raw, _ = create_express_magic_link(
+                            chat_session=session, wa_id=session.wa_id,
+                            check_in=last_quote.check_in,
+                            check_out=last_quote.check_out,
+                            guests=last_quote.guests,
+                            property=last_quote.property,
+                        )
+                        if _raw:
+                            fresh_magic_url = f"https://casaaustin.pe/r/{_raw}"
+            except MagicLinkSecurityError as e:
+                logger.info(f"Followup magic link security skip ({session.id}): {e.reason}")
+            except Exception as e:
+                logger.warning(f"Followup magic link error ({session.id}): {e}", exc_info=True)
+
         # Obtener últimos mensajes para contexto
         recent_msgs = ChatMessage.objects.filter(
             session=session, deleted=False
@@ -250,7 +298,19 @@ class Command(BaseCommand):
         if followup_type == 'no_quote':
             messages.append({"role": "system", "content": FOLLOWUP_NO_QUOTE_PROMPT})
         else:
-            messages.append({"role": "system", "content": FOLLOWUP_QUOTED_PROMPT})
+            sys_prompt = FOLLOWUP_QUOTED_PROMPT
+            if fresh_magic_url:
+                # Damos el link al LLM como instrucción explícita. El prompt
+                # ya pide "te paso el link para separarla con el 50%" — ahora
+                # lo materializa con un link FRESCO.
+                sys_prompt += (
+                    "\n\nINSTRUCCIÓN ESPECIAL — Tenés un link DE PAGO VÁLIDO "
+                    "que debés incluir literal al final del mensaje en una "
+                    "línea aparte, precedido por el texto "
+                    '"💳 Reservar y pagar ahora (válido 1h):" y abajo el link.\n'
+                    f"Link: {fresh_magic_url}"
+                )
+            messages.append({"role": "system", "content": sys_prompt})
 
         # Agregar historial como contexto
         history = ""

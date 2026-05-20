@@ -1071,10 +1071,14 @@ class ToolExecutor:
                 # Magic link tiene precedencia: prellena datos del cliente
                 # y reserva precio por 1.5h reales (mostramos 1h al cliente
                 # para crear urgencia + 30min de buffer interno).
+                #
+                # COPY: análisis de conversaciones mostró que el copy "Asegura
+                # tu fecha" se confundía con "link de fotos" (el cliente no
+                # entendía que era para pagar). Cambiamos a CTA explícito.
                 if single_slug:
-                    lines.append("🔗 Asegura tu fecha (link válido por 1 hora):")
+                    lines.append("💳 Reservar y pagar ahora (link válido 1h):")
                 else:
-                    lines.append("🔗 Te dejo tu link de reserva (válido por 1 hora):")
+                    lines.append("💳 Tu link para reservar y pagar (válido 1h):")
                 lines.append(magic_url)
             elif single_slug:
                 lines.append("🔗 Reserva directa:")
