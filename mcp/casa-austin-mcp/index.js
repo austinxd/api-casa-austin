@@ -414,7 +414,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         {
             name: "ha_list_devices",
             description:
-                "USAR PARA: listar dispositivos de Home Assistant en las casas (luces, switches, climate, sensores). Permite filtrar por casa (Casa Austin 1-4) o por tipo. Devuelve friendly_name, ubicación dentro de la casa, tipo y estado actual (on/off). Usar como exploración antes de controlar, o cuando el usuario pregunta '¿qué dispositivos hay en X casa?'.",
+                "USAR PARA: listar dispositivos de Home Assistant en las casas (luces, switches, climate, sensores, cámaras). Permite filtrar por casa (Casa Austin 1-4) o por tipo. Devuelve friendly_name, ubicación, tipo y estado actual. ADEMÁS devuelve qué casas tienen huéspedes ahora con sus datos (nombre, DNI, edad, cumpleaños, foto inline) — útil para saber 'quién está antes de controlar'. Si el user pregunta '¿qué casas tienen gente?' o '¿hay alguien en casa 3?' usar esta tool.",
             inputSchema: {
                 type: "object",
                 properties: {
@@ -792,13 +792,18 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             // Usar caché local (TTL 30s). El endpoint en frío tarda ~12s.
             const data = await getHaDevicesCached();
             let devices = data.devices || [];
+            let activeByProperty = data.active_by_property || [];
 
             // Filtrar localmente (no necesitamos ir al server otra vez)
             if (property) {
                 const q = _norm(property);
                 devices = devices.filter((d) => {
-                    const name = _norm(d.property_name);
-                    return name === q || name.includes(q) || q.includes(name);
+                    const n = _norm(d.property_name);
+                    return n === q || n.includes(q) || q.includes(n);
+                });
+                activeByProperty = activeByProperty.filter((r) => {
+                    const n = _norm(r.property_name);
+                    return n === q || n.includes(q) || q.includes(n);
                 });
             }
             if (device_type) {
@@ -808,12 +813,27 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 
             const summary = {
                 total: devices.length,
-                has_active_reservation: data.has_active_reservation,
-                temperature_pool_active: data.temperature_pool_active,
                 cache_age_seconds: Math.max(
                     0,
                     Math.round((HA_DEVICES_TTL_MS - (haDevicesCache.expiresAt - _now())) / 1000),
                 ),
+                ocupacion: {
+                    casas_ocupadas_ahora: activeByProperty.length,
+                    huespedes: activeByProperty.map((r) => ({
+                        casa: r.property_name,
+                        cliente: r.client_name,
+                        dni: r.client_dni,
+                        edad: r.client_age,
+                        cumpleanos: r.client_birthday,
+                        dias_al_cumple: r.client_days_to_birthday,
+                        huespedes: r.guests,
+                        check_in: r.check_in_date,
+                        check_out: r.check_out_date,
+                        temperature_pool: r.temperature_pool,
+                        phone: r.client_phone,
+                        tiene_foto: !!r.client_photo_b64,
+                    })),
+                },
                 devices: devices.map((d) => ({
                     id: d.id,
                     nombre: d.friendly_name,
@@ -824,7 +844,23 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
                     entity_id: d.entity_id,
                 })),
             };
-            return { content: [{ type: "text", text: JSON.stringify(summary, null, 2) }] };
+
+            const content = [{ type: "text", text: JSON.stringify(summary, null, 2) }];
+            // Adjuntamos las fotos inline de los huéspedes activos (si las hay)
+            for (const r of activeByProperty) {
+                if (r.client_photo_b64) {
+                    content.push({
+                        type: "text",
+                        text: `📷 ${r.client_name} (DNI ${r.client_dni}) — ${r.property_name}`,
+                    });
+                    content.push({
+                        type: "image",
+                        data: r.client_photo_b64,
+                        mimeType: "image/jpeg",
+                    });
+                }
+            }
+            return { content };
         }
 
         if (name === "ha_control_device") {

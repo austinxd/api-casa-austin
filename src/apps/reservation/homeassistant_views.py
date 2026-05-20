@@ -479,10 +479,63 @@ class AdminHADeviceListView(APIView):
                 "stream_url": cam.stream_url,
             })
 
+        # Lista de reservas activas por casa con datos del cliente — siempre
+        # presente (incluso sin filtro). Útil para que el operador vea de un
+        # vistazo "quién está en cada casa" antes de controlar dispositivos.
+        from apps.reservation.views import _client_extra_info
+        from django.utils import timezone
+        local_now = timezone.localtime(timezone.now())
+        now_date_for_active = local_now.date()
+        checkin_t = time(12, 0)
+        checkout_t = time(11, 0)
+
+        active_qs = Reservation.objects.filter(
+            deleted=False, status='approved',
+            check_in_date__lte=now_date_for_active,
+            check_out_date__gte=now_date_for_active,
+        ).select_related('property', 'client')
+        if property_id:
+            active_qs = active_qs.filter(property_id=property_id)
+
+        active_by_property = []
+        for res in active_qs:
+            # Validar horarios (igual que ActiveReservationsView)
+            if now_date_for_active == res.check_in_date and local_now.time() < checkin_t:
+                continue
+            if (now_date_for_active == res.check_out_date and
+                    res.check_in_date < now_date_for_active and
+                    local_now.time() >= checkout_t):
+                continue
+            extra = _client_extra_info(res.client, include_photo=True)
+            client_name = (
+                f"{res.client.first_name or ''} {res.client.last_name or ''}".strip()
+                if res.client else f"Reserva {res.get_origin_display() if res.origin else ''}".strip()
+            )
+            active_by_property.append({
+                "reservation_id": str(res.id),
+                "property_id": str(res.property.id) if res.property else None,
+                "property_name": res.property.name if res.property else None,
+                "client_name": client_name or "Sin nombre",
+                "client_dni": extra['number_doc'],
+                "client_document_type": extra['document_type'],
+                "client_age": extra['age'],
+                "client_birthday": extra['birthday'],
+                "client_days_to_birthday": extra['days_to_birthday'],
+                "client_sex": extra['sex'],
+                "client_photo_b64": extra['photo_b64'],
+                "client_phone": res.client.tel_number if res.client else (res.tel_contact_number or ''),
+                "guests": res.guests,
+                "check_in_date": res.check_in_date.isoformat(),
+                "check_out_date": res.check_out_date.isoformat(),
+                "temperature_pool": res.temperature_pool,
+                "origin": res.origin or '',
+            })
+
         payload = {
             "count": len(devices_data),
             "has_active_reservation": has_active_reservation,
             "temperature_pool_active": temperature_pool_active,
+            "active_by_property": active_by_property,
             "devices": devices_data,
         }
         cache.set(cache_key, payload, _HA_DEVICES_CACHE_TTL)
