@@ -533,6 +533,11 @@ class AdminHADeviceListView(APIView):
                 "check_out_date": res.check_out_date.isoformat(),
                 "temperature_pool": res.temperature_pool,
                 "origin": res.origin or '',
+                "price_sol": float(res.price_sol or 0),
+                "price_usd": float(res.price_usd or 0),
+                "advance_payment": float(res.advance_payment or 0),
+                "advance_payment_currency": res.advance_payment_currency,
+                "full_payment": res.full_payment,
             })
 
         payload = {
