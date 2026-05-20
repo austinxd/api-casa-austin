@@ -751,28 +751,61 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
                 if (!query) throw new Error("Pasá query o device_id.");
                 const list = await getHaDevicesCached();
                 const all = list.devices || [];
-                const tokens = _norm(query).split(/\s+/).filter((t) => t.length > 0);
 
-                // Scoring mejorado:
-                //  - +3 si token aparece exacto como palabra en friendly_name
-                //  - +2 si aparece como substring en friendly_name o location
-                //  - +1 si aparece en property_name o entity_id
-                //  - bonus si el conjunto matchea la ubicación completa
+                // Stopwords en español que el user dice naturalmente pero no aportan
+                // ("luces DEL exterior DE Casa Austin 3"). Si no las filtramos
+                // bajan la "specificity penalty" y entran en empates falsos.
+                const STOPWORDS = new Set([
+                    "de", "del", "la", "el", "en", "y", "o", "con", "para",
+                    "los", "las", "un", "una", "al", "a", "que",
+                ]);
+                const querySet = new Set(
+                    _norm(query)
+                        .split(/\s+/)
+                        .filter((t) => t.length > 0 && !STOPWORDS.has(t)),
+                );
+                const tokens = [...querySet];
+
+                // Scoring:
+                //  +3 si token coincide exacto como palabra en friendly_name (más fuerte)
+                //  +2 si aparece como substring en friendly_name o location
+                //  +1 si aparece en property_name o entity_id
+                //  −2 por cada palabra del friendly_name que NO está en la query
+                //     (specificity penalty: "Luces Piscina" debe perder contra
+                //      "Exterior" si la query es "luces exterior", porque "piscina"
+                //      no aparece en lo que pediste).
+                // Para tokens cortos (≤2 chars) como "3", "1", "ca", usamos
+                // word-boundary en vez de substring crudo. Si no, "3" matchea
+                // "3er piso" y rompe el ranking por propiedad.
+                // entity_ids tienen "_", ".", "-" como separadores — los tratamos
+                // como espacios al tokenizar.
+                const hasWord = (haystack, t) => {
+                    if (t.length > 2) return haystack.includes(t);
+                    const words = haystack.split(/[\s._-]+/);
+                    return words.includes(t);
+                };
+
                 const scored = all
                     .map((d) => {
                         const fn = _norm(d.friendly_name);
                         const loc = _norm(d.location);
                         const prop = _norm(d.property_name);
                         const ent = _norm(d.entity_id);
-                        const fnWords = new Set(fn.split(/\s+/));
+                        const fnWords = fn.split(/\s+/).filter((w) => w.length > 1);
+                        const fnWordsSet = new Set(fnWords);
                         let score = 0;
                         for (const t of tokens) {
-                            if (fnWords.has(t)) score += 3;
-                            else if (fn.includes(t)) score += 2;
-                            else if (loc.includes(t)) score += 2;
-                            else if (prop.includes(t)) score += 1;
-                            else if (ent.includes(t)) score += 1;
+                            if (fnWordsSet.has(t)) score += 3;
+                            else if (hasWord(fn, t)) score += 2;
+                            else if (hasWord(loc, t)) score += 2;
+                            else if (hasWord(prop, t)) score += 1;
+                            else if (hasWord(ent, t)) score += 1;
                         }
+                        // Penalty: por cada palabra del friendly_name que la query
+                        // NO contiene. Filtra dispositivos "demasiado específicos"
+                        // donde el user pidió algo más genérico.
+                        const unmatchedFnWords = fnWords.filter((w) => !querySet.has(w));
+                        score -= unmatchedFnWords.length * 2;
                         return { device: d, score };
                     })
                     .filter((x) => x.score > 0)
