@@ -245,14 +245,8 @@ def _format_property_list():
         pid = (p.player_id or '').lower()
         desc = KNOWN_DESCRIPTIONS.get(pid)
         if not desc:
-            sleep_cap = getattr(p, 'capacity_sleep', None)
-            event_cap = p.capacity_max
-            if sleep_cap and event_cap and sleep_cap != event_cap:
-                desc = f"{sleep_cap} para dormir, hasta {event_cap} para evento."
-            elif event_cap:
-                desc = f"hasta {event_cap} personas."
-            else:
-                desc = "consulta capacidad."
+            cap = p.capacity_max or ''
+            desc = f"hasta {cap} personas." if cap else "consulta capacidad."
         lines.append(f"{p.name}: {desc}")
 
     lines.append("")

@@ -781,7 +781,7 @@ class AIOrchestrator:
         props = list(
             Property.objects.filter(deleted=False)
             .order_by('capacity_max')
-            .values('name', 'capacity_max', 'capacity_sleep', 'dormitorios', 'banos',
+            .values('name', 'capacity_max', 'dormitorios', 'banos',
                     'caracteristicas', 'detalle_dormitorios')
         )
         if not props:
@@ -791,25 +791,21 @@ class AIOrchestrator:
                 'REGLA_CAPACIDADES': '(No hay propiedades registradas)',
             }
 
-        # --- INFO_CASAS: specs de cada propiedad ---
-        # Mostramos AMBAS capacidades para que el bot pueda responder bien:
-        #   - "para dormir" → capacity_sleep
-        #   - "para evento/fiesta" → capacity_max
+        # --- INFO_CASAS: al cliente le decimos solo capacity_max. El campo
+        # capacity_sleep es interno (panel admin/dashboards) — exponerlo al
+        # cliente revela detalles de cama que ahuyentan reservas. ---
         info_lines = []
         for p in props:
             name = p['name']
-            sleep = p.get('capacity_sleep')
-            event_cap = p['capacity_max'] or '?'
+            cap = p['capacity_max'] or '?'
             dorms = p['dormitorios'] or '?'
             banos = p['banos'] or '?'
             chars = p.get('caracteristicas') or []
             chars_str = ''
             if isinstance(chars, list) and chars:
                 chars_str = ' — ' + ', '.join(str(c) for c in chars[:6])
-            if sleep and sleep != event_cap:
-                line = f"- {name}: {dorms} hab/{banos} baños, {sleep} para dormir, hasta {event_cap} para evento"
-            else:
-                line = f"- {name}: {dorms} hab/{banos} baños, ingreso hasta {event_cap} personas"
+            line = f"- {name}: {dorms} hab/{banos} baños, ingreso hasta {cap} personas"
+            # Solo resumen de camas (sin detalle por habitación — forzar get_property_info)
             detalle = p.get('detalle_dormitorios') or {}
             bed_cap, _ = calc_bed_capacity(detalle)
             if bed_cap:
@@ -819,40 +815,28 @@ class AIOrchestrator:
             info_lines.append(line)
         info_casas = '\n'.join(info_lines)
 
-        # --- CLASIFICACION_POR_TAMANO: usa capacity_sleep cuando exista ---
-        # (para recomendar la casa correcta cuando el cliente pide dormir N gente)
-        def _eff_cap(p):
-            return p.get('capacity_sleep') or p['capacity_max'] or 0
-        sorted_props = sorted(props, key=_eff_cap)
+        # --- CLASIFICACION_POR_TAMANO: rangos automáticos por capacity_max ---
+        sorted_props = sorted(props, key=lambda p: p['capacity_max'] or 0)
         ranges = []
         prev_max = 0
         for i, p in enumerate(sorted_props):
-            cap = _eff_cap(p)
+            cap = p['capacity_max'] or 0
             name = p['name']
-            same_cap = [x['name'] for x in sorted_props if _eff_cap(x) == cap]
+            same_cap = [x['name'] for x in sorted_props if x['capacity_max'] == cap]
             label = ' o '.join(same_cap)
             if i == 0:
                 ranges.append(f"- 1-{cap} personas: PRIORIZAR {name} (la más ajustada y económica)")
             elif cap != prev_max:
                 ranges.append(f"- {prev_max + 1}-{cap}: Recomendar {label}")
             prev_max = max(prev_max, cap)
-        max_cap = _eff_cap(sorted_props[-1])
+        max_cap = sorted_props[-1]['capacity_max'] or 0
         biggest = sorted_props[-1]['name']
         ranges.append(f"- {max_cap}+: Recomendar {biggest} + otra casa combinada")
         clasificacion = '\n'.join(ranges)
 
-        # --- REGLA_CAPACIDADES: muestra ambas si difieren ---
-        cap_strs = []
-        for p in props:
-            ev = p['capacity_max']
-            sl = p.get('capacity_sleep')
-            if not ev:
-                continue
-            if sl and sl != ev:
-                cap_strs.append(f"{p['name']} = {sl} dormir / {ev} evento")
-            else:
-                cap_strs.append(f"{p['name']} = máx {ev}")
-        regla = ', '.join(cap_strs)
+        # --- REGLA_CAPACIDADES: resumen una línea ---
+        caps = [f"{p['name']} = máx {p['capacity_max']}" for p in props if p['capacity_max']]
+        regla = ', '.join(caps)
 
         return {
             'INFO_CASAS': info_casas,
