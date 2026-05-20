@@ -1,6 +1,11 @@
 from django.urls import path
 
 from .webhook_views import WhatsAppWebhookView
+from .business_views import (
+    AdminInterventionOpportunitiesView,
+    AdminTodaySnapshotView,
+    AdminQuickActionView,
+)
 from .admin_views import (
     ChatSessionListView,
     ChatSessionDetailView,
@@ -70,4 +75,21 @@ urlpatterns = [
     path('opportunities/', OpportunitiesView.as_view(), name='chatbot-opportunities'),
     # R4.2 — Listado admin de Magic Links (R4.1 + R4.2)
     path('magic-links/', MagicLinkListView.as_view(), name='chatbot-magic-links'),
+
+    # Sprint 1 — Modal Negocio de jarvis (misión control de ventas)
+    path(
+        'intervention-opportunities/',
+        AdminInterventionOpportunitiesView.as_view(),
+        name='chatbot-intervention-opportunities',
+    ),
+    path(
+        'today-snapshot/',
+        AdminTodaySnapshotView.as_view(),
+        name='chatbot-today-snapshot',
+    ),
+    path(
+        'quick-actions/',
+        AdminQuickActionView.as_view(),
+        name='chatbot-quick-actions',
+    ),
 ]

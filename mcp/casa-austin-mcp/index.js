@@ -405,6 +405,42 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                 "USAR PARA: saber AHORA MISMO qué casas están ocupadas (con huéspedes adentro) y cuáles tienen check-in agendado para hoy. Considera horarios reales (check-in 12 PM, check-out 11 AM hora Perú). Devuelve total ocupadas, lista de reservas activas con casa+cliente+DNI+edad+cumpleaños+foto del DNI, y check-ins programados. NO usar para mes completo (eso es get_monthly_operations).",
             inputSchema: { type: "object", properties: {} },
         },
+
+        // ── Modal Negocio de jarvis: misión control de ventas ──
+        {
+            name: "get_intervention_opportunities",
+            description:
+                "USAR PARA: 'qué clientes necesitan atención AHORA' / 'a quién debería contactar para cerrar venta' / 'quién está atascado en el funnel'. Devuelve top sesiones del bot rankeadas por score (0-100) con razón del score, etapa del funnel, foto del cliente, datos de la cotización y acciones sugeridas (mandar link nuevo, ofrecer descuento, escalar humano).",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    limit: { type: "number", description: "Cantidad máxima de oportunidades (default 10, max 50)." },
+                },
+            },
+        },
+        {
+            name: "get_today_snapshot",
+            description:
+                "USAR PARA: '¿cómo viene el día?' / 'resumen ejecutivo de hoy' / 'KPIs vs ayer'. Devuelve métricas del día (conversaciones, cotizaciones, magic links creados/abiertos, reservas pagas) con delta % vs ayer, alertas operacionales (conversaciones atascadas, gaps del bot, links sin abrir) y estado de cada casa (libre / ocupada con foto del huésped / check-in pendiente).",
+            inputSchema: { type: "object", properties: {} },
+        },
+        {
+            name: "execute_quick_action",
+            description:
+                "USAR PARA: ejecutar una acción sobre una conversación específica del chatbot. Acciones disponibles: send_fresh_link (regenera y envía magic link nuevo), offer_discount_10 (crea código de 10% válido 48h y lo envía), intervene_human (pausa el AI, escala a humano), ask_objection (envía mensaje plantilla preguntando qué frena al cliente).",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    session_id: { type: "string", description: "UUID de la ChatSession." },
+                    action_id: {
+                        type: "string",
+                        enum: ["send_fresh_link", "offer_discount_10", "intervene_human", "ask_objection"],
+                        description: "Acción a ejecutar.",
+                    },
+                },
+                required: ["session_id", "action_id"],
+            },
+        },
         {
             name: "get_client_info",
             description:
@@ -745,6 +781,107 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
                 });
             }
             return { content };
+        }
+
+        // ── Modal Negocio de jarvis ──
+        if (name === "get_intervention_opportunities") {
+            const { limit } = args || {};
+            const params = new URLSearchParams();
+            if (limit) params.set("limit", String(limit));
+            const data = await authedJson(`/api/v1/chatbot/intervention-opportunities/?${params}`);
+
+            // Resumen + fotos inline de los huéspedes con foto
+            const opps = data.opportunities || [];
+            const summary = {
+                count: opps.length,
+                total_analyzed: data.total_analyzed,
+                top: opps.map((o) => ({
+                    cliente: o.client_name,
+                    dni: o.client_dni,
+                    score: o.score,
+                    razon: o.reason,
+                    etapa_funnel: o.funnel_stage,
+                    wa_window_horas: o.wa_window_hours_remaining,
+                    casa: o.property_interested,
+                    huespedes: o.guests,
+                    fechas: o.quote_check_in && o.quote_check_out
+                        ? `${o.quote_check_in} → ${o.quote_check_out}` : null,
+                    ultimo_mensaje: o.last_message_preview,
+                    acciones: (o.suggested_actions || []).map((a) => a.label),
+                    session_id: o.session_id,
+                })),
+            };
+            const content = [{ type: "text", text: JSON.stringify(summary, null, 2) }];
+            for (const o of opps) {
+                if (o.client_photo_b64) {
+                    content.push({
+                        type: "text",
+                        text: `📷 ${o.client_name} (DNI ${o.client_dni}) — score ${o.score}`,
+                    });
+                    content.push({ type: "image", data: o.client_photo_b64, mimeType: "image/jpeg" });
+                }
+            }
+            return { content };
+        }
+
+        if (name === "get_today_snapshot") {
+            const data = await authedJson(`/api/v1/chatbot/today-snapshot/`);
+            const summary = {
+                fecha: data.date,
+                kpis_hoy: data.kpis_today,
+                kpis_ayer: data.kpis_yesterday,
+                delta_vs_ayer_pct: data.deltas_percent,
+                alertas: data.alerts || [],
+                casas: (data.houses_today || []).map((h) => ({
+                    casa: h.property_name,
+                    estado: h.status,
+                    huesped: h.client_name,
+                    huespedes_n: h.guests,
+                    proximo: h.next_event,
+                    check_out: h.check_out_date,
+                    tiene_foto: !!h.client_photo_b64,
+                })),
+            };
+            const content = [{ type: "text", text: JSON.stringify(summary, null, 2) }];
+            for (const h of (data.houses_today || [])) {
+                if (h.client_photo_b64) {
+                    content.push({
+                        type: "text",
+                        text: `📷 ${h.client_name} — ${h.property_name}`,
+                    });
+                    content.push({ type: "image", data: h.client_photo_b64, mimeType: "image/jpeg" });
+                }
+            }
+            return { content };
+        }
+
+        if (name === "execute_quick_action") {
+            const { session_id, action_id, ...rest } = args || {};
+            if (!session_id || !action_id) throw new Error("Pasá session_id y action_id.");
+            const resp = await authedFetch(`/api/v1/chatbot/quick-actions/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ session_id, action_id, ...rest }),
+            });
+            const data = await resp.json();
+            if (!resp.ok || !data.success) {
+                return {
+                    content: [{
+                        type: "text",
+                        text: `❌ Error ejecutando ${action_id}: ${data.result_detail || data.error || JSON.stringify(data)}`,
+                    }],
+                    isError: true,
+                };
+            }
+            return {
+                content: [{
+                    type: "text",
+                    text:
+                        `✅ Acción ${action_id} ejecutada.\n` +
+                        `${data.result_detail || ''}\n\n` +
+                        (data.message_sent ? `Mensaje enviado al cliente:\n"${data.message_sent}"` : ''),
+                }],
+            };
         }
 
         if (name === "get_client_info") {
