@@ -9,6 +9,7 @@ from . import admin_push_views
 from . import notification_history_views
 from . import magic_link_views
 from .voucher_views import ClientVoucherUploadView, ClientReservationStatusView
+from .admin_lookup_views import AdminClientLookupView
 from .views import (
     MensajeFidelidadApiView, TokenApiClientApiView, ClientsApiView,
     ReferralConfigView, ReferralStatsView, SearchTrackingView, SearchTrackingTestView,
@@ -51,6 +52,12 @@ urlpatterns = [
     path('clients/searches-by-checkin/',
          SearchesByCheckInDateView.as_view(),
          name='searches-by-checkin'),
+
+    # Admin lookup: buscar cliente por DNI/teléfono/nombre. Si pasan DNI
+    # y no existe cliente local, consulta Reniec on-demand. Usado por MCP.
+    path('clients/admin/lookup/',
+         AdminClientLookupView.as_view(),
+         name='admin-client-lookup'),
 
     # Referral ranking endpoints (must be before router to avoid conflicts)
     path('clients/referral-ranking/', ReferralRankingView.as_view(), name='referral-ranking'),

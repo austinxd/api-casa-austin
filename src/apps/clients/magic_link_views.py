@@ -554,6 +554,7 @@ class CreateExpressReservationView(APIView):
                 source_app='express_form',
                 source_ip=_get_client_ip(request),
                 user_agent=(request.META.get('HTTP_USER_AGENT') or '')[:255],
+                include_photo=True,  # cacheamos la foto desde la creación
             )
             full_name = _build_full_name_from_reniec(data) if ok else ''
             if not ok or not full_name:

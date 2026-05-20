@@ -2102,6 +2102,74 @@ class QRReservationView(APIView):
             }, status=500)
 
 
+def _client_extra_info(client, include_photo=False):
+    """Datos extra del cliente para mostrar en dashboards (MCP, panel admin).
+
+    Devuelve birthday, age, days_to_birthday, sex, document_type y number_doc.
+
+    Si include_photo=True, también busca DNICache.foto (base64) para
+    clientes con DNI peruano. Para listados largos (varias reservas)
+    dejarlo False — cada foto pesa ~50KB y multiplica el payload.
+    """
+    if not client:
+        return {
+            'birthday': None, 'age': None, 'days_to_birthday': None,
+            'photo_b64': None, 'photo_facebook': None,
+            'sex': None, 'document_type': None, 'number_doc': None,
+        }
+    birthday = getattr(client, 'date', None)
+    age = None
+    days_to_birthday = None
+    if birthday:
+        from datetime import date as _date
+        today = _date.today()
+        age = today.year - birthday.year - (
+            (today.month, today.day) < (birthday.month, birthday.day)
+        )
+        try:
+            next_bday = birthday.replace(year=today.year)
+        except ValueError:
+            next_bday = birthday.replace(year=today.year, day=28)
+        if next_bday < today:
+            try:
+                next_bday = birthday.replace(year=today.year + 1)
+            except ValueError:
+                next_bday = birthday.replace(year=today.year + 1, day=28)
+        days_to_birthday = (next_bday - today).days
+
+    document_type = getattr(client, 'document_type', None)
+    number_doc = getattr(client, 'number_doc', None)
+
+    photo_b64 = None
+    if include_photo and document_type == 'dni' and number_doc:
+        # Lee del cache si existe. NO llamamos Reniec on-demand aquí
+        # porque get_active_today puede tener varias reservas y haría
+        # múltiples requests externos lentos. La tool get_client_info
+        # sí lo hace cuando explícitamente se pide.
+        try:
+            from apps.reniec.models import DNICache
+            cache = DNICache.objects.filter(dni=number_doc).first()
+            if cache:
+                photo_b64 = cache.foto
+        except Exception:
+            photo_b64 = None
+
+    photo_facebook = None
+    if hasattr(client, 'get_facebook_profile_picture'):
+        photo_facebook = client.get_facebook_profile_picture()
+
+    return {
+        'birthday': birthday.isoformat() if birthday else None,
+        'age': age,
+        'days_to_birthday': days_to_birthday,
+        'photo_b64': photo_b64,
+        'photo_facebook': photo_facebook,
+        'sex': client.sex if hasattr(client, 'sex') else None,
+        'document_type': document_type,
+        'number_doc': number_doc,
+    }
+
+
 class ActiveReservationsView(APIView):
     """
     GET /api/v1/active/
@@ -2182,6 +2250,7 @@ class ActiveReservationsView(APIView):
                         phone = res.tel_contact_number or ''
                         referral_code = ''
                     
+                    extra = _client_extra_info(client, include_photo=True)
                     active_reservations.append({
                         'id': str(res.id),
                         'property': res.property.name if res.property else 'Sin propiedad',
@@ -2190,6 +2259,14 @@ class ActiveReservationsView(APIView):
                         'client_name': client_name,
                         'phone': phone,
                         'referral_code': referral_code,
+                        'client_dni': extra['number_doc'],
+                        'client_document_type': extra['document_type'],
+                        'client_birthday': extra['birthday'],
+                        'client_age': extra['age'],
+                        'client_days_to_birthday': extra['days_to_birthday'],
+                        'client_photo_b64': extra['photo_b64'],
+                        'client_photo_facebook': extra['photo_facebook'],
+                        'client_sex': extra['sex'],
                         'check_in_date': res.check_in_date.isoformat(),
                         'check_out_date': res.check_out_date.isoformat(),
                         'guests': res.guests,
@@ -2223,6 +2300,7 @@ class ActiveReservationsView(APIView):
                     phone = res.tel_contact_number or ''
                     referral_code = ''
                 
+                extra = _client_extra_info(client, include_photo=True)
                 checkin_today.append({
                     'id': str(res.id),
                     'property': res.property.name if res.property else 'Sin propiedad',
@@ -2231,6 +2309,14 @@ class ActiveReservationsView(APIView):
                     'client_name': client_name,
                     'phone': phone,
                     'referral_code': referral_code,
+                    'client_dni': extra['number_doc'],
+                    'client_document_type': extra['document_type'],
+                    'client_birthday': extra['birthday'],
+                    'client_age': extra['age'],
+                    'client_days_to_birthday': extra['days_to_birthday'],
+                    'client_photo_b64': extra['photo_b64'],
+                    'client_photo_facebook': extra['photo_facebook'],
+                    'client_sex': extra['sex'],
                     'check_in_date': res.check_in_date.isoformat(),
                     'check_out_date': res.check_out_date.isoformat(),
                     'guests': res.guests,

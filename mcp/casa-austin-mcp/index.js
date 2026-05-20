@@ -393,8 +393,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         {
             name: "get_active_today",
             description:
-                "USAR PARA: saber AHORA MISMO qué casas están ocupadas (con huéspedes adentro) y cuáles tienen check-in agendado para hoy. Considera horarios reales (check-in 12 PM, check-out 11 AM hora Perú). Devuelve total ocupadas, lista de reservas activas con casa+cliente+huéspedes, y check-ins programados para el día. NO usar para mes completo (eso es get_monthly_operations).",
+                "USAR PARA: saber AHORA MISMO qué casas están ocupadas (con huéspedes adentro) y cuáles tienen check-in agendado para hoy. Considera horarios reales (check-in 12 PM, check-out 11 AM hora Perú). Devuelve total ocupadas, lista de reservas activas con casa+cliente+DNI+edad+cumpleaños+foto del DNI, y check-ins programados. NO usar para mes completo (eso es get_monthly_operations).",
             inputSchema: { type: "object", properties: {} },
+        },
+        {
+            name: "get_client_info",
+            description:
+                "USAR PARA: consultar datos completos de un cliente por DNI, teléfono o nombre. Si pasás un DNI peruano (8 dígitos) y no existe en la base, hace una consulta a RENIEC y devuelve los datos oficiales con foto. Devuelve: nombres, apellidos, edad, cumpleaños, días al próximo cumpleaños, foto (base64), sexo, teléfono, código de referido, puntos. Si la búsqueda matchea varios clientes, devuelve la lista para que pidas un identificador más preciso.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    dni: { type: "string", description: "DNI peruano (8 dígitos). Si no existe en base, consulta RENIEC." },
+                    phone: { type: "string", description: "Teléfono. Matchea por últimos 9 dígitos." },
+                    name: { type: "string", description: "Nombre o apellido (icontains)." },
+                    query: { type: "string", description: "Búsqueda libre: si son 8 dígitos prueba como DNI, si son dígitos prueba como teléfono, sino como nombre." },
+                },
+            },
         },
         // ── Home Assistant (control de dispositivos en las casas) ──
         {
@@ -666,22 +680,27 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 
         if (name === "get_active_today") {
             const data = await authedJson(`/api/v1/active/`);
-            const ocupadas = (data.active_reservations || []).map((r) => ({
+
+            // Helper para resumen sin foto (foto va por separado como image content)
+            const mapRes = (r) => ({
                 casa: r.property_name || r.property,
                 cliente: r.client_name,
+                dni: r.client_dni,
+                tipo_documento: r.client_document_type,
+                edad: r.client_age,
+                cumpleanos: r.client_birthday,
+                dias_al_cumple: r.client_days_to_birthday,
+                sexo: r.client_sex,
                 huespedes: r.guests,
                 check_in: r.check_in_date,
                 check_out: r.check_out_date,
-                origin: r.origin,
-            }));
-            const checkInsHoy = (data.check_in_today || []).map((r) => ({
-                casa: r.property,
-                cliente: r.client_name,
-                huespedes: r.guests,
                 check_in_time: r.checkin_time,
                 phone: r.phone,
+                tiene_foto: !!r.client_photo_b64,
                 origin: r.origin,
-            }));
+            });
+            const ocupadas = (data.active_reservations || []).map(mapRes);
+            const checkInsHoy = (data.check_in_today || []).map(mapRes);
             const summary = {
                 ahora: new Date().toLocaleString("es-PE", { timeZone: "America/Lima" }),
                 casas_ocupadas_ahora: ocupadas.length,
@@ -689,7 +708,76 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
                 reservas_activas: ocupadas,
                 checkins_hoy: checkInsHoy,
             };
-            return { content: [{ type: "text", text: JSON.stringify(summary, null, 2) }] };
+
+            // Armamos content: primero el JSON, después las fotos disponibles
+            // como imágenes inline. Cada foto va con su contexto (cliente/casa).
+            const content = [{ type: "text", text: JSON.stringify(summary, null, 2) }];
+            const allWithPhotos = [
+                ...(data.active_reservations || []),
+                ...(data.check_in_today || []),
+            ].filter((r) => r.client_photo_b64);
+            for (const r of allWithPhotos) {
+                content.push({
+                    type: "text",
+                    text: `📷 ${r.client_name} (DNI ${r.client_dni}) — ${r.property_name || r.property}`,
+                });
+                content.push({
+                    type: "image",
+                    data: r.client_photo_b64,
+                    mimeType: "image/jpeg",
+                });
+            }
+            return { content };
+        }
+
+        if (name === "get_client_info") {
+            const { dni, phone, name: nameArg, query } = args || {};
+            if (!dni && !phone && !nameArg && !query) {
+                throw new Error("Pasá al menos uno: dni, phone, name o query.");
+            }
+            const params = new URLSearchParams();
+            if (dni) params.set("dni", dni);
+            if (phone) params.set("phone", phone);
+            if (nameArg) params.set("name", nameArg);
+            if (query) params.set("q", query);
+
+            const resp = await authedFetch(`/api/v1/clients/admin/lookup/?${params}`);
+            const data = await resp.json();
+
+            if (!resp.ok) {
+                return {
+                    content: [{ type: "text", text: `Error: ${data.message || data.error || JSON.stringify(data)}` }],
+                    isError: true,
+                };
+            }
+
+            // Múltiples matches → texto plano con lista
+            if (data.matches) {
+                return {
+                    content: [{
+                        type: "text",
+                        text:
+                            `Encontré ${data.count} clientes. Acotá con DNI o nombre más específico:\n\n` +
+                            data.matches.map((c, i) =>
+                                `${i + 1}. ${c.full_name} | DNI: ${c.number_doc || c.tel_number} | tel: ${c.tel_number}`
+                            ).join("\n"),
+                    }],
+                };
+            }
+
+            // Match único (local o desde Reniec). Devolvemos JSON + foto inline.
+            const photo = data.photo_b64;
+            const clean = { ...data };
+            delete clean.photo_b64;
+            delete clean.raw_reniec;
+            const content = [
+                { type: "text", text: JSON.stringify(clean, null, 2) },
+            ];
+            if (photo) {
+                content.push({ type: "text", text: `📷 ${clean.full_name || clean.first_name}` });
+                content.push({ type: "image", data: photo, mimeType: "image/jpeg" });
+            }
+            return { content };
         }
 
         // ──────── Home Assistant ────────
