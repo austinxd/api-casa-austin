@@ -69,6 +69,12 @@ class BlogPostAdminViewSet(viewsets.ModelViewSet):
             qs = qs.filter(status=status_filter)
         return qs
 
+    def perform_destroy(self, instance):
+        """Soft delete: marca deleted=True (mantiene historial).
+        Útil para rechazar drafts generados por IA que no nos gusten."""
+        instance.deleted = True
+        instance.save(update_fields=['deleted', 'updated'])
+
     @action(detail=True, methods=['post'])
     def publish(self, request, pk=None):
         post = self.get_object()

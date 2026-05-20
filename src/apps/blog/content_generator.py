@@ -371,12 +371,44 @@ vacacionales de lujo en las playas del sur de Lima, Perú.
 - Usa H2 y H3 para estructura (NUNCA H1, el título va aparte)
 - Usa <ul>/<ol> para listas, <strong> para énfasis
 - NO uses CSS inline ni clases (el blog usa Tailwind prose)
-- Incluye enlaces internos a https://casaaustin.pe y sus secciones:
-  - /casas-alquiler-punta-hermosa (listado de propiedades)
-  - /blog (blog principal)
 - El contenido debe tener entre 800-1500 palabras
 - Párrafos cortos (3-4 líneas máximo)
 - Incluye al menos un CTA hacia las propiedades
+
+## Enlaces internos OBLIGATORIOS
+DEBES incluir entre 2 y 4 enlaces internos contextuales en el contenido.
+Elige los más relevantes al tema del post. Lista completa de landings:
+
+**Por ocasión**:
+- /casa-playa-matrimonio-boda-lima — bodas, matrimonios, casarse en la playa
+- /casa-playa-cumpleanos-lima — cumpleaños, fiestas de cumpleaños
+- /despedida-soltera-casa-playa-lima — despedida de soltera
+- /despedida-soltero-casa-playa-lima — despedida de soltero
+- /casa-playa-ano-nuevo-lima — año nuevo, fin de año
+- /casa-playa-grupo-grande-lima — grupos grandes, reuniones de amigos
+- /alquiler-mansiones-para-eventos-peru — eventos corporativos, mansiones
+
+**Por característica**:
+- /casa-playa-piscina-temperada-lima — piscina temperada, piscina climatizada
+- /hotel-con-jacuzzi-lima — jacuzzi, casa con jacuzzi privado
+- /casa-playa-pet-friendly-lima — mascotas, pet friendly, perros
+- /airbnb-punta-hermosa-casas-playa — airbnb, alternativa a airbnb
+- /alternativa-booking-casa-playa-lima — booking, alternativa a booking
+
+**Por ubicación**:
+- /casas-alquiler-punta-hermosa — Punta Hermosa
+- /casas-alquiler-los-pulpos — Playa Los Pulpos
+- /casas-alquiler-cieneguilla — Cieneguilla, casa de campo
+
+**Generales**:
+- / (home)
+- /blog
+- /casas-en-alquiler — listado general
+
+Reglas de enlazado:
+- Anchor text DESCRIPTIVO (no "click aquí" ni "ver más")
+- Elige 2-4 que tengan relación temática real con el post
+- NO repitas el mismo link 2 veces en el post
 
 ## Formato de respuesta
 Responde ÚNICAMENTE con un JSON válido (sin markdown code blocks):
@@ -434,15 +466,91 @@ Menciona esta propiedad de forma natural en el contenido, con datos reales.""")
 
 Asegúrate de que tu post sea diferente y complementario a los existentes.""")
 
-        # URLs internas para enlazar
-        parts.append("""## URLs internas para enlazar
-- https://casaaustin.pe/casas-alquiler-punta-hermosa (listado de casas)
-- https://casaaustin.pe/blog (blog)
-- https://casaaustin.pe (home)
+        # URLs internas relevantes según topic
+        suggested_links = self._suggest_internal_links(topic, keyword_data)
+        if suggested_links:
+            links_block = "\n".join([f"- {url} — {context}" for url, context in suggested_links])
+            parts.append(f"""## URLs internas SUGERIDAS para este post
+Estas son las más relevantes a tu tema. Úsalas con anchor text descriptivo:
+{links_block}
 
-Incluye al menos 2 enlaces internos de forma natural en el contenido.""")
+Incluye entre 2 y 4 de estos enlaces de forma natural en el contenido.
+Si el post habla de bodas, cumpleaños, etc., enlaza a la landing específica
+de esa ocasión (no genérico a /casas-alquiler-punta-hermosa).""")
 
         return "\n\n".join(parts)
+
+    # Mapeo (keyword/regex, landing_url, context_descriptor)
+    # Las reglas se evalúan en orden, las primeras tienen prioridad.
+    LANDING_LINKS_MAP = [
+        # Por ocasión
+        (['boda', 'matrimonio', 'casar', 'casamiento', 'novia', 'novio', 'ceremonia'],
+            '/casa-playa-matrimonio-boda-lima', 'bodas y matrimonios en la playa'),
+        (['cumpleaño', 'cumple', 'fiesta de cumpleaño'],
+            '/casa-playa-cumpleanos-lima', 'casas con piscina para cumpleaños'),
+        (['despedida de soltera', 'soltera'],
+            '/despedida-soltera-casa-playa-lima', 'despedida de soltera'),
+        (['despedida de soltero', 'soltero'],
+            '/despedida-soltero-casa-playa-lima', 'despedida de soltero'),
+        (['año nuevo', 'fin de año', 'fin de an', 'recibir el año'],
+            '/casa-playa-ano-nuevo-lima', 'año nuevo en la playa'),
+        (['grupo grande', 'grupos grandes', 'grupos numerosos', 'reunión de amigos', 'familia grande'],
+            '/casa-playa-grupo-grande-lima', 'casas para grupos grandes'),
+        (['evento corporativo', 'mansión para evento', 'mansiones', 'evento empresarial'],
+            '/alquiler-mansiones-para-eventos-peru', 'mansiones para eventos'),
+        # Por característica
+        (['piscina temperada', 'piscina climatiz', 'agua climatiz'],
+            '/casa-playa-piscina-temperada-lima', 'casas con piscina temperada todo el año'),
+        (['jacuzzi', 'hidromasaje'],
+            '/hotel-con-jacuzzi-lima', 'casas con jacuzzi privado'),
+        (['mascota', 'perro', 'pet friendly', 'pet-friendly', 'pet-friendly'],
+            '/casa-playa-pet-friendly-lima', 'casas pet friendly'),
+        (['airbnb', 'air bnb'],
+            '/airbnb-punta-hermosa-casas-playa', 'alternativa a Airbnb en Punta Hermosa'),
+        (['booking.com', 'booking', 'alternativa booking'],
+            '/alternativa-booking-casa-playa-lima', 'alternativa a Booking'),
+        # Por ubicación
+        (['punta hermosa'],
+            '/casas-alquiler-punta-hermosa', 'casas en Punta Hermosa'),
+        (['los pulpos', 'playa pulpos'],
+            '/casas-alquiler-los-pulpos', 'casas en Playa Los Pulpos'),
+        (['cieneguilla', 'casa de campo'],
+            '/casas-alquiler-cieneguilla', 'casas de campo en Cieneguilla'),
+    ]
+
+    def _suggest_internal_links(self, topic, keyword_data):
+        """Devuelve lista de [(url, contexto), ...] de landings que matchean
+        el topic/keyword del post. Siempre incluye fallbacks generales."""
+        text_pool = []
+        if keyword_data and keyword_data.get('query'):
+            text_pool.append(keyword_data['query'].lower())
+        tmpl = topic.get('template', {})
+        text_pool.append((tmpl.get('description') or '').lower())
+        text_pool.append((tmpl.get('title_hint') or '').lower())
+        for kw in tmpl.get('keywords', []):
+            text_pool.append(kw.lower())
+        text_blob = ' '.join(text_pool)
+
+        matched = []
+        seen_urls = set()
+        for keywords, url, context in self.LANDING_LINKS_MAP:
+            if any(kw in text_blob for kw in keywords) and url not in seen_urls:
+                matched.append((f'https://casaaustin.pe{url}', context))
+                seen_urls.add(url)
+                if len(matched) >= 5:
+                    break
+
+        # Siempre agregamos generales (al final, para no opacar los específicos)
+        defaults = [
+            ('https://casaaustin.pe/casas-en-alquiler', 'listado general de casas'),
+            ('https://casaaustin.pe/blog', 'blog Casa Austin'),
+            ('https://casaaustin.pe/', 'home'),
+        ]
+        for u, c in defaults:
+            if u not in seen_urls:
+                matched.append((u, c))
+                seen_urls.add(u)
+        return matched
 
     def _call_llm(self, system_prompt, user_prompt):
         """Llama a la API de OpenAI (GPT-4o) para generar contenido."""
@@ -516,22 +624,56 @@ Incluye al menos 2 enlaces internos de forma natural en el contenido.""")
 
     def _handle_image(self, topic, selected_property):
         """
-        Selecciona imagen según el tipo de tema.
-        - property/family/events: 70% foto real aleatoria, 30% DALL-E
-        - otros: siempre DALL-E
+        Estrategia de imagen:
+        - SIEMPRE intenta usar foto REAL de propiedad primero (más auténtico,
+          gratis, sin riesgo de "fake AI look").
+        - DALL-E solo como último recurso para temas que no son de propiedad.
+        - Si todo falla, foto random de cualquier propiedad activa (NUNCA
+          devolvemos null — todos los posts deben tener imagen).
         """
-        image_source = topic.get('image_source', 'dalle')
+        # 1. Si hay propiedad asociada, usar foto real
+        if selected_property:
+            image = self._get_property_image(selected_property)
+            if image:
+                return image
 
-        if image_source == 'property' and selected_property:
-            # Mix: mayoría fotos reales, pero a veces DALL-E para variedad
-            if random.random() < 0.7:
-                image = self._get_property_image(selected_property)
-                if image:
-                    return image
-            # Fallback o 30% de las veces: DALL-E
-            return self._generate_dalle_image(topic)
+        # 2. Si no hay propiedad o no se obtuvo foto, intentar DALL-E
+        image = self._generate_dalle_image(topic)
+        if image:
+            return image
 
-        return self._generate_dalle_image(topic)
+        # 3. Último recurso: foto random de cualquier propiedad disponible
+        return self._get_random_property_image()
+
+    def _get_random_property_image(self):
+        """Fallback definitivo: foto random de cualquier propiedad activa.
+        Garantiza que el post nunca quede sin imagen."""
+        from apps.property.models import Property
+        try:
+            properties = list(
+                Property.objects.filter(deleted=False).prefetch_related('photos')
+            )
+            random.shuffle(properties)
+            for prop in properties:
+                photos = list(prop.photos.filter(deleted=False))
+                if not photos:
+                    continue
+                photo = random.choice(photos)
+                if not photo.image_file:
+                    continue
+                try:
+                    photo.image_file.open('rb')
+                    content = photo.image_file.read()
+                    photo.image_file.close()
+                    filename = f"blog_fallback_{slugify(prop.name)}_{photo.id}.jpg"
+                    logger.info(f"Usando imagen fallback de {prop.name}")
+                    return ContentFile(content, name=filename)
+                except Exception as e:
+                    logger.warning(f"Error leyendo foto fallback: {e}")
+                    continue
+        except Exception as e:
+            logger.error(f"Fallback de imagen falló: {e}")
+        return None
 
     def _get_property_image(self, property_data):
         """Obtiene una foto aleatoria de la propiedad (no siempre la principal)."""
@@ -555,9 +697,18 @@ Incluye al menos 2 enlaces internos de forma natural en el contenido.""")
         return None
 
     def _generate_dalle_image(self, topic):
-        """Genera una imagen con DALL-E 3."""
+        """Genera una imagen con DALL-E 3 estilo fotografía REAL (no ilustración).
+
+        Modifiers críticos para evitar look "AI generado / fake":
+        - "Cinematic photography" + "ultra-realistic" forzan estilo foto.
+        - "Shot on DSLR / Sony A7" da look profesional.
+        - Negative prompts en la descripción (DALL-E no soporta nativos pero
+          el texto explícito ayuda): "no illustration, no cartoon, no CGI".
+        - "Natural lighting" en lugar de "warm lighting" (warm puede sonar
+          a editorial estilizado).
+        """
         if not self.openai_key:
-            logger.warning("OPENAI_API_KEY no configurado, saltando generación de imagen DALL-E")
+            logger.warning("OPENAI_API_KEY no configurado, saltando DALL-E")
             return None
 
         try:
@@ -565,30 +716,35 @@ Incluye al menos 2 enlaces internos de forma natural en el contenido.""")
             import requests
 
             client = openai.OpenAI(api_key=self.openai_key)
-
-            # Crear prompt descriptivo para la imagen
             template = topic['template']
+
+            # Prompt construido para forzar estilo foto real
             image_prompt = (
-                f"Professional travel photography style. "
-                f"{template['description']} "
-                f"Setting: beautiful beach houses in Lima Peru, south coast, "
-                f"Punta Hermosa area. Warm lighting, inviting atmosphere. "
-                f"No text or logos in the image."
+                f"Ultra-realistic cinematic photograph, shot on Sony A7 III, "
+                f"50mm lens, natural lighting, golden hour. "
+                f"Scene: {template['description']}. "
+                f"Location: a real beach house in Punta Hermosa, south coast "
+                f"of Lima, Peru — minimalist contemporary architecture, "
+                f"white walls, large windows facing the Pacific Ocean, "
+                f"natural wood and stone textures, modest pool. "
+                f"Authentic documentary style, no people in frame unless "
+                f"essential to the scene. Photorealistic detail. "
+                f"NOT an illustration, NOT a cartoon, NOT CGI, NOT a render. "
+                f"No text, no watermarks, no logos in the image."
             )
 
-            logger.info(f"Generando imagen DALL-E: {image_prompt[:100]}...")
+            logger.info(f"DALL-E prompt: {image_prompt[:120]}...")
 
             response = client.images.generate(
                 model="dall-e-3",
                 prompt=image_prompt,
                 size="1792x1024",
-                quality="standard",
+                quality="hd",  # antes: standard. HD da mejor textura/realismo.
+                style="natural",  # natural = más fotorrealista. vs "vivid"
                 n=1,
             )
 
             image_url = response.data[0].url
-
-            # Descargar la imagen
             img_response = requests.get(image_url, timeout=30)
             img_response.raise_for_status()
 
