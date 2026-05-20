@@ -301,6 +301,64 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                 "USAR PARA: saber AHORA MISMO qué casas están ocupadas (con huéspedes adentro) y cuáles tienen check-in agendado para hoy. Considera horarios reales (check-in 12 PM, check-out 11 AM hora Perú). Devuelve total ocupadas, lista de reservas activas con casa+cliente+huéspedes, y check-ins programados para el día. NO usar para mes completo (eso es get_monthly_operations).",
             inputSchema: { type: "object", properties: {} },
         },
+        // ── Home Assistant (control de dispositivos en las casas) ──
+        {
+            name: "ha_list_devices",
+            description:
+                "USAR PARA: listar dispositivos de Home Assistant en las casas (luces, switches, climate, sensores). Permite filtrar por casa (Casa Austin 1-4) o por tipo. Devuelve friendly_name, ubicación dentro de la casa, tipo y estado actual (on/off). Usar como exploración antes de controlar, o cuando el usuario pregunta '¿qué dispositivos hay en X casa?'.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    property: {
+                        type: "string",
+                        description: "Filtrar por casa: nombre ('Casa Austin 3') o slug ('casa-austin-3'). Opcional.",
+                    },
+                    device_type: {
+                        type: "string",
+                        description: "Filtrar por tipo: light, switch, climate, sensor, etc. Opcional.",
+                    },
+                },
+            },
+        },
+        {
+            name: "ha_control_device",
+            description:
+                "USAR PARA: prender/apagar/togglear un dispositivo de Home Assistant. Acepta búsqueda en lenguaje natural (`query`) — no necesitas el UUID. Ej: query='luces del garaje casa 3' busca y matchea el dispositivo más relevante. Soporta brightness (0-255) para luces y temperature para climate. Si la búsqueda matchea múltiples, devuelve la lista para que elijas más específico.",
+            inputSchema: {
+                type: "object",
+                properties: {
+                    query: {
+                        type: "string",
+                        description: "Descripción del dispositivo en lenguaje natural. Ej: 'luces sala casa austin 3', 'camarotes 2do piso', 'apagar todo casa 4'. El MCP busca por friendly_name + location + property_name.",
+                    },
+                    device_id: {
+                        type: "string",
+                        description: "UUID exacto del dispositivo (alternativa a query, para mayor precisión).",
+                    },
+                    action: {
+                        type: "string",
+                        enum: ["turn_on", "turn_off", "toggle"],
+                        description: "Acción: turn_on (prender), turn_off (apagar), toggle (cambiar estado).",
+                    },
+                    brightness: {
+                        type: "number",
+                        description: "Brillo 0-255 (solo para device_type=light).",
+                    },
+                    temperature: {
+                        type: "number",
+                        description: "Temperatura en °C (solo para device_type=climate).",
+                    },
+                },
+                required: ["action"],
+            },
+        },
+        {
+            name: "ha_test_connection",
+            description:
+                "USAR PARA: verificar que la conexión con Home Assistant funciona. Devuelve si está conectado, cantidad total de entidades y URL base. Útil cuando algún control falla y queremos confirmar si HA está vivo.",
+            inputSchema: { type: "object", properties: {} },
+        },
+
         {
             name: "compare_months_yoy",
             description:
@@ -540,6 +598,156 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
                 casas_con_checkin_hoy: checkInsHoy.length,
                 reservas_activas: ocupadas,
                 checkins_hoy: checkInsHoy,
+            };
+            return { content: [{ type: "text", text: JSON.stringify(summary, null, 2) }] };
+        }
+
+        // ──────── Home Assistant ────────
+
+        if (name === "ha_test_connection") {
+            const data = await authedJson(`/api/v1/ha/admin/test/`);
+            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+        }
+
+        if (name === "ha_list_devices") {
+            const { property, device_type } = args || {};
+            const params = new URLSearchParams();
+            // Resolver property a property_id si vino como nombre/slug
+            if (property) {
+                const props = await fetch(`${API_BASE}/api/v1/property/`, {
+                    headers: { Accept: "application/json" },
+                }).then((r) => r.json());
+                const items = props.results || props || [];
+                const q = property.toLowerCase().trim();
+                const match = items.find(
+                    (p) =>
+                        (p.slug || "").toLowerCase() === q ||
+                        (p.name || "").toLowerCase() === q ||
+                        (p.name || "").toLowerCase().includes(q) ||
+                        (p.slug || "").toLowerCase().includes(q),
+                );
+                if (match) params.append("property_id", match.id);
+            }
+            if (device_type) params.append("device_type", device_type);
+            const data = await authedJson(
+                `/api/v1/ha/admin/devices/${params.toString() ? "?" + params : ""}`,
+            );
+            const summary = {
+                total: data.count,
+                has_active_reservation: data.has_active_reservation,
+                temperature_pool_active: data.temperature_pool_active,
+                devices: (data.devices || []).map((d) => ({
+                    id: d.id,
+                    nombre: d.friendly_name,
+                    casa: d.property_name,
+                    ubicacion: d.location,
+                    tipo: d.device_type,
+                    estado: d.current_state,
+                    entity_id: d.entity_id,
+                })),
+            };
+            return { content: [{ type: "text", text: JSON.stringify(summary, null, 2) }] };
+        }
+
+        if (name === "ha_control_device") {
+            const { query, device_id, action, brightness, temperature } = args || {};
+            if (!action) throw new Error("Falta action (turn_on, turn_off o toggle).");
+
+            let targetId = device_id;
+            let candidates = [];
+
+            // Si no vino UUID, buscar por query fuzzy en la lista completa.
+            if (!targetId) {
+                if (!query) throw new Error("Pasá query o device_id.");
+                const list = await authedJson(`/api/v1/ha/admin/devices/`);
+                const all = list.devices || [];
+                const q = query.toLowerCase();
+                const tokens = q.split(/\s+/).filter(Boolean);
+                // Score: cuantos tokens matchean en friendly+location+property
+                const scored = all
+                    .map((d) => {
+                        const haystack = [
+                            d.friendly_name,
+                            d.location,
+                            d.property_name,
+                            d.entity_id,
+                            d.device_type,
+                        ]
+                            .filter(Boolean)
+                            .join(" ")
+                            .toLowerCase();
+                        let score = 0;
+                        for (const t of tokens) if (haystack.includes(t)) score++;
+                        return { device: d, score };
+                    })
+                    .filter((x) => x.score > 0)
+                    .sort((a, b) => b.score - a.score);
+
+                if (scored.length === 0) {
+                    return {
+                        content: [{
+                            type: "text",
+                            text: `No encontré ningún dispositivo que coincida con "${query}". Probá con otra descripción o lista todos con ha_list_devices.`,
+                        }],
+                        isError: true,
+                    };
+                }
+
+                // Si el top tiene score igual al 2do (ambiguo) y hay más de 1, devolver opciones.
+                const top = scored[0];
+                if (
+                    scored.length > 1 &&
+                    scored[1].score === top.score &&
+                    scored.length <= 8
+                ) {
+                    candidates = scored.slice(0, 5).map((x) => x.device);
+                    return {
+                        content: [{
+                            type: "text",
+                            text:
+                                `Tu búsqueda "${query}" matchea varios dispositivos. Sé más específico o usá device_id:\n\n` +
+                                candidates
+                                    .map(
+                                        (d, i) =>
+                                            `${i + 1}. ${d.friendly_name} | ${d.property_name} | ${d.location} | estado: ${d.current_state}\n   id: ${d.id}`,
+                                    )
+                                    .join("\n"),
+                        }],
+                    };
+                }
+                targetId = top.device.id;
+                candidates = [top.device];
+            }
+
+            // Llamar al control
+            const body = { device_id: targetId, action };
+            if (brightness != null) body.brightness = brightness;
+            if (temperature != null) body.temperature = temperature;
+
+            const resp = await authedFetch(`/api/v1/ha/admin/control/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+            const data = await resp.json();
+            if (!resp.ok) {
+                return {
+                    content: [{
+                        type: "text",
+                        text: `Error controlando dispositivo: ${data.error || JSON.stringify(data)}`,
+                    }],
+                    isError: true,
+                };
+            }
+            const matched = candidates[0];
+            const summary = {
+                success: data.success,
+                accion: action,
+                dispositivo: matched
+                    ? `${matched.friendly_name} (${matched.property_name} / ${matched.location})`
+                    : data.message,
+                nuevo_estado: data.new_state?.state,
+                sensor: data.sensor_state || null,
             };
             return { content: [{ type: "text", text: JSON.stringify(summary, null, 2) }] };
         }
