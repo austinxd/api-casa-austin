@@ -11,7 +11,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
 
 from .models import Reservation
-from apps.property.models import Property, HomeAssistantDevice
+from apps.property.models import Property, HomeAssistantDevice, SecurityCamera
 from .homeassistant_service import HomeAssistantService
 
 
@@ -450,6 +450,35 @@ class AdminHADeviceListView(APIView):
                 "sensor_attributes": sensor_state_info.get('attributes', {}) if sensor_state_info else None,
             })
 
+        # Anexar cámaras de seguridad (no son de HA — son enlaces de stream)
+        # con el mismo shape para que MCP y otras tools las traten igual.
+        # device_id usa prefijo "camera-" para distinguirlas en el control.
+        cameras_qs = SecurityCamera.objects.filter(deleted=False, is_active=True).select_related('property')
+        if property_id:
+            cameras_qs = cameras_qs.filter(property_id=property_id)
+        if device_type and device_type != 'camera':
+            cameras_qs = cameras_qs.none()  # filtro por tipo no incluye cámaras
+
+        for cam in cameras_qs:
+            devices_data.append({
+                "id": f"camera-{cam.id}",
+                "entity_id": f"camera.{cam.property.slug.replace('-', '_')}_{str(cam.id)[:8]}",
+                "friendly_name": cam.name,
+                "location": cam.location or "Cámaras",
+                "device_type": "camera",
+                "icon": "📷",
+                "property_name": cam.property.name,
+                "guest_accessible": False,  # las cámaras son admin-only
+                "is_active": cam.is_active,
+                "display_order": cam.display_order,
+                "current_state": "available",
+                "requires_temperature_pool": False,
+                "status_sensor_entity_id": None,
+                "sensor_state": None,
+                "sensor_attributes": None,
+                "stream_url": cam.stream_url,
+            })
+
         payload = {
             "count": len(devices_data),
             "has_active_reservation": has_active_reservation,
@@ -503,13 +532,36 @@ class AdminHADeviceControlView(APIView):
                 {"error": "device_id y action son requeridos"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
+        # Cámaras de seguridad: device_id viene con prefijo "camera-<uuid>".
+        # No tienen turn_on/off — la acción "view" devuelve el stream_url.
+        if isinstance(device_id, str) and device_id.startswith("camera-"):
+            camera_pk = device_id[len("camera-"):]
+            try:
+                camera = SecurityCamera.objects.select_related('property').get(
+                    id=camera_pk, deleted=False, is_active=True,
+                )
+            except SecurityCamera.DoesNotExist:
+                return Response(
+                    {"error": "Cámara no encontrada o inactiva"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            return Response({
+                "success": True,
+                "type": "camera",
+                "message": f"Stream de {camera.name} ({camera.property.name})",
+                "device_id": device_id,
+                "friendly_name": camera.name,
+                "property_name": camera.property.name,
+                "stream_url": camera.stream_url,
+            })
+
         if action not in ['turn_on', 'turn_off', 'toggle']:
             return Response(
                 {"error": "action debe ser: turn_on, turn_off o toggle"},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         try:
             device = HomeAssistantDevice.objects.get(id=device_id, deleted=False)
         except HomeAssistantDevice.DoesNotExist:

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Property, ProfitPropertyAirBnb, PropertyPhoto, ReferralDiscountByLevel, HomeAssistantDevice
+from .models import Property, ProfitPropertyAirBnb, PropertyPhoto, ReferralDiscountByLevel, HomeAssistantDevice, SecurityCamera
 from .pricing_models import (
     ExchangeRate,
     PropertyPricing,
@@ -77,6 +77,20 @@ class HomeAssistantDeviceInline(admin.StackedInline):
         return HomeAssistantDevice.objects.filter(deleted=False)
 
 
+# Inline para cámaras de seguridad (no son de Home Assistant — solo un link de stream)
+class SecurityCameraInline(admin.TabularInline):
+    model = SecurityCamera
+    extra = 0
+    fields = ('name', 'stream_url', 'location', 'display_order', 'is_active')
+    ordering = ['display_order', 'name']
+    verbose_name = "Cámara de seguridad"
+    verbose_name_plural = "📷 Cámaras de seguridad (streaming)"
+    classes = ['collapse']
+
+    def get_queryset(self, request):
+        return SecurityCamera.objects.filter(deleted=False)
+
+
 
 
 
@@ -130,7 +144,7 @@ class PropertyAdmin(admin.ModelAdmin):
     list_filter = ("dormitorios", "banos", "deleted")
     search_fields = ("name", "titulo", "location", "slug")
     prepopulated_fields = {"slug": ("name",)}
-    inlines = [PropertyPhotoInline, SpecialDatePricingInline, HomeAssistantDeviceInline]
+    inlines = [PropertyPhotoInline, SpecialDatePricingInline, HomeAssistantDeviceInline, SecurityCameraInline]
     fieldsets = (
         ("Información Básica", {
             "fields": ("name", "titulo", "slug", "descripcion", "location", "background_color")
@@ -859,5 +873,18 @@ admin.site.register(ExchangeRate, ExchangeRateAdmin)
 # SpecialDatePricing usa @admin.register decorator
 admin.site.register(AdditionalService, AdditionalServiceAdmin)
 admin.site.register(CancellationPolicy, CancellationPolicyAdmin)
+
+
+@admin.register(SecurityCamera)
+class SecurityCameraAdmin(admin.ModelAdmin):
+    list_display = ('name', 'property', 'stream_url', 'is_active', 'display_order')
+    list_filter = ('property', 'is_active')
+    search_fields = ('name', 'stream_url', 'property__name')
+    list_editable = ('is_active', 'display_order')
+    autocomplete_fields = ('property',)
+    ordering = ('property', 'display_order', 'name')
+
+    def get_queryset(self, request):
+        return SecurityCamera.all_objects.filter(deleted=False) if hasattr(SecurityCamera, 'all_objects') else SecurityCamera.objects.filter(deleted=False)
 
 # SpecialDatePricing ya no se registra aquí - se maneja solo a través de inlines

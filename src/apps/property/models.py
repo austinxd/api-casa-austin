@@ -385,3 +385,50 @@ class HomeAssistantDevice(BaseModel):
             self.DeviceType.SENSOR: "📡",
         }
         return icon_map.get(self.device_type, "🔧")
+
+
+class SecurityCamera(BaseModel):
+    """Cámaras de seguridad por propiedad.
+
+    NO son dispositivos de Home Assistant — solo guardamos el enlace de
+    streaming. Se exponen en el mismo endpoint admin de devices de HA
+    (con device_type='camera') para que tools como el MCP las listen
+    junto con los demás dispositivos. El "control" de una cámara
+    devuelve el stream_url para reproducir.
+    """
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name='security_cameras',
+        help_text="Propiedad a la que pertenece la cámara"
+    )
+    name = models.CharField(
+        max_length=100,
+        help_text="Nombre amigable (ej: 'Frente', 'Piscina', 'Garaje')"
+    )
+    stream_url = models.URLField(
+        max_length=500,
+        help_text="URL completa del stream (ej: https://pushvideo.casaaustin.pe/stream.html?src=cam8)"
+    )
+    location = models.CharField(
+        max_length=100,
+        default="Cámaras",
+        blank=True,
+        help_text="Agrupación visual (default: 'Cámaras')"
+    )
+    display_order = models.IntegerField(
+        default=0,
+        help_text="Orden de visualización"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="¿La cámara está disponible?"
+    )
+
+    class Meta:
+        ordering = ['property', 'display_order', 'name']
+        verbose_name = "Cámara de seguridad"
+        verbose_name_plural = "Cámaras de seguridad"
+
+    def __str__(self):
+        return f"{self.property.name} - 📷 {self.name}"

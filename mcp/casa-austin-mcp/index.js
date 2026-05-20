@@ -432,8 +432,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
                     },
                     action: {
                         type: "string",
-                        enum: ["turn_on", "turn_off", "toggle"],
-                        description: "Acción: turn_on (prender), turn_off (apagar), toggle (cambiar estado).",
+                        enum: ["turn_on", "turn_off", "toggle", "view"],
+                        description: "Acción: turn_on (prender), turn_off (apagar), toggle (cambiar estado), view (cámaras — devuelve stream_url para reproducir).",
                     },
                     brightness: {
                         type: "number",
@@ -868,6 +868,21 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
                     isError: true,
                 };
             }
+            // Cámaras: el backend devuelve type='camera' + stream_url. NO
+            // invalidamos cache (no hubo cambio de estado en HA) y respondemos
+            // con el link bien formateado para que Claude lo presente clickeable.
+            if (data.type === "camera" && data.stream_url) {
+                return {
+                    content: [{
+                        type: "text",
+                        text:
+                            `📷 ${data.friendly_name} — ${data.property_name}\n` +
+                            `Stream: ${data.stream_url}\n\n` +
+                            `Abrí el link en el navegador para ver el feed en vivo.`,
+                    }],
+                };
+            }
+
             // Invalidar cache local: el estado del device cambió, el próximo
             // list_devices debe ir al server (que también acaba de invalidar
             // su cache interno).
