@@ -15,11 +15,11 @@ from apps.property.models import Property, HomeAssistantDevice, SecurityCamera
 from .homeassistant_service import HomeAssistantService
 
 
-# TTL del cache de estados HA. 8s es suficiente para amortizar polling de
-# los admins (cada uno polea cada 20s) y a la vez se recupera rápido tras
-# un comando: el TTL expira antes que el siguiente fast-poll (cliente
-# polea cada 2s × 30s post-tap).
-_HA_DEVICES_CACHE_TTL = 8
+# TTL del cache de estados HA. 30s. El cache se INVALIDA explícitamente
+# después de cada control (turn_on/off/toggle), así que TTL más largo no
+# afecta la frescura post-acción — solo evita martillar HA cuando varios
+# admins/MCP están consultando en paralelo.
+_HA_DEVICES_CACHE_TTL = 30
 
 
 def _ha_devices_cache_key(property_id, device_type):
@@ -413,24 +413,28 @@ class AdminHADeviceListView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+        # OPTIMIZACIÓN: en vez de hacer N requests a HA (una por device),
+        # traemos TODOS los estados de una vez con /api/states. HA retorna
+        # ~800 entidades en ~1.5s. Antes: N×150ms = 6-8s para 40-50 devices.
+        # Indexamos por entity_id y leemos del dict en memoria.
+        all_states_by_id = {}
+        try:
+            all_states = ha_service.get_all_states()
+            all_states_by_id = {s.get('entity_id'): s for s in all_states if isinstance(s, dict)}
+        except Exception:
+            all_states_by_id = {}
+
         devices_data = []
 
         for device in queryset:
-            try:
-                state_info = ha_service.get_entity_state(device.entity_id)
-                current_state = state_info.get('state', 'unknown')
-            except Exception:
-                current_state = 'unavailable'
+            state_info = all_states_by_id.get(device.entity_id)
+            current_state = state_info.get('state', 'unknown') if state_info else 'unavailable'
 
-            # Obtener estado del sensor asociado si existe
             sensor_state = None
             sensor_state_info = None
             if device.status_sensor_entity_id:
-                try:
-                    sensor_state_info = ha_service.get_entity_state(device.status_sensor_entity_id)
-                    sensor_state = sensor_state_info.get('state', 'unknown')
-                except Exception:
-                    sensor_state = 'unavailable'
+                sensor_state_info = all_states_by_id.get(device.status_sensor_entity_id)
+                sensor_state = sensor_state_info.get('state', 'unknown') if sensor_state_info else 'unavailable'
 
             devices_data.append({
                 "id": str(device.id),
