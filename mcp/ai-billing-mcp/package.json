@@ -1,0 +1,16 @@
+{
+  "name": "ai-billing-mcp",
+  "version": "0.1.0",
+  "description": "MCP server para consultar uso y costos de las APIs de Anthropic y OpenAI desde Claude Desktop.",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "ai-billing-mcp": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  }
+}
