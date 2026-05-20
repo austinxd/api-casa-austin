@@ -31,6 +31,11 @@ import {
 const API_BASE = process.env.CASA_AUSTIN_API_BASE || "https://api.casaaustin.pe";
 const ADMIN_USERNAME = process.env.CASA_AUSTIN_ADMIN_USERNAME || "";
 const ADMIN_PASSWORD = process.env.CASA_AUSTIN_ADMIN_PASSWORD || "";
+// Header secreto para bypassear rate limit de Cloudflare. Si está
+// configurado, se manda en TODOS los fetch. La regla de Cloudflare
+// debe estar configurada en WAF → Custom Rules para hacer Skip cuando
+// se detecta este header.
+const CF_BYPASS = process.env.CASA_AUSTIN_CF_BYPASS || "";
 
 // ─── Auth state (en memoria; el proceso vive lo que dure Claude Desktop) ───
 let tokenAccess = null;
@@ -46,8 +51,12 @@ const HA_DEVICES_TIMEOUT_MS = 35_000; // HA en frío puede tardar ~30s
 async function fetchWithTimeout(url, opts = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
+    // Inyectamos el header de bypass de Cloudflare en TODOS los fetches.
+    // Si CF_BYPASS no está configurado, no se manda (no afecta).
+    const headers = { ...(opts.headers || {}) };
+    if (CF_BYPASS) headers["X-CF-Bypass"] = CF_BYPASS;
     try {
-        return await fetch(url, { ...opts, signal: controller.signal });
+        return await fetch(url, { ...opts, headers, signal: controller.signal });
     } catch (err) {
         if (err.name === "AbortError") {
             throw new Error(
