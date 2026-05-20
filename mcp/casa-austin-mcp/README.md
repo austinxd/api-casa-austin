@@ -56,6 +56,17 @@ MCP server local para Claude Desktop. Expone consultas de:
 
 Si una búsqueda es ambigua (matchea varios dispositivos con mismo score), el MCP devuelve la lista para que aclares con `device_id` o seas más específico.
 
+## ⚡ Performance
+
+El endpoint `/ha/admin/devices/` en frío tarda ~12s (Home Assistant remoto). Optimizaciones del MCP:
+
+- **Pre-warm al startup**: si hay credenciales, el MCP hace login + fetch de devices al arrancar (en background, sin bloquear). Tu primer comando responde en ~300ms en vez de 12s.
+- **Cache local 30s**: lista de devices se cachea localmente. Comandos consecutivos en menos de 30s son instantáneos.
+- **Invalidación al controlar**: después de cualquier `ha_control_device`, se invalida el cache para que el próximo list traiga el estado fresco.
+- **Cache de properties 5min**: la lista de las 4 casas se cachea casi indefinidamente.
+
+Si percibís lentitud después del startup, espera 10-15 segundos y reintenta — está terminando de pre-cargar.
+
 ## Setup
 
 ```bash

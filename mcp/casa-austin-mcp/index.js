@@ -36,6 +36,73 @@ const ADMIN_PASSWORD = process.env.CASA_AUSTIN_ADMIN_PASSWORD || "";
 let tokenAccess = null;
 let tokenRefresh = null;
 
+// ─── Caches locales del MCP ───
+// El endpoint /ha/admin/devices/ tarda ~12s en frío (Home Assistant remoto
+// responde lento). El backend tiene cache de 8s. Agregamos cache local de
+// 30s para amortizar más todavía y absorber comandos rápidos consecutivos.
+const HA_DEVICES_TTL_MS = 30_000;
+const PROPERTIES_TTL_MS = 5 * 60_000; // properties cambian raro
+let haDevicesCache = { data: null, expiresAt: 0, inflight: null };
+let propertiesCache = { data: null, expiresAt: 0, inflight: null };
+
+function _now() { return Date.now(); }
+
+async function getHaDevicesCached(forceRefresh = false) {
+    if (!forceRefresh && haDevicesCache.data && haDevicesCache.expiresAt > _now()) {
+        return haDevicesCache.data;
+    }
+    // Si hay un fetch en curso, esperamos al mismo (evita stampede)
+    if (haDevicesCache.inflight) return haDevicesCache.inflight;
+    haDevicesCache.inflight = (async () => {
+        try {
+            const data = await authedJson(`/api/v1/ha/admin/devices/`);
+            haDevicesCache.data = data;
+            haDevicesCache.expiresAt = _now() + HA_DEVICES_TTL_MS;
+            return data;
+        } finally {
+            haDevicesCache.inflight = null;
+        }
+    })();
+    return haDevicesCache.inflight;
+}
+
+function invalidateHaDevicesCache() {
+    haDevicesCache.data = null;
+    haDevicesCache.expiresAt = 0;
+}
+
+async function getPropertiesCached() {
+    if (propertiesCache.data && propertiesCache.expiresAt > _now()) {
+        return propertiesCache.data;
+    }
+    if (propertiesCache.inflight) return propertiesCache.inflight;
+    propertiesCache.inflight = (async () => {
+        try {
+            const resp = await fetch(`${API_BASE}/api/v1/property/`, {
+                headers: { Accept: "application/json" },
+            });
+            if (!resp.ok) throw new Error(`Properties HTTP ${resp.status}`);
+            const data = await resp.json();
+            const items = data.results || data || [];
+            propertiesCache.data = Array.isArray(items) ? items : [];
+            propertiesCache.expiresAt = _now() + PROPERTIES_TTL_MS;
+            return propertiesCache.data;
+        } finally {
+            propertiesCache.inflight = null;
+        }
+    })();
+    return propertiesCache.inflight;
+}
+
+/** Normaliza para fuzzy match: lowercase + sin tildes. */
+function _norm(s) {
+    return (s || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .trim();
+}
+
 async function loginFresh() {
     if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
         throw new Error(
@@ -611,32 +678,32 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 
         if (name === "ha_list_devices") {
             const { property, device_type } = args || {};
-            const params = new URLSearchParams();
-            // Resolver property a property_id si vino como nombre/slug
+            // Usar caché local (TTL 30s). El endpoint en frío tarda ~12s.
+            const data = await getHaDevicesCached();
+            let devices = data.devices || [];
+
+            // Filtrar localmente (no necesitamos ir al server otra vez)
             if (property) {
-                const props = await fetch(`${API_BASE}/api/v1/property/`, {
-                    headers: { Accept: "application/json" },
-                }).then((r) => r.json());
-                const items = props.results || props || [];
-                const q = property.toLowerCase().trim();
-                const match = items.find(
-                    (p) =>
-                        (p.slug || "").toLowerCase() === q ||
-                        (p.name || "").toLowerCase() === q ||
-                        (p.name || "").toLowerCase().includes(q) ||
-                        (p.slug || "").toLowerCase().includes(q),
-                );
-                if (match) params.append("property_id", match.id);
+                const q = _norm(property);
+                devices = devices.filter((d) => {
+                    const name = _norm(d.property_name);
+                    return name === q || name.includes(q) || q.includes(name);
+                });
             }
-            if (device_type) params.append("device_type", device_type);
-            const data = await authedJson(
-                `/api/v1/ha/admin/devices/${params.toString() ? "?" + params : ""}`,
-            );
+            if (device_type) {
+                const dt = device_type.toLowerCase();
+                devices = devices.filter((d) => (d.device_type || "").toLowerCase() === dt);
+            }
+
             const summary = {
-                total: data.count,
+                total: devices.length,
                 has_active_reservation: data.has_active_reservation,
                 temperature_pool_active: data.temperature_pool_active,
-                devices: (data.devices || []).map((d) => ({
+                cache_age_seconds: Math.max(
+                    0,
+                    Math.round((HA_DEVICES_TTL_MS - (haDevicesCache.expiresAt - _now())) / 1000),
+                ),
+                devices: devices.map((d) => ({
                     id: d.id,
                     nombre: d.friendly_name,
                     casa: d.property_name,
@@ -656,28 +723,33 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
             let targetId = device_id;
             let candidates = [];
 
-            // Si no vino UUID, buscar por query fuzzy en la lista completa.
+            // Si no vino UUID, buscar por query fuzzy en la lista CACHEADA.
             if (!targetId) {
                 if (!query) throw new Error("Pasá query o device_id.");
-                const list = await authedJson(`/api/v1/ha/admin/devices/`);
+                const list = await getHaDevicesCached();
                 const all = list.devices || [];
-                const q = query.toLowerCase();
-                const tokens = q.split(/\s+/).filter(Boolean);
-                // Score: cuantos tokens matchean en friendly+location+property
+                const tokens = _norm(query).split(/\s+/).filter((t) => t.length > 0);
+
+                // Scoring mejorado:
+                //  - +3 si token aparece exacto como palabra en friendly_name
+                //  - +2 si aparece como substring en friendly_name o location
+                //  - +1 si aparece en property_name o entity_id
+                //  - bonus si el conjunto matchea la ubicación completa
                 const scored = all
                     .map((d) => {
-                        const haystack = [
-                            d.friendly_name,
-                            d.location,
-                            d.property_name,
-                            d.entity_id,
-                            d.device_type,
-                        ]
-                            .filter(Boolean)
-                            .join(" ")
-                            .toLowerCase();
+                        const fn = _norm(d.friendly_name);
+                        const loc = _norm(d.location);
+                        const prop = _norm(d.property_name);
+                        const ent = _norm(d.entity_id);
+                        const fnWords = new Set(fn.split(/\s+/));
                         let score = 0;
-                        for (const t of tokens) if (haystack.includes(t)) score++;
+                        for (const t of tokens) {
+                            if (fnWords.has(t)) score += 3;
+                            else if (fn.includes(t)) score += 2;
+                            else if (loc.includes(t)) score += 2;
+                            else if (prop.includes(t)) score += 1;
+                            else if (ent.includes(t)) score += 1;
+                        }
                         return { device: d, score };
                     })
                     .filter((x) => x.score > 0)
@@ -693,19 +765,20 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
                     };
                 }
 
-                // Si el top tiene score igual al 2do (ambiguo) y hay más de 1, devolver opciones.
+                // Solo es ambiguo si el top score se repite en 2+ candidatos.
+                // Si el top está claramente por delante (diferencia ≥ 2), va directo.
                 const top = scored[0];
-                if (
-                    scored.length > 1 &&
-                    scored[1].score === top.score &&
-                    scored.length <= 8
-                ) {
-                    candidates = scored.slice(0, 5).map((x) => x.device);
+                const sameScoreCount = scored.filter((x) => x.score === top.score).length;
+                if (sameScoreCount >= 2 && top.score - (scored[sameScoreCount]?.score || 0) <= 1) {
+                    candidates = scored
+                        .filter((x) => x.score === top.score)
+                        .slice(0, 5)
+                        .map((x) => x.device);
                     return {
                         content: [{
                             type: "text",
                             text:
-                                `Tu búsqueda "${query}" matchea varios dispositivos. Sé más específico o usá device_id:\n\n` +
+                                `Tu búsqueda "${query}" matchea varios dispositivos con la misma relevancia. Sé más específico o pasá el device_id exacto:\n\n` +
                                 candidates
                                     .map(
                                         (d, i) =>
@@ -739,6 +812,11 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
                     isError: true,
                 };
             }
+            // Invalidar cache local: el estado del device cambió, el próximo
+            // list_devices debe ir al server (que también acaba de invalidar
+            // su cache interno).
+            invalidateHaDevicesCache();
+
             const matched = candidates[0];
             const summary = {
                 success: data.success,
@@ -805,3 +883,24 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
+
+// ─── Pre-warm en background ───
+// Si tenemos credenciales, hacemos login + fetch de devices al iniciar.
+// Cuando el usuario haga su primera llamada a HA, ya está caliente y
+// responde en ~300ms en vez de 12s. Esto se ejecuta sin bloquear el
+// MCP transport — si falla, no rompe nada (cada tool reintenta).
+if (ADMIN_USERNAME && ADMIN_PASSWORD) {
+    (async () => {
+        try {
+            await loginFresh();
+            // Pre-cargar properties y devices en paralelo
+            await Promise.all([
+                getPropertiesCached().catch(() => {}),
+                getHaDevicesCached().catch(() => {}),
+            ]);
+        } catch {
+            // El warmup es best-effort; si falla, las tools harán su propio
+            // login en la primera llamada real.
+        }
+    })();
+}
