@@ -37,6 +37,7 @@ class PropertyListSerializer(serializers.ModelSerializer):
             "slug",
             "location",
             "capacity_max",
+            "capacity_sleep",
             "dormitorios",
             "banos",
             "hora_ingreso",

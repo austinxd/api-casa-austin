@@ -150,7 +150,7 @@ class PropertyAdmin(admin.ModelAdmin):
             "fields": ("name", "titulo", "slug", "descripcion", "location", "background_color")
         }),
         ("Detalles de Alojamiento", {
-            "fields": ("dormitorios", "banos", "detalle_dormitorios", "capacity_max", "caracteristicas")
+            "fields": ("dormitorios", "banos", "detalle_dormitorios", "capacity_max", "capacity_sleep", "caracteristicas")
         }),
         ("Horarios y Precios", {
             "fields": ("hora_ingreso", "hora_salida", "precio_extra_persona", "precio_desde")

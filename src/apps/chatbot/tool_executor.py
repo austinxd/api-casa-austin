@@ -1316,14 +1316,19 @@ class ToolExecutor:
             if prop.descripcion:
                 info += f"{prop.descripcion[:200]}\n\n"
 
-            # Capacidades
+            # Capacidades — distinguimos dormir vs evento para no generar
+            # falsas expectativas (la queja P0 del análisis de funnel).
             parts = []
             if prop.dormitorios:
                 parts.append(f"{prop.dormitorios} dormitorios")
             if prop.banos:
                 parts.append(f"{prop.banos} baños")
-            if prop.capacity_max:
-                parts.append(f"hasta {prop.capacity_max} personas")
+            sleep_cap = getattr(prop, 'capacity_sleep', None) or prop.capacity_max
+            event_cap = prop.capacity_max
+            if sleep_cap and event_cap and sleep_cap != event_cap:
+                parts.append(f"{sleep_cap} para dormir · hasta {event_cap} para evento")
+            elif sleep_cap:
+                parts.append(f"hasta {sleep_cap} personas")
             if parts:
                 info += ' | '.join(parts) + '\n'
 

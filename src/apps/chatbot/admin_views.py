@@ -606,9 +606,15 @@ class ChatAnalysisView(APIView):
             ci = prop.hora_ingreso.strftime('%-I:%M %p') if prop.hora_ingreso else '?'
             co = prop.hora_salida.strftime('%-I:%M %p') if prop.hora_salida else '?'
             chars = ', '.join(prop.caracteristicas[:8]) if prop.caracteristicas else 'N/A'
+            sleep_cap = getattr(prop, 'capacity_sleep', None)
+            event_cap = prop.capacity_max
+            if sleep_cap and event_cap and sleep_cap != event_cap:
+                cap_line = f"- Capacidad para dormir: {sleep_cap} | Capacidad para evento: {event_cap}"
+            else:
+                cap_line = f"- Capacidad máxima: {event_cap or '?'} personas"
             lines.append(
                 f"### {prop.name}\n"
-                f"- Capacidad máxima: {prop.capacity_max or '?'} personas\n"
+                f"{cap_line}\n"
                 f"- Dormitorios: {prop.dormitorios or '?'} | Baños: {prop.banos or '?'}\n"
                 f"- Check-in: {ci} | Check-out: {co}\n"
                 f"- Precio extra/persona: ${prop.precio_extra_persona or '?'}\n"

@@ -13,7 +13,14 @@ class Property(BaseModel):
     name = models.CharField(max_length=150, null=False, blank=False)
     location = models.CharField(max_length=250, null=True, blank=True)
     airbnb_url = models.URLField(null=True, blank=True)
-    capacity_max = models.IntegerField(null=True, blank=True)
+    capacity_max = models.IntegerField(
+        null=True, blank=True,
+        help_text="Capacidad TOTAL para eventos/fiestas (gente entrando, no necesariamente durmiendo).",
+    )
+    capacity_sleep = models.IntegerField(
+        null=True, blank=True,
+        help_text="Cantidad real de personas que pueden DORMIR (camas/colchones disponibles). El chatbot usa este número cuando el cliente pregunta sobre alojamiento, y capacity_max cuando pregunta sobre eventos.",
+    )
     background_color = models.CharField(max_length=255, null=False, blank=False, default="#fff")
     on_temperature_pool_url = models.URLField(null=True, blank=True)
     off_temperature_pool_url = models.URLField(null=True, blank=True)
