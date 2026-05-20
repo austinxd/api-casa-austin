@@ -51,24 +51,38 @@ async function fetchWithTimeout(url, opts = {}, timeoutMs = DEFAULT_TIMEOUT_MS) 
     }
 }
 
-/** YYYY-MM-DD → ISO 8601 UTC (00:00) */
+/** YYYY-MM-DD → ISO 8601 UTC (00:00 del mismo día) */
 function dateToIsoStart(d) {
     if (!d) return null;
     if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return `${d}T00:00:00Z`;
     return d; // ya está en ISO
 }
 
-/** YYYY-MM-DD → ISO 8601 UTC (23:59:59) */
+/** YYYY-MM-DD → ISO 8601 UTC del DÍA SIGUIENTE a las 00:00.
+ *  Las APIs de billing (Anthropic + OpenAI) tratan el rango como
+ *  [starting_at, ending_at) exclusivo. Para incluir el día d completo
+ *  hay que mandar ending_at = d+1 a las 00:00 UTC. Si mandás 23:59:59
+ *  del mismo día y start=00:00 del mismo día, da error
+ *  "ending date must be after starting date" porque comparten bucket.
+ */
 function dateToIsoEnd(d) {
     if (!d) return null;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return `${d}T23:59:59Z`;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+        const dt = new Date(`${d}T00:00:00Z`);
+        dt.setUTCDate(dt.getUTCDate() + 1);
+        return dt.toISOString().replace(".000", "");
+    }
     return d;
 }
 
-/** YYYY-MM-DD → unix timestamp (segundos) */
+/** YYYY-MM-DD → unix timestamp (segundos).
+ *  Con endOfDay=true devuelve el unix del día SIGUIENTE a las 00:00,
+ *  por el mismo motivo que dateToIsoEnd: ranges exclusivos.
+ */
 function dateToUnix(d, endOfDay = false) {
     if (!d) return null;
-    const dt = new Date(endOfDay ? `${d}T23:59:59Z` : `${d}T00:00:00Z`);
+    const dt = new Date(`${d}T00:00:00Z`);
+    if (endOfDay) dt.setUTCDate(dt.getUTCDate() + 1);
     return Math.floor(dt.getTime() / 1000);
 }
 
@@ -132,11 +146,32 @@ async function anthropicUsage({ start, end, bucket_width = "1d" }) {
 }
 
 async function anthropicCost({ start, end, bucket_width = "1d" }) {
+    // Anthropic NO procesa el día en curso — solo buckets completos cerrados.
+    // Si end (date string YYYY-MM-DD) es hoy o futuro, recortamos a ayer
+    // automáticamente para no recibir HTTP 400. El llamador puede saber esto
+    // mirando el campo `note` que agregamos al summary.
+    const today = todayUtc();
+    let effectiveEnd = end;
+    let trimmed = false;
+    if (end >= today) {
+        const d = new Date(`${today}T00:00:00Z`);
+        d.setUTCDate(d.getUTCDate() - 1);
+        effectiveEnd = d.toISOString().slice(0, 10);
+        trimmed = true;
+    }
+    // Si después de recortar start > end, no hay rango válido
+    if (start > effectiveEnd) {
+        return { data: [], _note: "Anthropic no procesa el día en curso. No hay buckets completos en este rango." };
+    }
     const params = {
         starting_at: dateToIsoStart(start),
-        ending_at: dateToIsoEnd(end),
+        ending_at: dateToIsoEnd(effectiveEnd),
     };
-    return anthropicGet("/v1/organizations/cost_report", params);
+    const result = await anthropicGet("/v1/organizations/cost_report", params);
+    if (trimmed) {
+        result._note = `Anthropic no procesa hoy. Datos hasta ${effectiveEnd} (ayer).`;
+    }
+    return result;
 }
 
 function summarizeAnthropicCost(data) {
@@ -381,6 +416,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 total_usd: summary.total_usd,
                 desglose_diario: summary.by_bucket,
             };
+            if (raw._note) result.nota = raw._note;
             return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
         }
 
@@ -452,6 +488,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 total_usd_hoy: total,
                 anthropic_usd: aCost,
                 openai_usd: oCost,
+                nota_anthropic: (
+                    aRaw.status === "fulfilled" && aRaw.value._note
+                        ? aRaw.value._note
+                        : "Anthropic procesa con 24h de delay — el dato de hoy probablemente esté en 0 hasta mañana."
+                ),
                 resumen: `Hoy: ${fmtUsd(total)} (Anthropic ${fmtUsd(aCost)} | OpenAI ${fmtUsd(oCost)})`,
                 errores: {
                     anthropic: aRaw.status === "rejected" ? String(aRaw.reason).slice(0, 200) : null,
