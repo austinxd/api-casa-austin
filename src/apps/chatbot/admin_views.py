@@ -1823,4 +1823,160 @@ class ChannelAttributionView(APIView):
             'retention_by_touch': retention,
         })
 
+
+class ChannelAttributionDetailsView(APIView):
+    """GET /chatbot/channel-attribution/details/?type=acquisition&channel=meta_ad&days=30
+
+    Drill-down del dashboard de atribución. Devuelve la LISTA de clientes
+    o reservas que componen una celda del breakdown.
+
+    Params:
+      - type: 'acquisition' | 'retention' (requerido)
+      - channel: código del canal (ej: 'meta_ad', 'organic_wa'). Si se
+        omite, devuelve todos los canales mezclados.
+      - days: ventana (1-365, default 30)
+      - limit: máx items (default 100, máx 500)
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.clients.models import Clients
+        from apps.reservation.models import Reservation
+
+        detail_type = request.query_params.get('type', 'acquisition')
+        if detail_type not in ('acquisition', 'retention'):
+            return Response(
+                {'error': "type debe ser 'acquisition' o 'retention'"},
+                status=400,
+            )
+
+        channel = request.query_params.get('channel')
+
+        try:
+            days = int(request.query_params.get('days', 30))
+        except (TypeError, ValueError):
+            days = 30
+        days = max(1, min(365, days))
+
+        try:
+            limit = int(request.query_params.get('limit', 100))
+        except (TypeError, ValueError):
+            limit = 100
+        limit = max(1, min(500, limit))
+
+        now = timezone.now()
+        period_start = now - timedelta(days=days)
+
+        if detail_type == 'acquisition':
+            # Lista de clientes adquiridos en el período por este canal
+            qs = (
+                Clients.objects
+                .filter(
+                    deleted=False,
+                    acquired_at__gte=period_start,
+                    acquired_at__lt=now,
+                )
+                .select_related()
+                .order_by('-acquired_at')
+            )
+            if channel:
+                qs = qs.filter(acquisition_channel=channel)
+
+            total = qs.count()
+            qs = qs[:limit]
+
+            # Para cada cliente, traemos también su primera reserva approved
+            items = []
+            for c in qs:
+                first_res = Reservation.objects.filter(
+                    client_id=c.id, deleted=False, status='approved',
+                ).select_related('property').order_by('created').first()
+
+                items.append({
+                    'client_id': str(c.id),
+                    'client_name': f"{c.first_name or ''} {c.last_name or ''}".strip(),
+                    'document_type': c.document_type,
+                    'document_number': c.number_doc,
+                    'phone': c.tel_number,
+                    'email': c.email,
+                    'acquired_at': c.acquired_at.isoformat() if c.acquired_at else None,
+                    'acquisition_channel': c.acquisition_channel,
+                    'acquisition_data': c.acquisition_data,
+                    'first_reservation': {
+                        'id': str(first_res.id),
+                        'check_in': first_res.check_in_date.isoformat() if first_res.check_in_date else None,
+                        'check_out': first_res.check_out_date.isoformat() if first_res.check_out_date else None,
+                        'property_name': first_res.property.name if first_res.property else None,
+                        'price_usd': float(first_res.price_usd or 0),
+                        'price_sol': float(first_res.price_sol or 0),
+                        'guests': first_res.guests,
+                    } if first_res else None,
+                })
+
+            return Response({
+                'type': 'acquisition',
+                'channel': channel,
+                'period_days': days,
+                'total': total,
+                'shown': len(items),
+                'items': items,
+            })
+
+        # type == 'retention'
+        from django.db.models import Exists, OuterRef
+        prior_approved = Reservation.objects.filter(
+            client_id=OuterRef('client_id'),
+            deleted=False,
+            status='approved',
+            created__lt=period_start,
+        )
+        qs = (
+            Reservation.objects
+            .annotate(_has_prior=Exists(prior_approved))
+            .filter(
+                deleted=False,
+                created__gte=period_start,
+                created__lt=now,
+                _has_prior=True,
+            )
+            .select_related('client', 'property')
+            .order_by('-created')
+        )
+        if channel:
+            qs = qs.filter(touch_channel=channel)
+
+        total = qs.count()
+        qs = qs[:limit]
+
+        items = []
+        for r in qs:
+            items.append({
+                'reservation_id': str(r.id),
+                'client_id': str(r.client_id) if r.client_id else None,
+                'client_name': (
+                    f"{r.client.first_name or ''} {r.client.last_name or ''}".strip()
+                    if r.client else None
+                ),
+                'phone': r.client.tel_number if r.client else None,
+                'check_in': r.check_in_date.isoformat() if r.check_in_date else None,
+                'check_out': r.check_out_date.isoformat() if r.check_out_date else None,
+                'property_name': r.property.name if r.property else None,
+                'price_usd': float(r.price_usd or 0),
+                'price_sol': float(r.price_sol or 0),
+                'guests': r.guests,
+                'status': r.status,
+                'created_at': r.created.isoformat() if r.created else None,
+                'touch_channel': r.touch_channel,
+                'touch_data': r.touch_data,
+            })
+
+        return Response({
+            'type': 'retention',
+            'channel': channel,
+            'period_days': days,
+            'total': total,
+            'shown': len(items),
+            'items': items,
+        })
+
         return qs.order_by('-created')

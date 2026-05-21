@@ -32,6 +32,7 @@ from .admin_views import (
     OpportunitiesView,
     MagicLinkListView,
     ChannelAttributionView,
+    ChannelAttributionDetailsView,
 )
 
 urlpatterns = [
@@ -57,6 +58,7 @@ urlpatterns = [
     path('analytics/details/', ChatAnalyticsDetailView.as_view(), name='chatbot-analytics-details'),
     path('funnel/', ChatFunnelView.as_view(), name='chatbot-funnel'),
     path('channel-attribution/', ChannelAttributionView.as_view(), name='chatbot-channel-attribution'),
+    path('channel-attribution/details/', ChannelAttributionDetailsView.as_view(), name='chatbot-channel-attribution-details'),
     path('analysis/', ChatAnalysisView.as_view(), name='chatbot-analysis'),
     path('analysis/checkpoint/', ChatAnalysisCheckpointView.as_view(), name='chatbot-analysis-checkpoint'),
     path('followups/', FollowupOpportunitiesView.as_view(), name='chatbot-followups'),
