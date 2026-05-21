@@ -650,7 +650,13 @@ class ToolExecutor:
 
     def _check_availability(self, check_in, check_out, guests=1, property_name=None):
         """Consulta disponibilidad usando PricingCalculationService.
-        Si no hay disponibilidad, busca automáticamente fechas alternativas."""
+        Si no hay disponibilidad, busca automáticamente fechas alternativas.
+
+        DEDUPE: si los últimos 30min ya cotizamos exactamente las mismas
+        fechas+personas+propiedad para esta sesión, no re-cotizamos para
+        evitar mensajes duplicados en la conversación. Recordamos al AI
+        que ya tiene la cotización en el contexto.
+        """
         from apps.property.pricing_service import PricingCalculationService
         from apps.property.models import Property
         from datetime import timedelta
@@ -660,6 +666,48 @@ class ToolExecutor:
             check_out_date = datetime.strptime(check_out, '%Y-%m-%d').date()
         except ValueError:
             return "Las fechas proporcionadas no son válidas. Pide al cliente que confirme las fechas en formato día/mes."
+
+        # ── DEDUPE — evitar re-cotizar lo mismo en pocos minutos ──
+        # Buscamos mensajes outbound_ai recientes con intent_detected que
+        # incluya availability_check, y verificamos si tienen las mismas
+        # fechas + personas + propiedad. Si sí → instruir al AI que reuse
+        # la cotización anterior en vez de duplicarla.
+        try:
+            from .models import ChatMessage
+            from django.utils import timezone
+            cutoff = timezone.now() - timedelta(minutes=30)
+            recent = ChatMessage.objects.filter(
+                session=self.session,
+                direction=ChatMessage.DirectionChoices.OUTBOUND_AI,
+                created__gte=cutoff,
+                intent_detected__icontains='availability_check',
+                deleted=False,
+            ).order_by('-created')[:3]
+            # Buscar coincidencia exacta de fechas + guests + propiedad
+            ci_token = check_in_date.strftime('%d')
+            co_token = check_out_date.strftime('%d')
+            guests_token = f"PARA {guests} PERSONA" if int(guests) > 1 else "PARA 1 PERSONA"
+            prop_token = (property_name or '').upper() if property_name else None
+            for m in recent:
+                content_upper = (m.content or '').upper()
+                # Match débil pero efectivo: el bloque de cotización
+                # contiene ambas fechas formateadas + número de personas
+                if (ci_token in content_upper and co_token in content_upper
+                        and guests_token in content_upper):
+                    if prop_token and prop_token not in content_upper:
+                        continue
+                    return (
+                        "[INSTRUCCIÓN IA — DEDUPE — NO COTIZAR DE NUEVO]\n"
+                        f"Ya cotizaste {check_in} → {check_out} para {guests} personas "
+                        "hace menos de 30 minutos. NO repitas la cotización completa. "
+                        "Si el cliente sigue dudando, recuérdale que el link de pago "
+                        "ya se le envió y ofrécele resolver dudas específicas "
+                        "(precio, casas, descuentos, etc.). No vuelvas a llamar "
+                        "check_availability con los mismos parámetros."
+                    )
+        except Exception as e:
+            logger.warning(f"Dedupe check_availability falló: {e}")
+            # Sigue con la cotización normal si el dedupe falla por algún motivo
 
         today = date.today()
         if check_in_date < today:
@@ -982,12 +1030,12 @@ class ToolExecutor:
                 lines.append("")
                 lines.extend(capacity_warnings)
 
-            # === Bloque compacto: visitantes (≥8) + descuento + link ===
+            # === Bloque compacto: descuento + link ===
             # Regla: NO hay línea en blanco entre descuento y link.
+            # IMPORTANTE: la advertencia "⚠️ Visitantes cuentan adicionales"
+            # se mueve DESPUÉS del link para no asustar al cliente ANTES de
+            # cerrar (análisis P1.2 del 21/05/2026).
             lines.append("")  # blank entre casa list y este bloque
-
-            if guests_int_for_header >= 8:
-                lines.append("⚠️ Visitantes cuentan como adicionales.")
 
             if discount_seen:
                 lines.append(_format_discount_line(discount_raw_desc, discount_pct))
@@ -1097,10 +1145,23 @@ class ToolExecutor:
                     guests=guests_for_url,
                 ))
 
+            # Advertencia DESPUÉS del link (movida del bloque anterior).
+            # Si el grupo es grande, recordamos que visitantes adicionales
+            # también cuentan — pero AHORA después de que el cliente ya
+            # tiene su link de pago en la mano.
+            if guests_int_for_header >= 8:
+                lines.append("")
+                lines.append("ℹ️ Recuerda: cualquier visitante adicional cuenta como persona.")
+
+            # CLOSING OPTIONS — el link YA está arriba. NUNCA preguntar
+            # "¿te paso el link?" — está pegado en el mensaje. Las opciones
+            # de cierre ahora ASUMEN que el link está y mueven al siguiente
+            # paso (resolver dudas / acompañar el pago).
             closing_options = [
-                "¿Quieres que te ayude a separarla con el 50%?",
-                "¿Te ayudo a separarla con el 50%?",
-                "¿La separamos con el 50%?",
+                "Si tienes alguna duda, dime y te ayudo 😊",
+                "Cuando entres al link te guía paso a paso. ¿Necesitas algo más?",
+                "El link te toma 2 minutos. ¿Te ayudo con alguna duda mientras?",
+                "Avísame cuando hayas separado y te confirmo todo 🙌",
             ]
 
             # Blank entre URL y CTA (el AI adjunta el CTA al copiar verbatim).
@@ -1114,9 +1175,13 @@ class ToolExecutor:
                 "\nPROHIBIDO: agregar 'PRECIO PARA X PERSONAS', emoji 🏠 antes del nombre, ni emoji 💰 en el precio."
                 "\nPROHIBIDO: agregar precio por persona (↳ S/X por persona). Solo aparece si el cliente lo pide."
                 "\nPROHIBIDO: convertir 'ó' en 'o' ni cambiar el separador entre USD y soles."
-                "\n\n⛔ NO uses cierres antiguos como '¿Te animas a reservar? 😊' ni "
-                "'¿Quieres que te pase el link para separar la fecha con el 50%?'."
-                "\n\n✅ DESPUÉS del bloque de cotización, agrega UNA pregunta corta de cierre. "
+                "\n\n⛔ PROHIBIDO ABSOLUTO — el link YA está incluido en el bloque "
+                "de arriba con el copy '💳 Reservar y pagar ahora'. NUNCA preguntes "
+                "'¿te paso el link?' / '¿quieres el link?' / '¿te envío el link?' — "
+                "el cliente YA LO TIENE EN ESTE MISMO MENSAJE. Solo lo confundirías."
+                "\n⛔ Tampoco uses '¿Te animas a reservar?'. El link es el call-to-action."
+                "\n\n✅ DESPUÉS del bloque de cotización (link incluido), agrega UNA "
+                "frase corta que ASUMA que el cliente va a usar el link. "
                 "Usa una de estas variantes (alterna entre conversaciones):\n"
                 + "\n".join(f"- {c}" for c in closing_options)
             )

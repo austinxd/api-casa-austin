@@ -2407,44 +2407,37 @@ class AIOrchestrator:
         text = '\n'.join(cleaned).strip()
         text = re.sub(r'\n{3,}', '\n\n', text)
 
-        # Variaciones de fallback cuando casi todo el mensaje eran precios
+        # Variaciones de fallback. NO mencionamos "desde $X" porque el
+        # análisis de conversaciones mostró que decir un piso bajo
+        # (típicamente $55 para 2p) desincentiva — el cliente con 10+
+        # personas siente "bait and switch" cuando ve el precio real.
+        # Mejor: pedir datos directamente para dar el precio EXACTO.
         fallback_variations = [
             (
-                f"Nuestros precios arrancan desde ${min_price}/noche para 2 personas "
-                f"(toda la casa) y varían según la fecha, temporada y cantidad de personas 😊 "
-                f"¿Para qué fechas y cuántas personas necesitas? Te doy el precio exacto al instante 🏖️"
+                "Para darte el precio exacto necesito tus fechas y cantidad de personas. "
+                "Cada cotización es personalizada según el tamaño del grupo y la fecha 😊 "
+                "¿Para cuándo y cuántos serían?"
             ),
             (
-                f"Las tarifas van desde ${min_price} por noche para 2 personas y dependen "
-                f"de la fecha y el tamaño del grupo. Para darte el precio exacto, "
-                f"¿me confirmas tus fechas y cuántas personas serían? 😊"
+                "Cada estadía la cotizamos al instante con tus datos exactos. "
+                "¿Me confirmas las fechas y cuántas personas serían? 🏖️"
             ),
             (
-                f"¡Con gusto te cotizo! Los precios parten desde ${min_price}/noche "
-                f"y cambian según fecha, temporada y número de personas. "
-                f"¿Qué fechas tienes en mente y cuántos serían? 🏖️"
+                "¡Con gusto te cotizo! Para darte el precio exacto, ¿qué fechas "
+                "tienes en mente y cuántos serían en el grupo? 😊"
             ),
         ]
 
         if len(text.strip()) < 30:
             return random.choice(fallback_variations)
 
-        # Si el mensaje no pide fechas, agregar redirect con variación
+        # Si el mensaje no pide fechas, agregar redirect SIN mencionar
+        # "desde $X" (ver comentario arriba sobre bait-and-switch).
         if not any(w in text.lower() for w in ['fecha', 'cuándo', 'cuando', 'cuántas', 'cuantas']):
             redirect_variations = [
-                (
-                    f"\n\nLos precios van desde ${min_price}/noche y varían según fecha, "
-                    f"temporada y personas. ¿Me confirmas tus fechas y cuántas "
-                    f"personas serían? 😊"
-                ),
-                (
-                    f"\n\nPara darte el precio exacto necesito tus fechas y número de personas. "
-                    f"Las tarifas arrancan desde ${min_price}/noche 🏖️"
-                ),
-                (
-                    f"\n\nNuestras tarifas parten desde ${min_price}/noche. "
-                    f"¿Qué fechas y cuántas personas serían para cotizarte? 😊"
-                ),
+                "\n\n¿Me confirmas tus fechas y cuántas personas serían? Te paso el precio exacto al instante 😊",
+                "\n\nPara darte el precio exacto necesito tus fechas y número de personas 🏖️",
+                "\n\n¿Qué fechas y cuántas personas serían para armarte la cotización? 😊",
             ]
             text += random.choice(redirect_variations)
 
