@@ -72,6 +72,12 @@ class Command(BaseCommand):
         channel_counter = Counter()
         for res in rqs.select_related('chatbot_session', 'client').iterator():
             channel, data = infer_touch_channel(res)
+            # Backfill convention: lo que la inferencia marca como
+            # 'unknown' (no signals) lo guardamos como 'legacy_unknown'.
+            # Así desde el live, 'unknown' = bug o edge case a investigar,
+            # y 'legacy_unknown' = histórico sin captura — ignorable.
+            if channel == ChannelChoice.UNKNOWN:
+                channel = ChannelChoice.LEGACY_UNKNOWN
             channel_counter[channel] += 1
             if not dry_run:
                 res.touch_channel = channel
@@ -111,12 +117,20 @@ class Command(BaseCommand):
             data = first_approved.touch_data
             if not channel:
                 channel, data = infer_touch_channel(first_approved)
+                # Misma convención que Fase 1: unknown → legacy_unknown
+                # cuando es backfill (no live).
+                if channel == ChannelChoice.UNKNOWN:
+                    channel = ChannelChoice.LEGACY_UNKNOWN
                 if not dry_run:
                     first_approved.touch_channel = channel
                     first_approved.touch_data = data
                     first_approved.save(update_fields=[
                         'touch_channel', 'touch_data', 'updated',
                     ])
+            elif channel == ChannelChoice.UNKNOWN:
+                # Si la reserva ya tenía 'unknown' (raro — vino del live
+                # sin signals) lo dejamos así para no enmascarar bugs.
+                pass
 
             acq_counter[channel] += 1
             if not dry_run:
