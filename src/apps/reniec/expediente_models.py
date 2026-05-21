@@ -18,8 +18,6 @@ Política de cache:
 - Familiares: lazy-creación de DNICache con info mínima + lookup completo
   en background (no bloquea la respuesta del /full/<dni>/).
 """
-from datetime import timedelta
-
 from django.db import models
 from django.utils import timezone
 
@@ -376,28 +374,16 @@ class PersonPoliceRecord(BaseModel):
 
 class PersonExpedienteMeta(models.Model):
     """Tabla 1:1 con DNICache que guarda cuándo se consultó cada endpoint
-    de Leder por última vez. Sirve para decidir si refrescar o usar cache.
+    de Leder por última vez.
+
+    Política de cache: PERMANENTE. Una vez que se consulta un endpoint para
+    un DNI, los datos quedan cacheados indefinidamente. Solo se re-consulta
+    a Leder si:
+      1. Nunca se consultó (fetched_at IS NULL para ese campo).
+      2. El caller pasa force=True / force_refresh=True explícitamente.
 
     No hereda de BaseModel porque usa `dni` como PK (no necesita UUID extra).
-
-    TTLs default por endpoint (ver REFRESH_TTL_DAYS):
-        phones:    30 días
-        family:   365 días
-        salaries:  90 días
-        marriages: 180 días
-        addresses: 180 días
-        police:    90 días
     """
-
-    REFRESH_TTL_DAYS = {
-        'phones': 30,
-        'family_tree': 365,
-        'family_household': 365,
-        'salaries': 90,
-        'marriages': 180,
-        'addresses': 180,
-        'police': 90,
-    }
 
     dni = models.OneToOneField(
         'reniec.DNICache', to_field='dni', db_column='dni',
@@ -438,14 +424,14 @@ class PersonExpedienteMeta(models.Model):
         verbose_name_plural = '📋 Expedientes meta (TTLs)'
 
     def needs_refresh(self, field: str) -> bool:
-        """¿Se debe re-consultar este endpoint? True si nunca o si pasó el TTL."""
-        ttl_days = self.REFRESH_TTL_DAYS.get(field)
-        if ttl_days is None:
-            return True
+        """¿Se debe re-consultar este endpoint?
+
+        SOLO si NUNCA se consultó (fetched_at es NULL). No hay TTL automático
+        — el cache es permanente. Para forzar refresh, el caller debe pasar
+        force=True directamente (no se chequea acá).
+        """
         fetched_at = getattr(self, f'{field}_fetched_at', None)
-        if not fetched_at:
-            return True
-        return (timezone.now() - fetched_at) > timedelta(days=ttl_days)
+        return fetched_at is None
 
     def mark_fetched(self, field: str):
         """Marca que acabamos de refrescar este endpoint."""
