@@ -1153,15 +1153,14 @@ class ToolExecutor:
                 lines.append("")
                 lines.append("ℹ️ Recuerda: cualquier visitante adicional cuenta como persona.")
 
-            # CLOSING OPTIONS — el link YA está arriba. NUNCA preguntar
-            # "¿te paso el link?" — está pegado en el mensaje. Las opciones
-            # de cierre ahora ASUMEN que el link está y mueven al siguiente
-            # paso (resolver dudas / acompañar el pago).
+            # CLOSING OPTIONS — el link YA está arriba. NUNCA mencionar "el link"
+            # de nuevo (redundante). Las opciones de cierre ASUMEN que el cliente
+            # va a usarlo y solo se ofrecen para resolver dudas o acompañar.
             closing_options = [
-                "Si tienes alguna duda, dime y te ayudo 😊",
-                "Cuando entres al link te guía paso a paso. ¿Necesitas algo más?",
-                "El link te toma 2 minutos. ¿Te ayudo con alguna duda mientras?",
+                "¿Tienes alguna duda antes de separarla?",
                 "Avísame cuando hayas separado y te confirmo todo 🙌",
+                "Si te queda alguna consulta, dime y te ayudo 😊",
+                "Cualquier consulta antes de pagar, me dices.",
             ]
 
             # Blank entre URL y CTA (el AI adjunta el CTA al copiar verbatim).
