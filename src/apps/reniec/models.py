@@ -382,3 +382,14 @@ class RateLimitConfig(models.Model):
         # Cache por 60 segundos
         cache.set('reniec_rate_limit_config', config, 60)
         return config
+
+# Importa los modelos del expediente extendido (descubrimiento Django)
+from .expediente_models import (  # noqa: E402, F401
+    PersonPhone,
+    PersonFamilyRelation,
+    PersonSalaryRecord,
+    PersonMarriage,
+    PersonAddress,
+    PersonPoliceRecord,
+    PersonExpedienteMeta,
+)
