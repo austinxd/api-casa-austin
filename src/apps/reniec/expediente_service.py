@@ -473,6 +473,29 @@ class ExpedienteService:
                 continue
             tipificacion_raw = ' / '.join(general.get('tipificacion') or [])
             contenido = '\n'.join(general.get('contenido') or []) if isinstance(general.get('contenido'), list) else (general.get('contenido') or '')
+
+            # Determinar rol_dni: buscar el DNI consultado en personas[]
+            personas = c.get('personas') or []
+            rol_dni = 'DESCONOCIDO'
+            for persona in personas:
+                doc_text = persona.get('documento') or ''
+                # 'DOCUMENTO DE IDENTIDAD DNI : 45816846' o variantes
+                if dni in str(doc_text):
+                    situacion = (persona.get('situacion') or '').upper().strip()
+                    # Mapear a nuestros choices
+                    if situacion in ('DENUNCIANTE', 'DENUNCIADO', 'AGRAVIADO',
+                                      'TESTIGO', 'INVESTIGADO', 'IMPUTADO'):
+                        rol_dni = situacion
+                    elif situacion:
+                        rol_dni = 'OTRO'
+                    break
+            # Fallback: si no se encontró en personas[], usar general.tipo_denunciante
+            # (suele indicar el rol principal del caso)
+            if rol_dni == 'DESCONOCIDO':
+                tipo_d = (general.get('tipo_denunciante') or '').upper().strip()
+                if tipo_d in ('DENUNCIANTE', 'DENUNCIADO', 'AGRAVIADO'):
+                    rol_dni = tipo_d
+
             PersonPoliceRecord.objects.update_or_create(
                 dni=dni_obj,
                 nro_denuncia=str(nro)[:30],
@@ -486,6 +509,9 @@ class ExpedienteService:
                     'condicion': (general.get('condicion') or '')[:200],
                     'tipificacion_raw': tipificacion_raw,
                     'category': classify_tipificacion(tipificacion_raw),
+                    'rol_dni': rol_dni,
+                    'nombre_denunciante': (general.get('nombre_denunciante') or '')[:200],
+                    'personas_raw': personas,
                     'fecha_hecho': parse_datetime_leder(general.get('fecha_hora_hecho')),
                     'fecha_registro': parse_datetime_leder(general.get('fecha_hora_registro')),
                     'lugar_hecho': (general.get('lugar_hecho') or '')[:300],
@@ -511,6 +537,9 @@ class ExpedienteService:
             'by_category': by_cat,
             'records': [{
                 'nro_denuncia': r.nro_denuncia, 'category': r.category,
+                'rol_dni': r.rol_dni,
+                'nombre_denunciante': r.nombre_denunciante,
+                'personas': r.personas_raw,
                 'comisaria': r.comisaria, 'denuncia_type': r.denuncia_type,
                 'formalidad': r.formalidad, 'tipificacion': r.tipificacion_raw,
                 'fecha_hecho': r.fecha_hecho.isoformat() if r.fecha_hecho else None,

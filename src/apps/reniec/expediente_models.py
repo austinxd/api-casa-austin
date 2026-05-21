@@ -310,7 +310,23 @@ class PersonPoliceRecord(BaseModel):
     classify_tipificacion(). Permite agrupar/contar por tipo:
     ROBO / VIOLENCIA / PERDIDA / ACCIDENTE / FRAUDE / AMENAZAS / FAMILIAR /
     VEHICULAR / OTROS.
+
+    `rol_dni`: rol del DNI consultado en esta denuncia. CRÍTICO para no
+    confundir víctimas con acusados. Valores:
+        DENUNCIANTE | DENUNCIADO | AGRAVIADO | TESTIGO | INVESTIGADO |
+        IMPUTADO | OTRO | DESCONOCIDO
     """
+
+    class RolDni(models.TextChoices):
+        DENUNCIANTE = 'DENUNCIANTE', 'Denunciante (presentó la denuncia)'
+        DENUNCIADO = 'DENUNCIADO', 'Denunciado (acusado)'
+        AGRAVIADO = 'AGRAVIADO', 'Agraviado (víctima)'
+        TESTIGO = 'TESTIGO', 'Testigo'
+        INVESTIGADO = 'INVESTIGADO', 'Investigado'
+        IMPUTADO = 'IMPUTADO', 'Imputado'
+        OTRO = 'OTRO', 'Otro'
+        DESCONOCIDO = 'DESCONOCIDO', 'Desconocido'
+
     dni = models.ForeignKey(
         'reniec.DNICache', to_field='dni', db_column='dni',
         on_delete=models.CASCADE, related_name='police_records',
@@ -340,6 +356,21 @@ class PersonPoliceRecord(BaseModel):
     tipificacion_raw = models.TextField(
         blank=True,
         help_text="Tipificación textual cruda de Leder",
+    )
+
+    # CRÍTICO: rol del DNI consultado en esta denuncia
+    rol_dni = models.CharField(
+        max_length=20, choices=RolDni.choices, db_index=True,
+        default=RolDni.DESCONOCIDO,
+        help_text="Rol del DNI consultado: denunciante / denunciado / testigo / etc.",
+    )
+    nombre_denunciante = models.CharField(
+        max_length=200, blank=True,
+        help_text="Quién presentó la denuncia (puede no ser el DNI consultado)",
+    )
+    personas_raw = models.JSONField(
+        default=list, blank=True,
+        help_text="Array completo de personas involucradas con su situación (de Leder)",
     )
 
     fecha_hecho = models.DateTimeField(null=True, blank=True, db_index=True)
