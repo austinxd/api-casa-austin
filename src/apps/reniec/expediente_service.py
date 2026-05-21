@@ -381,8 +381,22 @@ class ExpedienteService:
     @classmethod
     def _serialize_relative(cls, r) -> Dict[str, Any]:
         """Serializa un PersonFamilyRelation con campos derivados (category,
-        line, gender_inferred, generation, canonical_label)."""
+        line, gender_inferred, generation, canonical_label).
+
+        Incluye la foto del familiar desde DNICache cuando esté disponible
+        (el lookup lazy puede estar pendiente en background — si no está
+        cacheada todavía, devuelve null y se completará la próxima vez).
+        """
         cls_data = classify_relation(r.relation_type)
+        # Foto del familiar — viene del lazy lookup que se dispara cuando
+        # se descubre el DNI por primera vez. Puede ser None si el lookup
+        # de Leder aún no completó.
+        photo_b64 = None
+        try:
+            if r.relative_dni and r.relative_dni.foto:
+                photo_b64 = r.relative_dni.foto
+        except Exception:
+            pass
         return {
             'dni': r.relative_dni_id,
             'name': r.cached_name,
@@ -391,6 +405,7 @@ class ExpedienteService:
             'birthday': r.cached_birthday.isoformat() if r.cached_birthday else None,
             'relation_type': r.relation_type,
             'verification': r.verification,
+            'photo_b64': photo_b64,
             # Campos derivados — listos para árbol genealógico
             'category': cls_data['category'],
             'line': cls_data['line'],
