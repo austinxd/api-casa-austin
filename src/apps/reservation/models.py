@@ -85,6 +85,17 @@ class Reservation(BaseModel):
     utm_campaign = models.CharField(max_length=255, null=True, blank=True)
     fbp = models.CharField(max_length=255, null=True, blank=True)
     fbc = models.CharField(max_length=255, blank=True, null=True)
+    # Atribución de canal (touch de ESTA reserva — puede repetirse o cambiar entre reservas)
+    touch_channel = models.CharField(
+        max_length=20, null=True, blank=True, db_index=True,
+        help_text="Canal del touchpoint inmediato antes de esta reserva. "
+                  "Choices en apps.core.channel_choices.ChannelChoice."
+    )
+    touch_data = models.JSONField(
+        null=True, blank=True,
+        help_text="Snapshot completo del touchpoint (utm_*, fbclid, gclid, "
+                  "referrer, ad_id, etc.) capturado al crear la reserva"
+    )
     points_redeemed = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 

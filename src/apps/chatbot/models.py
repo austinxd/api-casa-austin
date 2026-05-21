@@ -82,6 +82,19 @@ class ChatSession(BaseModel):
         help_text="Última vez que se envió notify_team para esta sesión"
     )
 
+    # Atribución de canal (Meta CTW, Google→WA bridge, etc.)
+    referral_source = models.JSONField(
+        null=True, blank=True,
+        help_text="Payload `referral` de Meta capturado en el primer mensaje "
+                  "cuando el cliente vino de un anuncio Click-to-WhatsApp. "
+                  "Incluye source_id (ad), source_url, headline, ctwa_clid, etc."
+    )
+    first_touch_channel = models.CharField(
+        max_length=20, null=True, blank=True, db_index=True,
+        help_text="Canal por el que llegó el cliente a esta sesión. "
+                  "Inferido al crearse: meta_ad, google, organic_wa, etc."
+    )
+
     class Meta:
         verbose_name = '💬 Sesión de Chat'
         verbose_name_plural = '💬 Sesiones de Chat'

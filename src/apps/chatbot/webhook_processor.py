@@ -105,6 +105,13 @@ class WebhookProcessor:
         profile_name = contact_map.get(wa_id)
         session = self._get_or_create_session(wa_id, 'whatsapp', profile_name)
 
+        # Captura de atribución Meta Click-to-WhatsApp:
+        # Si este mensaje viene de un anuncio CTW, Meta incluye un objeto
+        # `referral` con source_id (ad), ctwa_clid, headline, etc.
+        # Solo lo guardamos en sesiones nuevas (referral_source aún vacío)
+        # para preservar el first-touch original.
+        self._capture_referral_if_present(session, message.get('referral'))
+
         message_type_map = {
             'text': 'text', 'image': 'image', 'audio': 'audio',
             'document': 'document', 'location': 'location',
@@ -179,6 +186,10 @@ class WebhookProcessor:
 
         # Obtener o crear sesión
         session = self._get_or_create_session(sender_id, channel, profile_name)
+
+        # Captura de atribución Meta — Instagram/Messenger también soportan
+        # el campo `referral` para mensajes originados por anuncios.
+        self._capture_referral_if_present(session, message_data.get('referral'))
 
         # Determinar tipo de mensaje
         msg_type = 'text'
@@ -409,6 +420,44 @@ class WebhookProcessor:
             self._try_link_client(session)
 
         return session
+
+    def _capture_referral_if_present(self, session, referral):
+        """Guarda el payload `referral` de Meta en la sesión.
+
+        Meta envía este objeto cuando el mensaje viene de un anuncio
+        Click-to-WhatsApp (CTW) o un anuncio CTM (Click-to-Messenger).
+        Estructura típica:
+            {
+              "source_url": "https://fb.me/...",
+              "source_id": "23859...",       # Ad ID
+              "source_type": "ad",           # "ad" | "post"
+              "headline": "...",
+              "body": "...",
+              "media_type": "image",
+              "image_url": "...",
+              "ctwa_clid": "ARABA..."        # Click ID para match con Ads Manager
+            }
+
+        Solo lo guardamos si la sesión NO tiene referral_source aún —
+        así preservamos el first-touch original incluso si el cliente
+        vuelve a clickear el mismo (u otro) anuncio.
+        """
+        if not referral or not isinstance(referral, dict):
+            return
+        if session.referral_source:
+            return  # ya tenemos first-touch — no sobrescribir
+        try:
+            session.referral_source = referral
+            from apps.core.channel_choices import ChannelChoice
+            session.first_touch_channel = ChannelChoice.META_AD
+            session.save(update_fields=['referral_source', 'first_touch_channel'])
+            logger.info(
+                f"Atribución Meta CTW capturada — sesión {session.id}, "
+                f"ad_id={referral.get('source_id')}, "
+                f"ctwa_clid={referral.get('ctwa_clid')}"
+            )
+        except Exception as e:
+            logger.error(f"Error guardando referral en sesión {session.id}: {e}")
 
     def _update_session_on_message(self, session):
         """Actualiza contadores de sesión al recibir mensaje"""

@@ -343,6 +343,10 @@ class CreateReservationViaMagicLinkView(APIView):
                 payment_voucher_uploaded=False,
                 payment_confirmed=False,
             )
+            # Persistir atribución (utm_*, fbclid, gclid) que el frontend
+            # capturó al landear. Se usa en PR 2 para inferir touch_channel.
+            from apps.reservation.attribution_helpers import apply_attribution_to_reservation
+            apply_attribution_to_reservation(reservation, request.data.get('attribution_data'))
             # Consumir el magic link: bloquea creaciones futuras con el
             # mismo token. El cliente solo puede crear UNA reserva por link.
             magic_link_id = token.get('magic_link_id')
@@ -876,6 +880,10 @@ class CreateExpressReservationView(APIView):
                     payment_confirmed=False,
                     chatbot_session=magic.chat_session,
                 )
+                # Persistir atribución (utm_*, fbclid, gclid) que el frontend
+                # capturó al landear. Se usa en PR 2 para inferir touch_channel.
+                from apps.reservation.attribution_helpers import apply_attribution_to_reservation
+                apply_attribution_to_reservation(reservation, request.data.get('attribution_data'))
                 # Vincular el magic link al client (claims del JWT) y consumirlo.
                 if magic.client_id is None:
                     magic.client = client

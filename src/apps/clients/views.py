@@ -232,6 +232,12 @@ class ClientCreateReservationView(APIView):
                         payment_confirmed=False
                     )
 
+                    # Persistir atribución (utm_*, fbclid, gclid) que el
+                    # frontend capturó al landear. Se usa en PR 2 para
+                    # inferir touch_channel y setear acquisition_channel.
+                    from apps.reservation.attribution_helpers import apply_attribution_to_reservation
+                    apply_attribution_to_reservation(reservation, request.data.get('attribution_data'))
+
                     # Retornar la reserva creada
                     response_serializer = ReservationListSerializer(reservation)
 

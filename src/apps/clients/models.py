@@ -108,6 +108,23 @@ class Clients(BaseModel):
     referred_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, help_text="Cliente que refirió a este cliente")
     referral_code = models.CharField(max_length=8, unique=True, null=True, blank=True, help_text="Código de referido único y corto")
 
+    # Atribución de adquisición (set UNA SOLA VEZ en la primera reserva pagada)
+    acquisition_channel = models.CharField(
+        max_length=20, null=True, blank=True, db_index=True,
+        help_text="Canal que trajo a este cliente. Inmutable: se setea solo "
+                  "cuando hace su PRIMERA reserva pagada. Choices en "
+                  "apps.core.channel_choices.ChannelChoice."
+    )
+    acquisition_data = models.JSONField(
+        null=True, blank=True,
+        help_text="Snapshot completo del touchpoint que trajo al cliente "
+                  "(ad_id, utm_*, referrer, etc.)"
+    )
+    acquired_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Timestamp de la primera reserva pagada — marca cuándo se adquirió"
+    )
+
     class Meta:
         unique_together = ('document_type', 'number_doc')
     
