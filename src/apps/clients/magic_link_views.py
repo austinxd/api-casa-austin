@@ -152,6 +152,7 @@ class RedeemMagicLinkView(APIView):
             'client_token': jwt_token,
             'token_scope': 'magic',
             'client': {
+                'id': str(client.id),  # ← necesario para que /booking aplique descuentos
                 'first_name': client.first_name,
                 'last_name': client.last_name or '',
                 'full_name': (
