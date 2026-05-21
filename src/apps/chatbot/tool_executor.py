@@ -1145,13 +1145,15 @@ class ToolExecutor:
                     guests=guests_for_url,
                 ))
 
-            # Advertencia DESPUÉS del link (movida del bloque anterior).
-            # Si el grupo es grande, recordamos que visitantes adicionales
-            # también cuentan — pero AHORA después de que el cliente ya
-            # tiene su link de pago en la mano.
+            # Advertencia DESPUÉS del link (si grupo grande).
+            # Cuando HAY advertencia, el closing va PEGADO a ella sin blank
+            # extra (1 salto en vez de 2). Cuando NO hay advertencia, agregamos
+            # blank entre el link y el closing.
             if guests_int_for_header >= 8:
                 lines.append("")
                 lines.append("ℹ️ Recuerda: cualquier visitante adicional cuenta como persona.")
+            else:
+                lines.append("")  # blank entre link y closing
 
             # CLOSING OPTIONS — el link YA está arriba. NUNCA mencionar "el link"
             # de nuevo (redundante). Las opciones de cierre ASUMEN que el cliente
@@ -1163,8 +1165,9 @@ class ToolExecutor:
                 "Cualquier consulta antes de pagar, me dices.",
             ]
 
-            # Blank entre URL y CTA (el AI adjunta el CTA al copiar verbatim).
-            lines.append("")
+            # NOTA: el blank antes del CTA ya está manejado arriba (después
+            # del link o después de la advertencia ℹ️). NO agregamos otro acá
+            # para evitar doble salto en el mensaje final.
             ia_instruction = (
                 "[INSTRUCCIÓN IA — OBLIGATORIO — NO MOSTRAR AL CLIENTE]"
                 "\nTu respuesta DEBE ser EXACTAMENTE el texto de arriba copiado tal cual, carácter por carácter."
