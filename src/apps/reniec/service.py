@@ -74,7 +74,12 @@ class ReniecService:
 
         # Buscar en cache Django
         cached = DNICache.get_or_none(dni)
-        if cached:
+        # Si el cache está marcado como `lazy_pending`, significa que se
+        # creó como placeholder al descubrir el DNI desde el árbol
+        # genealógico de otro familiar pero NUNCA se completó con datos
+        # reales. Tratamos esos como "no encontrados" y vamos a Leder.
+        is_lazy_pending = bool(cached and (cached.source == 'lazy_pending' or not cached.nombres))
+        if cached and not is_lazy_pending:
             logger.info(f"DNI {dni} encontrado en cache Django")
             data = cls._format_response(cached, include_photo, include_full_data)
             data['source'] = 'cache'
@@ -92,6 +97,8 @@ class ReniecService:
                 response_time_ms=int((time.time() - start_time) * 1000)
             )
             return True, data
+        if is_lazy_pending:
+            logger.info(f"DNI {dni} tiene cache lazy_pending — refrescando desde Leder")
 
         # Buscar en base de datos externa (rutificador_bd) - cache legacy
         legacy_data = cls._query_legacy_database(dni)
