@@ -1145,16 +1145,6 @@ class ToolExecutor:
                     guests=guests_for_url,
                 ))
 
-            # Advertencia DESPUÉS del link (si grupo grande).
-            # Cuando HAY advertencia, el closing va PEGADO a ella sin blank
-            # extra (1 salto en vez de 2). Cuando NO hay advertencia, agregamos
-            # blank entre el link y el closing.
-            if guests_int_for_header >= 8:
-                lines.append("")
-                lines.append("ℹ️ Recuerda: cualquier visitante adicional cuenta como persona.")
-            else:
-                lines.append("")  # blank entre link y closing
-
             # CLOSING OPTIONS — el link YA está arriba. NUNCA mencionar "el link"
             # de nuevo (redundante). Las opciones de cierre ASUMEN que el cliente
             # va a usarlo y solo se ofrecen para resolver dudas o acompañar.
@@ -1164,28 +1154,34 @@ class ToolExecutor:
                 "Si te queda alguna consulta, dime y te ayudo 😊",
                 "Cualquier consulta antes de pagar, me dices.",
             ]
+            import random as _random
+            closing_picked = _random.choice(closing_options)
 
-            # NOTA: el blank antes del CTA ya está manejado arriba (después
-            # del link o después de la advertencia ℹ️). NO agregamos otro acá
-            # para evitar doble salto en el mensaje final.
+            # Layout final del bloque:
+            # - Si guests >= 8: blank · ℹ️ Recuerda... · closing  (closing PEGADO sin blank)
+            # - Si guests <  8: blank · closing                    (closing DESPUÉS del blank)
+            if guests_int_for_header >= 8:
+                lines.append("")
+                lines.append("ℹ️ Recuerda: cualquier visitante adicional cuenta como persona.")
+                lines.append(closing_picked)
+            else:
+                lines.append("")
+                lines.append(closing_picked)
+
             ia_instruction = (
                 "[INSTRUCCIÓN IA — OBLIGATORIO — NO MOSTRAR AL CLIENTE]"
                 "\nTu respuesta DEBE ser EXACTAMENTE el texto de arriba copiado tal cual, carácter por carácter."
                 "\nPROHIBIDO: resumir, parafrasear, cambiar formato, juntar líneas, agregar decimales."
+                "\nPROHIBIDO: agregar líneas en blanco que NO estén en el texto original."
+                "\nPROHIBIDO: agregar NINGUNA frase adicional después del cierre (la pregunta ya está incluida)."
                 "\nPROHIBIDO: escribir algo como 'el precio sería S/X' en prosa. La cotización YA está formateada."
                 "\nPROHIBIDO: incluir CUALQUIER texto que empiece con [INSTRUCCIÓN en tu respuesta."
                 "\nPROHIBIDO: agregar 'PRECIO PARA X PERSONAS', emoji 🏠 antes del nombre, ni emoji 💰 en el precio."
                 "\nPROHIBIDO: agregar precio por persona (↳ S/X por persona). Solo aparece si el cliente lo pide."
                 "\nPROHIBIDO: convertir 'ó' en 'o' ni cambiar el separador entre USD y soles."
-                "\n\n⛔ PROHIBIDO ABSOLUTO — el link YA está incluido en el bloque "
-                "de arriba con el copy '💳 Reservar y pagar ahora'. NUNCA preguntes "
-                "'¿te paso el link?' / '¿quieres el link?' / '¿te envío el link?' — "
-                "el cliente YA LO TIENE EN ESTE MISMO MENSAJE. Solo lo confundirías."
-                "\n⛔ Tampoco uses '¿Te animas a reservar?'. El link es el call-to-action."
-                "\n\n✅ DESPUÉS del bloque de cotización (link incluido), agrega UNA "
-                "frase corta que ASUMA que el cliente va a usar el link. "
-                "Usa una de estas variantes (alterna entre conversaciones):\n"
-                + "\n".join(f"- {c}" for c in closing_options)
+                "\nPROHIBIDO ABSOLUTO: el link YA está incluido en el bloque. NUNCA preguntes "
+                "'¿te paso el link?' / '¿quieres el link?' / '¿te envío el link?'. El cliente "
+                "YA LO TIENE EN ESTE MENSAJE. La pregunta de cierre YA está incluida arriba."
             )
 
             if guests_int_for_header <= 1:
