@@ -426,7 +426,10 @@ class ExpedienteService:
         return cls._family_tree_from_cache(dni_obj, source='familia_1')
 
     @classmethod
-    def _family_tree_from_cache(cls, dni_obj, source) -> Dict[str, Any]:
+    def _family_tree_from_cache(cls, dni_obj, source, include_photo=False) -> Dict[str, Any]:
+        """Lista plana de familiares del DNI. Por default sin fotos para
+        mantener respuestas livianas (la lista textual no necesita imágenes).
+        """
         rows = PersonFamilyRelation.objects.filter(
             dni=dni_obj, source=source, deleted=False,
         ).select_related('relative_dni').order_by('relation_type')
@@ -434,29 +437,20 @@ class ExpedienteService:
             'dni': dni_obj.dni,
             'source': source,
             'count': rows.count(),
-            'relatives': [cls._serialize_relative(r) for r in rows],
+            'relatives': [cls._serialize_relative(r, include_photo=include_photo) for r in rows],
         }
 
     @classmethod
-    def _serialize_relative(cls, r) -> Dict[str, Any]:
+    def _serialize_relative(cls, r, include_photo=False) -> Dict[str, Any]:
         """Serializa un PersonFamilyRelation con campos derivados (category,
         line, gender_inferred, generation, canonical_label).
 
-        Incluye la foto del familiar desde DNICache cuando esté disponible
-        (el lookup lazy puede estar pendiente en background — si no está
-        cacheada todavía, devuelve null y se completará la próxima vez).
+        include_photo: si True, agrega photo_b64 de DNICache. Por default
+        False para mantener responses livianos. El árbol visual sí lo
+        necesita; las vistas de lista detallada no.
         """
         cls_data = classify_relation(r.relation_type)
-        # Foto del familiar — viene del lazy lookup que se dispara cuando
-        # se descubre el DNI por primera vez. Puede ser None si el lookup
-        # de Leder aún no completó.
-        photo_b64 = None
-        try:
-            if r.relative_dni and r.relative_dni.foto:
-                photo_b64 = r.relative_dni.foto
-        except Exception:
-            pass
-        return {
+        out = {
             'dni': r.relative_dni_id,
             'name': r.cached_name,
             'gender': r.cached_gender or cls_data['gender_inferred'],
@@ -464,14 +458,18 @@ class ExpedienteService:
             'birthday': r.cached_birthday.isoformat() if r.cached_birthday else None,
             'relation_type': r.relation_type,
             'verification': r.verification,
-            'photo_b64': photo_b64,
-            # Campos derivados — listos para árbol genealógico
             'category': cls_data['category'],
             'line': cls_data['line'],
             'gender_inferred': cls_data['gender_inferred'],
             'generation': cls_data['generation'],
             'canonical_label': cls_data['canonical_label'],
         }
+        if include_photo:
+            try:
+                out['photo_b64'] = r.relative_dni.foto if (r.relative_dni and r.relative_dni.foto) else None
+            except Exception:
+                out['photo_b64'] = None
+        return out
 
     @classmethod
     def build_family_tree(cls, dni: str) -> Dict[str, Any]:
@@ -489,12 +487,13 @@ class ExpedienteService:
         if not dni_obj:
             return {'error': 'dni_not_in_cache', 'dni': dni}
 
-        # Helper: traer todos los familiares directos del DNI con clasificación
+        # Helper: traer todos los familiares directos del DNI con clasificación.
+        # include_photo=True porque ESTE es el árbol visual que muestra fotos.
         def _direct_relatives(d):
             rows = PersonFamilyRelation.objects.filter(
                 dni__dni=d, deleted=False, source='arbol_genealogico',
             ).select_related('relative_dni')
-            return [cls._serialize_relative(r) for r in rows]
+            return [cls._serialize_relative(r, include_photo=True) for r in rows]
 
         # Función para construir un nodo "persona ancestro" con sus padres + hermanos
         def _ancestor_node(person_relative):
