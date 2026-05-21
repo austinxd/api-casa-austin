@@ -104,6 +104,22 @@ class AdminFamilyView(APIView):
         })
 
 
+class AdminFamilyTreeView(APIView):
+    """GET /api/v1/reniec/<dni>/family-tree/ — estructura jerárquica del árbol.
+
+    Devuelve root + father (con sus parents/siblings) + mother + spouse +
+    siblings + children + abuelos/tíos por línea. Lista para renderizar
+    con react-d3-tree u otra librería de árboles.
+    """
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, dni: str):
+        err = _validate_dni(dni)
+        if err:
+            return err
+        return Response(ExpedienteService.build_family_tree(dni))
+
+
 class AdminSalariesView(APIView):
     """GET /api/v1/reniec/<dni>/salaries/ — sueldos históricos."""
     permission_classes = [IsAdminUser]

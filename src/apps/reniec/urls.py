@@ -4,6 +4,7 @@ from .expediente_views import (
     AdminFullExpedienteView,
     AdminPhoneByNumberView,
     AdminFamilyView,
+    AdminFamilyTreeView,
     AdminSalariesView,
     AdminMarriagesView,
     AdminAddressesView,
@@ -34,6 +35,7 @@ urlpatterns = [
 
     # Sub-endpoints individuales (acepta ?refresh=1 para forzar Leder)
     path('<str:dni>/family/', AdminFamilyView.as_view(), name='expediente-family'),
+    path('<str:dni>/family-tree/', AdminFamilyTreeView.as_view(), name='expediente-family-tree'),
     path('<str:dni>/salaries/', AdminSalariesView.as_view(), name='expediente-salaries'),
     path('<str:dni>/marriages/', AdminMarriagesView.as_view(), name='expediente-marriages'),
     path('<str:dni>/addresses/', AdminAddressesView.as_view(), name='expediente-addresses'),

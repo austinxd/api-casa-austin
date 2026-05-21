@@ -172,3 +172,131 @@ def classify_tipificacion(tipificacion_text: str) -> str:
 POLICE_CATEGORY_CHOICES = [(c[0], c[0].title()) for c in _POLICE_CATEGORIES] + [
     (POLICE_CATEGORY_OTROS, 'Otros'),
 ]
+
+
+# ─── Clasificación de relaciones familiares ──────────────────────────────
+
+def _strip_accents(s: str) -> str:
+    import unicodedata
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', s)
+        if unicodedata.category(c) != 'Mn'
+    )
+
+
+def classify_relation(raw_type: str) -> dict:
+    """Clasifica un relation_type crudo de Leder en campos derivados.
+
+    Input: "TIO PATERNO", "ABUELA MATERNA", "PADRE", "HERMANO", etc.
+
+    Output dict con:
+        category: PADRE | MADRE | HERMANO | HIJO | CONYUGE
+                | ABUELO | ABUELA | TIO | TIA
+                | PRIMO | PRIMA | SOBRINO | SOBRINA
+                | OTRO
+        line: PATERNAL | MATERNAL | DIRECT | NONE
+        gender_inferred: M | F | U
+        generation: -2 (abuelos) | -1 (padres/tíos) | 0 (mismo: hermanos, cónyuge, primos)
+                  | +1 (hijos, sobrinos) | +2 (nietos)
+        canonical_label: forma humana en español
+    """
+    if not raw_type:
+        return {
+            'category': 'OTRO', 'line': 'NONE',
+            'gender_inferred': 'U', 'generation': 0,
+            'canonical_label': '',
+        }
+    t = _strip_accents(raw_type).upper().strip()
+
+    # ── Padres / madres ──
+    if t == 'PADRE':
+        return {'category': 'PADRE', 'line': 'PATERNAL', 'gender_inferred': 'M',
+                'generation': -1, 'canonical_label': 'Padre'}
+    if t == 'MADRE':
+        return {'category': 'MADRE', 'line': 'MATERNAL', 'gender_inferred': 'F',
+                'generation': -1, 'canonical_label': 'Madre'}
+
+    # ── Cónyuge ──
+    if t in ('CONYUGE', 'ESPOSO', 'ESPOSA', 'PAREJA'):
+        gender = 'M' if t == 'ESPOSO' else 'F' if t == 'ESPOSA' else 'U'
+        return {'category': 'CONYUGE', 'line': 'NONE', 'gender_inferred': gender,
+                'generation': 0, 'canonical_label': 'Cónyuge'}
+
+    # ── Hermanos ──
+    if t.startswith('HERMAN'):
+        gender = 'F' if t.startswith('HERMANA') else 'M' if t.startswith('HERMANO') else 'U'
+        return {'category': 'HERMANO', 'line': 'DIRECT', 'gender_inferred': gender,
+                'generation': 0, 'canonical_label': 'Hermano/a'}
+
+    # ── Hijos ──
+    if t.startswith('HIJO') or t.startswith('HIJA'):
+        gender = 'F' if t.startswith('HIJA') else 'M'
+        return {'category': 'HIJO', 'line': 'DIRECT', 'gender_inferred': gender,
+                'generation': 1, 'canonical_label': 'Hijo/a'}
+
+    # ── Nietos ──
+    if t.startswith('NIET'):
+        gender = 'F' if t.startswith('NIETA') else 'M' if t.startswith('NIETO') else 'U'
+        return {'category': 'NIETO', 'line': 'DIRECT', 'gender_inferred': gender,
+                'generation': 2, 'canonical_label': 'Nieto/a'}
+
+    # ── Abuelos ──
+    if 'ABUEL' in t:
+        is_female = 'ABUELA' in t
+        is_maternal = 'MATERN' in t
+        if is_female:
+            label = 'Abuela ' + ('materna' if is_maternal else 'paterna')
+        else:
+            label = 'Abuelo ' + ('materno' if is_maternal else 'paterno')
+        return {
+            'category': 'ABUELA' if is_female else 'ABUELO',
+            'line': 'MATERNAL' if is_maternal else 'PATERNAL',
+            'gender_inferred': 'F' if is_female else 'M',
+            'generation': -2,
+            'canonical_label': label,
+        }
+
+    # ── Tíos / tías ──
+    if t.startswith('TIA') or t.startswith('TIO'):
+        is_female = t.startswith('TIA')
+        is_maternal = 'MATERN' in t
+        if is_female:
+            label = 'Tía ' + ('materna' if is_maternal else 'paterna')
+        else:
+            label = 'Tío ' + ('materno' if is_maternal else 'paterno')
+        return {
+            'category': 'TIA' if is_female else 'TIO',
+            'line': 'MATERNAL' if is_maternal else 'PATERNAL',
+            'gender_inferred': 'F' if is_female else 'M',
+            'generation': -1,
+            'canonical_label': label,
+        }
+
+    # ── Primos ──
+    if t.startswith('PRIM'):
+        is_female = t.startswith('PRIMA')
+        return {
+            'category': 'PRIMA' if is_female else 'PRIMO',
+            'line': 'NONE',
+            'gender_inferred': 'F' if is_female else 'M',
+            'generation': 0,
+            'canonical_label': 'Prima' if is_female else 'Primo',
+        }
+
+    # ── Sobrinos ──
+    if t.startswith('SOBRIN'):
+        is_female = t.startswith('SOBRINA')
+        return {
+            'category': 'SOBRINA' if is_female else 'SOBRINO',
+            'line': 'DIRECT',
+            'gender_inferred': 'F' if is_female else 'M',
+            'generation': 1,
+            'canonical_label': 'Sobrina' if is_female else 'Sobrino',
+        }
+
+    # ── Otros (cuñados, suegros, políticos, etc.) ──
+    return {
+        'category': 'OTRO', 'line': 'NONE',
+        'gender_inferred': 'U', 'generation': 0,
+        'canonical_label': raw_type.title(),
+    }

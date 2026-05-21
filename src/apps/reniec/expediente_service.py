@@ -41,6 +41,7 @@ from .expediente_models import (
     PersonSalaryRecord,
 )
 from .expediente_helpers import (
+    classify_relation,
     classify_tipificacion,
     normalize_address,
     normalize_phone,
@@ -374,14 +375,149 @@ class ExpedienteService:
             'dni': dni_obj.dni,
             'source': source,
             'count': rows.count(),
-            'relatives': [{
-                'dni': r.relative_dni_id,
-                'name': r.cached_name,
-                'gender': r.cached_gender,
-                'age': r.cached_age_at_query,
-                'relation_type': r.relation_type,
-                'verification': r.verification,
-            } for r in rows],
+            'relatives': [cls._serialize_relative(r) for r in rows],
+        }
+
+    @classmethod
+    def _serialize_relative(cls, r) -> Dict[str, Any]:
+        """Serializa un PersonFamilyRelation con campos derivados (category,
+        line, gender_inferred, generation, canonical_label)."""
+        cls_data = classify_relation(r.relation_type)
+        return {
+            'dni': r.relative_dni_id,
+            'name': r.cached_name,
+            'gender': r.cached_gender or cls_data['gender_inferred'],
+            'age': r.cached_age_at_query,
+            'birthday': r.cached_birthday.isoformat() if r.cached_birthday else None,
+            'relation_type': r.relation_type,
+            'verification': r.verification,
+            # Campos derivados — listos para árbol genealógico
+            'category': cls_data['category'],
+            'line': cls_data['line'],
+            'gender_inferred': cls_data['gender_inferred'],
+            'generation': cls_data['generation'],
+            'canonical_label': cls_data['canonical_label'],
+        }
+
+    @classmethod
+    def build_family_tree(cls, dni: str) -> Dict[str, Any]:
+        """Construye la estructura JERÁRQUICA del árbol genealógico.
+
+        Devuelve un dict con root + padres (cada uno con sus padres y
+        hermanos) + cónyuge + hermanos + hijos. Lista para renderizar
+        con react-d3-tree u otra librería de árboles.
+
+        Si el DNI no se consultó antes, devuelve estructura mínima con
+        solo root. El árbol se va completando a medida que se consultan
+        más DNIs (los familiares se cachean lazy automáticamente).
+        """
+        dni_obj = DNICache.get_or_none(dni)
+        if not dni_obj:
+            return {'error': 'dni_not_in_cache', 'dni': dni}
+
+        # Helper: traer todos los familiares directos del DNI con clasificación
+        def _direct_relatives(d):
+            rows = PersonFamilyRelation.objects.filter(
+                dni__dni=d, deleted=False, source='arbol_genealogico',
+            ).select_related('relative_dni')
+            return [cls._serialize_relative(r) for r in rows]
+
+        # Función para construir un nodo "persona ancestro" con sus padres + hermanos
+        def _ancestor_node(person_relative):
+            """Toma un familiar (ej: el padre del root) y le agrega su propia
+            línea: padres (abuelos del root) + hermanos (tíos del root)."""
+            relative_dni = person_relative['dni']
+            sub = _direct_relatives(relative_dni)
+            # De los familiares del padre, sus padres son los abuelos del root
+            # y sus hermanos son los tíos del root
+            ancestor_parents = [
+                rel for rel in sub
+                if rel['category'] in ('PADRE', 'MADRE')
+            ]
+            ancestor_siblings = [
+                rel for rel in sub
+                if rel['category'] == 'HERMANO'
+            ]
+            return {
+                **person_relative,
+                'parents': ancestor_parents,   # abuelos del root (vía esta línea)
+                'siblings': ancestor_siblings, # tíos del root (vía esta línea)
+            }
+
+        relatives_root = _direct_relatives(dni)
+
+        father = next((r for r in relatives_root if r['category'] == 'PADRE'), None)
+        mother = next((r for r in relatives_root if r['category'] == 'MADRE'), None)
+        spouse = next((r for r in relatives_root if r['category'] == 'CONYUGE'), None)
+        siblings = [r for r in relatives_root if r['category'] == 'HERMANO']
+        children = [r for r in relatives_root if r['category'] == 'HIJO']
+
+        # Fallback: si árbol-genealógico no devolvió abuelos directamente pero
+        # SÍ los devolvió como TIO/TIA con línea, podemos sacarlos desde acá
+        paternal_grandparents = [
+            r for r in relatives_root
+            if r['category'] in ('ABUELO', 'ABUELA') and r['line'] == 'PATERNAL'
+        ]
+        maternal_grandparents = [
+            r for r in relatives_root
+            if r['category'] in ('ABUELO', 'ABUELA') and r['line'] == 'MATERNAL'
+        ]
+        paternal_uncles = [
+            r for r in relatives_root
+            if r['category'] in ('TIO', 'TIA') and r['line'] == 'PATERNAL'
+        ]
+        maternal_uncles = [
+            r for r in relatives_root
+            if r['category'] in ('TIO', 'TIA') and r['line'] == 'MATERNAL'
+        ]
+
+        # Si tenemos el padre y EL padre tiene familiares consultados, navegar
+        # más profundo. Si no, usar lo que vino del root.
+        if father:
+            father_full = _ancestor_node(father)
+            # Si el padre tiene sus propios padres (abuelos del root), usar esos
+            if father_full['parents']:
+                paternal_grandparents = father_full['parents']
+            # Si tiene hermanos (tíos del root), usar esos
+            if father_full['siblings']:
+                paternal_uncles = father_full['siblings']
+        else:
+            father_full = None
+
+        if mother:
+            mother_full = _ancestor_node(mother)
+            if mother_full['parents']:
+                maternal_grandparents = mother_full['parents']
+            if mother_full['siblings']:
+                maternal_uncles = mother_full['siblings']
+        else:
+            mother_full = None
+
+        # Root info
+        from datetime import date as _date
+        edad = None
+        if dni_obj.fecha_nacimiento:
+            t = _date.today()
+            b = dni_obj.fecha_nacimiento
+            edad = t.year - b.year - ((t.month, t.day) < (b.month, b.day))
+
+        return {
+            'root': {
+                'dni': dni_obj.dni,
+                'name': f"{dni_obj.nombres or ''} {dni_obj.apellido_paterno or ''} {dni_obj.apellido_materno or ''}".strip(),
+                'gender': dni_obj.sexo or 'U',
+                'age': edad,
+                'photo_b64': dni_obj.foto or None,
+            },
+            'father': father_full,
+            'mother': mother_full,
+            'spouse': spouse,
+            'siblings': siblings,
+            'children': children,
+            'paternal_grandparents': paternal_grandparents,
+            'maternal_grandparents': maternal_grandparents,
+            'paternal_uncles': paternal_uncles,
+            'maternal_uncles': maternal_uncles,
         }
 
     # ──── 3) Sueldos ──────────────────────────────────────────────────────
@@ -723,6 +859,7 @@ class ExpedienteService:
                 'consanguineous': cls._family_tree_from_cache(dni_obj, 'arbol_genealogico')['relatives'],
                 'household': cls._family_tree_from_cache(dni_obj, 'familia_1')['relatives'],
             },
+            'family_tree': cls.build_family_tree(dni),  # estructura jerárquica
             'salaries': cls._salaries_from_cache(dni_obj),
             'marriages': cls._marriages_from_cache(dni_obj),
             'addresses': cls._addresses_from_cache(dni_obj),
