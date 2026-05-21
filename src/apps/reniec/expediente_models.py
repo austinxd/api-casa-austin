@@ -374,9 +374,11 @@ class PersonPoliceRecord(BaseModel):
 
 # ─── 7) Meta: TTLs de refresh ──────────────────────────────────────────
 
-class PersonExpedienteMeta(BaseModel):
+class PersonExpedienteMeta(models.Model):
     """Tabla 1:1 con DNICache que guarda cuándo se consultó cada endpoint
     de Leder por última vez. Sirve para decidir si refrescar o usar cache.
+
+    No hereda de BaseModel porque usa `dni` como PK (no necesita UUID extra).
 
     TTLs default por endpoint (ver REFRESH_TTL_DAYS):
         phones:    30 días
@@ -401,6 +403,21 @@ class PersonExpedienteMeta(BaseModel):
         'reniec.DNICache', to_field='dni', db_column='dni',
         on_delete=models.CASCADE, primary_key=True,
         related_name='expediente_meta',
+    )
+
+    # Campos heredados de BaseModel a mano (no podemos heredar porque
+    # BaseModel ya define `id` UUID como PK):
+    created = models.DateTimeField(
+        "created at", auto_now_add=True,
+        help_text="When the instance was created.",
+    )
+    updated = models.DateTimeField(
+        "updated at", auto_now=True,
+        help_text="The last time at the instance was modified.",
+    )
+    deleted = models.BooleanField(
+        default=False,
+        help_text="It can be set to false, usefull to simulate deletion",
     )
 
     phones_fetched_at = models.DateTimeField(null=True, blank=True)
