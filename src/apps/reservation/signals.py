@@ -837,6 +837,23 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
         except Exception as e:
             logger.error(f"Error en atribución chatbot {instance.id}: {e}")
 
+        # 📊 ATRIBUCIÓN DE CANAL: infiere touch_channel de la reserva
+        # (Meta ad, Google, organic WA, web direct, etc.) usando los
+        # signals disponibles: chatbot_session.referral_source, touch_data
+        # (UTMs del frontend), fbclid/gclid, referred_by, etc.
+        # Si está creada ya en approved, también setea acquisition_channel
+        # del cliente cuando aplica (primera reserva aprobada).
+        try:
+            from apps.chatbot.channel_attribution import (
+                apply_touch_channel,
+                maybe_set_acquisition,
+            )
+            apply_touch_channel(instance)
+            if instance.status == 'approved':
+                maybe_set_acquisition(instance)
+        except Exception as e:
+            logger.error(f"Error en atribución de canal {instance.id}: {e}")
+
         # 📊 ACTIVITY FEED: Crear actividad para nueva reserva
         if instance.client and instance.origin in ['aus', 'client']:
             try:
@@ -994,6 +1011,15 @@ def reservation_post_save_handler(sender, instance, created, **kwargs):
         # NUEVO: Crear tarea de limpieza automáticamente cuando se aprueba la reserva
         if instance.status == 'approved' and hasattr(instance, '_original_status') and instance._original_status != 'approved':
             logger.info(f"Reservation {instance.id} status changed to approved - Creating automatic cleaning task")
+
+            # 📊 ATRIBUCIÓN: status cambió a approved → si es la primera
+            # reserva aprobada del cliente, registra acquisition_channel.
+            try:
+                from apps.chatbot.channel_attribution import maybe_set_acquisition
+                maybe_set_acquisition(instance)
+            except Exception as e:
+                logger.error(f"Error seteando acquisition_channel para {instance.id}: {e}")
+
             create_automatic_cleaning_task(instance)
             
             # REORGANIZACIÓN INTELIGENTE: Evaluar si afecta prioridades de tareas existentes

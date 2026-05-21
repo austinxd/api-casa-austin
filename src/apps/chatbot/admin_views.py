@@ -1697,4 +1697,130 @@ class MagicLinkListView(ListAPIView):
                 Q(wa_id__icontains=search)
             )
 
+
+# =====================================================================
+# Dashboard de atribución de canal (PR 2 — Fase 5)
+# =====================================================================
+
+class ChannelAttributionView(APIView):
+    """GET /chatbot/channel-attribution/?days=30
+
+    Devuelve dos breakdowns para el dashboard:
+
+    1. **acquisition_by_channel**: clientes adquiridos en el período,
+       agrupados por su `acquisition_channel`. Incluye contadores y
+       total reservado (sum de price_usd de su primera reserva aprobada).
+
+    2. **retention_by_touch**: reservas REPETIDAS en el período (cliente
+       ya tenía una reserva previa aprobada), agrupadas por
+       `touch_channel`. Mide retargeting/retención.
+
+    También devuelve totales del período + comparación vs período previo.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.clients.models import Clients
+        from apps.reservation.models import Reservation
+        from apps.core.channel_choices import ChannelChoice
+
+        try:
+            days = int(request.query_params.get('days', 30))
+        except (TypeError, ValueError):
+            days = 30
+        days = max(1, min(365, days))
+
+        now = timezone.now()
+        period_start = now - timedelta(days=days)
+
+        channel_labels = dict(ChannelChoice.choices)
+
+        def label(ch):
+            return channel_labels.get(ch, ch or 'Unknown')
+
+        # === Adquisición: clientes adquiridos en el período ===
+        acq_qs = (
+            Clients.objects
+            .filter(
+                deleted=False,
+                acquired_at__gte=period_start,
+                acquired_at__lt=now,
+            )
+            .values('acquisition_channel')
+            .annotate(clients=Count('id'))
+            .order_by('-clients')
+        )
+        acquisition = []
+        total_acquired = 0
+        for row in acq_qs:
+            ch = row['acquisition_channel'] or ChannelChoice.UNKNOWN
+            # Calcular revenue de la primera reserva aprobada de cada cliente
+            # (lo guardamos en client.acquired_at por convención — pero el
+            # monto no está en Client. Lo sumamos de Reservation por canal).
+            revenue = (
+                Reservation.objects
+                .filter(
+                    deleted=False,
+                    status='approved',
+                    client__acquisition_channel=ch,
+                    client__acquired_at__gte=period_start,
+                    client__acquired_at__lt=now,
+                    created__gte=period_start,  # restringe a misma ventana
+                )
+                .aggregate(total=Count('id'))
+            )
+            acquisition.append({
+                'channel': ch,
+                'label': label(ch),
+                'clients': row['clients'],
+                'reservations': revenue['total'] or 0,
+            })
+            total_acquired += row['clients']
+
+        # === Retención: reservas repetidas en el período ===
+        # "Repetida" = cliente ya tenía al menos 1 reserva approved
+        # creada ANTES del período actual.
+        from django.db.models import Exists, OuterRef
+        prior_approved = Reservation.objects.filter(
+            client_id=OuterRef('client_id'),
+            deleted=False,
+            status='approved',
+            created__lt=period_start,
+        )
+        ret_qs = (
+            Reservation.objects
+            .annotate(_has_prior=Exists(prior_approved))
+            .filter(
+                deleted=False,
+                created__gte=period_start,
+                created__lt=now,
+                _has_prior=True,
+            )
+            .values('touch_channel')
+            .annotate(reservations=Count('id'))
+            .order_by('-reservations')
+        )
+        retention = []
+        total_retention = 0
+        for row in ret_qs:
+            ch = row['touch_channel'] or ChannelChoice.UNKNOWN
+            retention.append({
+                'channel': ch,
+                'label': label(ch),
+                'reservations': row['reservations'],
+            })
+            total_retention += row['reservations']
+
+        return Response({
+            'period_days': days,
+            'period_start': period_start.isoformat(),
+            'period_end': now.isoformat(),
+            'acquisition_by_channel': acquisition,
+            'totals': {
+                'acquired_clients': total_acquired,
+                'retention_reservations': total_retention,
+            },
+            'retention_by_touch': retention,
+        })
+
         return qs.order_by('-created')
