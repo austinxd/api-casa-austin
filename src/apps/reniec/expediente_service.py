@@ -96,6 +96,112 @@ def _get_or_create_meta(dni_obj: DNICache) -> PersonExpedienteMeta:
     return meta
 
 
+def _calc_age(birthday) -> Optional[int]:
+    if not birthday:
+        return None
+    from datetime import date as _date
+    today = _date.today()
+    return today.year - birthday.year - ((today.month, today.day) < (birthday.month, birthday.day))
+
+
+def serialize_person(d: DNICache) -> Dict[str, Any]:
+    """Serializa un DNICache a una estructura categorizada con campos
+    nombrados para consumo del frontend. NO devuelve raw_data — sólo los
+    campos que se interpretan.
+    """
+    fmt_date = lambda x: x.isoformat() if x else None
+
+    return {
+        'dni': d.dni,
+        # ── Identidad básica ──
+        'identidad': {
+            'nombres': d.nombres or '',
+            'apellido_paterno': d.apellido_paterno or '',
+            'apellido_materno': d.apellido_materno or '',
+            'apellido_casada': d.apellido_casada or '',
+            'nombre_completo': f"{d.nombres or ''} {d.apellido_paterno or ''} {d.apellido_materno or ''}".strip(),
+            'sexo': d.sexo or '',
+            'sexo_label': {'M': 'Masculino', 'F': 'Femenino'}.get((d.sexo or '').upper(), d.sexo or ''),
+            'fecha_nacimiento': fmt_date(d.fecha_nacimiento),
+            'edad': _calc_age(d.fecha_nacimiento),
+            'estado_civil': d.estado_civil or '',
+            'grado_instruccion': d.grado_instruccion or '',
+            'estatura_cm': d.estatura,
+        },
+        # ── Documento ──
+        'documento': {
+            'nu_dni': d.nu_dni or d.dni,
+            'nu_ficha': d.nu_ficha or '',
+            'nu_imagen': d.nu_imagen or '',
+            'digito_verificacion': d.digito_verificacion or '',
+            'fecha_emision': fmt_date(d.fecha_emision),
+            'fecha_inscripcion': fmt_date(d.fecha_inscripcion),
+            'fecha_caducidad': fmt_date(d.fecha_caducidad),
+            'esta_vigente': bool(d.fecha_caducidad and d.fecha_caducidad >= timezone.now().date()) if d.fecha_caducidad else None,
+        },
+        # ── Filiación (padres) ──
+        'filiacion': {
+            'nombre_padre': d.nom_padre or '',
+            'nombre_madre': d.nom_madre or '',
+        },
+        # ── Lugar de nacimiento ──
+        'lugar_nacimiento': {
+            'pais': d.pais or '',
+            'departamento': d.departamento or '',
+            'provincia': d.provincia or '',
+            'distrito': d.distrito or '',
+        },
+        # ── Dirección actual según RENIEC ──
+        'direccion_reniec': {
+            'pais': d.pais_direccion or '',
+            'departamento': d.departamento_direccion or '',
+            'provincia': d.provincia_direccion or '',
+            'distrito': d.distrito_direccion or '',
+            'direccion_completa': d.direccion or '',
+            'ubigeo_reniec': d.ubigeo_reniec or '',
+            'ubigeo_inei': d.ubigeo_inei or '',
+            'codigo_postal': d.codigo_postal or '',
+        },
+        # ── Contacto (lo que tiene Reniec, no es definitivo) ──
+        'contacto': {
+            'telefono': d.telefono or '',
+            'email': d.email or '',
+        },
+        # ── Datos electorales / restricciones ──
+        'electoral': {
+            'grupo_votacion': d.gp_votacion or '',
+            'multas_electorales': d.multas_electorales or '',
+            'multa_administrativa': d.multa_admin or '',
+        },
+        'restricciones': {
+            'observacion': d.observacion or '',
+            'cancelacion': d.cancelacion or '',
+            'fecha_restriccion': d.fecha_restriccion or '',
+            'descripcion_restriccion': d.de_restriccion or '',
+        },
+        # ── Fallecimiento (si aplica) ──
+        'fallecimiento': {
+            'fecha': fmt_date(d.fecha_fallecimiento) if d.fecha_fallecimiento else None,
+            'departamento': d.depa_fallecimiento or '',
+            'provincia': d.prov_fallecimiento or '',
+            'distrito': d.dist_fallecimiento or '',
+            'fallecido': bool(d.fecha_fallecimiento),
+        },
+        # ── Otros ──
+        'otros': {
+            'dona_organos': d.dona_organos or '',
+            'fecha_actualizacion': fmt_date(d.fecha_actualizacion),
+        },
+        # ── Imágenes (base64) ──
+        'imagenes': {
+            'foto_b64': d.foto or '',
+            'firma_b64': d.firma or '',
+            'huella_izquierda_b64': d.huella_izquierda or '',
+            'huella_derecha_b64': d.huella_derecha or '',
+        },
+    }
+
+
 def _ensure_dni_cache(dni: str, fallback_name: str = '') -> Optional[DNICache]:
     """Si no existe DNICache para `dni`, lo crea con info mínima y dispara
     un lookup completo en background para enriquecerlo con foto/firma/etc.
@@ -606,18 +712,13 @@ class ExpedienteService:
         meta.last_full_refresh_at = timezone.now()
         meta.save(update_fields=['last_full_refresh_at', 'updated'])
 
-        # Construir respuesta consolidada (siempre desde cache local — refleja lo recién guardado)
-        from .service import ReniecService
-        ok, person_data = ReniecService.lookup(
-            dni=dni, source_app='expediente_full_read',
-            include_photo=True, include_full_data=True,
-        )
-        person = person_data if ok else {'dni': dni}
+        # Refrescar datos básicos desde DB (puede que el lookup principal arriba los haya actualizado)
+        dni_obj.refresh_from_db()
 
         return {
             'dni': dni_obj.dni,
-            'person': person,
-            'phones': cls._phones_for_dni_from_cache(dni_obj),
+            # Persona con campos categorizados (NO raw_data)
+            'person': serialize_person(dni_obj),
             'family': {
                 'consanguineous': cls._family_tree_from_cache(dni_obj, 'arbol_genealogico')['relatives'],
                 'household': cls._family_tree_from_cache(dni_obj, 'familia_1')['relatives'],
@@ -628,7 +729,6 @@ class ExpedienteService:
             'police_records': cls._police_from_cache(dni_obj),
             'meta': {
                 'last_full_refresh_at': meta.last_full_refresh_at.isoformat() if meta.last_full_refresh_at else None,
-                'phones_fetched_at': meta.phones_fetched_at.isoformat() if meta.phones_fetched_at else None,
                 'family_tree_fetched_at': meta.family_tree_fetched_at.isoformat() if meta.family_tree_fetched_at else None,
                 'family_household_fetched_at': meta.family_household_fetched_at.isoformat() if meta.family_household_fetched_at else None,
                 'salaries_fetched_at': meta.salaries_fetched_at.isoformat() if meta.salaries_fetched_at else None,
@@ -638,11 +738,3 @@ class ExpedienteService:
                 'refreshed_this_call': list(tasks.keys()),
             },
         }
-
-    @classmethod
-    def _phones_for_dni_from_cache(cls, dni_obj) -> List[Dict[str, Any]]:
-        rows = PersonPhone.objects.filter(dni=dni_obj, deleted=False).order_by('-period')
-        return [{
-            'phone': r.phone, 'operator': r.operator, 'plan': r.plan,
-            'period': r.period.isoformat() if r.period else None,
-        } for r in rows]
