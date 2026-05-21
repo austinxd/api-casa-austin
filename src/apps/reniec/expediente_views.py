@@ -43,8 +43,9 @@ class AdminFullExpedienteView(APIView):
     """POST /api/v1/reniec/full/<dni>/ — Orquestador.
 
     Body opcional:
-        { "force_refresh": true }  → fuerza re-consultar a Leder los 7 endpoints,
-                                      ignorando TTL.
+        { "force_refresh": true }   → fuerza re-consultar a Leder los 6 endpoints
+        { "include_photos": true }  → incluye photo_b64 de cada familiar en el árbol
+                                       (por default false para respuestas más livianas)
     """
     permission_classes = [IsAdminUser]
 
@@ -53,18 +54,23 @@ class AdminFullExpedienteView(APIView):
         if err:
             return err
         force = _bool(request.data.get('force_refresh'))
-        result = ExpedienteService.get_full_expediente(dni, force_refresh=force)
+        include_photos = _bool(request.data.get('include_photos'))
+        result = ExpedienteService.get_full_expediente(
+            dni, force_refresh=force, include_photos=include_photos,
+        )
         if 'error' in result:
             return Response(result, status=400 if result.get('error') == 'invalid_dni' else 500)
         return Response(result)
 
     def get(self, request, dni: str):
-        # Permite también GET para conveniencia (force_refresh por query param)
         err = _validate_dni(dni)
         if err:
             return err
         force = _bool(request.query_params.get('refresh') or request.query_params.get('force'))
-        result = ExpedienteService.get_full_expediente(dni, force_refresh=force)
+        include_photos = _bool(request.query_params.get('include_photos') or request.query_params.get('photos'))
+        result = ExpedienteService.get_full_expediente(
+            dni, force_refresh=force, include_photos=include_photos,
+        )
         if 'error' in result:
             return Response(result, status=400 if result.get('error') == 'invalid_dni' else 500)
         return Response(result)
@@ -105,11 +111,11 @@ class AdminFamilyView(APIView):
 
 
 class AdminFamilyTreeView(APIView):
-    """GET /api/v1/reniec/<dni>/family-tree/ — estructura jerárquica del árbol.
+    """GET /api/v1/reniec/<dni>/family-tree/ — estructura jerárquica.
 
-    Devuelve root + father (con sus parents/siblings) + mother + spouse +
-    siblings + children + abuelos/tíos por línea. Lista para renderizar
-    con react-d3-tree u otra librería de árboles.
+    Query params:
+        ?include_photos=1  → incluye photo_b64 de cada familiar (response pesado).
+                              Por default sin fotos para velocidad.
     """
     permission_classes = [IsAdminUser]
 
@@ -117,7 +123,8 @@ class AdminFamilyTreeView(APIView):
         err = _validate_dni(dni)
         if err:
             return err
-        return Response(ExpedienteService.build_family_tree(dni))
+        include_photos = _bool(request.query_params.get('include_photos') or request.query_params.get('photos'))
+        return Response(ExpedienteService.build_family_tree(dni, include_photos=include_photos))
 
 
 class AdminSalariesView(APIView):

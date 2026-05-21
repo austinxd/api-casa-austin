@@ -472,28 +472,25 @@ class ExpedienteService:
         return out
 
     @classmethod
-    def build_family_tree(cls, dni: str) -> Dict[str, Any]:
+    def build_family_tree(cls, dni: str, include_photos: bool = False) -> Dict[str, Any]:
         """Construye la estructura JERÁRQUICA del árbol genealógico.
 
-        Devuelve un dict con root + padres (cada uno con sus padres y
-        hermanos) + cónyuge + hermanos + hijos. Lista para renderizar
-        con react-d3-tree u otra librería de árboles.
-
-        Si el DNI no se consultó antes, devuelve estructura mínima con
-        solo root. El árbol se va completando a medida que se consultan
-        más DNIs (los familiares se cachean lazy automáticamente).
+        include_photos:
+          False (default) → response liviano sin fotos de familiares (~80% más chico).
+          True            → incluye photo_b64 de cada familiar.
+        La foto del ROOT siempre se incluye (es la principal y crítica).
         """
         dni_obj = DNICache.get_or_none(dni)
         if not dni_obj:
             return {'error': 'dni_not_in_cache', 'dni': dni}
 
-        # Helper: traer todos los familiares directos del DNI con clasificación.
-        # include_photo=True porque ESTE es el árbol visual que muestra fotos.
+        # Helper: traer familiares directos del DNI con clasificación.
+        # include_photo controla si cada uno trae photo_b64.
         def _direct_relatives(d):
             rows = PersonFamilyRelation.objects.filter(
                 dni__dni=d, deleted=False, source='arbol_genealogico',
             ).select_related('relative_dni')
-            return [cls._serialize_relative(r, include_photo=True) for r in rows]
+            return [cls._serialize_relative(r, include_photo=include_photos) for r in rows]
 
         # Función para construir un nodo "persona ancestro" con sus padres + hermanos
         def _ancestor_node(person_relative):
@@ -864,7 +861,7 @@ class ExpedienteService:
 
     # ──── 7) Orquestador /full/ ──────────────────────────────────────────
     @classmethod
-    def get_full_expediente(cls, dni: str, force_refresh: bool = False) -> Dict[str, Any]:
+    def get_full_expediente(cls, dni: str, force_refresh: bool = False, include_photos: bool = False) -> Dict[str, Any]:
         """Ejecuta los 7 endpoints (excepto phones que es por número) en paralelo.
 
         Phones NO se incluye aquí porque ese se busca al revés (por número, no
@@ -932,7 +929,7 @@ class ExpedienteService:
                 'consanguineous': cls._family_tree_from_cache(dni_obj, 'arbol_genealogico')['relatives'],
                 'household': cls._family_tree_from_cache(dni_obj, 'familia_1')['relatives'],
             },
-            'family_tree': cls.build_family_tree(dni),  # estructura jerárquica
+            'family_tree': cls.build_family_tree(dni, include_photos=include_photos),
             'salaries': cls._salaries_from_cache(dni_obj),
             'marriages': cls._marriages_from_cache(dni_obj),
             'addresses': cls._addresses_from_cache(dni_obj),
