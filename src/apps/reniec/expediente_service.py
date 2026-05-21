@@ -20,7 +20,6 @@ Cada método:
 5. Devuelve datos formateados.
 """
 import logging
-import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional
 
@@ -203,10 +202,25 @@ def serialize_person(d: DNICache) -> Dict[str, Any]:
     }
 
 
+def _is_incomplete_cache(cached) -> bool:
+    """¿El cache es solo un placeholder vacío que necesita refresh?
+    True si source='lazy_pending', o si no tiene foto, o si no tiene nombres.
+    """
+    if not cached:
+        return True
+    if cached.source == 'lazy_pending':
+        return True
+    if not cached.foto:  # falta la foto = considerado incompleto
+        return True
+    if not cached.nombres:  # falta el nombre = obviamente incompleto
+        return True
+    return False
+
+
 def _ensure_dni_cache(dni: str, fallback_name: str = '') -> Optional[DNICache]:
-    """Si no existe DNICache para `dni`, lo crea con info mínima y dispara
-    un lookup completo en background para enriquecerlo con foto/firma/etc.
-    Si ya existe, lo devuelve.
+    """Asegura que exista un registro en DNICache para `dni`. Si no existe,
+    crea un placeholder mínimo. NO dispara lookup — el enriquecimiento se
+    hace después en paralelo via `_enrich_missing_photos()`.
 
     Returns: DNICache o None si dni inválido.
     """
@@ -215,26 +229,59 @@ def _ensure_dni_cache(dni: str, fallback_name: str = '') -> Optional[DNICache]:
     cached = DNICache.get_or_none(dni)
     if cached:
         return cached
-    # Crear mínimo
-    cached = DNICache.objects.create(
+    return DNICache.objects.create(
         dni=dni,
         nombres=(fallback_name or '').strip().upper()[:200],
         source='lazy_pending',
     )
-    # Lookup completo en background — fire and forget
-    def _background_enrich():
+
+
+def _enrich_missing_photos(dni_list, max_workers=5, timeout=30):
+    """Para cada DNI cuyo cache está incompleto (sin foto / lazy_pending),
+    dispara un lookup a Leder en PARALELO con ThreadPoolExecutor.
+
+    Se llama después de armar el árbol/familia, para garantizar que todos
+    los familiares descubiertos tengan foto + datos completos.
+
+    Llamadas a Leder: 1 por DNI incompleto. Si todos tienen foto ya, 0.
+    """
+    if not dni_list:
+        return
+    # Filtrar solo los que efectivamente están incompletos
+    to_enrich = []
+    for dni in set(dni_list):
+        if not dni:
+            continue
+        cached = DNICache.get_or_none(dni)
+        if _is_incomplete_cache(cached):
+            to_enrich.append(dni)
+    if not to_enrich:
+        return
+
+    logger.info(f"Enriqueciendo {len(to_enrich)} DNIs incompletos en paralelo")
+
+    def _enrich_one(d):
         try:
             ReniecService.lookup(
-                dni=dni,
-                source_app='lazy_family_enrich',
-                include_photo=True,
-                include_full_data=True,
+                dni=d, source_app='family_enrich',
+                include_photo=True, include_full_data=True,
             )
+            return d, True
         except Exception as e:
-            logger.warning(f"Lazy enrich falló para DNI {dni}: {e}")
-    t = threading.Thread(target=_background_enrich, daemon=True)
-    t.start()
-    return cached
+            logger.warning(f"Enrich falló para {d}: {e}")
+            return d, False
+
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        futures = [ex.submit(_enrich_one, d) for d in to_enrich]
+        ok = 0
+        for f in as_completed(futures, timeout=timeout):
+            try:
+                dni_done, success = f.result(timeout=5)
+                if success:
+                    ok += 1
+            except Exception as e:
+                logger.warning(f"Future exception: {e}")
+        logger.info(f"Enrich completado: {ok}/{len(to_enrich)}")
 
 
 # ─── ExpedienteService ───────────────────────────────────────────────────
@@ -302,6 +349,7 @@ class ExpedienteService:
             meta.mark_fetched('family_tree')
             return cls._family_tree_from_cache(dni_obj, source='arbol_genealogico')
 
+        discovered_dnis = []
         for c in (result.get('coincidences') or []):
             rdni = c.get('dni')
             if not rdni:
@@ -310,6 +358,7 @@ class ExpedienteService:
             relative_obj = _ensure_dni_cache(rdni, fallback_name=full_name)
             if not relative_obj:
                 continue
+            discovered_dnis.append(rdni)
             PersonFamilyRelation.objects.update_or_create(
                 dni=dni_obj,
                 relative_dni=relative_obj,
@@ -322,6 +371,10 @@ class ExpedienteService:
                     'cached_age_at_query': c.get('edad'),
                 },
             )
+
+        # Enriquecer familiares con foto/firma en PARALELO (sync con timeout 30s)
+        _enrich_missing_photos(discovered_dnis)
+
         meta.mark_fetched('family_tree')
         return cls._family_tree_from_cache(dni_obj, source='arbol_genealogico')
 
@@ -340,6 +393,7 @@ class ExpedienteService:
             return cls._family_tree_from_cache(dni_obj, source='familia_1')
 
         familiares = (result.get('general') or {}).get('familiares') or {}
+        discovered_dnis = []
         for c in (familiares.get('coincidences') or []):
             rdni = c.get('nro_documento')
             if not rdni:
@@ -348,6 +402,7 @@ class ExpedienteService:
             relative_obj = _ensure_dni_cache(rdni, fallback_name=full_name)
             if not relative_obj:
                 continue
+            discovered_dnis.append(rdni)
             birthday = None
             if c.get('fecha_nac'):
                 birthday = parse_period(c['fecha_nac'])
@@ -363,6 +418,10 @@ class ExpedienteService:
                     'cached_birthday': birthday,
                 },
             )
+
+        # Enriquecer cohabitantes con foto en paralelo
+        _enrich_missing_photos(discovered_dnis)
+
         meta.mark_fetched('family_household')
         return cls._family_tree_from_cache(dni_obj, source='familia_1')
 
